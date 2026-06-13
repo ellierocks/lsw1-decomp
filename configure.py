@@ -29,7 +29,7 @@ from tools.project import (
 # Game versions
 DEFAULT_VERSION = 0
 VERSIONS = [
-    "GAMEID",  # 0
+    "GL5E4F",  # 0 - LEGO Star Wars: The Video Game (GameCube, NTSC-U)
 ]
 
 parser = argparse.ArgumentParser()
@@ -286,10 +286,26 @@ config.warn_missing_config = True
 config.warn_missing_source = False
 config.libs = [
     {
+        "lib": "main",
+        "mw_version": config.linker_version,
+        "cflags": cflags_base,
+        "progress_category": "game",
+        "objects": [
+            Object(NonMatching, "auto_00_80003100_init", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_01_800034A0_text", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_02_8018CB00_rodata", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_03_801B0640_data", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_04_801FD080_bss", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_05_80407A40_sdata", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_06_8040A2C0_sbss", asm_dir="build/GL5E4F/asm"),
+            Object(NonMatching, "auto_07_8040B300_sdata2", asm_dir="build/GL5E4F/asm"),
+        ],
+    },
+    {
         "lib": "Runtime.PPCEABI.H",
         "mw_version": config.linker_version,
         "cflags": cflags_runtime,
-        "progress_category": "sdk",  # str | List[str]
+        "progress_category": "sdk",
         "objects": [
             Object(NonMatching, "Runtime.PPCEABI.H/global_destructor_chain.c"),
             Object(NonMatching, "Runtime.PPCEABI.H/__init_cpp_exceptions.cpp"),

@@ -1,0 +1,15 @@
+# See config.example.yml for documentation.
+object_base: orig/GL5E4F
+extract_objects: true
+object: sys/main.dol
+hash: 95cca08a19224775d1a8d6cc64601fb7d0080981
+symbols: config/GL5E4F/symbols.txt
+splits: config/GL5E4F/splits.txt
+# Change this to match the linker version.
+# See config.example.yml for a list.
+mw_comment_version: 11
+
+# Initial analysis otherwise over-extends a function through this region.
+skip_cfa_ranges:
+- start: .text:0x80151AFC
+  end: .text:0x8015BF48

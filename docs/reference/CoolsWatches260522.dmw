@@ -1,0 +1,1343 @@
+{
+    "structDefs": {
+        "rootNode": [
+        ]
+    },
+    "watchList": [
+        {
+            "groupEntries": [
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C0",
+                            "baseIndex": 0,
+                            "label": "DigitalInputs",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802F4870",
+                            "baseIndex": 1,
+                            "label": "No label",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C0",
+                            "baseIndex": 3,
+                            "label": "YXBA INPUTS",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C1",
+                            "baseIndex": 3,
+                            "label": "LRZ INPUTS",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C2",
+                            "baseIndex": 0,
+                            "label": "LeftStick",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C4",
+                            "baseIndex": 0,
+                            "label": "RightStick",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C6",
+                            "baseIndex": 0,
+                            "label": "AnalogL",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "802292C7",
+                            "baseIndex": 0,
+                            "label": "AnalogR",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "P1"
+                }
+            ],
+            "groupName": "Inputs"
+        },
+        {
+            "groupEntries": [
+                {
+                    "absoluteBranch": false,
+                    "address": "803E049C",
+                    "baseIndex": 1,
+                    "label": "Studs total",
+                    "typeIndex": 2,
+                    "unsigned": true
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "803E029A",
+                    "baseIndex": 0,
+                    "label": "Superkit total",
+                    "typeIndex": 0,
+                    "unsigned": true
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "8040B1A4",
+                            "baseIndex": 0,
+                            "label": "Minikit Total",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "8040B1A8",
+                            "baseIndex": 0,
+                            "label": "True Jedi",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        }
+                    ],
+                    "groupName": "Current session level completion"
+                }
+            ],
+            "groupName": "Game progress"
+        },
+        {
+            "groupEntries": [
+                {
+                    "absoluteBranch": false,
+                    "address": "803E049C",
+                    "baseIndex": 0,
+                    "label": "Total balance",
+                    "typeIndex": 2,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "8040B1AC",
+                    "baseIndex": 0,
+                    "label": "Players total",
+                    "typeIndex": 2,
+                    "unsigned": true
+                }
+            ],
+            "groupName": "Studs"
+        },
+        {
+            "groupEntries": [
+                {
+                    "absoluteBranch": false,
+                    "address": "803E0404",
+                    "baseIndex": 0,
+                    "label": "Dooku",
+                    "typeIndex": 0,
+                    "unsigned": true
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "8040B107",
+                    "baseIndex": 0,
+                    "label": "Lags behind collection, display value",
+                    "typeIndex": 0,
+                    "unsigned": true
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "8040B1A7",
+                    "baseIndex": 0,
+                    "label": "Global, current level",
+                    "typeIndex": 0,
+                    "unsigned": true
+                }
+            ],
+            "groupName": "MinikitTotalSearch"
+        },
+        {
+            "groupEntries": [
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5996",
+                            "baseIndex": 0,
+                            "label": "Invincibility",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D59A6",
+                            "baseIndex": 0,
+                            "label": "Silhouettes",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D59B6",
+                            "baseIndex": 0,
+                            "label": "Purple",
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D59C6",
+                            "baseIndex": 0,
+                            "label": "Moustaches",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D59D6",
+                            "baseIndex": 0,
+                            "label": "Minikit detector",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D59E6",
+                            "baseIndex": 0,
+                            "label": "Tea cups",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D59F6",
+                            "baseIndex": 0,
+                            "label": "Brushes",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5A06",
+                            "baseIndex": 0,
+                            "label": "Big Blasters",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5A16",
+                            "baseIndex": 0,
+                            "label": "Classic Blasters",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5A26",
+                            "baseIndex": 0,
+                            "label": "Silly Blasters",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        }
+                    ],
+                    "groupName": "Toggles"
+                }
+            ],
+            "groupName": "ExtrasSearch"
+        },
+        {
+            "expanded": true,
+            "groupEntries": [
+                {
+                    "absoluteBranch": false,
+                    "address": "803E01F4",
+                    "baseIndex": 0,
+                    "label": "X",
+                    "typeIndex": 3,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "803E01F8",
+                    "baseIndex": 0,
+                    "label": "Y",
+                    "typeIndex": 3,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "803E01FC",
+                    "baseIndex": 0,
+                    "label": "Z",
+                    "typeIndex": 3,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "803E0276",
+                    "baseIndex": 0,
+                    "label": "Tilt",
+                    "typeIndex": 1,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "803E027A",
+                    "baseIndex": 0,
+                    "label": "Pan",
+                    "typeIndex": 1,
+                    "unsigned": false
+                }
+            ],
+            "groupName": "Camera"
+        },
+        {
+            "expanded": true,
+            "groupEntries": [
+                {
+                    "expanded": true,
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5338",
+                            "baseIndex": 1,
+                            "label": "Pointer",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5338",
+                            "baseIndex": 1,
+                            "label": "Dropin toggle",
+                            "pointerOffsets": [
+                                "20C"
+                            ],
+                            "typeIndex": 0,
+                            "unsigned": true
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "X",
+                                    "pointerOffsets": [
+                                        "6C"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Y",
+                                    "pointerOffsets": [
+                                        "70"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Z",
+                                    "pointerOffsets": [
+                                        "74"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Coords"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Vx",
+                                    "pointerOffsets": [
+                                        "78"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Vy",
+                                    "pointerOffsets": [
+                                        "7C"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Vz",
+                                    "pointerOffsets": [
+                                        "80"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Velocities"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Current angle (reverts)",
+                                    "pointerOffsets": [
+                                        "1066"
+                                    ],
+                                    "typeIndex": 1,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5338",
+                                    "baseIndex": 0,
+                                    "label": "Intended angle",
+                                    "pointerOffsets": [
+                                        "1068"
+                                    ],
+                                    "typeIndex": 1,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Rotation"
+                        }
+                    ],
+                    "groupName": "P1"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D533C",
+                            "baseIndex": 1,
+                            "label": "Pointer",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D533C",
+                            "baseIndex": 1,
+                            "label": "Dropin toggle",
+                            "pointerOffsets": [
+                                "20C"
+                            ],
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "X",
+                                    "pointerOffsets": [
+                                        "6C"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Y",
+                                    "pointerOffsets": [
+                                        "70"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Z",
+                                    "pointerOffsets": [
+                                        "74"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Coords"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Vx",
+                                    "pointerOffsets": [
+                                        "78"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Vy",
+                                    "pointerOffsets": [
+                                        "7C"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Vz",
+                                    "pointerOffsets": [
+                                        "80"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Velocities"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Current angle (reverts)",
+                                    "pointerOffsets": [
+                                        "1066"
+                                    ],
+                                    "typeIndex": 1,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D533C",
+                                    "baseIndex": 0,
+                                    "label": "Intended angle",
+                                    "pointerOffsets": [
+                                        "1068"
+                                    ],
+                                    "typeIndex": 1,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Rotation"
+                        }
+                    ],
+                    "groupName": "P2"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5340",
+                            "baseIndex": 1,
+                            "label": "P3 Pointer",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5340",
+                            "baseIndex": 0,
+                            "label": "Dropin toggle",
+                            "pointerOffsets": [
+                                "20C"
+                            ],
+                            "typeIndex": 0,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "P3"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801D5344",
+                            "baseIndex": 1,
+                            "label": "Pointer",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5344",
+                                    "baseIndex": 1,
+                                    "label": "X",
+                                    "pointerOffsets": [
+                                        "6C"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5344",
+                                    "baseIndex": 0,
+                                    "label": "Y",
+                                    "pointerOffsets": [
+                                        "70"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5344",
+                                    "baseIndex": 0,
+                                    "label": "Z",
+                                    "pointerOffsets": [
+                                        "74"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Coords"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5344",
+                                    "baseIndex": 0,
+                                    "label": "Vx",
+                                    "pointerOffsets": [
+                                        "78"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5344",
+                                    "baseIndex": 0,
+                                    "label": "Vy",
+                                    "pointerOffsets": [
+                                        "7C"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801D5344",
+                                    "baseIndex": 0,
+                                    "label": "Vz",
+                                    "pointerOffsets": [
+                                        "80"
+                                    ],
+                                    "typeIndex": 3,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Velocities"
+                        }
+                    ],
+                    "groupName": "P4"
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "801D5348",
+                    "baseIndex": 1,
+                    "label": "P5 Pointer",
+                    "typeIndex": 2,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "801D534C",
+                    "baseIndex": 1,
+                    "label": "P6 Pointer",
+                    "typeIndex": 2,
+                    "unsigned": false
+                }
+            ],
+            "groupName": "Player Characters"
+        },
+        {
+            "expanded": true,
+            "groupEntries": [
+                {
+                    "absoluteBranch": false,
+                    "address": "8040912F",
+                    "baseIndex": 0,
+                    "label": "Freeze game",
+                    "typeIndex": 0,
+                    "unsigned": false
+                },
+                {
+                    "absoluteBranch": false,
+                    "address": "80408F9B",
+                    "baseIndex": 0,
+                    "label": "Menu controller toggle",
+                    "typeIndex": 0,
+                    "unsigned": true
+                },
+                {
+                    "expanded": true,
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "80408A27",
+                            "baseIndex": 0,
+                            "label": "Menu depth",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9161",
+                                    "baseIndex": 0,
+                                    "label": "Current Menu (26 = pause)",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D915F",
+                                    "baseIndex": 0,
+                                    "label": "Menu length",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9157",
+                                    "baseIndex": 0,
+                                    "label": "Selection",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D914D",
+                                    "baseIndex": 0,
+                                    "label": "Timer (Hold 0 if using Menu 24)",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Pause (depth 1)"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9241",
+                                    "baseIndex": 0,
+                                    "label": "CurrentMenu (31=debug)",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9237",
+                                    "baseIndex": 0,
+                                    "label": "SelectionIndex",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "BM (depth 2)"
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9321",
+                                    "baseIndex": 0,
+                                    "label": "CurrentMenu (33=sceneselect)",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D931D",
+                                    "baseIndex": 0,
+                                    "label": "Horizontal length (21)",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D931F",
+                                    "baseIndex": 0,
+                                    "label": "Vertical length (10)",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9315",
+                                    "baseIndex": 0,
+                                    "label": "Horizontal selection",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803D9317",
+                                    "baseIndex": 0,
+                                    "label": "Vertical Selection",
+                                    "typeIndex": 0,
+                                    "unsigned": false
+                                }
+                            ],
+                            "groupName": "Scene Select (depth 3)"
+                        }
+                    ],
+                    "groupName": "Menu params"
+                }
+            ],
+            "groupName": "Menu mechanics"
+        },
+        {
+            "expanded": true,
+            "groupEntries": [
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DF890",
+                            "baseIndex": 1,
+                            "label": "String pointer",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1AAA",
+                            "baseIndex": 1,
+                            "label": "string",
+                            "length": 6,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Resume"
+                },
+                {
+                    "expanded": true,
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DF8A8",
+                            "baseIndex": 1,
+                            "label": "String pointer",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1AE4",
+                            "baseIndex": 0,
+                            "label": "String",
+                            "length": 7,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "expanded": true,
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803E02A0",
+                                    "baseIndex": 0,
+                                    "label": "Audio Volume (value)",
+                                    "typeIndex": 0,
+                                    "unsigned": true
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "803E04BC",
+                                    "baseIndex": 0,
+                                    "label": "Audio Volume (selection, unconfirmed)",
+                                    "typeIndex": 0,
+                                    "unsigned": true
+                                }
+                            ],
+                            "groupName": "Submenu"
+                        }
+                    ],
+                    "groupName": "Options"
+                }
+            ],
+            "groupName": "Menu items"
+        },
+        {
+            "expanded": true,
+            "groupEntries": [
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1C14",
+                            "baseIndex": 3,
+                            "label": "String",
+                            "length": 28,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1C14",
+                            "baseIndex": 0,
+                            "label": "Bytes",
+                            "length": 28,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1C14",
+                            "baseIndex": 0,
+                            "label": "Color code",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        }
+                    ],
+                    "groupName": "Please press START to begin"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0194",
+                            "baseIndex": 0,
+                            "label": "Text",
+                            "length": 11,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Go To Scene"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "8041B1AA",
+                            "baseIndex": 0,
+                            "label": "Can't write but can read",
+                            "length": 8,
+                            "typeIndex": 5,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A5440",
+                            "baseIndex": 0,
+                            "label": "Loading",
+                            "length": 14,
+                            "typeIndex": 5,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "8041B1A0",
+                            "baseIndex": 0,
+                            "label": "Loading filled",
+                            "length": 7,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Streaming Display"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DF890",
+                            "baseIndex": 1,
+                            "label": "Pointer 807D1AAA",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1AAA",
+                            "baseIndex": 0,
+                            "label": "string",
+                            "length": 6,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Resume"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DF8A8",
+                            "baseIndex": 1,
+                            "label": "Pointer 807D1AE4",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1AE4",
+                            "baseIndex": 0,
+                            "label": "String",
+                            "length": 7,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Options"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D18B9",
+                            "baseIndex": 1,
+                            "label": "Text",
+                            "length": 6,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DF7E4",
+                            "baseIndex": 1,
+                            "label": "Pointer 807D18B9",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Extras"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "807D1B03",
+                            "baseIndex": 1,
+                            "label": "Text",
+                            "length": 4,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DF8B8",
+                            "baseIndex": 1,
+                            "label": "Pointer 807D1B03",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Quit"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "807CEE11",
+                            "baseIndex": 1,
+                            "label": "Text",
+                            "length": 14,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "803DEE64",
+                            "baseIndex": 1,
+                            "label": "Pointer 807CEE11",
+                            "typeIndex": 2,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Dexter's Diner"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0354",
+                            "baseIndex": 1,
+                            "label": "Text",
+                            "length": 12,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "LEGO Options"
+                }
+            ],
+            "groupName": "Strings"
+        },
+        {
+            "expanded": true,
+            "groupEntries": [
+                {
+                    "absoluteBranch": false,
+                    "address": "804090F3",
+                    "baseIndex": 0,
+                    "label": "Debug Toggle",
+                    "length": 1,
+                    "typeIndex": 6,
+                    "unsigned": false
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "80408FD0",
+                            "baseIndex": 1,
+                            "label": "Toggle",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0218",
+                            "baseIndex": 0,
+                            "label": "Menu Label",
+                            "length": 12,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0218",
+                            "baseIndex": 4,
+                            "label": "Menu color code",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A5450",
+                            "baseIndex": 0,
+                            "label": "String",
+                            "length": 7,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A5450",
+                            "baseIndex": 0,
+                            "label": "OSD Color Code",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A5450",
+                            "baseIndex": 0,
+                            "label": "1st 32",
+                            "length": 4,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A5454",
+                            "baseIndex": 0,
+                            "label": "2nd 32",
+                            "length": 4,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        }
+                    ],
+                    "groupName": "FPS Display"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "803E0299",
+                            "baseIndex": 0,
+                            "label": "Value",
+                            "length": 1,
+                            "typeIndex": 6,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0228",
+                            "baseIndex": 0,
+                            "label": "Menu Label",
+                            "length": 10,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0228",
+                            "baseIndex": 4,
+                            "label": "Color Code",
+                            "length": 2,
+                            "typeIndex": 6,
+                            "unsigned": true
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0384",
+                            "baseIndex": 0,
+                            "label": "Submenu Labels",
+                            "length": 11,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Difficulty"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "80408FDF",
+                            "baseIndex": 0,
+                            "label": "Toggle",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0248",
+                            "baseIndex": 0,
+                            "label": "Menu Label",
+                            "length": 18,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        },
+                        {
+                            "groupEntries": [
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "8041B1AA",
+                                    "baseIndex": 0,
+                                    "label": "Can't write but can read",
+                                    "length": 8,
+                                    "typeIndex": 5,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "801A5440",
+                                    "baseIndex": 0,
+                                    "label": "Loading",
+                                    "length": 14,
+                                    "typeIndex": 5,
+                                    "unsigned": false
+                                },
+                                {
+                                    "absoluteBranch": false,
+                                    "address": "8041B1A0",
+                                    "baseIndex": 0,
+                                    "label": "Loading filled",
+                                    "length": 7,
+                                    "typeIndex": 5,
+                                    "unsigned": true
+                                }
+                            ],
+                            "groupName": "Display Strings"
+                        }
+                    ],
+                    "groupName": "Streaming display"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "80408FBC",
+                            "baseIndex": 0,
+                            "label": "Toggle",
+                            "typeIndex": 2,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "801A0208",
+                            "baseIndex": 0,
+                            "label": "Menu Label",
+                            "length": 12,
+                            "typeIndex": 5,
+                            "unsigned": true
+                        }
+                    ],
+                    "groupName": "Lift Player"
+                },
+                {
+                    "groupEntries": [
+                        {
+                            "absoluteBranch": false,
+                            "address": "804091FF",
+                            "baseIndex": 0,
+                            "label": "Menu toggle",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        },
+                        {
+                            "absoluteBranch": false,
+                            "address": "804091FB",
+                            "baseIndex": 0,
+                            "label": "Actual toggle",
+                            "typeIndex": 0,
+                            "unsigned": false
+                        }
+                    ],
+                    "groupName": "Free Play"
+                }
+            ],
+            "groupName": "Debug Menu"
+        }
+    ]
+}

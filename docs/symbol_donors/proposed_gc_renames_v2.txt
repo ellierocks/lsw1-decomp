@@ -1,0 +1,8 @@
+# Proposed GC Renames (string-evidence)
+# mac_name -> gc_fn | evidence
+
+MEDIUM | Z25Condition_ObstaclePlayingP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPcPv -> fn_8012E9AC | `jump`
+MEDIUM | Z22Action_SetLastAttackerP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif -> fn_801474EC | `ico`
+MEDIUM | NuFileGetEndianSwap -> fn_800D8038 | `Load`
+MEDIUM | Z12cbPtlJibMenuP10eduimenu_sP10eduiitem_sj -> fn_801474EC | `icon`
+MEDIUM | Unlock_RAD_3D_image -> fn_8013392C | `HOVERTUBE`

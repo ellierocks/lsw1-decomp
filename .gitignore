@@ -1,6 +1,9 @@
 # IDE folders
 .idea/
 .vs/
+*.swp
+*.swo
+*~
 
 # Caches
 __pycache__
@@ -16,6 +19,7 @@ orig/*/*
 *.o
 *.map
 *.MAP
+*.iso
 
 # Build files
 build/
@@ -29,6 +33,10 @@ ctx.*
 # Generated configs
 objdiff.json
 compile_commands.json
+
+# Logs and temporary files
+*.log
+dtk-split.log
 
 # Miscellaneous
 /*.txt

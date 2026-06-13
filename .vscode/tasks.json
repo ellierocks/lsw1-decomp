@@ -4,13 +4,27 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "configure",
+      "type": "shell",
+      "command": "python3 configure.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "progress metadata",
+      "type": "shell",
+      "command": "python3 configure.py progress --no-progress",
+      "problemMatcher": []
+    },
+    {
       "label": "ninja",
       "type": "shell",
       "command": "ninja",
+      "detail": "Runs the full build. This may require significant memory during dtk splitting.",
       "group": {
         "kind": "build",
         "isDefault": true
-      }
-    },
+      },
+      "problemMatcher": []
+    }
   ]
 }
