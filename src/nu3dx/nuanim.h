@@ -46,6 +46,7 @@ struct nuanimtime_s {
     s32 chunk;
     u32 time_mask;
     u32 time_byte;
+    u32 unk14;
 };
 
 struct nuanimdata2_s {
@@ -81,6 +82,6 @@ struct NUJOINTANIM_s {
     u8 flags;
 };
 
-void NuAnimCurve2CalcVal(struct nuanimcurve2_s* curves, f32 time, void* result);
+f32 NuAnimCurve2CalcVal(struct nuanimcurve2_s* curves, struct nuanimtime_s* time, s32 type);
 
 #endif

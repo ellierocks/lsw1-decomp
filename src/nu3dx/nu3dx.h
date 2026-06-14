@@ -229,6 +229,18 @@ struct nucamera_s {
     struct nuvec_s scale;
 };
 
+struct nucamstate_s {
+    struct numtx_s mtx;
+    f32 fov;
+    f32 aspect;
+    f32 nearclip;
+    f32 farclip;
+    f32 nearclip_alt;
+    f32 farclip_alt;
+    f32 unk58;
+    struct nuvec_s pos;
+};
+
 // ----- Scene graph -----
 
 struct NUNODE_s {

@@ -33,8 +33,8 @@ by size match + section match + xref function subsystem agreement.
 | `Actions_AnakinA` | ~80 | lbl_801A006C | 0x50 | .rodata | 14 | fn_800984DC, fn_8008014C, fn_8007452C, fn_800C2F20 | addr | size+sec; xfuncs:10 |
 | `Area_InvasionOfNabooModelList_FreePlay` | ~16 | lbl_801B0650 | 0x10 | .data | 14 | NuMemFree, NuMemAlloc, fn_8011D78C | addr | size+sec; word:Free; xfuncs:3 |
 | `global_Light2Position` | ~12 | lbl_802C4EDC | 0xC | .bss | 14 | fn_80098B70, fn_80098190, fn_80097948 | addr | size+sec; xfuncs:3 |
-| `DoorExitCameraSplineName` | ~32 | lbl_80313268 | 0x20 | .bss | 14 | fn_80023D8C, fn_80070690, fn_800ABDAC, fn_80024098 | addr | size+sec; xfuncs:29 |
-| `pBackBufferViewport` | ~24 | lbl_80313298 | 0x18 | .bss | 14 | fn_8002406C, fn_8001F804, fn_8006B328, fn_8001D7EC | addr | size+sec; xfuncs:6 |
+| `DoorExitCameraSplineName` | ~32 | lbl_80313268 | 0x20 | .bss | 14 | fn_80023D8C, fn_80070690, fn_800ABDAC, fn_80024098 | addr | size+sec; xfuncs:29; superseded: prefix of recovered 0x68 camera-state object |
+| `pBackBufferViewport` | ~24 | lbl_80313298 | 0x18 | .bss | 14 | fn_8002406C, fn_8001F804, fn_8006B328, fn_8001D7EC | addr | size+sec; xfuncs:6; superseded: offset inside recovered 0x68 camera-state object |
 | `LevInstAnim` | ~16 | lbl_803145D0 | 0x10 | .bss | 14 | fn_8001EFA4, fn_8001E76C, fn_8001E984, fn_8001F804 | addr | size+sec; xfuncs:4 |
 | `LevForceBlownUp` | ~48 | lbl_80340404 | 0x30 | .bss | 14 | fn_8002DE44, fn_8002C324, fn_80037A4C, fn_8002C090 | addr | size+sec; xfuncs:6 |
 | `STAPAnim` | ~192 | lbl_80191200 | 0xC0 | .rodata | 13 | fn_800247FC, fn_8002452C, fn_80024704, fn_80024854 | addr | size+sec; xfuncs:4 |

@@ -1,0 +1,9 @@
+.fn fn_800203AC, global
+/* 800203AC 0001D3AC  81 23 00 30 */	lwz r9, 0x30(r3)
+/* 800203B0 0001D3B0  C0 03 00 14 */	lfs f0, 0x14(r3)
+/* 800203B4 0001D3B4  C0 29 00 00 */	lfs f1, 0x0(r9)
+/* 800203B8 0001D3B8  C1 AD 82 7C */	lfs f13, lbl_80407CBC@sda21(r0)
+/* 800203BC 0001D3BC  EC 21 00 32 */	fmuls f1, f1, f0
+/* 800203C0 0001D3C0  EC 21 03 72 */	fmuls f1, f1, f13
+/* 800203C4 0001D3C4  4E 80 00 20 */	blr
+.endfn fn_800203AC

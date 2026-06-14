@@ -1,0 +1,69 @@
+diff --git a/src/util/config.rs b/src/util/config.rs
+index d34cfb9..d6606d0 100644
+--- a/src/util/config.rs
++++ b/src/util/config.rs
+@@ -79,7 +79,7 @@ pub fn parse_symbol_line(line: &str, obj: &mut ObjInfo) -> Result<Option<ObjSymb
+     if let Some(captures) = SYMBOL_LINE.captures(line) {
+         let name = captures["name"].to_string();
+         let addr = parse_u32(&captures["addr"])?;
+-        let section_name = captures["section"].to_string();
++        let section_name = captures.name("section").map(|m| m.as_str()).unwrap_or("").to_string();
+         let section = if section_name == "ABS" {
+             None
+         } else if let Some((section_index, _)) = obj.sections.by_name(&section_name)? {
+@@ -116,7 +116,7 @@ pub fn parse_symbol_line(line: &str, obj: &mut ObjInfo) -> Result<Option<ObjSymb
+         if symbol.name.starts_with("..") {
+             symbol.flags.0 |= ObjSymbolFlags::Exported;
+         }
+-        let attrs = captures["attrs"].split(' ');
++        let attrs = captures.name("attrs").map(|m| m.as_str()).unwrap_or("").split(' ');
+         for attr in attrs {
+             if let Some((name, value)) = attr.split_once(':') {
+                 match name {
+@@ -288,7 +288,16 @@ where W: Write + ?Sized {
+ fn write_symbol<W>(w: &mut W, obj: &ObjInfo, symbol: &ObjSymbol) -> Result<()>
+ where W: Write + ?Sized {
+-    let section = symbol.section.and_then(|idx| obj.sections.get(idx));
++    let section = symbol.section.and_then(|idx| obj.sections.get(idx)).or_else(|| {
++        if obj.kind == ObjKind::Executable {
++            obj.sections.at_address(symbol.address as u32).ok().map(|(_, section)| section)
++        } else {
++            None
++        }
++    });
++    if section.is_none() && obj.kind == ObjKind::Executable && is_auto_label(symbol) {
++        return Ok(());
++    }
++    write!(w, "{} = ", symbol.name)?;
+     if let Some(section) = section {
+         write!(w, "{}:", section.name)?;
+     }
+diff --git a/src/util/dol.rs b/src/util/dol.rs
+index 3ad425a..c5d9db4 100644
+--- a/src/util/dol.rs
++++ b/src/util/dol.rs
+@@ -907,12 +907,18 @@ fn locate_extab_extabindex(obj: &mut ObjInfo) -> Result<()> {
+                 for addr in (eti_init_info.eti_start..eti_init_info.eti_end).step_by(12) {
+                     let eti_entry = read_eti_entry(obj, addr)?;
+                     let (entry_section_index, _) =
+-                        obj.sections.at_address(eti_entry.extab_addr).with_context(|| {
+-                            format!(
+-                                "Failed to locate section for extab address {:#010X}",
+-                                eti_entry.extab_addr
+-                            )
+-                        })?;
++                        match obj.sections.at_address(eti_entry.extab_addr) {
++                            Ok(section) => section,
++                            Err(e) => {
++                                log::debug!(
++                                    "Skipping extabindex entry @ {:#010X}: invalid extab address {:#010X}: {:#}",
++                                    eti_entry.address,
++                                    eti_entry.extab_addr,
++                                    e
++                                );
++                                continue;
++                            }
++                        };
+                     if let Some(extab_section) = extab_section_index {
+                         ensure!(
+                             entry_section_index == extab_section,

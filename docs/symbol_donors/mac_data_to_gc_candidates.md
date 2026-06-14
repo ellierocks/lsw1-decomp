@@ -83,8 +83,8 @@ Matched by exact section category + close size. No brute-force pairing.
 | `LevForce` | ~128 | lbl_802E0F64 | 0x80 | bss | 1 | byte | FX | size:exact; sub:FX |
 | `sFadeToken` | ~4 | lbl_802E9B88 | 0x4 | bss | 4 | float | Other | size:exact |
 | `sRectList` | ~24 | lbl_802E9BC8 | 0x18 | bss | 4 | float | Other | size:exact |
-| `surface_desc` | ~32 | lbl_80313268 | 0x20 | bss | 4 | float | Other | size:exact |
-| `ExtraShelfIds` | ~28 | lbl_803132B4 | 0x1C | bss | 4 | float | Other | size:exact |
+| `surface_desc` | ~32 | lbl_80313268 | 0x20 | bss | 4 | float | Other | superseded by recovered 0x68 camera-state boundary |
+| `ExtraShelfIds` | ~28 | lbl_803132B4 | 0x1C | bss | 4 | float | Other | superseded: internal field range in recovered 0x68 camera-state object |
 | `tinfo` | ~144000 | lbl_803145E0 | 0x23280 | bss | 4 | float | Other | size:exact |
 | `lightfan` | ~108 | lbl_80337860 | 0x6C | bss | 4 | float | Other | size:exact |
 | `starfield_hspecial` | ~48 | lbl_80340404 | 0x30 | bss | 4 | float | Other | size:exact |

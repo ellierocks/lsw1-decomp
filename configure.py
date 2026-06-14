@@ -138,6 +138,8 @@ config = ProjectConfig()
 config.version = str(args.version)
 version_num = VERSIONS.index(config.version)
 
+patched_dtk = Path("build/tools/dtk_patched")
+
 # Apply arguments
 config.build_dir = args.build_dir
 config.dtk_path = args.dtk
@@ -151,6 +153,9 @@ config.ninja_path = args.ninja
 config.progress = args.progress
 if not is_windows():
     config.wrapper = args.wrapper
+# Prefer a locally built patched DTK when the user did not override --dtk.
+if config.dtk_path is None and patched_dtk.is_file():
+    config.dtk_path = patched_dtk
 # Don't build asm unless we're --non-matching
 if not config.non_matching:
     config.asm_dir = None
@@ -209,6 +214,7 @@ cflags_base = [
     "-fp_contract on",
     "-str reuse",
     "-multibyte",  # For Wii compilers, replace with `-enc SJIS`
+    "-i src",
     "-i include",
     f"-i build/{config.version}/include",
     f"-DBUILD_VERSION={version_num}",
@@ -291,6 +297,7 @@ config.libs = [
         "cflags": cflags_base,
         "progress_category": "game",
         "objects": [
+            Object(NonMatching, "nu3dx/nuanim.c"),
             Object(NonMatching, "auto_00_80003100_init", asm_dir="build/GL5E4F/asm"),
             Object(NonMatching, "auto_01_800034A0_text", asm_dir="build/GL5E4F/asm"),
             Object(NonMatching, "auto_02_8018CB00_rodata", asm_dir="build/GL5E4F/asm"),
