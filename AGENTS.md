@@ -16,6 +16,7 @@ python tools/ls1_rename.py --suggest fn_8001E76C # check Mac for name ideas
 python tools/ls1_rename.py fn_8001E76C NuAnimKeyLerp  # apply + verify
 python tools/ls1_task_pack.py NuAnimKeyLerp      # generate task pack for C work
 python tools/matching_progress.py                # show current code matching progress
+python tools/binary_mining_pipeline.py           # refresh donor-binary evidence
 bash build.sh                                    # final check
 ```
 
@@ -37,15 +38,22 @@ bash build.sh                                    # final check
 | `ls1_rename.py <old> <new>` | Applies a rename and verifies with build. Use `--check` to preview, `--suggest <fn>` to search Mac for matching names |
 | `ls1_task_pack.py <name-or-addr>` | Generates `tasks/<Function>/` with `prompt.md`, `context.md`, `asm.s`, `related_symbols.md`, `verify.sh` for LLM-based decomp. Use `--out-dir` to set output root. Batch: `ls1_task_pack.py nuanim --top 3` |
 | `matching_progress.py [--report] [--json]` | Shows objdiff code matching progress only, without symbol naming stats |
+| `binary_mining_pipeline.py [stage...]` | Refreshes donor-binary extraction artifacts; see `docs/binary_mining_workflow.md` |
+| `sdk_symbol_source_import.py <source...>` | Normalizes CrashWOC/Dolphin map files or symbol dumps into ordered SDK TSVs |
+| `mac_anchor_rename_queue.py` | Uses Mac debug symbol order plus GC named anchors to emit rename candidates |
+| `sdk_island_analysis.py` | Maps likely Dolphin SDK/MSL/runtime islands for known-library matching |
+| `sdk_anchor_rename_queue.py` | Uses local SDK symbol-order sources plus GC named anchors to emit SDK rename candidates |
 
 ## Matching workflow (symbol recovery)
 
-1. `python tools/ls1_match_plan.py <module>` — see candidates
-2. `python tools/ls1_lookup_symbol.py <fn_addr>` — verify struct types in Mac
-3. `python tools/ls1_rename.py --suggest <fn_name>` — check Mac for name hints
-4. `python tools/ls1_rename.py <old> <new>` — apply and build-verify
-5. `bash build.sh` — final check
-6. Commit after each module phase
+1. `python tools/binary_mining_pipeline.py` — refresh donor evidence and rename queues
+2. Review `docs/symbol_donors/mac_anchor_rename_queue.md` for high-confidence candidates
+3. `python tools/ls1_match_plan.py <module>` — see remaining module candidates
+4. `python tools/ls1_lookup_symbol.py <fn_addr>` — verify struct types in Mac
+5. `python tools/ls1_rename.py --suggest <fn_name>` — check Mac for name hints
+6. `python tools/ls1_rename.py <old> <new>` — apply and build-verify
+7. `bash build.sh` — final check
+8. Commit after each module phase
 
 ## C matching workflow
 

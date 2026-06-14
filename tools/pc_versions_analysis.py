@@ -20,8 +20,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GC_DOL = ROOT / "orig/GL5E4F/sys/main.dol"
 GC_SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
-PC_RETAIL_EXE = ROOT / "orig/pc/usa/retail/program files/Giant/LEGO Star Wars Game/LegoStarwars.exe"
-PC_DEMO_EXE = ROOT / "orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe"
+PC_RETAIL_CANDIDATES = [
+    ROOT / "orig/pc/usa/retail/LEGO Star Wars Game/LegoStarwars.exe",
+    ROOT / "orig/pc/usa/retail/program files/Giant/LEGO Star Wars Game/LegoStarwars.exe",
+    ROOT / "build/pc_usa/LegoStarwars.exe",
+]
+PC_DEMO_CANDIDATES = [
+    ROOT / "orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe",
+    ROOT / "build/pc_usa/LegoStarwars.exe",
+]
 OUT_DIR = ROOT / "build/pc_analysis"
 
 
@@ -82,6 +89,14 @@ def run_strings(path: Path, min_len: int = 5) -> set[str]:
         errors="replace",
     )
     return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+
+
+def first_existing(paths: list[Path], label: str) -> Path:
+    for path in paths:
+        if path.exists():
+            return path
+    joined = "\n  ".join(str(path.relative_to(ROOT)) for path in paths)
+    raise FileNotFoundError(f"No {label} executable found. Checked:\n  {joined}")
 
 
 def parse_dol_sections(data: bytes) -> list[DolSection]:
@@ -188,8 +203,11 @@ def write_list(path: Path, strings: list[str]) -> None:
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    retail = run_strings(PC_RETAIL_EXE)
-    demo = run_strings(PC_DEMO_EXE)
+    pc_retail_exe = first_existing(PC_RETAIL_CANDIDATES, "PC retail")
+    pc_demo_exe = first_existing(PC_DEMO_CANDIDATES, "PC demo")
+
+    retail = run_strings(pc_retail_exe)
+    demo = run_strings(pc_demo_exe)
     gc_strings = run_strings(GC_DOL)
     gc_data = GC_DOL.read_bytes()
     sections = parse_dol_sections(gc_data)
@@ -239,8 +257,8 @@ def main() -> None:
     report_lines = [
         "=== PC Retail/Demo Analysis ===",
         "",
-        f"Retail executable: {PC_RETAIL_EXE.relative_to(ROOT)}",
-        f"Demo executable: {PC_DEMO_EXE.relative_to(ROOT)}",
+        f"Retail executable: {pc_retail_exe.relative_to(ROOT)}",
+        f"Demo executable: {pc_demo_exe.relative_to(ROOT)}",
         f"Retail strings: {len(retail)}",
         f"Demo strings: {len(demo)}",
         f"GameCube DOL strings: {len(gc_strings)}",
