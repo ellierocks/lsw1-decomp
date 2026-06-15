@@ -1,0 +1,62 @@
+digraph lsw1_revisions {
+  graph [rankdir=LR fontname="Helvetica" splines=ortho];
+  node [shape=box fontname="Helvetica" fontsize=10];
+  edge [fontname="Helvetica" fontsize=8];
+
+  subgraph cluster_gc {
+    label="GC";
+    color="#4e9a06";
+    style=rounded;
+    "gc_uk_retail" [label="gc_uk_retail\nretail GL5P4F\n2005-04" style=filled fillcolor="#4e9a0622"];
+    "gc_us_retail" [label="gc_us_retail\nretail GL5E4F\n2005-04" style=filled fillcolor="#4e9a0622"];
+  }
+
+  subgraph cluster_mac {
+    label="MAC";
+    color="#75507b";
+    style=rounded;
+    "mac_demo_dbg" [label="mac_demo_dbg\ndemo\n2005" style=filled fillcolor="#75507b22"];
+  }
+
+  subgraph cluster_pc {
+    label="PC";
+    color="#8f5902";
+    style=rounded;
+    "pc_us_demo" [label="pc_us_demo\ndemo\n2005" style=filled fillcolor="#8f590222"];
+    "pc_us_retail" [label="pc_us_retail\nretail\n2005-04" style=filled fillcolor="#8f590222"];
+  }
+
+  subgraph cluster_ps2 {
+    label="PS2";
+    color="#3465a4";
+    style=rounded;
+    "ps2_eu_demo" [label="ps2_eu_demo\ndemo\n2005" style=filled fillcolor="#3465a422"];
+    "ps2_eu_retail_v1" [label="ps2_eu_retail_v1\nretail 1.0\n2005-04" style=filled fillcolor="#3465a422"];
+    "ps2_prototype" [label="ps2_prototype\nprototype\n2005-01-10" style=filled fillcolor="#3465a422"];
+    "ps2_us_retail_gh" [label="ps2_us_retail_gh\nretail 2.0\n2005" style=filled fillcolor="#3465a422"];
+    "ps2_us_retail_v1" [label="ps2_us_retail_v1\nretail 1.01\n2005-04" style=filled fillcolor="#3465a422"];
+  }
+
+  subgraph cluster_xbox {
+    label="XBOX";
+    color="#006400";
+    style=rounded;
+    "xbox_demo_oxm045" [label="xbox_demo_oxm045\ndemo\n2005-06" style=filled fillcolor="#00640022"];
+    "xbox_retail" [label="xbox_retail\nretail\n2005-04" style=filled fillcolor="#00640022"];
+  }
+
+  "ps2_prototype" -> "ps2_eu_demo" [label="precedes\n19.2%" style=dashed color="#888888" fontcolor="#888888"];
+  "ps2_prototype" -> "ps2_eu_retail_v1" [label="precedes\n19.3%" style=dashed color="#888888" fontcolor="#888888"];
+  "ps2_prototype" -> "ps2_us_retail_v1" [label="precedes\n19.3%" style=dashed color="#888888" fontcolor="#888888"];
+  "ps2_prototype" -> "ps2_us_retail_gh" [label="precedes\n19.0%" style=dashed color="#888888" fontcolor="#888888"];
+  "ps2_eu_demo" -> "ps2_eu_retail_v1" [label="closely_related\n31.3%" style=solid color="black" fontcolor="black"];
+  "ps2_eu_demo" -> "ps2_us_retail_v1" [label="closely_related\n31.0%" style=solid color="black" fontcolor="black"];
+  "ps2_eu_retail_v1" -> "ps2_us_retail_v1" [label="closely_related\n43.0%" style=solid color="black" fontcolor="black"];
+  "ps2_us_retail_v1" -> "ps2_us_retail_gh" [label="diverged\n27.3%" style=bold color="black" fontcolor="black"];
+  "ps2_eu_retail_v1" -> "ps2_us_retail_gh" [label="diverged\n27.4%" style=bold color="black" fontcolor="black"];
+  "ps2_us_kiosk_demo" -> "ps2_eu_demo" [label="unknown" style=invis color="#dddddd" fontcolor="#dddddd"];
+  "xbox_demo_oxm045" -> "xbox_retail" [label="precedes" style=dashed color="#bbbbbb" fontcolor="#bbbbbb"];
+  "pc_us_demo" -> "pc_us_retail" [label="precedes" style=dashed color="#888888" fontcolor="#888888"];
+  "gc_us_retail" -> "ps2_us_retail_v1" [label="same_game_codebase" style=dotted color="black" fontcolor="black"];
+  "gc_us_retail" -> "gc_uk_retail" [label="closely_related" style=solid color="black" fontcolor="black"];
+}

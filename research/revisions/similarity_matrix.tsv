@@ -1,0 +1,171 @@
+build_a	build_b	arch_a	arch_b	same_arch	method	score	matched	total	notes
+gc_us_retail	gc_uk_retail	ppc	ppc	yes	string_jaccard	0.9834	4633	4711	
+gc_us_retail	gc_uk_retail	ppc	ppc	yes	key_string_jaccard	0.9953	427	429	
+gc_us_retail	gc_uk_retail	ppc	ppc	yes	positional_byte	0.2590	540186	2085664	vs min(2085664,2085792)
+gc_us_retail	gc_uk_retail	ppc	ppc	yes	chunk_hash	0.0000	0	1018	4KB chunks
+gc_us_retail	ps2_prototype	ppc	mips	no	string_jaccard	0.4622	2760	5972	
+gc_us_retail	ps2_prototype	ppc	mips	no	key_string_jaccard	0.3149	199	632	
+gc_us_retail	ps2_eu_demo	ppc	mips	no	string_jaccard	0.5821	3465	5953	
+gc_us_retail	ps2_eu_demo	ppc	mips	no	key_string_jaccard	0.3569	227	636	
+gc_us_retail	ps2_eu_retail_v1	ppc	mips	no	string_jaccard	0.5794	3448	5951	
+gc_us_retail	ps2_eu_retail_v1	ppc	mips	no	key_string_jaccard	0.3569	227	636	
+gc_us_retail	ps2_us_retail_v1	ppc	mips	no	string_jaccard	0.5807	3458	5955	
+gc_us_retail	ps2_us_retail_v1	ppc	mips	no	key_string_jaccard	0.3569	227	636	
+gc_us_retail	ps2_us_retail_gh	ppc	mips	no	string_jaccard	0.5830	3473	5957	
+gc_us_retail	ps2_us_retail_gh	ppc	mips	no	key_string_jaccard	0.3574	228	638	
+gc_us_retail	xbox_retail	ppc	x86	no	string_jaccard	0.5231	2897	5538	
+gc_us_retail	xbox_retail	ppc	x86	no	key_string_jaccard	0.2229	109	489	
+gc_us_retail	xbox_demo_oxm045	ppc	x86	no	string_jaccard	0.5139	2842	5530	
+gc_us_retail	xbox_demo_oxm045	ppc	x86	no	key_string_jaccard	0.2202	107	486	
+gc_us_retail	pc_us_demo	ppc	x86	no	string_jaccard	0.1572	2363	15032	
+gc_us_retail	pc_us_demo	ppc	x86	no	key_string_jaccard	0.1084	160	1476	
+gc_us_retail	pc_us_retail	ppc	x86	no	string_jaccard	0.1959	3085	15746	
+gc_us_retail	pc_us_retail	ppc	x86	no	key_string_jaccard	0.1242	185	1489	
+gc_us_retail	mac_demo_dbg	ppc	ppc	yes	string_jaccard	0.1588	2583	16266	
+gc_us_retail	mac_demo_dbg	ppc	ppc	yes	key_string_jaccard	0.0594	161	2712	
+gc_us_retail	mac_demo_dbg	ppc	ppc	yes	positional_byte	0.1230	256605	2085664	vs min(2085664,15240796)
+gc_us_retail	mac_demo_dbg	ppc	ppc	yes	chunk_hash	0.0000	0	1566	4KB chunks
+gc_uk_retail	ps2_prototype	ppc	mips	no	string_jaccard	0.4631	2757	5953	
+gc_uk_retail	ps2_prototype	ppc	mips	no	key_string_jaccard	0.3149	199	632	
+gc_uk_retail	ps2_eu_demo	ppc	mips	no	string_jaccard	0.5837	3463	5933	
+gc_uk_retail	ps2_eu_demo	ppc	mips	no	key_string_jaccard	0.3569	227	636	
+gc_uk_retail	ps2_eu_retail_v1	ppc	mips	no	string_jaccard	0.5810	3446	5931	
+gc_uk_retail	ps2_eu_retail_v1	ppc	mips	no	key_string_jaccard	0.3569	227	636	
+gc_uk_retail	ps2_us_retail_v1	ppc	mips	no	string_jaccard	0.5818	3454	5937	
+gc_uk_retail	ps2_us_retail_v1	ppc	mips	no	key_string_jaccard	0.3569	227	636	
+gc_uk_retail	ps2_us_retail_gh	ppc	mips	no	string_jaccard	0.5841	3469	5939	
+gc_uk_retail	ps2_us_retail_gh	ppc	mips	no	key_string_jaccard	0.3574	228	638	
+gc_uk_retail	xbox_retail	ppc	x86	no	string_jaccard	0.5244	2894	5519	
+gc_uk_retail	xbox_retail	ppc	x86	no	key_string_jaccard	0.2229	109	489	
+gc_uk_retail	xbox_demo_oxm045	ppc	x86	no	string_jaccard	0.5149	2838	5512	
+gc_uk_retail	xbox_demo_oxm045	ppc	x86	no	key_string_jaccard	0.2202	107	486	
+gc_uk_retail	pc_us_demo	ppc	x86	no	string_jaccard	0.1572	2360	15013	
+gc_uk_retail	pc_us_demo	ppc	x86	no	key_string_jaccard	0.1084	160	1476	
+gc_uk_retail	pc_us_retail	ppc	x86	no	string_jaccard	0.1960	3083	15726	
+gc_uk_retail	pc_us_retail	ppc	x86	no	key_string_jaccard	0.1242	185	1489	
+gc_uk_retail	mac_demo_dbg	ppc	ppc	yes	string_jaccard	0.1589	2582	16245	
+gc_uk_retail	mac_demo_dbg	ppc	ppc	yes	key_string_jaccard	0.0594	161	2712	
+gc_uk_retail	mac_demo_dbg	ppc	ppc	yes	positional_byte	0.1237	258082	2085792	vs min(2085792,15240796)
+gc_uk_retail	mac_demo_dbg	ppc	ppc	yes	chunk_hash	0.0000	0	1566	4KB chunks
+ps2_prototype	ps2_eu_demo	mips	mips	yes	string_jaccard	0.7093	3645	5139	
+ps2_prototype	ps2_eu_demo	mips	mips	yes	key_string_jaccard	0.6084	317	521	
+ps2_prototype	ps2_eu_demo	mips	mips	yes	positional_byte	0.1921	565074	2941736	vs min(2941736,3173684)
+ps2_prototype	ps2_eu_demo	mips	mips	yes	chunk_hash	0.0016	2	1287	4KB chunks
+ps2_prototype	ps2_eu_retail_v1	mips	mips	yes	string_jaccard	0.7689	3810	4955	
+ps2_prototype	ps2_eu_retail_v1	mips	mips	yes	key_string_jaccard	0.8789	392	446	
+ps2_prototype	ps2_eu_retail_v1	mips	mips	yes	positional_byte	0.1930	567779	2941736	vs min(2941736,3170488)
+ps2_prototype	ps2_eu_retail_v1	mips	mips	yes	chunk_hash	0.0016	2	1288	4KB chunks
+ps2_prototype	ps2_us_retail_v1	mips	mips	yes	string_jaccard	0.7668	3810	4969	
+ps2_prototype	ps2_us_retail_v1	mips	mips	yes	key_string_jaccard	0.8789	392	446	
+ps2_prototype	ps2_us_retail_v1	mips	mips	yes	positional_byte	0.1929	567544	2941736	vs min(2941736,3170744)
+ps2_prototype	ps2_us_retail_v1	mips	mips	yes	chunk_hash	0.0016	2	1288	4KB chunks
+ps2_prototype	ps2_us_retail_gh	mips	mips	yes	string_jaccard	0.7080	3646	5150	
+ps2_prototype	ps2_us_retail_gh	mips	mips	yes	key_string_jaccard	0.6050	317	524	
+ps2_prototype	ps2_us_retail_gh	mips	mips	yes	positional_byte	0.1902	559595	2941736	vs min(2941736,3182600)
+ps2_prototype	ps2_us_retail_gh	mips	mips	yes	chunk_hash	0.0016	2	1290	4KB chunks
+ps2_prototype	xbox_retail	mips	x86	no	string_jaccard	0.4079	2260	5541	
+ps2_prototype	xbox_retail	mips	x86	no	key_string_jaccard	0.1790	87	486	
+ps2_prototype	xbox_demo_oxm045	mips	x86	no	string_jaccard	0.4126	2260	5478	
+ps2_prototype	xbox_demo_oxm045	mips	x86	no	key_string_jaccard	0.1809	87	481	
+ps2_prototype	pc_us_demo	mips	x86	no	string_jaccard	0.1826	2588	14173	
+ps2_prototype	pc_us_demo	mips	x86	no	key_string_jaccard	0.1211	174	1437	
+ps2_prototype	pc_us_retail	mips	x86	no	string_jaccard	0.1557	2452	15745	
+ps2_prototype	pc_us_retail	mips	x86	no	key_string_jaccard	0.1082	161	1488	
+ps2_prototype	mac_demo_dbg	mips	ppc	no	string_jaccard	0.1201	1953	16262	
+ps2_prototype	mac_demo_dbg	mips	ppc	no	key_string_jaccard	0.0548	148	2700	
+ps2_eu_demo	ps2_eu_retail_v1	mips	mips	yes	string_jaccard	0.9132	4511	4940	
+ps2_eu_demo	ps2_eu_retail_v1	mips	mips	yes	key_string_jaccard	0.6959	357	513	
+ps2_eu_demo	ps2_eu_retail_v1	mips	mips	yes	positional_byte	0.3134	993664	3170488	vs min(3173684,3170488)
+ps2_eu_demo	ps2_eu_retail_v1	mips	mips	yes	chunk_hash	0.0015	2	1343	4KB chunks
+ps2_eu_demo	ps2_us_retail_v1	mips	mips	yes	string_jaccard	0.9133	4518	4947	
+ps2_eu_demo	ps2_us_retail_v1	mips	mips	yes	key_string_jaccard	0.6959	357	513	
+ps2_eu_demo	ps2_us_retail_v1	mips	mips	yes	positional_byte	0.3097	982097	3170744	vs min(3173684,3170744)
+ps2_eu_demo	ps2_us_retail_v1	mips	mips	yes	chunk_hash	0.0015	2	1343	4KB chunks
+ps2_eu_demo	ps2_us_retail_gh	mips	mips	yes	string_jaccard	0.9878	4712	4770	
+ps2_eu_demo	ps2_us_retail_gh	mips	mips	yes	key_string_jaccard	0.9932	435	438	
+ps2_eu_demo	ps2_us_retail_gh	mips	mips	yes	positional_byte	0.2756	874703	3173684	vs min(3173684,3182600)
+ps2_eu_demo	ps2_us_retail_gh	mips	mips	yes	chunk_hash	0.0015	2	1345	4KB chunks
+ps2_eu_demo	xbox_retail	mips	x86	no	string_jaccard	0.5245	2920	5567	
+ps2_eu_demo	xbox_retail	mips	x86	no	key_string_jaccard	0.2247	111	494	
+ps2_eu_demo	xbox_demo_oxm045	mips	x86	no	string_jaccard	0.5151	2864	5560	
+ps2_eu_demo	xbox_demo_oxm045	mips	x86	no	key_string_jaccard	0.2220	109	491	
+ps2_eu_demo	pc_us_demo	mips	x86	no	string_jaccard	0.1602	2409	15038	
+ps2_eu_demo	pc_us_demo	mips	x86	no	key_string_jaccard	0.1124	166	1477	
+ps2_eu_demo	pc_us_retail	mips	x86	no	string_jaccard	0.2080	3252	15631	
+ps2_eu_demo	pc_us_retail	mips	x86	no	key_string_jaccard	0.1312	195	1486	
+ps2_eu_demo	mac_demo_dbg	mips	ppc	no	string_jaccard	0.1711	2762	16139	
+ps2_eu_demo	mac_demo_dbg	mips	ppc	no	key_string_jaccard	0.0675	182	2698	
+ps2_eu_retail_v1	ps2_us_retail_v1	mips	mips	yes	string_jaccard	0.9886	4696	4750	
+ps2_eu_retail_v1	ps2_us_retail_v1	mips	mips	yes	key_string_jaccard	1.0000	435	435	
+ps2_eu_retail_v1	ps2_us_retail_v1	mips	mips	yes	positional_byte	0.4296	1361948	3170488	vs min(3170488,3170744)
+ps2_eu_retail_v1	ps2_us_retail_v1	mips	mips	yes	chunk_hash	0.0015	2	1344	4KB chunks
+ps2_eu_retail_v1	ps2_us_retail_gh	mips	mips	yes	string_jaccard	0.9106	4510	4953	
+ps2_eu_retail_v1	ps2_us_retail_gh	mips	mips	yes	key_string_jaccard	0.6919	357	516	
+ps2_eu_retail_v1	ps2_us_retail_gh	mips	mips	yes	positional_byte	0.2738	867975	3170488	vs min(3170488,3182600)
+ps2_eu_retail_v1	ps2_us_retail_gh	mips	mips	yes	chunk_hash	0.0015	2	1346	4KB chunks
+ps2_eu_retail_v1	xbox_retail	mips	x86	no	string_jaccard	0.5233	2909	5559	
+ps2_eu_retail_v1	xbox_retail	mips	x86	no	key_string_jaccard	0.2247	111	494	
+ps2_eu_retail_v1	xbox_demo_oxm045	mips	x86	no	string_jaccard	0.5171	2865	5540	
+ps2_eu_retail_v1	xbox_demo_oxm045	mips	x86	no	key_string_jaccard	0.2220	109	491	
+ps2_eu_retail_v1	pc_us_demo	mips	x86	no	string_jaccard	0.1605	2410	15018	
+ps2_eu_retail_v1	pc_us_demo	mips	x86	no	key_string_jaccard	0.1124	166	1477	
+ps2_eu_retail_v1	pc_us_retail	mips	x86	no	string_jaccard	0.2075	3241	15623	
+ps2_eu_retail_v1	pc_us_retail	mips	x86	no	key_string_jaccard	0.1312	195	1486	
+ps2_eu_retail_v1	mac_demo_dbg	mips	ppc	no	string_jaccard	0.1706	2752	16130	
+ps2_eu_retail_v1	mac_demo_dbg	mips	ppc	no	key_string_jaccard	0.0675	182	2698	
+ps2_us_retail_v1	ps2_us_retail_gh	mips	mips	yes	string_jaccard	0.9118	4520	4957	
+ps2_us_retail_v1	ps2_us_retail_gh	mips	mips	yes	key_string_jaccard	0.6919	357	516	
+ps2_us_retail_v1	ps2_us_retail_gh	mips	mips	yes	positional_byte	0.2732	866209	3170744	vs min(3170744,3182600)
+ps2_us_retail_v1	ps2_us_retail_gh	mips	mips	yes	chunk_hash	0.0015	2	1346	4KB chunks
+ps2_us_retail_v1	xbox_retail	mips	x86	no	string_jaccard	0.5244	2918	5564	
+ps2_us_retail_v1	xbox_retail	mips	x86	no	key_string_jaccard	0.2247	111	494	
+ps2_us_retail_v1	xbox_demo_oxm045	mips	x86	no	string_jaccard	0.5161	2866	5553	
+ps2_us_retail_v1	xbox_demo_oxm045	mips	x86	no	key_string_jaccard	0.2220	109	491	
+ps2_us_retail_v1	pc_us_demo	mips	x86	no	string_jaccard	0.1603	2410	15032	
+ps2_us_retail_v1	pc_us_demo	mips	x86	no	key_string_jaccard	0.1124	166	1477	
+ps2_us_retail_v1	pc_us_retail	mips	x86	no	string_jaccard	0.2079	3249	15629	
+ps2_us_retail_v1	pc_us_retail	mips	x86	no	key_string_jaccard	0.1312	195	1486	
+ps2_us_retail_v1	mac_demo_dbg	mips	ppc	no	string_jaccard	0.1711	2761	16135	
+ps2_us_retail_v1	mac_demo_dbg	mips	ppc	no	key_string_jaccard	0.0675	182	2698	
+ps2_us_retail_gh	xbox_retail	mips	x86	no	string_jaccard	0.5239	2922	5577	
+ps2_us_retail_gh	xbox_retail	mips	x86	no	key_string_jaccard	0.2233	111	497	
+ps2_us_retail_gh	xbox_demo_oxm045	mips	x86	no	string_jaccard	0.5145	2866	5570	
+ps2_us_retail_gh	xbox_demo_oxm045	mips	x86	no	key_string_jaccard	0.2206	109	494	
+ps2_us_retail_gh	pc_us_demo	mips	x86	no	string_jaccard	0.1601	2410	15049	
+ps2_us_retail_gh	pc_us_demo	mips	x86	no	key_string_jaccard	0.1122	166	1480	
+ps2_us_retail_gh	pc_us_retail	mips	x86	no	string_jaccard	0.2080	3254	15641	
+ps2_us_retail_gh	pc_us_retail	mips	x86	no	key_string_jaccard	0.1310	195	1489	
+ps2_us_retail_gh	mac_demo_dbg	mips	ppc	no	string_jaccard	0.1714	2768	16145	
+ps2_us_retail_gh	mac_demo_dbg	mips	ppc	no	key_string_jaccard	0.0678	183	2700	
+xbox_retail	xbox_demo_oxm045	x86	x86	yes	string_jaccard	0.9587	3642	3799	
+xbox_retail	xbox_demo_oxm045	x86	x86	yes	key_string_jaccard	0.9706	165	170	
+xbox_retail	xbox_demo_oxm045	x86	x86	yes	positional_byte	0.0987	209780	2125824	vs min(2179072,2125824)
+xbox_retail	xbox_demo_oxm045	x86	x86	yes	chunk_hash	0.0375	38	1012	4KB chunks
+xbox_retail	pc_us_demo	x86	x86	yes	string_jaccard	0.1706	2399	14065	
+xbox_retail	pc_us_demo	x86	x86	yes	key_string_jaccard	0.0885	112	1266	
+xbox_retail	pc_us_demo	x86	x86	yes	positional_byte	0.0041	8931	2179072	vs min(2179072,10248192)
+xbox_retail	pc_us_demo	x86	x86	yes	chunk_hash	0.0004	1	2360	4KB chunks
+xbox_retail	pc_us_retail	x86	x86	yes	string_jaccard	0.2187	3212	14688	
+xbox_retail	pc_us_retail	x86	x86	yes	key_string_jaccard	0.1071	137	1279	
+xbox_retail	pc_us_retail	x86	x86	yes	positional_byte	0.0273	59464	2179072	vs min(2179072,11362304)
+xbox_retail	pc_us_retail	x86	x86	yes	chunk_hash	0.0003	1	2952	4KB chunks
+xbox_retail	mac_demo_dbg	x86	ppc	no	string_jaccard	0.1537	2387	15531	
+xbox_retail	mac_demo_dbg	x86	ppc	no	key_string_jaccard	0.0365	92	2523	
+xbox_demo_oxm045	pc_us_demo	x86	x86	yes	string_jaccard	0.1709	2394	14007	
+xbox_demo_oxm045	pc_us_demo	x86	x86	yes	key_string_jaccard	0.0888	112	1261	
+xbox_demo_oxm045	pc_us_demo	x86	x86	yes	positional_byte	0.0041	8764	2125824	vs min(2125824,10248192)
+xbox_demo_oxm045	pc_us_demo	x86	x86	yes	chunk_hash	0.0000	0	2349	4KB chunks
+xbox_demo_oxm045	pc_us_retail	x86	x86	yes	string_jaccard	0.2144	3149	14688	
+xbox_demo_oxm045	pc_us_retail	x86	x86	yes	key_string_jaccard	0.1049	134	1277	
+xbox_demo_oxm045	pc_us_retail	x86	x86	yes	positional_byte	0.0266	56509	2125824	vs min(2125824,11362304)
+xbox_demo_oxm045	pc_us_retail	x86	x86	yes	chunk_hash	0.0000	0	2941	4KB chunks
+xbox_demo_oxm045	mac_demo_dbg	x86	ppc	no	string_jaccard	0.1500	2329	15526	
+xbox_demo_oxm045	mac_demo_dbg	x86	ppc	no	key_string_jaccard	0.0353	89	2521	
+pc_us_demo	pc_us_retail	x86	x86	yes	string_jaccard	0.6327	10409	16451	
+pc_us_demo	pc_us_retail	x86	x86	yes	key_string_jaccard	0.8451	1124	1330	
+pc_us_demo	pc_us_retail	x86	x86	yes	positional_byte	0.0701	718119	10248192	vs min(10248192,11362304)
+pc_us_demo	pc_us_retail	x86	x86	yes	chunk_hash	0.0062	26	4226	4KB chunks
+pc_us_demo	mac_demo_dbg	x86	ppc	no	string_jaccard	0.0771	1925	24953	
+pc_us_demo	mac_demo_dbg	x86	ppc	no	key_string_jaccard	0.0518	180	3473	
+pc_us_retail	mac_demo_dbg	x86	ppc	no	string_jaccard	0.1198	3030	25284	
+pc_us_retail	mac_demo_dbg	x86	ppc	no	key_string_jaccard	0.0655	227	3464	

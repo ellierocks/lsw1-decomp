@@ -1,0 +1,13 @@
+confidence	new_name	gc_addr	gc_size	candidate_note	evidence_string	str_addr	notes
+HIGH	NuHexStringToI	0x80007F58	0xA0	single ref	NuHexStringToI: Invalid character	0x8018D8BC	Single lis ref at 0x80007F80 inside this function; clean stwu+mflr prologue; size 0xA0 consistent with hex parser
+HIGH	NuMtlSetCurrentRenderPlane	0x80024D58	0x60	two refs, same fn	NuMtlSetCurrentRenderPlane out of range	0x80191330	Both lis refs (0x80024D74, 0x80024D88) are inside this single 0x60-byte function; clean prologue
+HIGH	NuGCutLocatorSysFixUp	0x8003D378	0x178	single ref	NuGCutLocatorSysFixUp: cannot fixup locator <%s>	0x80193400	Single lis ref at 0x8003D4B8 inside this 0x178-byte function; canonical "FuncName: error" string format
+HIGH	NuInitHardware	0x80038A98	0xB50	single ref	NuInitHardware : Insufficient buffer space	0x80192D4C	Only one function references this string; large size consistent with hardware init
+HIGH	NuSoundInitV	0x80043FA0	0x2BC	two refs, same fn	NuSoundInitV called	0x80194014	Both lis refs inside single function; "called" + "Multiple initialisations" init trace pattern
+HIGH	NuHeap	0x80008B38	0x1A0	single ref	NuHeap: Out of memory	0x8018DFD0	Single lis ref at 0x80008B78 inside this function; canonical error-string naming pattern
+HIGH	NuSoundSetRequestTable	0x8004425C	0x1A4	single ref	NuSoundSetRequestTable called	0x80194288	Single lis ref; "called" init trace pattern confirms function name unambiguously
+MEDIUM	NuAnimLoad	0x80048E48	0x1D4	two refs, fn1	NuAnimLoad	0x801900C0	Two functions reference the NuAnimLoad string (0x80048E48 size 0x1D4, and 0x800581A8 size 0xA38); smaller is more likely the named function; larger is probably a caller/wrapper
+MEDIUM	NuGobjCalcDims	0x80049A14	0xE8	two refs, fn1	NuGobjCalcDims : Lock VB failed!	0x80191240	Both fn_80049A14 and fn_80049B04 reference this string; one is likely the function, other a helper
+MEDIUM	NuGobjCalcDims	0x80049B04	0xD4	two refs, fn2	NuGobjCalcDims : Lock VB failed!	0x80191240	See above — one of these two is NuGobjCalcDims; needs disassembly to confirm which
+MEDIUM	NuFmvNgc_Alloc	0x8004999C	0x74	small candidate	NuFmvNgc_Alloc: Buffer not big enough	0x80194658	Small allocator-sized function (0x74); fn_8004876C (0x22C) is the other candidate — likely caller
+LOW	NuGScnBufferAllocAligned	0x800282E8	0x15C	many refs	NuGScnBufferAllocAligned failed	0x80191930	13 lis references across 0x80028xxx-0x80029xxx; error string used in many callers; NuGScnBufferAllocAligned itself is probably one of them

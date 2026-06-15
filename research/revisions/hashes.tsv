@@ -1,0 +1,22 @@
+build_id	file_role	rel_path	size	md5	sha256
+gc_us_retail	disc	orig/GL5E4F/LEGO Star Wars - The Video Game (USA).iso	1459978240	f7383a85d57345468d360cb68ebd4a88	3cadeafe40bf54417268a540c9c9c92cbc6af42b7b66ef9171229695208a6593
+gc_us_retail	exe	orig/GL5E4F/sys/main.dol	2085664	be1271a254742c16657091bc7b0990d2	9f9e6fda861f80a74a05be73036fe67585f7df31057d28993ef743a51d39c5cc
+gc_uk_retail	disc	orig/GL5P4F/LEGO Star Wars - The Video Game (United KIngdom).iso	1459978240	a83cc0581cc51cdb5d90ec66aa8510b5	aee80819ade76ec17b0ddcaf2b9a9f680118670a79be33656694aaa40f55b8d2
+gc_uk_retail	exe	build/region/gc_uk_retail/main.dol	2085792	1774e3f5d6ee8ca429a4c1451b4b8011	23331fe2bd536380daedf070eef63320cf83b8550c4f68b270de2f5ce24ae5ad
+ps2_prototype	disc	orig/ps2/ps2-prototype/PS2 - Lego Star Wars Preview Code.bin	1804271616	67f4c177c3db555866eaca560c6ac425	8dc350ff6dbdbd9ba53f66a3f7ba5dee8b6f053512caa01a6817af81e1b5bc61
+ps2_prototype	exe	orig/ps2/ps2-prototype/extracted/SLUS_999.99	2941736	8126ef02d573fc2683be096146052300	9ff781f8e5cf8a53ea72b0fa987b59fd2fe060c798933a6c387b079f5e8b20d9
+ps2_eu_demo	disc	orig/ps2/ps2-retail/eu demo/LEGO Star Wars - The Video Game (Europe) (Demo).bin	202667136	702e355c00d8ff7885be4956607e17b1	73c2fe67c70cb346000ca4a316052e06596a8ef56e0a70d269cfec11274cfa42
+ps2_eu_demo	exe	build/cross_binary_lineage/extracted/ps2_eu_demo/SLED_533.59	3173684	0ac134243aeef95f771ed1ec821ee812	8db62d30dbc2bfc4e741ca743eb151c684a96a3e19cef7a5554e2b37f692f927
+ps2_eu_retail_v1	disc	orig/ps2/ps2-retail/eu 1.0/LEGO Star Wars - The Video Game (Europe) (En,Fr,De,Es,It,Nl,Da).bin	734021568	be0b64c9ce4f172302ed257dba7afa14	88bdddc7d2be5dd61473c784b58e9ae666f586328d2549a57b7ffa2ab5661f6a
+ps2_eu_retail_v1	exe	build/cross_binary_lineage/extracted/ps2_eu_1_0/SLES_531.94	3170488	847f63749e5d4ad4fca3c10f54aa845c	41d79e91cd654d35b9fbbf49c2ae48d12da415bf3a81579a6bda33c2542024ec
+ps2_us_retail_v1	disc	orig/ps2/ps2-retail/usa 1.1/LEGO Star Wars - The Video Game (USA) (v1.01).bin	731135664	e6de45d4be80467a6f8e60bdb1ba0875	d706c040f38ddbf3cd8ef1b84860f8c5196f0be198b0eef66e7f57e171b92fda
+ps2_us_retail_v1	exe	build/revisions/ps2_us_retail_v1/main.elf	3170744	5fbb754eac034dade27f90cfbe888bae	ca9dd4e579223ba28c8ca69bbc44c8060c228fc592aa319125c4cece2ac19d79
+ps2_us_retail_gh	disc	orig/ps2/ps2-retail/usa 2.0 gh/LEGO Star Wars - The Video Game (USA) (v2.00).iso	1869316096	48cf20e6476d6f4f20992522a2d2d37e	acdbb8ba6a74a200f2515c91fa9034bdfc195b9d72cfdcb51f928dee1ebeeca5
+ps2_us_retail_gh	exe	build/revisions/ps2_us_retail_gh/main.elf	3182600	c0761999d860fae6ded610250e7b6db4	f5e03448f49fc6604f1000482c85f8b72cad06c93dbd6f9253325dacf37423ce
+xbox_retail	disc	orig/xbox/xbox-retail/LEGO Star Wars - The Video Game (USA).xiso.iso	1606942720	121d3ad117ec5b3bafb41fff78884b2f	2aa86f7c36628691814b21b7508a4987b19340c99ab2144305a5d581775f6be4
+xbox_retail	exe	build/revisions/xbox_retail/default.xbe	2179072	18fe4c1e29d6eb1e70ffa7b72e50af97	d2ea3d9cfe2bdce173a2450b3a6e96340a9c1667ca23b759aae7566b5fcc4a29
+xbox_demo_oxm045	disc	orig/xbox/embedded demo/[Demo] OXM045 Jun-2005 (OGXBOX) (USA)/OXM045_Jun2005_USA.iso	7825162240	1f2c56427d7ad480d3083d8e2447f2cd	768bfe869242ef06ae3c0f385323d4b9bb2c1d9cfb33c10626ac764e30050909
+xbox_demo_oxm045	exe	orig/xbox/demo/lego.xbe	2125824	40327705b8aa04c58b1e1d7a3bf3e790	32e5e60b3bde1349783bc482216ab9c17afbd7c658c6d05b38a8a66be4ac30dd
+pc_us_demo	exe	orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe	10248192	a69e85bcbbb301052bba320e3296c427	e15b5218d3ded334af036a196f4bd4aeaeb3afcfd559823b230d2b7c88a78eb7
+pc_us_retail	exe	orig/pc/usa/retail/LEGO Star Wars Game/LegoStarwars.exe	11362304	44a06a1aae413684afded6856fb97ef3	49f74d802596b72b8da24b76f98f249dfdb370d5607fa7e65e3a19beb833d473
+mac_demo_dbg	exe	orig/mac/mac-debug-symbols/LEGO Star Wars Demo	15240796	d0676cb49de48819068e93c0e47c4c82	c6af8896de06297056cdf4aa5a82999ffdef8f3deb931eeed3a2070782669ea1
