@@ -9,22 +9,14 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 - `docs/symbol_donors/sdk_symbol_sources/imported/crashwoc_symbols.order.tsv`: 882 symbols
 
 ## Summary
-- HIGH: 1
-- MEDIUM: 7
+- HIGH: 0
+- MEDIUM: 0
 - LOW: 42
 
 ## Candidates
 
 | Conf | GC | New name | Source | Anchors | Gap |
 |---|---:|---|---|---|---:|
-| HIGH | `fn_8017DD18` @ `0x8017DD18` | `GXInitFifoLimits` | `crashwoc_symbols.txt` | `GXInitFifoBase` .. `GXSetCPUFifo` | 2:2 |
-| MEDIUM | `fn_8017DB08` @ `0x8017DB08` | `GXCPInterruptHandler` | `crashwoc_symbols.txt` | `__GXInitGX` .. `GXInitFifoBase` | 1:1 |
-| MEDIUM | `fn_8017DCA8` @ `0x8017DCA8` | `GXInitFifoPtrs` | `crashwoc_symbols.txt` | `GXInitFifoBase` .. `GXSetCPUFifo` | 2:2 |
-| MEDIUM | `fn_80181B60` @ `0x80181B60` | `GXInvalidateTexAll` | `crashwoc_symbols.txt` | `GXInitTlutRegion` .. `__GXSetTmemConfig` | 5:5 |
-| MEDIUM | `fn_80181BA8` @ `0x80181BA8` | `GXSetTexRegionCallback` | `crashwoc_symbols.txt` | `GXInitTlutRegion` .. `__GXSetTmemConfig` | 5:5 |
-| MEDIUM | `fn_80181BBC` @ `0x80181BBC` | `GXSetTlutRegionCallback` | `crashwoc_symbols.txt` | `GXInitTlutRegion` .. `__GXSetTmemConfig` | 5:5 |
-| MEDIUM | `fn_80181BD0` @ `0x80181BD0` | `__SetSURegs` | `crashwoc_symbols.txt` | `GXInitTlutRegion` .. `__GXSetTmemConfig` | 5:5 |
-| MEDIUM | `fn_80181C70` @ `0x80181C70` | `__GXSetSUTexRegs` | `crashwoc_symbols.txt` | `GXInitTlutRegion` .. `__GXSetTmemConfig` | 5:5 |
 | LOW | `fn_8017DFC4` @ `0x8017DFC4` | `GXGetGPStatus` | `crashwoc_symbols.txt` | `GXSetGPFifo` .. `__GXFifoInit` | 1:3 |
 | LOW | `fn_8017FE24` @ `0x8017FE24` | `__GXSetDirtyState` | `crashwoc_symbols.txt` | `__GXPEInit` .. `GXInitTexCacheRegion` | 45:41 |
 | LOW | `fn_8017FEA4` @ `0x8017FEA4` | `GXBegin` | `crashwoc_symbols.txt` | `__GXPEInit` .. `GXInitTexCacheRegion` | 45:41 |

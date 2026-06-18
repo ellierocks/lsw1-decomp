@@ -1,12 +1,4 @@
 confidence	score	gc_old	gc_addr	gc_size	new_name	source	left_anchor	right_anchor	gap
-HIGH	5	fn_8017DD18	0x8017DD18	0xC	GXInitFifoLimits	crashwoc_symbols.txt	GXInitFifoBase	GXSetCPUFifo	2:2
-MEDIUM	4	fn_8017DB08	0x8017DB08	0x134	GXCPInterruptHandler	crashwoc_symbols.txt	__GXInitGX	GXInitFifoBase	1:1
-MEDIUM	4	fn_8017DCA8	0x8017DCA8	0x70	GXInitFifoPtrs	crashwoc_symbols.txt	GXInitFifoBase	GXSetCPUFifo	2:2
-MEDIUM	4	fn_80181B60	0x80181B60	0x48	GXInvalidateTexAll	crashwoc_symbols.txt	GXInitTlutRegion	__GXSetTmemConfig	5:5
-MEDIUM	4	fn_80181BA8	0x80181BA8	0x14	GXSetTexRegionCallback	crashwoc_symbols.txt	GXInitTlutRegion	__GXSetTmemConfig	5:5
-MEDIUM	4	fn_80181BBC	0x80181BBC	0x14	GXSetTlutRegionCallback	crashwoc_symbols.txt	GXInitTlutRegion	__GXSetTmemConfig	5:5
-MEDIUM	4	fn_80181BD0	0x80181BD0	0xA0	__SetSURegs	crashwoc_symbols.txt	GXInitTlutRegion	__GXSetTmemConfig	5:5
-MEDIUM	4	fn_80181C70	0x80181C70	0x17C	__GXSetSUTexRegs	crashwoc_symbols.txt	GXInitTlutRegion	__GXSetTmemConfig	5:5
 LOW	0	fn_8017DFC4	0x8017DFC4	0x44	GXGetGPStatus	crashwoc_symbols.txt	GXSetGPFifo	__GXFifoInit	1:3
 LOW	0	fn_8017FE24	0x8017FE24	0x80	__GXSetDirtyState	crashwoc_symbols.txt	__GXPEInit	GXInitTexCacheRegion	45:41
 LOW	0	fn_8017FEA4	0x8017FEA4	0xD0	GXBegin	crashwoc_symbols.txt	__GXPEInit	GXInitTexCacheRegion	45:41

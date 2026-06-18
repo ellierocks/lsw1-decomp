@@ -394,6 +394,24 @@
   - fn_800240EC
 ### NuMtlSetCurrentRenderPlane
   - fn_7FFB7CA4
+### NuGHGReadEx
+  - fn_7FF8FA14
+  - fn_7FF9E79C
+  - fn_7FFA4AF8
+  - fn_7FFA4D18
+  - fn_7FFA6700
+  - fn_7FFA6710
+  - fn_7FFA67B4
+  - fn_7FFA9BA0
+  - fn_7FFA9C70
+  - fn_7FFA9DC8
+  - fn_7FFA9E8C
+  - fn_7FFD5C78
+  - fn_7FFD5D5C
+  - fn_7FFD615C
+  - fn_8001394C
+  - fn_8002B3A0
+  - fn_804D75B0
 ### NuInitHardware
   - fn_7FF69850
   - fn_7FF6C49C
@@ -426,12 +444,52 @@
   - fn_80056E88
   - fn_80063F80
   - fn_800BCED8
+### instNuGCutCamSysUpdate
+  - fn_7FF702EC
+  - fn_7FF760C4
+  - fn_7FF760F4
+  - fn_7FF761B0
+  - fn_7FF76884
+  - fn_7FF78038
+  - fn_7FF7DE64
+  - fn_7FF838A0
+  - fn_7FF84E04
+  - fn_7FFA4670
+  - fn_7FFABB20
+  - fn_7FFB9690
+  - fn_7FFCF40C
+  - fn_8003CEE0
+  - fn_8003D230
+  - fn_8004C118
 ### NuGCutLocatorSysFixUp
   - fn_7FF6E7C0
   - fn_8003D4F0
-  - fn_8003D654
   - fn_800D5264
   - fn_8049FB44
+### instNuGCutDebrisLocatorUpdate
+  - fn_7FF6E0D8
+  - fn_7FF732EC
+  - fn_7FF733B8
+  - fn_7FF734F8
+  - fn_7FF7B9EC
+  - fn_7FF7F1F4
+  - fn_7FF826B0
+  - fn_7FFA2564
+  - fn_7FFA314C
+  - fn_7FFA320C
+  - fn_7FFB7984
+  - fn_8003B118
+  - fn_8003C754
+  - fn_800D6968
+  - fn_800D7274
+  - fn_800D8B70
+### instNuCGutRigidSysCreate
+  - fn_7FF6D32C
+  - fn_8003DC14
+  - fn_8049E58C
+### NuGCutTriggerSysFixUp
+  - fn_7FF65330
+  - fn_8049661C
 ### NuSoundInitV
   - fn_7FF5A4C0
   - fn_7FF5A550
@@ -448,6 +506,8 @@
   - fn_7FF59D3C
   - fn_7FF59DA8
   - fn_7FF59DF4
+### NuFmvNgc_Alloc
+  - fn_7FF497E0
 ### PauseMenu_HandleEntry1
   - fn_7FEDC2AC
   - fn_8006B1E0
@@ -1355,7 +1415,6 @@
   - fn_7FFBEDB0
   - fn_800CE1EC
   - fn_8010A318
-  - fn_801177C0
 ### Menu_Unknown11_HandleSelection
   - fn_7FFBDFCC
   - fn_7FFBEC60
@@ -1457,6 +1516,38 @@
   - fn_8004B10C
   - fn_8004B79C
   - fn_8018C51C
+### NuFileGetEndianSwap
+  - fn_7FDA33DC
+  - fn_7FDA3B74
+  - fn_7FDA3CE8
+  - fn_7FDA3D84
+  - fn_7FDA464C
+  - fn_7FDA4700
+  - fn_7FE062B4
+  - fn_7FEFAC90
+  - fn_7FEFB0A4
+  - fn_7FF52224
+  - fn_7FF5B45C
+  - fn_7FF5B6F0
+  - fn_7FF63E88
+  - fn_7FF6411C
+  - fn_7FF667D4
+  - fn_7FF67290
+  - fn_7FF67B80
+  - fn_7FFEC30C
+  - fn_7FFFE384
+  - fn_7FFFE618
+  - fn_800434C8
+  - fn_800CEF44
+  - fn_800CF3D8
+  - fn_800CF9D8
+  - fn_800D2E44
+  - fn_800D4810
+  - fn_800D88B8
+  - fn_800D9BB8
+  - fn_802C76D8
+  - fn_802C82FC
+  - fn_802C83A4
 ### Menu_ResetFromGame
   - fn_7FF0F818
   - fn_7FF3BDBC
@@ -1501,6 +1592,226 @@
   - fn_8010C570
   - fn_8010CB48
   - fn_8010CD84
+### ConfigureBlupUps
+  - fn_7FCD5608
+  - fn_7FCD598C
+  - fn_7FCD5D04
+  - fn_7FCD5FD4
+  - fn_7FCD6274
+  - fn_7FCD6400
+  - fn_7FCD6430
+  - fn_7FCD67C0
+  - fn_7FCD6824
+  - fn_7FCD6AC4
+  - fn_7FCD6B3C
+  - fn_7FCD6B44
+  - fn_7FCD6BA8
+  - fn_7FCD6E48
+  - fn_7FCD6EBC
+  - fn_7FCD6EC0
+  - fn_7FCD6F2C
+  - fn_7FCD718C
+  - fn_7FCD71C0
+  - fn_7FCD742C
+  - fn_7FCD7490
+  - fn_7FCD7504
+  - fn_7FCD76F0
+  - fn_7FCD7714
+  - fn_7FCD7730
+  - fn_7FCD7900
+  - fn_7FCD7918
+  - fn_7FCD79D0
+  - fn_7FCD7B04
+  - fn_7FCD7BE0
+  - fn_7FCD7C18
+  - fn_7FCD7CD8
+  - fn_7FCD7D98
+  - fn_7FCD7DBC
+  - fn_7FCD7DE4
+  - fn_7FCD7E58
+  - fn_7FCD80E4
+  - fn_7FCD811C
+  - fn_7FCD81A4
+  - fn_7FCD8264
+  - fn_7FCD8324
+  - fn_7FCD832C
+  - fn_7FCD8368
+  - fn_7FCD8554
+  - fn_7FCD8584
+  - fn_7FCD85AC
+  - fn_7FCD8740
+  - fn_7FCD8834
+  - fn_7FCD8990
+  - fn_7FCD89C0
+  - fn_7FCD8A20
+  - fn_7FCDD858
+  - fn_7FCF2AC0
+  - fn_7FCF2E44
+  - fn_7FD04070
+  - fn_7FD05004
+  - fn_7FE652B0
+  - fn_7FF0E980
+  - fn_800457D4
+  - fn_800DC454
+  - fn_800E5C14
+  - fn_80114AE8
+  - fn_801171A0
+  - fn_8011A96C
+  - fn_80210670
+### ConfigureDoorTriggers
+  - fn_7FCD529C
+  - fn_7FCD52CC
+  - fn_7FCD56A4
+  - fn_7FCD5818
+  - fn_7FCD599C
+  - fn_7FCD5A40
+  - fn_7FCD5A50
+  - fn_7FCD5AF4
+  - fn_7FCD5CA8
+  - fn_7FCD5D1C
+  - fn_7FCD5D34
+  - fn_7FCD5EF0
+  - fn_7FCD5F20
+  - fn_7FCD5F5C
+  - fn_7FCD5F9C
+  - fn_7FCD60A0
+  - fn_7FCD61DC
+  - fn_7FCD62F0
+  - fn_7FCD6320
+  - fn_7FCD63BC
+  - fn_7FCD655C
+  - fn_7FCDC6F4
+  - fn_7FD02BE4
+  - fn_800DA478
+  - fn_801171A0
+  - fn_80151510
+  - fn_8020E618
+### ConfigureZipUps
+  - fn_7FCD460C
+  - fn_7FCD463C
+  - fn_7FCD4798
+  - fn_7FCD4978
+  - fn_7FCD49B4
+  - fn_7FCD4B94
+  - fn_7FCD4C3C
+  - fn_7FCD4C64
+  - fn_7FCD4DA4
+  - fn_7FCD4DD4
+  - fn_7FCD4E1C
+  - fn_7FCD4E74
+  - fn_7FCD4F90
+  - fn_7FCD50FC
+  - fn_7FCD51E0
+  - fn_7FCD5210
+  - fn_7FCD5270
+  - fn_7FCD57D0
+  - fn_7FCDBA64
+  - fn_7FD03FF0
+  - fn_80151510
+### ConfigureRippleEffects
+  - fn_7FCD1270
+  - fn_7FCD1534
+  - fn_7FCD17F8
+  - fn_7FCD2158
+  - fn_7FCD2188
+  - fn_7FCD2428
+  - fn_7FCD26EC
+  - fn_7FCD272C
+  - fn_7FCD29B0
+  - fn_7FCD29F0
+  - fn_7FCD2C14
+  - fn_7FCD2CB4
+  - fn_7FCD2E60
+  - fn_7FCD2F00
+  - fn_7FCD30AC
+  - fn_7FCD314C
+  - fn_7FCD32F8
+  - fn_7FCD3398
+  - fn_7FCD3550
+  - fn_7FCD35E4
+  - fn_7FCD37A8
+  - fn_7FCD383C
+  - fn_7FCD3A00
+  - fn_7FCD3A94
+  - fn_7FCD3ACC
+  - fn_7FCD3C58
+  - fn_7FCD3CC4
+  - fn_7FCD3CEC
+  - fn_7FCD3D18
+  - fn_7FCD3D54
+  - fn_7FCD3EB0
+  - fn_7FCD3F44
+  - fn_7FCD3F64
+  - fn_7FCD3F7C
+  - fn_7FCD3FB8
+  - fn_7FCD4168
+  - fn_7FCD4190
+  - fn_7FCD4198
+  - fn_7FCD41B0
+  - fn_7FCD41D4
+  - fn_7FCD41F0
+  - fn_7FCD4354
+  - fn_7FCD4408
+  - fn_7FCD443C
+  - fn_7FCD45A4
+  - fn_7FCD45D4
+  - fn_7FCD4634
+  - fn_7FCD4660
+  - fn_7FCD48B8
+  - fn_7FCD4B10
+  - fn_7FCD94C0
+  - fn_800E0790
+  - fn_80114AE8
+  - fn_8011BFF4
+  - fn_801B8F8C
+### ConfigureTubes
+  - fn_7FCCF4A0
+  - fn_7FCCFE00
+  - fn_7FCCFE30
+  - fn_7FCCFF80
+  - fn_7FCD0154
+  - fn_7FCD0190
+  - fn_7FCD037C
+  - fn_7FCD044C
+  - fn_7FCD0628
+  - fn_7FCD065C
+  - fn_7FCD0664
+  - fn_7FCD0898
+  - fn_7FCD0968
+  - fn_7FCD0A00
+  - fn_7FCD0A30
+  - fn_7FCD0A78
+  - fn_7FCD0BEC
+  - fn_7FCD0D58
+  - fn_7FCD0E3C
+  - fn_7FCD0E6C
+  - fn_7FCD0ECC
+  - fn_7FCD0FC4
+  - fn_7FCD7258
+  - fn_7FCE4F0C
+  - fn_7FCFFC40
+  - fn_8011B668
+  - fn_8014DA40
+### CUT_FindCharacters
+  - fn_7FCC98A0
+  - fn_801132E8
+### AIPathCnxControllerCreate
+  - fn_7FC99C58
+  - fn_7FC99E3C
+  - fn_7FC99E80
+  - fn_7FC99F88
+  - fn_7FC9A064
+  - fn_7FC9A1B0
+  - fn_7FCA2860
+  - fn_7FCA2ADC
+  - fn_7FCC792C
+  - fn_7FCC8884
+  - fn_7FEA6034
+  - fn_7FEA62B0
+  - fn_800F6C98
+  - fn_800F72B8
+  - fn_8012BF24
+  - fn_8012C1C8
 ### Condition_LocatedCollectable
   - fn_7FCB304C
   - fn_7FCB30AC
@@ -1852,7 +2163,6 @@
   - fn_7FECB62C
   - fn_7FECD0D0
   - fn_7FECD46C
-  - fn_8011A0EC
   - fn_801C2928
   - fn_801C297C
 ### Action_CreateSplineCreatures
@@ -1887,7 +2197,6 @@
   - fn_7FFA5DDC
   - fn_7FFA9008
   - fn_7FFA914C
-  - fn_80118E74
   - fn_801C0F24
   - fn_801C0F78
 ### Action_SetRunSpeed
@@ -2832,4 +3141,4 @@
   - fn_8018274C
 
 ---
-Total: 2829 entries
+Total: 3138 entries

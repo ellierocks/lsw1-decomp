@@ -7,27 +7,47 @@ Confidence uses named GC functions as left/right anchors, aligns unnamed functio
 ## Summary
 - HIGH: 0
 - MEDIUM: 1
-- LOW: 14
+- LOW: 34
 
 ## Candidates
 
 | Conf | GC | New name | Module | Source | Anchors | Size |
 |---|---:|---|---|---|---|---:|
 | MEDIUM | `fn_80017EA0` @ `0x80017EA0` | `NuAnimCurve2SetApplyToJoint` | nu3dx/anim | mac_lsw2_ppc | `NuAnimCurve2CalcValEx` .. `NuAnimDataRead` (1:1) | 0x6B8/0x3C |
+| LOW | `fn_8012BF24` @ `0x8012BF24` | `AIPathCnxControllerSetOnRange` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0x2A4/0x250 |
+| LOW | `fn_8012C884` @ `0x8012C884` | `NuVec4MtxTransformVU0` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0x110/0xF0 |
+| LOW | `fn_8012C994` @ `0x8012C994` | `NuVec4MtxRotateVU0` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0xF0/0xA0 |
+| LOW | `fn_8012CA84` @ `0x8012CA84` | `NuFpDiv` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0x80/0x40 |
+| LOW | `fn_8012CD50` @ `0x8012CD50` | `NuFntMoveAbs` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0xB8/0x80 |
+| LOW | `fn_8012D1CC` @ `0x8012D1CC` | `MenuEnterSaveConfirm` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0x1C/0x50 |
+| LOW | `fn_8012D1E8` @ `0x8012D1E8` | `MenuEnterAutoSaveWarning` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0x1C/0x30 |
+| LOW | `fn_8012D204` @ `0x8012D204` | `MenuEnterAutoSaveCancel` | gamecode | mac_lsw1_demo | `AIPathCnxControllerCreate` .. `Condition_EitherPlayerUsingForce` (23:150) | 0x1C/0x40 |
 | LOW | `fn_80023D5C` @ `0x80023D5C` | `NuCameraDestroy` | nu3dx/anim | mac_lsw2_ppc | `NuCameraCreate` .. `NuCameraGetMtx` (1:6) | 0x24/0x28 |
 | LOW | `fn_80023D98` @ `0x80023D98` | `NuCameraGetProjectionMtx` | nu3dx/anim | mac_lsw1_demo | `NuCameraGetViewMtx` .. `NuCameraGetClipMtx` (2:7) | 0xC/0x30 |
 | LOW | `fn_80023DA4` @ `0x80023DA4` | `NuCameraGetVPCSMtx` | nu3dx/anim | mac_lsw1_demo | `NuCameraGetViewMtx` .. `NuCameraGetClipMtx` (2:7) | 0xC/0x30 |
+| LOW | `fn_8003D4F0` @ `0x8003D4F0` | `instNuGCutLocatorSysEnd` | nu3dx/render | mac_lsw1_demo | `NuGCutLocatorSysFixUp` .. `instNuGCutDebrisLocatorUpdate` (1:2) | 0x164/0x1D0 |
+| LOW | `fn_8003E5C4` @ `0x8003E5C4` | `instNuGCutRigidSysEnd` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x128/0x130 |
+| LOW | `fn_8003F018` @ `0x8003F018` | `NuGCutCharSysDestroy` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x14/0x40 |
+| LOW | `fn_8003F02C` @ `0x8003F02C` | `instNuCGutCharSysCreate` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0xB4/0x130 |
+| LOW | `fn_8003F0E0` @ `0x8003F0E0` | `instNuCGutCharSysDestroy` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x4C/0xB0 |
+| LOW | `fn_8003F12C` @ `0x8003F12C` | `instNuGCutCharSysRender` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x4C/0xC0 |
+| LOW | `fn_8003F190` @ `0x8003F190` | `NuSetCutSceneCharacterRenderFn` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x8/0x30 |
+| LOW | `fn_8003F198` @ `0x8003F198` | `NuSetCutSceneCharacterEvalFn` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x8/0x30 |
+| LOW | `fn_8003F1A0` @ `0x8003F1A0` | `NuSetCutSceneFindCharactersFn` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x8/0x30 |
+| LOW | `fn_8003F1A8` @ `0x8003F1A8` | `NuSetCutSceneResetCharactersFn` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x2C/0x30 |
+| LOW | `fn_8003F1D4` @ `0x8003F1D4` | `NuSetCutSceneCharacterCreateDataFn` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0xA8/0x30 |
+| LOW | `fn_8003F27C` @ `0x8003F27C` | `NuSetCutSceneRigidPostRenderFn` | nu3dx/render | mac_lsw1_demo | `instNuCGutRigidSysCreate` .. `NuGCutTriggerSysFixUp` (50:22) | 0x34/0x30 |
 | LOW | `fn_80007610` @ `0x80007610` | `NuMemCpy` | nucore/error | mac_lsw2_ppc | `NuMemFree` .. `NuHexStringToI` (22:885) | 0x38/0x58 |
 | LOW | `fn_80007648` @ `0x80007648` | `NuMemGetExternal` | nucore/error | mac_lsw2_ppc | `NuMemFree` .. `NuHexStringToI` (22:885) | 0x38/0x1C |
 | LOW | `fn_80007B2C` @ `0x80007B2C` | `NuDebugMsg` | nucore/error | mac_lsw2_ppc | `NuMemFree` .. `NuHexStringToI` (22:885) | 0x40/0x20 |
 | LOW | `fn_80007BA8` @ `0x80007BA8` | `NuMtlClearOt` | nucore/error | mac_lsw2_ppc | `NuMemFree` .. `NuHexStringToI` (22:885) | 0x54/0x64 |
 | LOW | `fn_80007D48` @ `0x80007D48` | `NuMtlRemove` | nucore/error | mac_lsw2_ppc | `NuMemFree` .. `NuHexStringToI` (22:885) | 0x5C/0x78 |
 | LOW | `fn_80007F00` @ `0x80007F00` | `NuMtlGet` | nucore/error | mac_lsw2_ppc | `NuMemFree` .. `NuHexStringToI` (22:885) | 0x58/0x5C |
-| LOW | `fn_80007FF8` @ `0x80007FF8` | `NuStrLenW` | nucore/error | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:587) | 0x7C/0x30 |
-| LOW | `fn_80008074` @ `0x80008074` | `NuAToF` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:587) | 0x2C/0x130 |
-| LOW | `fn_800080A0` @ `0x800080A0` | `NuAToI` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:587) | 0x34/0x80 |
-| LOW | `fn_800080D4` @ `0x800080D4` | `NuToUpper` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:587) | 0xF8/0x30 |
-| LOW | `fn_800081CC` @ `0x800081CC` | `NuToLower` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:587) | 0xD8/0x40 |
+| LOW | `fn_80007FF8` @ `0x80007FF8` | `NuStrLenW` | nucore/error | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:582) | 0x7C/0x30 |
+| LOW | `fn_80008074` @ `0x80008074` | `NuAToF` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:582) | 0x2C/0x130 |
+| LOW | `fn_800080A0` @ `0x800080A0` | `NuAToI` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:582) | 0x34/0x80 |
+| LOW | `fn_800080D4` @ `0x800080D4` | `NuToUpper` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:582) | 0xF8/0x30 |
+| LOW | `fn_800081CC` @ `0x800081CC` | `NuToLower` | numath | mac_lsw1_demo | `NuHexStringToI` .. `NuPPLoadBuffer` (5:582) | 0xD8/0x40 |
 
 ## Apply Preview
 

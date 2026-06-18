@@ -9,5 +9,5 @@ HIGH	NuSoundSetRequestTable	0x8004425C	0x1A4	single ref	NuSoundSetRequestTable c
 MEDIUM	NuAnimLoad	0x80048E48	0x1D4	two refs, fn1	NuAnimLoad	0x801900C0	Two functions reference the NuAnimLoad string (0x80048E48 size 0x1D4, and 0x800581A8 size 0xA38); smaller is more likely the named function; larger is probably a caller/wrapper
 MEDIUM	NuGobjCalcDims	0x80049A14	0xE8	two refs, fn1	NuGobjCalcDims : Lock VB failed!	0x80191240	Both fn_80049A14 and fn_80049B04 reference this string; one is likely the function, other a helper
 MEDIUM	NuGobjCalcDims	0x80049B04	0xD4	two refs, fn2	NuGobjCalcDims : Lock VB failed!	0x80191240	See above — one of these two is NuGobjCalcDims; needs disassembly to confirm which
-MEDIUM	NuFmvNgc_Alloc	0x8004999C	0x74	small candidate	NuFmvNgc_Alloc: Buffer not big enough	0x80194658	Small allocator-sized function (0x74); fn_8004876C (0x22C) is the other candidate — likely caller
+APPLIED	NuFmvNgc_Alloc	0x8004999C	0x74	single ref confirmed	NuFmvNgc_Alloc: Buffer not big enough	0x80194658	fn_8004876C does NOT load this string directly (confirmed by DOL scan); fn_8004999C is sole ref; promoted to HIGH and renamed
 LOW	NuGScnBufferAllocAligned	0x800282E8	0x15C	many refs	NuGScnBufferAllocAligned failed	0x80191930	13 lis references across 0x80028xxx-0x80029xxx; error string used in many callers; NuGScnBufferAllocAligned itself is probably one of them
