@@ -19,8 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GC_DOL = ROOT / "orig/GL5E4F/sys/main.dol"
 GC_SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
-MAC_LSW1 = ROOT / "orig/mac-debug-symbols/LEGO Star Wars Demo"
-MAC_LSW2 = ROOT / "orig/mac-debug-symbols/LEGO Star Wars II"
+MAC_LSW1 = ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars Demo"
+MAC_LSW2 = ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars II"
 OUT_DIR = ROOT / "docs/symbol_donors"
 
 SYMBOL_LINE_RE = re.compile(

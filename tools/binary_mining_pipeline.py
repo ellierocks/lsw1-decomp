@@ -32,9 +32,9 @@ STAGES = [
         ],
         [
             Path("orig/GL5E4F/sys/main.dol"),
-            Path("orig/ps2-retail/usa 1.1/LEGO Star Wars - The Video Game (USA) (v1.01).bin"),
-            Path("orig/ps2-retail/usa 2.0 gh/LEGO Star Wars - The Video Game (USA) (v2.00).iso"),
-            Path("orig/mac-debug-symbols/LEGO Star Wars Demo"),
+            Path("orig/ps2/ps2-retail/usa 1.1/LEGO Star Wars - The Video Game (USA) (v1.01).bin"),
+            Path("orig/ps2/ps2-retail/usa 2.0 gh/LEGO Star Wars - The Video Game (USA) (v2.00).iso"),
+            Path("orig/mac/mac-debug-symbols/LEGO Star Wars Demo"),
         ],
     ),
     Stage(
@@ -45,8 +45,8 @@ STAGES = [
             Path("docs/symbol_donors/mac_anchor_rename_queue.md"),
         ],
         [
-            Path("orig/mac-debug-symbols/LEGO Star Wars Demo"),
-            Path("orig/mac-debug-symbols/LEGO Star Wars II"),
+            Path("orig/mac/mac-debug-symbols/LEGO Star Wars Demo"),
+            Path("orig/mac/mac-debug-symbols/LEGO Star Wars II"),
             Path("config/GL5E4F/symbols.txt"),
         ],
     ),
@@ -73,7 +73,7 @@ STAGES = [
         [
             Path("orig/GL5E4F/sys/main.dol"),
             Path("config/GL5E4F/symbols.txt"),
-            Path("orig/mac-debug-symbols/LEGO Star Wars Demo"),
+            Path("orig/mac/mac-debug-symbols/LEGO Star Wars Demo"),
         ],
     ),
     Stage(

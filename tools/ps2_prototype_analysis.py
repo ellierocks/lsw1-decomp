@@ -12,7 +12,7 @@ from pathlib import Path
 from collections import defaultdict
 
 # PS2 prototype paths
-PS2_ELF = Path('orig/ps2-prototype/extracted/SLUS_999.99')
+PS2_ELF = Path('orig/ps2/ps2-prototype/extracted/SLUS_999.99')
 PS2_STRINGS = Path('/tmp/ps2_strings.txt')
 
 # GameCube paths

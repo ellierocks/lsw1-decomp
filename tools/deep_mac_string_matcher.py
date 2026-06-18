@@ -22,8 +22,8 @@ from typing import Optional
 ROOT = Path(__file__).resolve().parents[1]
 GC_DOL = ROOT / "orig/GL5E4F/sys/main.dol"
 GC_SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
-MAC_LSW1 = ROOT / "orig/mac-debug-symbols/LEGO Star Wars Demo"
-MAC_LSW2 = ROOT / "orig/mac-debug-symbols/LEGO Star Wars II"
+MAC_LSW1 = ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars Demo"
+MAC_LSW2 = ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars II"
 OUT_DIR = ROOT / "docs/symbol_donors"
 OUT_DEEP_TSV = OUT_DIR / "mac_gc_string_xref_match.tsv"
 OUT_DEEP_MD = OUT_DIR / "mac_deep_match_report.md"
@@ -114,64 +114,57 @@ def parse_gc_symbols(path: Path) -> dict[str, GCSymbol]:
 
 def extract_macho_strings(path: Path, arch: str = "") -> dict[int, bytes]:
     """Extract __cstring section from Mach-O via llvm-objdump."""
-    cmd = ["llvm-objdump", "-full-contents", "-section", "__TEXT,__cstring", "-macho"]
+    # LLVM 22+ uses --section (double dash) and outputs text format: "addr  string_content"
+    cmd = ["llvm-objdump", "--full-contents", "--section", "__TEXT,__cstring", "--macho"]
     if arch:
-        cmd.extend(["-arch", arch])
+        cmd.extend(["--arch", arch])
     cmd.append(str(path))
     result = subprocess.run(cmd, capture_output=True, text=True)
-    
+
     strings = {}
     for line in result.stdout.splitlines():
-        parts = line.split()
-        if len(parts) < 3:
+        # Format: "0019d1f4  string content here" or "0019d1f4  " (empty for null bytes)
+        if len(line) < 10:
             continue
+        # Address is a bare hex word, not followed by ":"
         try:
-            addr = int(parts[0].rstrip(":"), 16)
+            addr_str = line[:8].strip()
+            if not addr_str:
+                continue
+            addr = int(addr_str, 16)
         except ValueError:
             continue
-        bytes_here = []
-        for p in parts[1:]:
-            if len(p) == 2 and all(c in "0123456789abcdefABCDEF" for c in p.lower()):
-                bytes_here.append(int(p, 16))
-            elif p.startswith("0x") or len(p) > 2:
-                break
-            else:
-                break
-        if bytes_here:
-            strings[addr] = bytes(bytes_here)
+        content = line[10:]  # after "addr  "
+        if content:
+            strings[addr] = content.encode("latin-1", errors="replace") + b"\x00"
     return strings
 
 
 def extract_macho_code_section(path: Path, arch: str = "") -> tuple[bytes, int, str]:
     """Extract __text section bytes and base address from Mach-O."""
-    cmd = ["llvm-objdump", "-full-contents", "-section", "__TEXT,__text", "-macho"]
+    # LLVM 22+ outputs disassembly: "    addr:	HH HH HH HH	mnemonic ..."
+    cmd = ["llvm-objdump", "--full-contents", "--section", "__TEXT,__text", "--macho"]
     if arch:
-        cmd.extend(["-arch", arch])
+        cmd.extend(["--arch", arch])
     cmd.append(str(path))
     result = subprocess.run(cmd, capture_output=True, text=True)
-    
+
     data = bytearray()
     base_addr = None
-    prev_addr = None
+    prev_end = None
+    hex_re = re.compile(r"^\s+([0-9a-f]+):\s+((?:[0-9a-f]{2}\s+)+)", re.IGNORECASE)
     for line in result.stdout.splitlines():
-        parts = line.split()
-        if len(parts) < 2:
+        m = hex_re.match(line)
+        if not m:
             continue
-        try:
-            addr = int(parts[0].rstrip(":"), 16)
-        except ValueError:
-            continue
+        addr = int(m.group(1), 16)
+        hex_bytes = bytes(int(h, 16) for h in m.group(2).split())
         if base_addr is None:
             base_addr = addr
-        # Fill gaps with zeros
-        if prev_addr is not None and addr > prev_addr:
-            data.extend(b'\x00' * (addr - prev_addr))
-        prev_addr = addr + len([p for p in parts[1:] if len(p) == 2 and all(c in "0123456789abcdefABCDEF" for c in p.lower())])
-        for p in parts[1:]:
-            if len(p) == 2 and all(c in "0123456789abcdefABCDEF" for c in p.lower()):
-                data.append(int(p, 16))
-            else:
-                break
+        if prev_end is not None and addr > prev_end:
+            data.extend(b"\x00" * (addr - prev_end))
+        data.extend(hex_bytes)
+        prev_end = addr + len(hex_bytes)
     return bytes(data), base_addr if base_addr else 0, f"macho_{arch}" if arch else "macho"
 
 
@@ -181,7 +174,8 @@ def extract_gc_strings(path: Path) -> dict[int, bytes]:
     data = path.read_bytes()
     strings = {}
     for sec in sections:
-        if sec.name not in (".rodata",):
+        # GC DOL has no standalone .rodata — strings live in .data sections (indices 7+)
+        if sec.index < 7:
             continue
         raw = data[sec.offset:sec.offset + sec.size]
         i = 0
@@ -415,13 +409,12 @@ def main():
             section = m.group("section")
             size_m = SIZE_RE.search(m.group("meta"))
             size = int(size_m.group(1), 16) if size_m else 0
-            # Read actual content from DOL
-            if section == ".rodata":
-                offset_rel = addr - 0x8018CB00 + 0x3D500  # Approximate rodata offset in DOL
-                # Better: use DOL section parsing
+            # Read actual content from DOL (section name in symbols.txt is .rodata
+            # but the DOL has no standalone .rodata — strings live in data sections)
+            if section in (".rodata", ".data", ".sdata", ".sdata2"):
                 sections = parse_dol_sections(GC_DOL)
                 for sec in sections:
-                    if sec.name == ".rodata" and sec.address <= addr < sec.address + sec.size:
+                    if sec.address <= addr < sec.address + sec.size:
                         offset = sec.offset + (addr - sec.address)
                         dol_data = GC_DOL.read_bytes()
                         content = dol_data[offset:offset + size]

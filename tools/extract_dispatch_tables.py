@@ -20,8 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 GC_DOL = ROOT / "orig/GL5E4F/sys/main.dol"
 GC_SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
 OUT_DIR = ROOT / "docs/symbol_donors"
-MAC_DEMO = ROOT / "orig/mac-debug-symbols/LEGO Star Wars Demo"
-MAC_LSW2 = ROOT / "orig/mac-debug-symbols/LEGO Star Wars II"
+MAC_DEMO = ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars Demo"
+MAC_LSW2 = ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars II"
 
 SYMBOL_RE = re.compile(
     r"^(?P<name>\S+)\s+=\s+(?P<section>\.\w+):0x(?P<addr>[0-9A-Fa-f]+);\s*//\s*(?P<meta>.*)$"

@@ -350,7 +350,7 @@ def main():
 
     # Load Mac symbols
     import subprocess
-    cmd = ["llvm-nm", "-a", str(ROOT / "orig/mac-debug-symbols/LEGO Star Wars Demo")]
+    cmd = ["llvm-nm", "-a", str(ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars Demo")]
     nm_res = subprocess.run(cmd, capture_output=True, text=True)
     mac_raw = []
     for line in nm_res.stdout.splitlines():

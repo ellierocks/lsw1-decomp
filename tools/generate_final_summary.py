@@ -22,8 +22,8 @@ print("=" * 70)
 
 # Source binary stats
 for label, exe, arch in [
-    ("LSW1 Demo", ROOT / "orig/mac-debug-symbols/LEGO Star Wars Demo", ""),
-    ("LSW2 PPC", ROOT / "orig/mac-debug-symbols/LEGO Star Wars II", "ppc"),
+    ("LSW1 Demo", ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars Demo", ""),
+    ("LSW2 PPC", ROOT / "orig/mac/mac-debug-symbols/LEGO Star Wars II", "ppc"),
 ]:
     cmd = ["llvm-nm", "-a"]
     if arch:

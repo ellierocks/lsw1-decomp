@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nm *)",
+      "Bash(readelf *)",
+      "Bash(llvm-nm *)",
+      "Bash(llvm-dwarfdump *)",
+      "Bash(objdump *)"
+    ]
+  }
+}

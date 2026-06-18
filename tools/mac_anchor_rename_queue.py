@@ -23,10 +23,10 @@ OUT_TSV = OUT_DIR / "mac_anchor_rename_queue.tsv"
 OUT_MD = OUT_DIR / "mac_anchor_rename_queue.md"
 
 MAC_BINS = [
-    ("mac_lsw1_demo", ROOT / "orig" / "mac-debug-symbols" / "LEGO Star Wars Demo", "ppc", 5),
-    ("mac_lsw2_ppc", ROOT / "orig" / "mac-debug-symbols" / "LEGO Star Wars II", "ppc", 3),
-    ("mac_batman", ROOT / "orig" / "mac-debug-symbols" / "LEGO Batman", "i386", 1),
-    ("mac_indy", ROOT / "orig" / "mac-debug-symbols" / "LEGOIndianaJones", "i386", 1),
+    ("mac_lsw1_demo", ROOT / "orig" / "mac" / "mac-debug-symbols" / "LEGO Star Wars Demo", "ppc", 5),
+    ("mac_lsw2_ppc", ROOT / "orig" / "mac" / "mac-debug-symbols" / "LEGO Star Wars II", "ppc", 3),
+    ("mac_batman", ROOT / "orig" / "mac" / "mac-debug-symbols" / "LEGO Batman", "i386", 1),
+    ("mac_indy", ROOT / "orig" / "mac" / "mac-debug-symbols" / "LEGOIndianaJones", "i386", 1),
 ]
 
 SYMBOL_RE = re.compile(

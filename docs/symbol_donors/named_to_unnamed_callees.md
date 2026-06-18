@@ -1,61 +1,55 @@
 # Named Functions -> Their Unnamed Callees
 
 ### NuFileOpen
-  - fn_80003AEC
-  - fn_800040E0
   - fn_80008E78
   - fn_8000B5F4
   - fn_800137D0
-  - fn_8001B7E8
-  - fn_8001BD70
   - fn_8001BE94
-  - fn_8001C20C
   - fn_800DD1C8
   - fn_80107DA4
   - fn_8054CD3C
   - fn_8054D47C
   - fn_8054D4C4
 ### NuFilePos
-  - fn_80003AEC
   - fn_8000CAA0
-  - fn_8001B22C
-  - fn_8001E850
+  - fn_800DD1C8
+### NuFileSeek
+  - fn_8000CBF4
+  - fn_8001E430
   - fn_800DD1C8
 ### NuFileClose
   - fn_800021C0
   - fn_8000306C
   - fn_800034A0
-  - fn_800040E0
   - fn_80007900
   - fn_8000BD10
-  - fn_8001A2D8
-  - fn_8001B22C
   - fn_800DD1C8
   - fn_8054BC80
 ### NuFileLoadBuffer
   - fn_80001CEC
   - fn_80002D1C
-  - fn_800040E0
   - fn_80005E80
   - fn_8000B518
   - fn_8000C1B8
   - fn_80014EC0
-  - fn_8001A2D8
   - fn_8001D4B8
   - fn_800DC454
   - fn_800DCB80
   - fn_8054B3C8
+### NuFileRead
+  - fn_8000B5F4
+  - fn_8001AF8C
+  - fn_8001D0D8
+  - fn_800DC454
+  - fn_8054A904
+  - fn_8054AE38
 ### NuFileBeginBlkRead
   - fn_80001AD0
   - fn_80001BCC
   - fn_800197B8
 ### NuDatFileLoadBufferLsn
-  - fn_80005F5C
   - fn_8001459C
-  - fn_80019248
 ### NuDatFileLoadBuffer
-  - fn_80004BA4
-  - fn_80005F5C
   - fn_80009408
   - fn_8000965C
   - fn_80009C00
@@ -64,25 +58,15 @@
   - fn_8000A64C
   - fn_80013B28
   - fn_80017EA0
-  - fn_80018558
-  - fn_800187F4
-  - fn_80018AF4
-  - fn_80018B58
-  - fn_80018C84
-  - fn_80018DA8
-  - fn_80018EF8
-  - fn_80018F78
-  - fn_80019248
-  - fn_8001BD70
-  - fn_8001C20C
   - fn_800DA478
   - fn_805492D4
   - fn_80549520
   - fn_80549ACC
+### NuDatFileSeek
+  - fn_80010120
+  - fn_80011070
 ### NuDatFileOpen
   - fn_800000A0
-  - fn_8001752C
-  - fn_8001B7E8
 ### NuDatOpenEx
   - fn_7FFFE8F0
   - fn_7FFFF4DC
@@ -98,17 +82,23 @@
   - fn_8000F65C
   - fn_8000F9FC
   - fn_8001678C
-  - fn_8001752C
-  - fn_8001A2D8
   - fn_800D8B70
   - fn_805476C0
   - fn_80547F44
   - fn_80547F74
   - fn_80547F98
+### NuDatFileOpenSize
+  - fn_80019A54
+  - fn_8054757C
+  - fn_805475C4
 ### NuFileEndBlockRead
   - fn_7FFFD534
   - fn_7FFFD8BC
   - fn_800151CC
+### NuDatFileFindTree
+  - fn_7FFFCC5C
+  - fn_80005FF4
+  - fn_80006010
 ### NuMemAlloc
   - fn_800076E4
   - fn_800077E8
@@ -132,6 +122,9 @@
   - fn_8053FEA4
   - fn_80541670
   - fn_80541754
+### NuHexStringToI
+  - fn_80007FF8
+  - fn_8000E6B0
 ### NuPPLoadBuffer
   - fn_7FFF5BC4
   - fn_7FFF5F6C
@@ -148,6 +141,9 @@
   - fn_8000D95C
   - fn_8000DC10
   - fn_8000DCE0
+### NuHeap
+  - fn_80008E78
+  - fn_8000C1B8
 ### NuSpecialFind
   - fn_7FFEDAE0
   - fn_7FFEDCB4
@@ -162,13 +158,296 @@
   - fn_7FFED7E0
   - fn_80013268
   - fn_80013310
+### NuAnimData2CalcTime
+  - fn_7FFE8540
 ### NuAnimCurve2CalcVal
   - fn_7FFE0648
   - fn_7FFE1584
   - fn_7FFE7E74
-  - fn_8001752C
   - fn_80017EA0
-  - fn_800187F4
+### NuAnimCurve2CalcValEx
+  - fn_7FFEA1E0
+  - fn_7FFF01CC
+  - fn_7FFF01DC
+  - fn_7FFF02D8
+  - fn_7FFF0348
+  - fn_7FFF34D8
+  - fn_7FFF37A4
+  - fn_7FFF3D90
+  - fn_7FFF3E40
+  - fn_7FFF4004
+  - fn_80014180
+  - fn_80014214
+  - fn_800146AC
+  - fn_800147CC
+  - fn_800151CC
+### NuAnimDataRead
+  - fn_7FFEDD0C
+  - fn_7FFEE508
+  - fn_7FFF1548
+  - fn_7FFF1980
+  - fn_800119C8
+  - fn_80011EC4
+### NuAnimDataFindVersion
+  - fn_7FFED544
+  - fn_7FFEDD94
+  - fn_7FFF0DB0
+  - fn_7FFF11B8
+  - fn_800119C8
+  - fn_80011EC4
+### NuAnimInit
+  - fn_800253A0
+### NuAnimDataCreate
+  - fn_7FFD1C74
+  - fn_8050D3C4
+### NuAnimCurveSetCreate
+  - fn_7FFD1A58
+  - fn_7FFD1AC4
+  - fn_7FFD1B48
+  - fn_8050D19C
+  - fn_8050D208
+  - fn_8050D280
+### NuAnimCurveCreate
+  - fn_7FFD18D8
+  - fn_7FFD1950
+  - fn_8050D01C
+  - fn_8050D094
+### NuAnimCurveDestroy
+  - fn_7FFD2368
+  - fn_7FFD23A4
+### NuAnimDataLoad
+  - fn_7FFC4F58
+  - fn_7FFDBD24
+  - fn_80018E64
+### NuAnimDataLoadBuff
+  - fn_7FFDBB24
+  - fn_8000F2B8
+  - fn_8003AEA4
+### NuAnimData2LoadBuff
+  - fn_7FFD0FFC
+  - fn_7FFD1074
+  - fn_8050C740
+  - fn_8050C7B8
+### NuAnimData2LoadBuffEx
+  - fn_7FFEC7BC
+  - fn_7FFEF6D8
+  - fn_7FFEF8B0
+  - fn_7FFEF8DC
+  - fn_8050C5E4
+### NuAnimData2FixPtrs
+  - fn_7FFEEB20
+  - fn_8000F094
+  - fn_80013B28
+  - fn_80019634
+  - fn_80019A54
+  - fn_8050BB64
+### NuAnimCurveSetLoad
+  - fn_80047078
+  - fn_80047384
+  - fn_800475E0
+  - fn_800476DC
+  - fn_80047978
+  - fn_800484F8
+  - fn_8004876C
+  - fn_80048998
+  - fn_80048B04
+  - fn_8004901C
+### NuAnimData2Fixup
+  - fn_7FFE58A4
+  - fn_7FFE87FC
+  - fn_7FFE8810
+  - fn_7FFE8A94
+  - fn_7FFE910C
+  - fn_7FFE9354
+### NuAnimData2Relocate
+  - fn_7FFDE93C
+  - fn_7FFE41F0
+  - fn_7FFE4938
+  - fn_7FFE4A1C
+  - fn_7FFE4A98
+  - fn_7FFE765C
+  - fn_7FFE7928
+  - fn_7FFE7B34
+  - fn_7FFE7E64
+  - fn_7FFE8088
+  - fn_7FFE84EC
+### NuAnimBuffEvaluate
+  - fn_8001BE94
+  - fn_8002F220
+  - fn_800303D8
+### NuAnimCurveSetApplyBlendToJoint2
+  - fn_7FFD66BC
+  - fn_7FFD6740
+  - fn_7FFD677C
+  - fn_7FFD69F0
+  - fn_7FFD6A68
+  - fn_7FFD6AAC
+  - fn_7FFD6DE0
+  - fn_7FFD6E54
+  - fn_7FFD7188
+  - fn_7FFD7250
+  - fn_7FFD7584
+  - fn_7FFDF7D8
+  - fn_7FFDF808
+  - fn_7FFDF850
+  - fn_7FFE4FF0
+  - fn_7FFE5020
+  - fn_7FFE5448
+  - fn_7FFE5698
+  - fn_7FFE57F0
+  - fn_7FFE5BEC
+  - fn_7FFE60F8
+  - fn_7FFE61B8
+  - fn_7FFE61F4
+  - fn_7FFE6230
+  - fn_7FFE66EC
+  - fn_80038210
+  - fn_8003B874
+  - fn_8003BA5C
+  - fn_8003FD38
+  - fn_8004901C
+  - fn_8005E2EC
+  - fn_80092230
+  - fn_80501D78
+  - fn_80502120
+  - fn_8050251C
+### NuAnimCurveSetApplyToJoint2
+  - fn_7FFDE200
+  - fn_7FFE4F28
+  - fn_7FFE4F58
+  - fn_7FFE4F88
+  - fn_7FFE4FB8
+  - fn_7FFE4FE8
+  - fn_7FFE5018
+  - fn_7FFE5048
+  - fn_7FFE5078
+  - fn_8001D4B8
+### NuAnimCurveEval
+  - fn_800385A4
+### NuAnimKeyWrite
+  - fn_7FFCDBF4
+  - fn_7FFCDC9C
+  - fn_7FFCDD44
+  - fn_7FFCDDEC
+  - fn_7FFCFDE0
+  - fn_7FFD00CC
+  - fn_7FFDEC30
+  - fn_7FFDECB4
+  - fn_7FFDED38
+  - fn_7FFDEDD4
+  - fn_8001AF8C
+  - fn_8001D7EC
+### NuAnimKeyBlend
+  - fn_8001EFA4
+### NuAnimCurve2SetApplyBlendToJoint2TransLoc
+  - fn_7FFC7A28
+  - fn_7FFC7A70
+  - fn_7FFC7D14
+  - fn_7FFC7D5C
+  - fn_7FFD3E04
+  - fn_7FFD3F60
+  - fn_7FFD40BC
+  - fn_7FFD4188
+  - fn_7FFD488C
+  - fn_7FFD4988
+  - fn_7FFD4A9C
+  - fn_7FFD4C34
+  - fn_7FFD4D48
+  - fn_7FFD510C
+  - fn_7FFD5808
+  - fn_7FFD5964
+  - fn_7FFD5AC0
+  - fn_7FFD5B8C
+  - fn_7FFD626C
+  - fn_7FFD638C
+  - fn_7FFD64A0
+  - fn_7FFD6638
+  - fn_7FFD674C
+  - fn_7FFD6B10
+### NuAnimCurve2SetApplyToJointTransLoc
+  - fn_7FFD2DF0
+  - fn_7FFD2F4C
+  - fn_7FFD30A8
+  - fn_7FFD3174
+  - fn_7FFD3A64
+  - fn_7FFD3AD0
+  - fn_7FFD3B3C
+### NuAnimCurve2SetApplyToMatrix
+  - fn_7FFD1EC0
+  - fn_7FFD1FF8
+  - fn_7FFD3738
+  - fn_800275E0
+### NuAnimCurve2SetApplyBlendToJoint2
+  - fn_7FFD1B44
+  - fn_8001FAEC
+### NuCameraClipTestPoints
+  - fn_7FFD060C
+  - fn_7FFD0D44
+  - fn_80023B50
+### NuCameraCreate
+  - fn_7FFB0704
+  - fn_7FFCB95C
+### NuCameraTransformClip
+  - fn_7FFC5AC0
+  - fn_7FFCFF04
+  - fn_80023F80
+  - fn_800240EC
+### NuMtlSetCurrentRenderPlane
+  - fn_7FFB7CA4
+### NuInitHardware
+  - fn_7FF69850
+  - fn_7FF6C49C
+  - fn_7FF6C520
+  - fn_7FF7A4B0
+  - fn_7FF8020C
+  - fn_7FFACFC0
+  - fn_7FFAD314
+  - fn_7FFAD8E0
+  - fn_7FFB6BC0
+  - fn_7FFE4890
+  - fn_7FFE5C44
+  - fn_7FFE65A8
+  - fn_7FFE7F2C
+  - fn_7FFEA884
+  - fn_7FFF1214
+  - fn_7FFF146C
+  - fn_7FFF1470
+  - fn_7FFF1858
+  - fn_7FFF49EC
+  - fn_800395E8
+  - fn_80039BE4
+  - fn_80039CB0
+  - fn_80039E78
+  - fn_8003A134
+  - fn_8003A244
+  - fn_8003A878
+  - fn_8003AA94
+  - fn_8003ABC4
+  - fn_80056E88
+  - fn_80063F80
+  - fn_800BCED8
+### NuGCutLocatorSysFixUp
+  - fn_7FF6E7C0
+  - fn_8003D4F0
+  - fn_8003D654
+  - fn_800D5264
+  - fn_8049FB44
+### NuSoundInitV
+  - fn_7FF5A4C0
+  - fn_7FF5A550
+  - fn_80044400
+  - fn_80044668
+  - fn_8004901C
+### NuSoundSetRequestTable
+  - fn_7FF59A9C
+  - fn_7FF59AFC
+  - fn_7FF59B5C
+  - fn_7FF59C10
+  - fn_7FF59C7C
+  - fn_7FF59CDC
+  - fn_7FF59D3C
+  - fn_7FF59DA8
+  - fn_7FF59DF4
 ### PauseMenu_HandleEntry1
   - fn_7FEDC2AC
   - fn_8006B1E0
@@ -240,6 +519,32 @@
   - fn_8007C534
   - fn_803E2C10
   - fn_803E3128
+### ScriptKeyword_STATE
+  - fn_7FEA2E0C
+  - fn_7FEA43D0
+  - fn_7FEA4794
+  - fn_7FEA4988
+  - fn_7FEA5774
+  - fn_7FEA578C
+  - fn_7FEA7894
+  - fn_7FEA79B0
+  - fn_7FEA8ED0
+  - fn_7FEA92FC
+  - fn_7FEA9768
+  - fn_7FEB06AC
+  - fn_7FEB0730
+  - fn_7FEB0940
+  - fn_7FEB09C4
+  - fn_803E18A4
+### ScriptKeyword_PARAM
+  - fn_7FEA4244
+  - fn_7FEA5714
+  - fn_7FEA5720
+  - fn_7FEA89CC
+  - fn_7FEA8DF8
+  - fn_7FEB01A8
+  - fn_7FEB022C
+  - fn_8007CC34
 ### AIScriptXRefScript
   - fn_7FEA1924
   - fn_7FEA2ED0
@@ -339,6 +644,361 @@
   - fn_7FEA4434
   - fn_7FEA44F4
   - fn_8007E97C
+### Action_Idle
+  - fn_7FE9EE14
+  - fn_7FE9F030
+  - fn_7FE9F288
+  - fn_7FEA0294
+  - fn_7FEA04B0
+  - fn_7FEA051C
+  - fn_7FEA0708
+  - fn_7FEA0774
+  - fn_7FEA0FB0
+  - fn_7FEA11CC
+  - fn_7FEA1424
+  - fn_7FEB0DF8
+  - fn_803D8674
+  - fn_803D8890
+  - fn_803D8AE8
+### Action_FollowOpponent
+  - fn_7FE9E808
+  - fn_7FE9FC88
+  - fn_7FEA09A4
+  - fn_800BD7BC
+  - fn_803D8068
+### Action_MoveAwayFromOpponent
+  - fn_7FE9E2B0
+  - fn_7FE9F730
+  - fn_7FE9FBD4
+  - fn_7FEA044C
+  - fn_800BD1F4
+  - fn_803D7B10
+### Action_FollowPlayer
+  - fn_7FE9DD40
+  - fn_7FE9F1C0
+  - fn_7FE9FEDC
+  - fn_800BCD9C
+  - fn_803D75A0
+### Action_CirclePlayer
+  - fn_7FE9D608
+  - fn_7FE9EA88
+  - fn_7FE9EF2C
+  - fn_7FE9EFD4
+  - fn_7FE9F058
+  - fn_7FE9F0DC
+  - fn_7FE9F7A4
+  - fn_800BC678
+  - fn_803D6E68
+### Action_CircleOpponent
+  - fn_7FE9CED0
+  - fn_7FE9E350
+  - fn_7FE9E7F4
+  - fn_7FE9E89C
+  - fn_7FE9E920
+  - fn_7FE9E9A4
+  - fn_7FE9F06C
+  - fn_800BBED0
+  - fn_803D6730
+### Action_MoveAwayFromPlayer
+  - fn_7FE9C924
+  - fn_7FE9DDA4
+  - fn_7FE9E248
+  - fn_7FE9EAC0
+  - fn_800BB950
+  - fn_803D6184
+### Action_RetreatFromOpponent
+  - fn_7FE9C438
+  - fn_7FE9D8B8
+  - fn_7FE9E5D4
+  - fn_800BB3FC
+  - fn_803D5C98
+### Action_RetreatFromNearestOpponent
+  - fn_7FE9BF34
+  - fn_7FE9D3B4
+  - fn_7FE9E0D0
+  - fn_800BA87C
+  - fn_803D5794
+### Action_FaceOpponent
+  - fn_7FE9B334
+  - fn_7FE9B580
+  - fn_7FE9B7D8
+  - fn_7FE9BA30
+  - fn_7FE9C7B4
+  - fn_7FE9CA00
+  - fn_7FE9CA6C
+  - fn_7FE9CC58
+  - fn_7FE9CCC4
+  - fn_7FE9CEB0
+  - fn_7FE9CF1C
+  - fn_7FE9D4D0
+  - fn_7FE9D71C
+  - fn_7FE9D974
+  - fn_7FE9DBCC
+  - fn_7FEAD318
+  - fn_7FEAFE70
+  - fn_803D4B94
+  - fn_803D4DE0
+  - fn_803D5038
+  - fn_803D5290
+### Action_SetViewDistance
+  - fn_7FE9AA40
+  - fn_7FE9BEC0
+  - fn_7FE9C334
+  - fn_7FE9CBDC
+  - fn_803D42A0
+### Action_SetMinViewHeight
+  - fn_7FE9A554
+  - fn_7FE9B9D4
+  - fn_7FE9BE48
+  - fn_7FE9C6F0
+  - fn_803D3DB4
+### Action_SetMaxViewHeight
+  - fn_7FE9A068
+  - fn_7FE9B4E8
+  - fn_7FE9B95C
+  - fn_7FE9C204
+  - fn_803D38C8
+### Action_SetHearDistance
+  - fn_7FE99B7C
+  - fn_7FE9AFFC
+  - fn_7FE9B470
+  - fn_7FE9BD18
+  - fn_803D33DC
+### Action_GoToNode
+  - fn_7FE996F0
+  - fn_7FE9AB70
+  - fn_7FE9B88C
+  - fn_7FEAEC28
+  - fn_800B836C
+  - fn_800B9928
+  - fn_803D2F50
+### Action_GoToNodeRandom
+  - fn_7FEAB2E4
+  - fn_7FEAE688
+  - fn_800B7F70
+  - fn_800B9164
+### Action_GoToOrigin
+  - fn_7FE988A4
+  - fn_7FE99D24
+  - fn_7FE9AA40
+  - fn_7FEACA98
+  - fn_7FEADEC0
+  - fn_7FEB5EC8
+  - fn_800B7870
+  - fn_803D2104
+### Action_SetLocator
+  - fn_7FE9807C
+  - fn_7FE994FC
+  - fn_7FE99568
+  - fn_7FE995E0
+  - fn_7FE9964C
+  - fn_7FE996B8
+  - fn_7FE9A218
+  - fn_7FEAA350
+  - fn_800B7870
+  - fn_803CA4DC
+  - fn_803CA518
+  - fn_803CA5CC
+  - fn_803D18DC
+### Action_GoToLocator
+  - fn_7FE96984
+  - fn_7FE96C60
+  - fn_7FE96EA0
+  - fn_7FE97110
+  - fn_7FE973A4
+  - fn_7FE97E04
+  - fn_7FE980E0
+  - fn_7FE98140
+  - fn_7FE98284
+  - fn_7FE982F0
+  - fn_7FE98320
+  - fn_7FE98380
+  - fn_7FE98590
+  - fn_7FE985F0
+  - fn_7FE98824
+  - fn_7FE98884
+  - fn_7FE988E4
+  - fn_7FE98944
+  - fn_7FE98A28
+  - fn_7FE98B20
+  - fn_7FE98CF8
+  - fn_7FE98D34
+  - fn_7FE98DFC
+  - fn_7FE9903C
+  - fn_7FE992AC
+  - fn_7FE99540
+  - fn_7FEA8968
+  - fn_7FEA9D20
+  - fn_7FEAAA10
+  - fn_7FEAB990
+  - fn_7FEABD9C
+  - fn_7FEB3E40
+  - fn_800B4DF0
+  - fn_800B57DC
+  - fn_800B6D94
+  - fn_803C9EAC
+  - fn_803C9EE8
+  - fn_803C9F9C
+  - fn_803CA044
+  - fn_803D01E4
+  - fn_803D04C0
+  - fn_803D0700
+  - fn_803D0970
+  - fn_803D0C04
+### Action_MoveAwayFromNode
+  - fn_7FE95FA0
+  - fn_7FE97420
+  - fn_7FE9813C
+  - fn_7FEAB4CC
+  - fn_800B4C28
+  - fn_800B4DF0
+  - fn_800B6078
+  - fn_803CF800
+### Action_OverrideAnimation
+  - fn_7FE95694
+  - fn_7FE96B14
+  - fn_7FE96BEC
+  - fn_7FE96C88
+  - fn_7FE970F0
+  - fn_7FE97830
+  - fn_800CC450
+  - fn_800CC558
+  - fn_803CEEF4
+### Action_BlockPath
+  - fn_7FE966AC
+  - fn_7FE96700
+  - fn_7FE969F4
+  - fn_7FE96A48
+  - fn_800B4DF0
+### Action_PathConnectionMaxLength
+  - fn_7FE946C8
+  - fn_7FE95B48
+  - fn_7FE95BB4
+  - fn_7FE95C2C
+  - fn_7FE95C98
+  - fn_7FE96864
+  - fn_8009FB78
+  - fn_803CDF28
+### Action_SetInterrupt
+  - fn_7FE93AF8
+  - fn_7FE93E1C
+  - fn_7FE940D4
+  - fn_7FE94F78
+  - fn_7FE94FD8
+  - fn_7FE95050
+  - fn_7FE9529C
+  - fn_7FE95308
+  - fn_7FE95554
+  - fn_7FE955C0
+  - fn_7FE95C94
+  - fn_7FE95FB8
+  - fn_7FE96270
+  - fn_80083754
+  - fn_80083958
+  - fn_803CD358
+  - fn_803CD67C
+  - fn_803CD934
+### Condition_Random
+  - fn_7FEA5164
+### Condition_LocatorRange
+  - fn_7FEA8170
+### Condition_LocatorRangeXZ
+  - fn_7FEA8354
+### Condition_InTriggerArea
+  - fn_803DF140
+### Condition_PlayerRange
+  - fn_7FEA7A44
+### Condition_NearestPlayerRange
+  - fn_7FEA7A0C
+  - fn_7FEA7A78
+  - fn_7FEAF810
+### Condition_NodeRange
+  - fn_7FEA7000
+### Condition_PlayerInTriggerArea
+  - fn_803DE2D0
+### Condition_Player2InTriggerArea
+  - fn_803DE0E4
+### Condition_EitherPlayerInTriggerArea
+  - fn_803DDE5C
+  - fn_803DDF04
+### Condition_OpponentInTriggerArea
+  - fn_803DD8EC
+### Condition_YawToOpponent
+  - fn_7FE9DB64
+  - fn_7FEA4F08
+### Condition_OriginRange
+  - fn_7FEA5BCC
+### Condition_OpponentToOrigin
+  - fn_7FEA5A88
+### Condition_PlayerToOrigin
+  - fn_7FEA5944
+### Condition_OpponentToLocatorInit
+  - fn_800B01C4
+### Condition_OpponentToLocator
+  - fn_7FEA577C
+### Condition_OpponentToLocatorXZ
+  - fn_7FEA5960
+### Condition_PlayerToLocatorInit
+  - fn_800AFDC0
+### Condition_PlayerToLocator
+  - fn_7FEA5398
+### Condition_NearestPlayerToLocator
+  - fn_7FEA5348
+  - fn_7FEA53A8
+  - fn_7FEAD14C
+### Condition_IAm
+  - fn_7FE91204
+### Action_SetState
+  - fn_7FE8F44C
+  - fn_7FE8F4EC
+  - fn_7FE90FE8
+### Action_FacePlayer
+  - fn_7FE8F538
+  - fn_7FE909B8
+  - fn_7FE916D4
+  - fn_803C8D98
+### Action_IgnoreWallSplines
+  - fn_7FE909B8
+### Action_CheckWallSplines
+  - fn_7FE9082C
+### Action_NoTerrain
+  - fn_7FE9067C
+### Action_NoLosCheck
+  - fn_7FE904C0
+### Action_FlatTerrain
+  - fn_7FE90304
+### Action_ShadowTerrain
+  - fn_7FE90148
+### Action_DontUseShadowTerrain
+  - fn_7FE8FF8C
+### Action_DontPush
+  - fn_7FE8FDD0
+### Action_CanSeeBehind
+  - fn_7FE8FC14
+### Action_RequiresLOS
+  - fn_7FE8FA7C
+### Action_SetFullPathSearch
+  - fn_7FE8F8CC
+### Action_SetMoveRadius
+  - fn_7FE8DDE0
+  - fn_7FE8F260
+  - fn_7FE8F6D4
+  - fn_7FE8FF7C
+  - fn_803C7640
+### Action_FollowPath
+  - fn_800ACCC8
+### Action_PathConnectionObstacle
+  - fn_7FE8EC60
+  - fn_7FE8ECB4
+  - fn_7FE8EFFC
+  - fn_80098D48
+### Action_ClearInterrupt
+  - fn_7FE8E8E8
+### Action_SetIgnoreAntinodes
+  - fn_7FE8E6F0
+  - fn_7FE8EA2C
+### Action_NoShadows
+  - fn_7FE8E858
 ### Menu_ResetAndReturn
   - fn_7FF09300
   - fn_7FF3579C
@@ -647,7 +1307,6 @@
   - fn_7FFC03B4
   - fn_7FFC0444
   - fn_800701F8
-  - fn_8012D23C
 ### PauseMenu_BuildOptions
   - fn_7FFC32E8
   - fn_7FFC336C
@@ -697,7 +1356,7 @@
   - fn_800CE1EC
   - fn_8010A318
   - fn_801177C0
-### Menu_Unknown11_OpenHandler
+### Menu_Unknown11_HandleSelection
   - fn_7FFBDFCC
   - fn_7FFBEC60
 ### SceneSelect_HandleSelection
@@ -757,7 +1416,6 @@
   - fn_80056E88
   - fn_8006C748
   - fn_8010CD84
-  - fn_80137D6C
   - fn_801701E0
   - fn_8028CCD0
   - fn_8033A020
@@ -779,6 +1437,16 @@
   - fn_801F2264
   - fn_801F2A8C
   - fn_801F2DD4
+### Action_BoulderSection
+  - fn_7FDCD85C
+  - fn_7FDCD8D4
+  - fn_7FDE1418
+  - fn_7FFBCAA4
+  - fn_7FFBCAE0
+  - fn_7FFBCB58
+  - fn_7FFEB018
+  - fn_800C6094
+  - fn_800C67B8
 ### DebugMenu_HandleEntry1
   - fn_8012228C
 ### Player_UpdateState
@@ -833,6 +1501,1106 @@
   - fn_8010C570
   - fn_8010CB48
   - fn_8010CD84
+### Condition_LocatedCollectable
+  - fn_7FCB304C
+  - fn_7FCB30AC
+  - fn_7FCB310C
+  - fn_7FEA5164
+  - fn_801CEE5C
+### Condition_MaulShouldRunAway
+  - fn_7FCA2558
+  - fn_7FCA2690
+  - fn_7FCA3660
+### Action_GoToDoorTrigger
+  - fn_7FC965B8
+  - fn_7FC96660
+  - fn_7FCAA7E4
+  - fn_7FE8583C
+  - fn_7FEA3FC4
+  - fn_7FEB3E28
+  - fn_8009AFE0
+  - fn_801CE340
+### Action_SetSide
+  - fn_7FC959F4
+  - fn_7FC95B5C
+  - fn_7FC95FAC
+  - fn_7FC95FF4
+  - fn_7FC96054
+  - fn_7FC9609C
+  - fn_7FC960FC
+  - fn_8012AD98
+### Action_PlaceAheadOfPlayer
+  - fn_7FC95310
+  - fn_7FC95388
+  - fn_7FCA183C
+  - fn_7FCA5F8C
+  - fn_7FCA7BF8
+  - fn_7FCA7E50
+  - fn_7FCB0FD4
+  - fn_7FE8460C
+### Action_SetLocator_Level
+  - fn_7FC945E4
+  - fn_7FC94680
+  - fn_7FC94800
+  - fn_7FC94AD0
+  - fn_7FC94B30
+  - fn_7FC94B90
+  - fn_7FCA5480
+  - fn_7FCA85C0
+  - fn_7FE83904
+  - fn_7FEB2B98
+  - fn_7FEB2E68
+  - fn_80128D58
+  - fn_801C560C
+  - fn_801C5648
+  - fn_801C56FC
+  - fn_801C58E8
+### Action_SnapToLocator
+  - fn_7FC93D38
+  - fn_7FC93DC8
+  - fn_7FC93E64
+  - fn_7FC93EC4
+  - fn_7FC93F24
+  - fn_7FC93F84
+  - fn_7FCA4CD0
+  - fn_7FE830E8
+  - fn_7FEB23E8
+  - fn_7FF01668
+  - fn_7FF22DDC
+  - fn_80128D58
+  - fn_801C4E5C
+  - fn_801C4E98
+  - fn_801C4F4C
+### Action_BigJumpToLocator
+  - fn_7FC93240
+  - fn_7FC932DC
+  - fn_7FC93330
+  - fn_7FC93384
+  - fn_7FC933D8
+  - fn_7FCA41FC
+  - fn_7FE824C4
+  - fn_7FE82560
+  - fn_7FEB1914
+  - fn_800316D4
+  - fn_801C4388
+  - fn_801C43C4
+  - fn_801C4478
+### Action_BigJump
+  - fn_7FC92AC0
+  - fn_7FC92B98
+  - fn_7FC92F04
+  - fn_7FE81D44
+  - fn_800316D4
+  - fn_80127FF8
+### Action_SetDoomedEscapeLocator
+  - fn_7FC9249C
+  - fn_7FC924FC
+  - fn_7FC9255C
+  - fn_7FC925BC
+  - fn_7FC9261C
+  - fn_7FC926AC
+  - fn_7FCA3458
+  - fn_7FE81720
+  - fn_7FEB0B70
+  - fn_80127770
+  - fn_801C35E4
+  - fn_801C3620
+  - fn_801C36D4
+### Action_SnapToPosition
+  - fn_7FC91B3C
+  - fn_7FC91BC0
+  - fn_7FC91C44
+  - fn_7FC91CC8
+  - fn_7FC91E00
+  - fn_7FC91E60
+  - fn_7FC91EC0
+  - fn_7FC91F08
+  - fn_7FE80E44
+  - fn_7FE80EC8
+  - fn_7FE80F4C
+  - fn_7FE81084
+  - fn_7FEFF868
+  - fn_7FF20FDC
+  - fn_801CA2F0
+### Action_SnapToOrigin
+  - fn_7FC915D8
+  - fn_7FC9165C
+  - fn_7FEFF22C
+  - fn_7FF209A0
+  - fn_80126BF0
+### Action_SnapToSockPosition
+  - fn_7FC90B40
+  - fn_7FC90BC4
+  - fn_7FC90C60
+  - fn_7FC90CE4
+  - fn_7FC90D50
+  - fn_7FC90DC8
+  - fn_7FC90E28
+  - fn_7FC90E88
+  - fn_7FC90EE8
+  - fn_7FC90F30
+  - fn_7FC9D1D4
+  - fn_7FC9D2F4
+  - fn_7FCA1608
+  - fn_7FCA1620
+  - fn_7FCA16A4
+  - fn_7FCA16BC
+  - fn_7FCA1958
+  - fn_7FCA32E4
+  - fn_7FCA3464
+  - fn_7FCA3764
+  - fn_7FCAC864
+  - fn_7FE7FDC4
+  - fn_7FE7FE48
+  - fn_7FE7FEE4
+  - fn_7FE7FF68
+  - fn_7FE8004C
+  - fn_7FED2994
+  - fn_7FED4438
+  - fn_7FED44D4
+  - fn_7FEFE170
+  - fn_7FF1F8FC
+  - fn_801C9330
+### Action_AttackOpponent
+  - fn_7FCA3DFC
+  - fn_7FEADD80
+  - fn_7FFA1578
+  - fn_7FFA15B4
+### Action_EngageOpponent
+  - fn_7FC8F514
+  - fn_7FC8F598
+  - fn_7FC8F64C
+  - fn_7FC8F6C4
+  - fn_7FC8F73C
+  - fn_7FC8F79C
+  - fn_7FC8F844
+  - fn_7FC8F8C8
+  - fn_7FC8F958
+  - fn_7FC9F910
+  - fn_7FC9F9F4
+  - fn_7FC9FBC8
+  - fn_7FCA081C
+  - fn_7FCA3508
+  - fn_7FE7E81C
+  - fn_7FE7EAC8
+  - fn_7FE7EB4C
+  - fn_7FE7EBD0
+  - fn_7FEACE8C
+  - fn_7FEACF10
+  - fn_7FEACFB8
+  - fn_801DBC6C
+  - fn_801DC020
+### Action_EngageObject
+  - fn_7FC8E6BC
+  - fn_7FC8E710
+  - fn_7FC8E788
+  - fn_7FC8E7DC
+  - fn_7FC9F064
+  - fn_7FC9F1F0
+  - fn_7FC9F4A8
+  - fn_7FCA2674
+  - fn_7FCBA5A0
+  - fn_7FCBAD64
+  - fn_7FCBBF70
+  - fn_7FCBC09C
+  - fn_7FE7DA0C
+### Action_SetInvulnerable
+  - fn_7FC8DE70
+  - fn_7FC8DFD8
+  - fn_7FC8E170
+  - fn_7FC8E1D0
+  - fn_8012228C
+### Action_DontPush_Level
+  - fn_7FC8D774
+  - fn_7FC8D8C4
+  - fn_7FC8DAE0
+  - fn_8012228C
+### Action_FollowSpline
+  - fn_7FC8D2E8
+  - fn_7FC8D330
+  - fn_7FCA0098
+  - fn_7FCA94C8
+  - fn_7FEAACE4
+  - fn_7FEAAE94
+  - fn_7FFAB7F4
+  - fn_7FFABAB8
+  - fn_7FFB9F7C
+  - fn_801C5214
+### Action_PlaceOnSock
+  - fn_7FC8C7B4
+  - fn_7FC8C838
+  - fn_7FC8C8BC
+  - fn_7FC8C940
+  - fn_7FC8C9C4
+  - fn_7FC8CA48
+  - fn_7FC8CACC
+  - fn_7FC8CB50
+  - fn_7FC990DC
+  - fn_7FC991D8
+  - fn_7FC9D474
+  - fn_7FC9D48C
+  - fn_7FC9D528
+  - fn_7FC9D540
+  - fn_7FC9F348
+  - fn_7FC9F468
+  - fn_7FC9F4D4
+  - fn_7FCA8868
+  - fn_7FE7BABC
+  - fn_7FE7BB40
+  - fn_7FE7BBC4
+  - fn_7FE7BC48
+  - fn_7FE7BCCC
+  - fn_7FE7BD50
+  - fn_7FE7BDD4
+  - fn_7FECE668
+### Action_FollowSock
+  - fn_7FC98B9C
+  - fn_7FC9ECF4
+  - fn_7FC9EE2C
+  - fn_7FCA822C
+  - fn_7FEA9BEC
+  - fn_7FECD3B0
+  - fn_7FECE014
+  - fn_7FECE068
+### Action_CreateCreatures
+  - fn_7FC8AFBC
+  - fn_7FC8B0BC
+  - fn_7FC8B140
+  - fn_7FC8B1DC
+  - fn_7FC8B260
+  - fn_7FC8B2E4
+  - fn_7FC8B368
+  - fn_7FC8B3EC
+  - fn_7FC8B428
+  - fn_7FC8B470
+  - fn_7FC8B4E8
+  - fn_7FC8B650
+  - fn_7FC8B71C
+  - fn_7FC8B7B8
+  - fn_7FC8B854
+  - fn_7FC8B8F0
+  - fn_7FC9BD54
+  - fn_7FC9BE40
+  - fn_7FC9C198
+  - fn_7FC9DC50
+  - fn_7FCA7080
+  - fn_7FE7A340
+  - fn_7FE7A3C4
+  - fn_7FE7A460
+  - fn_7FE7A4E4
+  - fn_7FE7A568
+  - fn_7FE7A5EC
+  - fn_7FE7A670
+  - fn_7FE7A6F4
+  - fn_7FE7AA3C
+  - fn_7FE7AAD8
+  - fn_7FE7AB74
+  - fn_7FEA7D50
+  - fn_7FEAA0A8
+  - fn_7FFAD544
+  - fn_8011BD80
+  - fn_801C3D50
+  - fn_801C3DBC
+  - fn_801C3E70
+### Action_CreateSockCreatures
+  - fn_7FC89B38
+  - fn_7FC89B98
+  - fn_7FC89C34
+  - fn_7FC89C94
+  - fn_7FC89CC0
+  - fn_7FC89D18
+  - fn_7FC89D9C
+  - fn_7FC89E20
+  - fn_7FC89EA4
+  - fn_7FC89F28
+  - fn_7FC89FAC
+  - fn_7FC8A030
+  - fn_7FC8A09C
+  - fn_7FC8A108
+  - fn_7FC8A174
+  - fn_7FC8A1EC
+  - fn_7FC8A354
+  - fn_7FC8A3F0
+  - fn_7FC8A48C
+  - fn_7FC8A528
+  - fn_7FC95DA0
+  - fn_7FC95F08
+  - fn_7FC96148
+  - fn_7FC9A288
+  - fn_7FC9A2A0
+  - fn_7FC9A330
+  - fn_7FC9A348
+  - fn_7FC9A4E8
+  - fn_7FC9A548
+  - fn_7FC9AC98
+  - fn_7FC9BEF8
+  - fn_7FC9C030
+  - fn_7FC9C09C
+  - fn_7FC9C378
+  - fn_7FCA5430
+  - fn_7FE78EB8
+  - fn_7FE78F9C
+  - fn_7FE79020
+  - fn_7FE790A4
+  - fn_7FE79128
+  - fn_7FE791AC
+  - fn_7FE79230
+  - fn_7FE792B4
+  - fn_7FE79674
+  - fn_7FE79710
+  - fn_7FE797AC
+  - fn_7FECB62C
+  - fn_7FECD0D0
+  - fn_7FECD46C
+  - fn_8011A0EC
+  - fn_801C2928
+  - fn_801C297C
+### Action_CreateSplineCreatures
+  - fn_7FC8831C
+  - fn_7FC883D4
+  - fn_7FC88434
+  - fn_7FC8847C
+  - fn_7FC8850C
+  - fn_7FC88584
+  - fn_7FC885CC
+  - fn_7FC8862C
+  - fn_7FC8868C
+  - fn_7FC886EC
+  - fn_7FC8874C
+  - fn_7FC887D0
+  - fn_7FC88848
+  - fn_7FC889B0
+  - fn_7FC88A4C
+  - fn_7FC88AE8
+  - fn_7FC88B84
+  - fn_7FC94E4C
+  - fn_7FC993FC
+  - fn_7FC99468
+  - fn_7FC99504
+  - fn_7FCB7574
+  - fn_7FE7764C
+  - fn_7FE77808
+  - fn_7FE77A54
+  - fn_7FE77CD0
+  - fn_7FE77D6C
+  - fn_7FE77E08
+  - fn_7FFA5DDC
+  - fn_7FFA9008
+  - fn_7FFA914C
+  - fn_80118E74
+  - fn_801C0F24
+  - fn_801C0F78
+### Action_SetRunSpeed
+  - fn_7FC87B34
+  - fn_7FC87C24
+  - fn_7FC87F90
+  - fn_7FE76D7C
+  - fn_7FE76DB8
+  - fn_7FE76E9C
+### Action_SetMessage
+  - fn_7FC876B4
+  - fn_7FC87714
+  - fn_7FC87768
+  - fn_7FC877E0
+  - fn_7FE7692C
+  - fn_7FE76A58
+  - fn_7FEA6C64
+### Action_AddPart
+  - fn_7FC87204
+  - fn_7FC8727C
+  - fn_7FC872F4
+  - fn_7FC87384
+  - fn_7FC9F038
+  - fn_7FCB3484
+  - fn_7FCB42B0
+  - fn_7FE30C2C
+  - fn_7FE76488
+  - fn_7FE76500
+  - fn_7FE76578
+  - fn_7FF17AC8
+  - fn_801BF6B8
+### Action_AddPartDebris
+  - fn_7FC868EC
+  - fn_7FC86970
+  - fn_7FC869F4
+  - fn_7FC86A78
+  - fn_7FC86AFC
+  - fn_7FC86B80
+  - fn_7FC86C04
+  - fn_7FC86C7C
+  - fn_7FCA2C70
+  - fn_7FE3A7CC
+  - fn_7FE3A940
+  - fn_7FE75BF4
+  - fn_7FE75C78
+  - fn_7FE75CFC
+  - fn_7FE75D80
+  - fn_7FE75E04
+  - fn_7FE75E88
+  - fn_8011BEE4
+  - fn_801BEF8C
+  - fn_801BEFE0
+### Action_SetMaxMovementRange
+  - fn_7FC86970
+  - fn_7FC869C4
+  - fn_7FC86A18
+  - fn_7FE757EC
+### Action_RaceOpponent
+  - fn_7FC86064
+  - fn_7FC98D78
+  - fn_7FC98DE4
+  - fn_7FCA2124
+  - fn_7FCA22A4
+  - fn_7FCA231C
+  - fn_7FE752E8
+  - fn_7FEA3A6C
+  - fn_7FEC808C
+  - fn_7FED9918
+  - fn_7FED9954
+### Action_ZamMovement
+  - fn_7FC858CC
+  - fn_7FC85944
+  - fn_7FE74B50
+  - fn_7FE74BC8
+  - fn_7FEA3370
+  - fn_7FEC78E8
+  - fn_7FED90C0
+  - fn_7FED90FC
+  - fn_7FED9168
+  - fn_7FED91B0
+  - fn_8013392C
+### Action_MakeExplosion
+  - fn_7FC85104
+  - fn_7FC8517C
+  - fn_7FC851F4
+  - fn_7FC8526C
+  - fn_7FDF54C8
+  - fn_7FDF5558
+  - fn_7FE74400
+  - fn_7FE74478
+  - fn_7FE744F0
+  - fn_7FEBC018
+### Action_CycleCharacter
+  - fn_7FC84B40
+  - fn_7FC84C78
+  - fn_7FC84CFC
+  - fn_7FC84FCC
+  - fn_7FE73DC4
+  - fn_7FE73F80
+  - fn_7FF960E8
+  - fn_7FF9613C
+  - fn_8013392C
+### Action_CnxController
+  - fn_7FC833FC
+  - fn_7FC838C8
+  - fn_7FC83928
+  - fn_7FC83B80
+  - fn_7FC83BBC
+  - fn_7FC83C10
+  - fn_7FC83C64
+  - fn_7FC83CAC
+  - fn_7FC83CE8
+  - fn_7FC83D30
+  - fn_7FC83D90
+  - fn_7FC83DF0
+  - fn_7FC83E74
+  - fn_7FC83ED4
+  - fn_7FC83F34
+  - fn_7FC83F94
+  - fn_7FC83FF4
+  - fn_7FC8403C
+  - fn_7FC8B37C
+  - fn_7FE72A38
+  - fn_7FE72AD4
+  - fn_7FEA2C18
+  - fn_801132E8
+  - fn_801171A0
+### Action_ObjectController
+  - fn_7FC82ACC
+  - fn_7FC82F98
+  - fn_7FC83004
+  - fn_7FC832D4
+  - fn_7FC833DC
+  - fn_7FC8343C
+  - fn_7FC8349C
+  - fn_7FC834E4
+  - fn_7FC8A848
+  - fn_7FCAF3BC
+  - fn_7FCAF4C4
+  - fn_7FE721BC
+  - fn_7FE72204
+  - fn_80086A04
+### Action_GoToLevelPath
+  - fn_7FC9717C
+  - fn_7FE8BB34
+  - fn_7FE90070
+  - fn_7FEA0964
+  - fn_7FEA0EEC
+  - fn_7FEA1048
+  - fn_801BAE7C
+### Action_GoToOriginalPath
+  - fn_7FC9540C
+  - fn_7FC96B88
+  - fn_7FE8FADC
+  - fn_7FEA016C
+  - fn_7FEA01D8
+  - fn_7FEA0874
+  - fn_7FEA0904
+  - fn_801BA888
+### Action_UseForce
+  - fn_7FC82038
+  - fn_7FC8247C
+  - fn_7FC824D0
+  - fn_7FC92F78
+  - fn_7FCAEDA8
+  - fn_7FCAEF40
+  - fn_7FCAF998
+  - fn_7FF93508
+  - fn_7FF93544
+  - fn_800FF584
+  - fn_800FF784
+### Action_Snipe
+  - fn_7FC8D2D0
+  - fn_7FC8E3D8
+  - fn_7FC927AC
+  - fn_7FC94908
+  - fn_7FC95BD4
+  - fn_7FC9DD38
+  - fn_801CCC68
+### Action_SetPathCnxFlag
+  - fn_7FC81294
+  - fn_7FC812E8
+  - fn_7FC81528
+  - fn_7FC81564
+  - fn_7FE8B91C
+### Action_PlaySfx
+  - fn_7FC80898
+  - fn_7FC8091C
+  - fn_7FC809A0
+  - fn_7FC80A24
+  - fn_7FC80AA8
+  - fn_7FC80B2C
+  - fn_7FC80BD4
+  - fn_7FC80C34
+  - fn_7FE6FBA0
+  - fn_7FE6FC24
+  - fn_7FE6FCA8
+  - fn_7FE6FD2C
+  - fn_7FE6FDB0
+  - fn_7FE6FE58
+  - fn_7FFFA2C8
+  - fn_80114AE8
+### Action_CameraCut
+  - fn_7FC7F908
+  - fn_7FC7F98C
+  - fn_7FC7FA10
+  - fn_7FC7FA94
+  - fn_7FC7FAA0
+  - fn_7FC7FB18
+  - fn_7FC7FB9C
+  - fn_7FC7FC08
+  - fn_7FC7FC74
+  - fn_7FC7FD40
+  - fn_7FC7FE78
+  - fn_7FC7FEFC
+  - fn_7FC7FF5C
+  - fn_7FC7FFBC
+  - fn_7FC7FFEC
+  - fn_7FC8001C
+  - fn_7FC8007C
+  - fn_7FC80100
+  - fn_7FC80184
+  - fn_7FC80208
+  - fn_7FC802F8
+  - fn_7FC80664
+  - fn_7FC80754
+  - fn_7FC8079C
+  - fn_7FC92064
+  - fn_7FC92214
+  - fn_7FC9B644
+  - fn_7FCAB708
+  - fn_7FCAD0D8
+  - fn_7FCEF680
+  - fn_7FE6EB8C
+  - fn_7FE6EC10
+  - fn_7FE6EC94
+  - fn_7FE6ED18
+  - fn_7FE6ED9C
+  - fn_7FE6EE20
+  - fn_7FE6EFC4
+  - fn_7FE6F0FC
+  - fn_7FE6F180
+  - fn_7FE6F384
+  - fn_7FE6F408
+  - fn_7FE6F48C
+  - fn_7FE6F57C
+  - fn_7FE9DDC0
+  - fn_7FE9E144
+  - fn_7FF20598
+  - fn_7FF2079C
+  - fn_80114AE8
+  - fn_8013560C
+  - fn_80135C04
+  - fn_80135CBC
+### Condition_UsingForceInit
+  - fn_800FB6B0
+### Condition_TurretAliveInit
+  - fn_80160D78
+### Condition_IAm_Level
+  - fn_7FC7E0F0
+  - fn_80135CBC
+### Condition_CategoryIs
+  - fn_7FF8F20C
+### Condition_PlayerCategoryIs
+  - fn_7FF8F110
+### Condition_IAmAInit
+  - fn_7FC7DB98
+### Condition_CanFightLikeAJedi
+  - fn_8010CD84
+### Condition_SideInit
+  - fn_7FC7D7B4
+  - fn_7FC7D7FC
+  - fn_7FC7D85C
+  - fn_7FC7D8A4
+### Condition_EitherPlayerIsInit
+  - fn_8010CD84
+### Condition_CheckFlagInit
+  - fn_7FC7DD8C
+### Condition_CheckLevelFlagInit
+  - fn_7FC7DBE8
+### Condition_CheckAreaFlagInit
+  - fn_7FC7DA98
+### Condition_PlayerUsingForceInit
+  - fn_800F99D4
+### Condition_EitherPlayerUsingForceInit
+  - fn_800F99D4
+### Condition_ForceBeingUsedInit
+  - fn_800F99D4
+### Condition_ForceCompleteInit
+  - fn_800F99D4
+### Condition_IsAliveInit
+  - fn_8010CD84
+### Condition_AIOverrideControlInit
+  - fn_8010CD84
+### Condition_IsOnScreenInit
+  - fn_8010CD84
+### Condition_PlayerOnObjectInit
+  - fn_7FCA7F64
+  - fn_7FCAA1F4
+  - fn_7FDC6308
+### Condition_EitherPlayerOnObjectInit
+  - fn_7FCA7D0C
+  - fn_7FCA9F9C
+  - fn_7FDC60B0
+### Condition_OnObjectInit
+  - fn_7FCA79B8
+  - fn_7FCA9C48
+  - fn_7FDC5D5C
+### Condition_BehindCamera
+  - fn_7FC9778C
+### Condition_LocatorOnScreenInit
+  - fn_7FE99ADC
+### Condition_LocatorOnScreen
+  - fn_7FCEBB9C
+### Condition_HitPointsInit
+  - fn_8010CD84
+### Condition_IsSetAliveInit
+  - fn_7FC7B44C
+### Condition_AngleFromPlayerToMe
+  - fn_7FC86010
+### Condition_AngleFromPlayer2ToMe
+  - fn_7FC85E54
+### Condition_NumForceObjectsInit
+  - fn_7FC79D58
+  - fn_7FC79DAC
+### Condition_NumForceObjects
+  - fn_800F78FC
+### Condition_BeenToLevelInit
+  - fn_7FC79E18
+### Condition_MessageInit
+  - fn_7FE98E34
+### Condition_AnimationFinishedInit
+  - fn_7FCA581C
+  - fn_7FCA67D4
+  - fn_7FCA84F8
+### Condition_RigidAnimFrameInit
+  - fn_7FCA560C
+  - fn_7FCA65C4
+  - fn_7FCA82E8
+### Condition_CutSceneStartedInit
+  - fn_800D4810
+### Condition_CutSceneFinishedInit
+  - fn_800D407C
+  - fn_800D4F70
+### Condition_CutScenePlayingInit
+  - fn_800D407C
+### Condition_SockDistanceToPlayer
+  - fn_7FECC85C
+  - fn_7FECC898
+### Condition_SockDistanceToOpponent
+  - fn_7FECC664
+  - fn_7FECC6A0
+### Condition_SockXDistanceToPlayer
+  - fn_7FC8BA40
+  - fn_7FC8BAAC
+  - fn_7FC94F6C
+  - fn_7FC94FE4
+### Condition_CurrentHintId
+  - fn_7FFBFA04
+### Condition_HintAvailableInit
+  - fn_7FC79238
+### Condition_HintAvailable
+  - fn_7FFBAB70
+### Condition_HintComplete
+  - fn_7FFBF4D4
+### Condition_UsingForceFreeze
+  - fn_80065C14
+### Condition_FromNodeInit
+  - fn_7FE97000
+### Condition_ToNodeInit
+  - fn_7FE96E14
+### Condition_RespawnLocatorIsInit
+  - fn_7FE963E0
+### Action_ResetDoorTrigger
+  - fn_7FC77790
+### Action_Activate
+  - fn_7FE53238
+  - fn_7FEEBC74
+### Action_DeActivate
+  - fn_7FE53100
+### Action_SetDefensive
+  - fn_7FC776DC
+### Action_ImmuneToKillTerrain
+  - fn_7FC77508
+### Action_Respawnable
+  - fn_7FC772BC
+  - fn_7FC7731C
+### Action_SetShootOpponents
+  - fn_7FC770DC
+### Action_SetBoss
+  - fn_7FC76F08
+### Action_SetRespawnLocator
+  - fn_7FC768C0
+  - fn_7FC879D8
+  - fn_7FE9524C
+  - fn_801AEC6C
+### Action_SetJumping
+  - fn_7FC76A10
+### Action_UpdateSockPos
+  - fn_7FC7683C
+### Action_Kill
+  - fn_7FC76248
+  - fn_7FC76560
+  - fn_7FC765B4
+  - fn_7FFA2F60
+  - fn_8010B7D8
+### Action_SetScriptState
+  - fn_7FC75E94
+  - fn_7FC75F18
+  - fn_7FE51D90
+  - fn_7FE64D08
+  - fn_8010B464
+### Action_SetAIOverrideControl
+  - fn_7FC75BB8
+  - fn_7FC75F24
+  - fn_8010B140
+### Action_SetLastSafePathPos
+  - fn_7FC75924
+  - fn_7FC75C90
+  - fn_8010ACC0
+### Action_SetIgnoreAntinodes_Level
+  - fn_7FC75624
+  - fn_7FC75990
+  - fn_8010AB90
+### Action_SetDontMove
+  - fn_7FC75384
+  - fn_7FC756F0
+  - fn_8010A318
+### Action_CantDie
+  - fn_7FC750E4
+  - fn_7FC75450
+  - fn_8010A318
+### Action_DontSetStoppedFlag
+  - fn_7FC74E44
+  - fn_7FC751B0
+  - fn_8010A318
+### Action_ForceFreeze
+  - fn_7FC74B5C
+  - fn_7FE92900
+  - fn_80062B38
+  - fn_8010A0D8
+### Action_SetFlag
+  - fn_7FC74C7C
+  - fn_7FC75614
+  - fn_801BFCB4
+  - fn_801BFD5C
+### Action_SetLevelFlag
+  - fn_7FC749AC
+  - fn_7FC75344
+  - fn_801BFA2C
+  - fn_801BFAB0
+### Action_SetAreaFlag
+  - fn_7FC74724
+  - fn_7FC750BC
+  - fn_801BF7D4
+  - fn_801BF840
+### Action_SetPlayType
+  - fn_7FC74340
+  - fn_7FC743A0
+  - fn_7FC74400
+  - fn_7FC74460
+### Action_GoToCollectable
+  - fn_7FE62FF4
+  - fn_7FE91B38
+### Action_SetCounterLocator
+  - fn_7FC73DDC
+  - fn_7FF71248
+### Action_SetTableLocator
+  - fn_7FF70C7C
+### Action_CallDexter
+  - fn_7FF7171C
+### Action_SetCircleDirection
+  - fn_7FC73878
+  - fn_7FC738FC
+  - fn_7FC73938
+  - fn_7FC73998
+  - fn_7FC842A4
+### Action_AddToSet
+  - fn_7FE62130
+  - fn_801BE364
+### Action_SetControlSystem
+  - fn_7FC73038
+### Action_SetNearestSpline
+  - fn_7FC72A74
+  - fn_7FCA1A64
+  - fn_7FF939B4
+  - fn_8018C51C
+### Action_SetRandomSpline
+  - fn_7FC726E4
+  - fn_7FC83410
+  - fn_7FCA1548
+  - fn_7FCA16D4
+  - fn_7FF9357C
+  - fn_8018C51C
+### Action_SetZeroAcceleration
+  - fn_7FC721A4
+  - fn_7FC721F8
+  - fn_7FC7224C
+  - fn_7FC72288
+### Action_SetFormationCommander
+  - fn_7FEE325C
+### Action_RemoveThrownForceObjects
+  - fn_7FE24B70
+### Action_SetSpeed
+  - fn_7FC71EA4
+  - fn_7FE60D38
+### Action_SetWalkSpeed
+  - fn_7FC71CF4
+  - fn_7FE60B88
+### Action_SetHitPoints
+  - fn_7FC7170C
+  - fn_7FC71A24
+  - fn_7FC71A78
+  - fn_7FE608B8
+  - fn_80106CD8
+### Action_ActivateTurret
+  - fn_7FC71388
+  - fn_7FC7143C
+### Action_SetHoverPhase
+  - fn_7FC71514
+### Action_UseCurrentSpeed
+  - fn_7FC70DDC
+  - fn_7FC71154
+  - fn_7FC71238
+  - fn_7FE60060
+  - fn_7FEB1FD8
+  - fn_7FEB3AD4
+  - fn_7FEDE61C
+### Action_SetDefaultMovementRange
+  - fn_7FE5FD90
+### Action_SetGravityHeight
+  - fn_7FE5FBC8
+### Action_ApplyGravity
+  - fn_7FC70B54
+### Action_IgnoreShoveSystem
+  - fn_7FC70980
+### Action_CannotBeSeen
+  - fn_7FC707AC
+### Action_SetVisibility
+  - fn_7FC7017C
+  - fn_7FC7020C
+  - fn_7FC9C30C
+  - fn_7FC9D24C
+  - fn_7FC9D640
+  - fn_8018C51C
+### Action_EnableSock
+  - fn_7FC6FF24
+  - fn_7FC6FFB4
+  - fn_7FE5F238
+  - fn_7FEC3A14
+  - fn_7FEC3AC8
+### Action_JudderGameCamera
+  - fn_7FC6FC00
+  - fn_7FC6FC54
+  - fn_7FC6FCA8
+  - fn_7FC6FCFC
+  - fn_7FE5EE84
+  - fn_7FF1080C
+### Action_CameraShake
+  - fn_7FC6F8D0
+  - fn_7FC6F948
+  - fn_7FC6F9C0
+  - fn_7FE5EB54
+  - fn_7FE5EBCC
+  - fn_7FE5EC44
+  - fn_7FF110FC
+### Action_ResetGameCamera
+  - fn_7FF10210
+### Action_PlayCutScene
+  - fn_7FC6F654
+  - fn_800CA4AC
+### Action_SetLevelPath
+  - fn_7FC6F48C
+  - fn_7FE78190
+  - fn_7FE8CBDC
+  - fn_7FE8D6B0
+### Action_SetHint
+  - fn_7FC6F1D4
+  - fn_7FE5E458
+  - fn_7FFB1C08
+### Action_SetHintComplete
+  - fn_7FC6F024
+  - fn_7FE5E2A8
+  - fn_7FFB6414
+### Action_CancelHint
+  - fn_7FFB65FC
+### Action_SetPath
+  - fn_7FC6EDF0
+  - fn_7FC6F138
+### Action_SetAnimation
+  - fn_7FEA4524
+  - fn_7FEA4E58
+### Action_AnimTimeRandom
+  - fn_7FEA4EA8
+### Action_LockDoor
+  - fn_800712E4
+### Action_UnLockDoor
+  - fn_800712E4
+### Action_CloseDoor
+  - fn_8006A6C8
+### Action_OpenDoor
+  - fn_7FC6EB5C
+  - fn_80069C40
+### Action_DoorSetStayOpen
+  - fn_7FC6E964
+  - fn_80072410
+### Action_SetDoorFinished
+  - fn_7FC6E724
+  - fn_80072410
+### Action_ActivateGadget
+  - fn_8006D69C
+  - fn_80072410
+### Action_SetObstacleChainPhase
+  - fn_7FC6DF8C
+  - fn_7FE5D210
+  - fn_80063F80
+  - fn_80072410
+### Action_EndLoopingAnimation
+  - fn_80070C0C
+  - fn_80072410
+### Action_CanOpenDoors
+  - fn_7FC6DF08
+  - fn_7FC6DF68
+### Action_CanShootOffScreen
+  - fn_7FC6DCBC
+  - fn_7FC6DD1C
+### Action_CanCollectCoins
+  - fn_7FC6DA70
+  - fn_7FC6DAD0
+### Action_KeepWeaponOut
+  - fn_7FC6D44C
+  - fn_7FC6D890
+  - fn_80102A3C
+### Action_SnapWeaponOut
+  - fn_7FC6D170
+  - fn_7FC6D1F4
+  - fn_7FC6D4DC
+  - fn_7FC6D524
+  - fn_801026C4
+### Action_ResetContext
+  - fn_7FC6CE10
+  - fn_7FED990C
+  - fn_7FEFC4B4
+  - fn_80102400
+### Action_PrefersPlayers
+  - fn_7FC6CFD8
+### Action_SetBoltsDontGetDeflectedBack
+  - fn_7FC6CE10
+### Action_AttackButtonMash
+  - fn_7FC6CC48
+### Action_CanShootObstructions
+  - fn_7FC6CA80
+### Action_CanHitForceObjects
+  - fn_7FC6C8B8
+### Action_SetTaggable
+  - fn_7FC6C234
+  - fn_7FC6C2B8
+  - fn_7FC6C5A0
+  - fn_7FEFC140
+  - fn_7FFFF530
+  - fn_801016E8
+### Action_CannotDropIn
+  - fn_7FC6BE68
+  - fn_7FC6BEEC
+  - fn_7FC6C1E0
+  - fn_801013FC
+### Action_CanAttack
+  - fn_7FC6BBD4
+  - fn_7FC6BF40
+  - fn_80100FCC
+### Action_TakeDamage
+  - fn_7FC6B7FC
+  - fn_7FC6B880
+  - fn_7FC6B904
+  - fn_7FE5AA80
+  - fn_7FF9C680
+  - fn_80100D5C
+  - fn_80100E94
+### Action_TagCharacter
+  - fn_7FC6B508
+  - fn_7FC6B58C
+  - fn_7FEFB4C8
+  - fn_7FFFE894
+  - fn_80100A30
+### Action_DeflectPlayersPart
+  - fn_7FC6B6AC
+### Action_DontRaycastLOS
+  - fn_7FC6B508
+### Action_SetForceBack
+  - fn_7FC6AE54
+  - fn_7FC6AED8
+  - fn_7FC6B1CC
+  - fn_7FE5A0D8
+  - fn_8005B56C
+  - fn_80100478
+### Action_SetForceLightningTarget
+  - fn_7FC6AB00
+  - fn_7FC6AB84
+  - fn_800FFF50
+### Action_FaceCamera
+  - fn_7FC6ACA4
+  - fn_7FCDABB4
+  - fn_7FE59B20
+  - fn_80058BE0
+### Action_FaceCharacter
+  - fn_7FC6A584
+  - fn_800FFB84
+### Action_FollowPlayer_Level
+  - fn_7FE59508
+  - fn_7FE87F68
+  - fn_7FE87FD4
+  - fn_8013C620
+  - fn_8013C7F0
 ### PodraceCreateMine
   - fn_7FC63570
   - fn_7FC65EC4
@@ -1020,8 +2788,14 @@
   - fn_8018B2B0
   - fn_8018BE6C
   - fn_8018C51C
-### GXInitFifoBase
-  - fn_8017DCA8
+### GXCPInterruptHandler
+  - fn_800FE878
+  - fn_800FF014
+  - fn_8010CD84
+  - fn_801132E8
+  - fn_8017F064
+### GXInitFifoPtrs
+  - fn_80106CD8
 ### GXSetCPUFifo
   - fn_800F5C34
   - fn_80106A30
@@ -1047,12 +2821,15 @@
   - fn_80100C38
   - fn_80101B58
   - fn_8010980C
-### GXInitTexCacheRegion
-  - fn_80181B60
+### GXInvalidateTexAll
+  - fn_8018468C
+### __GXSetSUTexRegs
+  - fn_801815C0
+  - fn_8018177C
 ### __GXSetTmemConfig
   - fn_80182324
   - fn_8018267C
   - fn_8018274C
 
 ---
-Total: 1052 entries
+Total: 2829 entries
