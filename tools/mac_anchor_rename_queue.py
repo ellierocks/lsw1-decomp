@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Generate GC rename candidates from Mac debug symbol order.
+"""Generate GC rename candidates from debug symbol order.
+
+Sources:
+  Mac Mach-O binaries (Mac LSW1 demo, LSW2, Batman, Indy) — positional anchor matching
+  Nu2 engine ELF binaries (Crash WoC retail/proto, Finding Nemo) — same + body confirms
 
 The matcher uses already-named GC functions as anchors.  When two adjacent GC
-anchors also appear in a Mac debug binary, unnamed GC functions between those
-anchors are aligned against Mac functions in the same anchor gap.
+anchors also appear in a source binary (by name), unnamed GC functions between
+those anchors are aligned against source functions in the same anchor gap.
 """
 
 from __future__ import annotations
@@ -11,6 +15,7 @@ from __future__ import annotations
 import argparse
 import csv
 import re
+import struct
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +34,13 @@ MAC_BINS = [
     ("mac_indy", ROOT / "orig" / "mac" / "mac-debug-symbols" / "LEGOIndianaJones", "i386", 1),
 ]
 
+# Nu2 engine ELF sources — same architecture and engine as LSW1 GC
+ELF_BINS = [
+    ("crashwoc_retail", ROOT / "orig/nu2/Crash Bandicoot - The Wrath of Cortex (USA)/extracted/files/crashwoc.elf", "ppc", 8),
+    ("crashwoc_proto",  ROOT / "orig/nu2/Crash Bandicoot - The Wrath of Cortex (USA)/prototype/prototype/files/crashwoc.elf", "ppc", 7),
+    ("gcnemo",          ROOT / "orig/nu2/Disney-Pixar Finding Nemo (USA)/extracted/files/GCNemo.elf", "ppc", 8),
+]
+
 SYMBOL_RE = re.compile(
     r"^(?P<name>\S+)\s+=\s+(?P<section>\.\w+):0x(?P<addr>[0-9A-Fa-f]+);\s*//\s*(?P<meta>.*)$"
 )
@@ -41,6 +53,19 @@ VALID_CANDIDATE_RE = re.compile(
     r"Scene[A-Za-z0-9_]*|Camera[A-Za-z0-9_]*|Cam[A-Za-z0-9_]*|Pad[A-Za-z0-9_]*|"
     r"Player_[A-Za-z0-9_]+|Sound[A-Za-z0-9_]*|Credit[A-Za-z0-9_]*|"
     r"Podrace[A-Za-z0-9_]*|Draw_[A-Za-z0-9_]+|Init[A-Za-z0-9_]*|Load[A-Za-z0-9_]*)$"
+)
+# Broader filter for ELF sources (same engine/SDK, accept OS/SDK names too)
+ELF_CANDIDATE_RE = re.compile(
+    r"^(Nu[A-Za-z0-9_]+|instNu[A-Za-z0-9_]+|"
+    r"OS[A-Za-z0-9_]+|__OS[A-Za-z0-9_]+|"
+    r"DVD[A-Za-z0-9_]+|__DVD[A-Za-z0-9_]+|"
+    r"CARD[A-Za-z0-9_]+|__CARD[A-Za-z0-9_]+|"
+    r"DSP[A-Za-z0-9_]+|__DSP[A-Za-z0-9_]+|"
+    r"VI[A-Za-z0-9_]+|GX[A-Za-z0-9_]+|__GX[A-Za-z0-9_]+|"
+    r"AI[A-Za-z0-9_]+|__AI[A-Za-z0-9_]+|"
+    r"AR[A-Za-z0-9_]+|__AR[A-Za-z0-9_]+|"
+    r"EXI[A-Za-z0-9_]+|__EXI[A-Za-z0-9_]+|"
+    r"Action_[A-Za-z0-9_]+|Condition_[A-Za-z0-9_]+)$"
 )
 BAD_NAMES = {
     "__start",
@@ -94,13 +119,14 @@ def is_auto_gc(name: str) -> bool:
     return name.startswith(("fn_", "lbl_", "jumptable_"))
 
 
-def is_candidate_name(name: str) -> bool:
+def is_candidate_name(name: str, source: str | None = None) -> bool:
+    candidate_re = ELF_CANDIDATE_RE if source in ELF_SOURCES else VALID_CANDIDATE_RE
     return (
         name
         and name not in BAD_NAMES
         and not name.startswith((".", "$", "__", "sub_", "loc_"))
         and not name.endswith(".eh")
-        and VALID_CANDIDATE_RE.match(name) is not None
+        and candidate_re.match(name) is not None
     )
 
 
@@ -120,6 +146,62 @@ def parse_gc_symbols() -> list[GcFunc]:
         size = int(sm.group(1), 16) if sm else 0
         funcs.append(GcFunc(m.group("name"), section, int(m.group("addr"), 16), size))
     return sorted(funcs, key=lambda f: f.address)
+
+
+def parse_elf_symbols(source: str, elf_path: Path, weight: int) -> list[MacFunc]:
+    """Load STT_FUNC symbols from a PPC ELF (Nu2 engine game)."""
+    if not elf_path.exists():
+        return []
+    e = elf_path.read_bytes()
+    u32 = lambda o: struct.unpack_from(">I", e, o)[0]
+    u16 = lambda o: struct.unpack_from(">H", e, o)[0]
+    shoff    = u32(32)
+    shnum    = u16(48)
+    shstrndx = u16(50)
+
+    def shdr(i: int):
+        o = shoff + i * 40
+        return u32(o), u32(o+4), u32(o+16), u32(o+20)  # name_off, type, offset, size
+
+    shstr_s = shdr(shstrndx)
+    shstr = e[shstr_s[2]: shstr_s[2] + shstr_s[3]]
+
+    symtab_off = symtab_size = strtab_off = strtab_size = 0
+    for i in range(shnum):
+        no, tp, off, sz = shdr(i)
+        if tp == 2:  # SHT_SYMTAB
+            symtab_off, symtab_size = off, sz
+        nm = shstr[no: shstr.index(b"\x00", no)].decode()
+        if nm == ".strtab":
+            strtab_off, strtab_size = off, sz
+
+    if not symtab_size or not strtab_size:
+        return []
+
+    strtab = e[strtab_off: strtab_off + strtab_size]
+
+    def str_at(off: int) -> str:
+        end = strtab.index(b"\x00", off)
+        return strtab[off:end].decode("ascii", errors="replace")
+
+    by_addr: dict[int, tuple[str, int]] = {}  # addr → (name, size)
+    n = symtab_size // 16
+    for i in range(n):
+        o = symtab_off + i * 16
+        st_name  = u32(o)
+        st_value = u32(o + 4)
+        st_size  = u32(o + 8)
+        st_info  = e[o + 12]
+        if (st_info & 0xF) == 2 and st_value != 0 and st_name != 0 and st_size >= 4:
+            name = str_at(st_name)
+            if ELF_CANDIDATE_RE.match(name):
+                by_addr[st_value] = (name, st_size)
+
+    funcs: list[MacFunc] = []
+    for addr in sorted(by_addr):
+        name, size = by_addr[addr]
+        funcs.append(MacFunc(name, name, addr, size, source, "ppc", weight))
+    return funcs
 
 
 def parse_mac_symbols(source: str, path: Path, arch: str, weight: int) -> list[MacFunc]:
@@ -144,7 +226,7 @@ def parse_mac_symbols(source: str, path: Path, arch: str, weight: int) -> list[M
             continue
         raw = parts[2].strip()
         name = clean_name(raw)
-        if not is_candidate_name(name):
+        if not is_candidate_name(name, source):
             continue
         by_addr.setdefault(addr, (name, raw))
 
@@ -192,9 +274,17 @@ def size_score(gc_size: int, mac_size: int) -> int:
     return 0
 
 
-def confidence(score: int, gap_exact: bool, source: str) -> str:
-    if gap_exact and source == "mac_lsw1_demo" and score >= 9:
+ELF_SOURCES = {"crashwoc_retail", "crashwoc_proto", "gcnemo"}
+
+
+def confidence(score: int, gap_exact: bool, source: str, size_points: int) -> str:
+    is_elf = source in ELF_SOURCES
+    is_lsw1_mac = source == "mac_lsw1_demo"
+    # ELF positional matches are only strong when function sizes also agree.
+    if gap_exact and is_elf and score >= 10 and size_points >= 3:
         return "HIGH"
+    if gap_exact and (is_lsw1_mac and score >= 9 or is_elf and score >= 8 and size_points >= 2):
+        return "MEDIUM"
     if gap_exact and score >= 7:
         return "MEDIUM"
     if score >= 6:
@@ -249,10 +339,11 @@ def build_candidates(gc_funcs: list[GcFunc], mac_funcs: list[MacFunc]) -> list[d
                     continue
                 score = mac.weight
                 score += 3 if gap_exact else 0
-                score += size_score(gc.size, mac.size)
+                size_points = size_score(gc.size, mac.size)
+                score += size_points
                 if left.name.startswith("Nu") and mac.name.startswith("Nu"):
                     score += 1
-                conf = confidence(score, gap_exact, mac.source)
+                conf = confidence(score, gap_exact, mac.source, size_points)
                 if conf == "REVIEW":
                     continue
                 candidates.append(
@@ -319,7 +410,7 @@ def write_outputs(candidates: list[dict[str, object]]) -> None:
         "gap",
     ]
     with OUT_TSV.open("w", newline="") as f:
-        writer = csv.DictWriter(f, delimiter="\t", fieldnames=fields)
+        writer = csv.DictWriter(f, delimiter="\t", fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(candidates)
 
@@ -363,6 +454,10 @@ def main() -> None:
     for source, path, arch, weight in MAC_BINS:
         mac_funcs = parse_mac_symbols(source, path, arch, weight)
         all_candidates.extend(build_candidates(gc_funcs, mac_funcs))
+    for source, elf_path, arch, weight in ELF_BINS:
+        elf_funcs = parse_elf_symbols(source, elf_path, weight)
+        print(f"  ELF source {source}: {len(elf_funcs)} engine/SDK candidate functions")
+        all_candidates.extend(build_candidates(gc_funcs, elf_funcs))
 
     candidates = dedupe(all_candidates)
     candidates = [c for c in candidates if {"HIGH": 3, "MEDIUM": 2, "LOW": 1}[str(c["confidence"])] >= min_rank]

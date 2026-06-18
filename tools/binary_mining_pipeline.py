@@ -51,6 +51,24 @@ STAGES = [
         ],
     ),
     Stage(
+        "nu2-body-matches",
+        [sys.executable, "tools/nu2_fn_match.py"],
+        [
+            Path("docs/symbol_donors/nu2_fn_matches.tsv"),
+            Path("docs/symbol_donors/nu2_fn_rename_queue.tsv"),
+            Path("docs/symbol_donors/nu2_gc_body_confirmations.tsv"),
+            Path("docs/symbol_donors/lsw2_gc_body_matches.tsv"),
+        ],
+        [
+            Path("orig/GL5E4F/sys/main.dol"),
+            Path("config/GL5E4F/symbols.txt"),
+            Path("orig/nu2/Crash Bandicoot - The Wrath of Cortex (USA)/extracted/files/crashwoc.elf"),
+            Path("orig/nu2/Crash Bandicoot - The Wrath of Cortex (USA)/extracted/sys/main.dol"),
+            Path("orig/nu2/Disney-Pixar Finding Nemo (USA)/extracted/files/GCNemo.elf"),
+            Path("orig/nu2/Disney-Pixar Finding Nemo (USA)/extracted/sys/main.dol"),
+        ],
+    ),
+    Stage(
         "pc-versions",
         [sys.executable, "tools/pc_versions_analysis.py"],
         [

@@ -10,8 +10,9 @@ Two matching modes:
   norm     — normalise branch targets and r13/r2 SDA offsets before hashing
 
 Outputs:
-  docs/symbol_donors/nu2_fn_matches.tsv       — all raw match data (all sources)
-  docs/symbol_donors/nu2_fn_rename_queue.tsv  — filtered rename candidates
+  docs/symbol_donors/nu2_fn_matches.tsv       — all raw match data (all named sources)
+  docs/symbol_donors/nu2_fn_rename_queue.tsv        — filtered rename candidates
+  docs/symbol_donors/nu2_gc_body_confirmations.tsv  — unnamed GC exact body confirmations
 """
 from __future__ import annotations
 
@@ -44,8 +45,21 @@ SOURCES = [
 LSW1_DOL    = ROOT / "orig/GL5E4F/sys/main.dol"
 SYMBOLS_TXT = ROOT / "config/GL5E4F/symbols.txt"
 
+GC_CONFIRMATION_SOURCES = [
+    {
+        "id": "lsw2_gc",
+        "dol": ROOT / "orig/GL7E64/extracted/sys/main.dol",
+    },
+    {
+        "id": "narnia_gc",
+        "dol": ROOT / "orig/nu2/Chronicles of Narnia, The - The Lion, the Witch and the Wardrobe (USA)/extracted/sys/main.dol",
+    },
+]
+
 OUT_TSV   = ROOT / "docs/symbol_donors/nu2_fn_matches.tsv"
 OUT_QUEUE = ROOT / "docs/symbol_donors/nu2_fn_rename_queue.tsv"
+OUT_GC_CONFIRMATIONS = ROOT / "docs/symbol_donors/nu2_gc_body_confirmations.tsv"
+OUT_LSW2_GC = ROOT / "docs/symbol_donors/lsw2_gc_body_matches.tsv"
 
 OS_SDK_PREFIXES = (
     "OS", "__OS", "AR", "__AR", "DVD", "__DVD", "CARD", "__CARD",
@@ -84,6 +98,18 @@ class DolReader:
                 if delta + size > sec_size:
                     return None
                 return self.data[foff + delta: foff + delta + size]
+        return None
+
+    def find_exact_text(self, needle: bytes) -> int | None:
+        if not needle:
+            return None
+        for foff, sec_vma, sec_size in self.sections[:7]:
+            section = self.data[foff:foff + sec_size]
+            pos = section.find(needle)
+            while pos >= 0:
+                if pos % 4 == 0:
+                    return sec_vma + pos
+                pos = section.find(needle, pos + 1)
         return None
 
 
@@ -185,6 +211,36 @@ def load_lsw1_unnamed(sym_path: Path) -> list[tuple[int, int, str]]:
     return funcs
 
 
+def build_gc_confirmations(
+    lsw1_fns: list[tuple[int, int, str]],
+    lsw1_dol: DolReader,
+) -> dict[str, list[tuple[str, int, str]]]:
+    confirmations: dict[str, list[tuple[str, int, str]]] = {}
+    available_sources = [source for source in GC_CONFIRMATION_SOURCES if source["dol"].exists()]
+    if not available_sources:
+        return confirmations
+
+    donor_dols = [(source["id"], DolReader(source["dol"])) for source in available_sources]
+    with OUT_GC_CONFIRMATIONS.open("w") as f, OUT_LSW2_GC.open("w") as lsw2_f:
+        f.write("source\tmatch_type\tlsw1_fn\tlsw1_addr\tlsw1_size\tdonor_addr\tnotes\n")
+        lsw2_f.write("match_type\tlsw1_fn\tlsw1_addr\tlsw1_size\tlsw2_addr\tnotes\n")
+        for vma, size, name in lsw1_fns:
+            if size < 0x10:
+                continue
+            code = lsw1_dol.read_vma(vma, size)
+            if code is None:
+                continue
+            for source_id, donor_dol in donor_dols:
+                donor_addr = donor_dol.find_exact_text(code)
+                if donor_addr is None:
+                    continue
+                confirmations.setdefault(name, []).append((source_id, donor_addr, "exact"))
+                f.write(f"{source_id}\texact\t{name}\t{vma:#010x}\t{size:#06x}\t{donor_addr:#010x}\tbody occurs in {source_id} main.dol\n")
+                if source_id == "lsw2_gc":
+                    lsw2_f.write(f"exact\t{name}\t{vma:#010x}\t{size:#06x}\t{donor_addr:#010x}\tbody occurs in GL7E64 main.dol\n")
+    return confirmations
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -204,6 +260,12 @@ def main():
             continue
         lsw1_exact.setdefault(md5(code), []).append((vma, size, name))
         lsw1_norm.setdefault(md5(normalise(code)), []).append((vma, size, name))
+
+    gc_confirmations = build_gc_confirmations(lsw1_fns, lsw1_dol)
+    if gc_confirmations:
+        total_confirmations = sum(len(matches) for matches in gc_confirmations.values())
+        print(f"  GC exact body confirmations: {total_confirmations} across {len(gc_confirmations)} LSW1 functions")
+        print(f"Wrote {OUT_GC_CONFIRMATIONS}")
 
     # Match all sources → LSW1
     all_results: list[tuple] = []  # (src_id, crash_vma, crash_size, crash_name, lsw1_vma, lsw1_size, lsw1_name, mtype)
@@ -266,52 +328,85 @@ def main():
     exact_results = [r for r in all_results if r[7] == "exact"]
     norm_results  = [r for r in all_results if r[7] == "norm"]
 
-    # For disambiguation: count unique crash_names per lsw1_fn, unique lsw1_fns per crash_name
-    # (across all sources, ignoring duplicates from different sources that agree)
+    def ambiguity_maps(results):
+        lsw1_to_crash_names: dict[str, set[str]] = ddict(set)
+        crash_to_lsw1_fns:   dict[str, set[str]] = ddict(set)
+        for src_id, cv, cs, cn, lv, ls, ln, mt in results:
+            lsw1_to_crash_names[ln].add(cn)
+            crash_to_lsw1_fns[cn].add(ln)
+        return lsw1_to_crash_names, crash_to_lsw1_fns
+
+    # For disambiguation: count unique crash_names per lsw1_fn, unique lsw1_fns per crash_name.
+    # Duplicates from different sources that agree on the same name remain unambiguous.
     from collections import defaultdict as ddict
-    lsw1_to_crash_names: dict[str, set[str]] = ddict(set)
-    crash_to_lsw1_fns:   dict[str, set[str]] = ddict(set)
-    for src_id, cv, cs, cn, lv, ls, ln, mt in norm_results:
-        lsw1_to_crash_names[ln].add(cn)
-        crash_to_lsw1_fns[cn].add(ln)
+    exact_lsw1_to_crash_names, exact_crash_to_lsw1_fns = ambiguity_maps(exact_results)
+    norm_lsw1_to_crash_names, norm_crash_to_lsw1_fns = ambiguity_maps(norm_results)
 
-    lsw1_in_exact = {r[5] for r in exact_results}
-
-    # queue_map: lsw1_fn → (src_id, conf, crash_name, lsw1_vma, crash_size, crash_vma, lsw1_size)
+    # queue_map: lsw1_fn → (src_id, conf, crash_name, lsw1_vma, crash_size, crash_vma, lsw1_size, match_type)
     queue_map: dict[str, tuple] = {}
 
-    for src_id, cv, cs, cn, lv, ls, ln, mt in norm_results:
-        if ln not in fn_set:
-            continue
-        # Unique if this lsw1_fn maps to only ONE crash name and vice versa
-        if len(lsw1_to_crash_names[ln]) != 1 or len(crash_to_lsw1_fns[cn]) != 1:
-            continue
-        if cs < 0x20:
-            continue
+    def confidence_for(cn: str, cs: int, mt: str) -> str | None:
         is_os_sdk = any(cn.startswith(p) for p in OS_SDK_PREFIXES)
         is_nu = cn.startswith("Nu") or cn.startswith("instNu")
+        if mt == "exact":
+            if (is_nu or is_os_sdk) and cs >= 0x10:
+                return "HIGH"
+            if cs >= 0x20:
+                return "MEDIUM"
+            return None
         if is_os_sdk and cs >= 0x40:
             conf = "MEDIUM"
         elif is_nu and cs >= 0x20:
             conf = "MEDIUM"
         else:
             conf = "LOW"
-        if ln not in queue_map or src_priority.get(src_id, 9) < src_priority.get(queue_map[ln][0], 9):
-            queue_map[ln] = (src_id, conf, cn, lv, cs, cv, ls)
+        return conf
 
-    queue = sorted(queue_map.items(), key=lambda kv: (0 if kv[1][1] == "MEDIUM" else 1, kv[1][3]))
+    def maybe_add(src_id: str, cv: int, cs: int, cn: str, lv: int, ls: int, ln: str, mt: str) -> None:
+        if ln not in fn_set:
+            return
+        if mt == "exact":
+            lsw1_to_crash_names = exact_lsw1_to_crash_names
+            crash_to_lsw1_fns = exact_crash_to_lsw1_fns
+        else:
+            lsw1_to_crash_names = norm_lsw1_to_crash_names
+            crash_to_lsw1_fns = norm_crash_to_lsw1_fns
+        # Unique if this lsw1_fn maps to only ONE donor name and vice versa.
+        if len(lsw1_to_crash_names[ln]) != 1 or len(crash_to_lsw1_fns[cn]) != 1:
+            return
+        conf = confidence_for(cn, cs, mt)
+        if conf is None:
+            return
+        rank = {"HIGH": 2, "MEDIUM": 1, "LOW": 0}
+        new_key = (rank[conf], -src_priority.get(src_id, 9))
+        old = queue_map.get(ln)
+        old_key = (rank[old[1]], -src_priority.get(old[0], 9)) if old else None
+        if old is None or new_key > old_key:
+            queue_map[ln] = (src_id, conf, cn, lv, cs, cv, ls, mt)
 
+    for row in exact_results:
+        maybe_add(*row)
+    for row in norm_results:
+        maybe_add(*row)
+
+    conf_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+    queue = sorted(queue_map.items(), key=lambda kv: (conf_order[kv[1][1]], kv[1][3]))
+
+    high = sum(1 for _, v in queue if v[1] == "HIGH")
     med = sum(1 for _, v in queue if v[1] == "MEDIUM")
     low = sum(1 for _, v in queue if v[1] == "LOW")
-    print(f"Queue: MEDIUM={med} LOW={low} (total {len(queue)})")
+    print(f"Queue: HIGH={high} MEDIUM={med} LOW={low} (total {len(queue)})")
 
     with open(OUT_QUEUE, "w") as f:
         f.write("confidence\tsource\tcrash_name\tgc_fn\tgc_addr\tcrash_size\tcrash_addr\tgc_size\tnotes\n")
-        for lsw1_fn, (src_id, conf, cn, lv, cs, cv, ls) in queue:
+        for lsw1_fn, (src_id, conf, cn, lv, cs, cv, ls, mt) in queue:
             is_nu = cn.startswith("Nu") or cn.startswith("instNu")
             is_os_sdk = any(cn.startswith(p) for p in OS_SDK_PREFIXES)
             module = "nu2_engine" if is_nu else ("sdk" if is_os_sdk else "gamecode")
-            f.write(f"{conf}\t{src_id}\t{cn}\t{lsw1_fn}\t{lv:#010x}\t{cs:#06x}\t{cv:#010x}\t{ls:#06x}\tnorm-body-match; module={module}\n")
+            notes = f"{mt}-body-match; module={module}"
+            for source_id, donor_addr, donor_mt in gc_confirmations.get(lsw1_fn, []):
+                notes += f"; {source_id}_{donor_mt}=0x{donor_addr:08x}"
+            f.write(f"{conf}\t{src_id}\t{cn}\t{lsw1_fn}\t{lv:#010x}\t{cs:#06x}\t{cv:#010x}\t{ls:#06x}\t{notes}\n")
     print(f"Wrote {OUT_QUEUE}")
 
 
