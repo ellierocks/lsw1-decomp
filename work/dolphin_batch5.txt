@@ -1,0 +1,17 @@
+# Dolphin SignatureDB batch 5 - remaining contextual entries in correct SDK sections
+
+# PAD internals (in PAD range 0x8016Exxx)
+fn_8016E29C UpdateOrigin
+fn_8016EC24 PADRecalibrate
+fn_8016F188 PADControlMotor
+
+# CARD internals
+fn_80177088 __CARDGetFontEncode
+fn_80178A10 CARDProbeEx
+fn_80178FE0 __CARDMountCallback
+
+# MTX (PSMTXMultVecArray - between DB and DVD sections)
+fn_8016765C PSMTXMultVecArray
+
+# EXI close match
+fn_80164FB0 EXIGetID

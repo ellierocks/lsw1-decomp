@@ -1,0 +1,1 @@
+# mac LOW gap=0 Nu2 entries - directly between anchors, unique in slot

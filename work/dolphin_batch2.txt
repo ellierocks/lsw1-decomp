@@ -1,0 +1,52 @@
+# Dolphin SignatureDB batch 2 - size-confirmed against crashwoc ELF
+
+# SI island (Serial Interface) - all size OK
+fn_8016604C SIRegisterPollingHandler
+fn_80166118 SIUnregisterPollingHandler
+fn_801664CC SIGetStatus
+fn_80166548 SISetCommand
+fn_8016655C SITransferCommands
+fn_8016656C SISetXY
+fn_801665D8 SIEnablePolling
+fn_80166674 SIDisablePolling
+fn_801667B4 SIGetResponse
+fn_80166904 SITransfer
+fn_80166D08 SIGetType
+fn_80166ECC SIGetTypeAsync
+
+# DB (debugger) functions - size OK
+fn_80167280 DBInit
+fn_801672A8 __DBExceptionDestinationAux
+fn_8018A49C DBInitInterrupts
+
+# DVD - size OK
+fn_80167F10 DVDReadAsyncPrio
+fn_8016A52C DVDCancel
+fn_8016B880 DVDLowSeek
+fn_8016AEDC __fstLoad
+
+# VI - size OK
+fn_8016DAAC VISetNextFrameBuffer
+fn_8016DB18 VISetBlack
+fn_8016DCDC VIGetCurrentLine
+
+# PAD - size OK
+fn_8016F240 PADSetSpec
+fn_8016FB14 PADSetSamplingCallback
+fn_8016FB68 __PADDisableRecalibration
+
+# CARD - size OK
+fn_80177090 __CARDSetDiskID
+fn_801770C8 __CARDGetControlBlock
+fn_801776F8 __CARDUpdateFatBlock
+fn_80177944 __CARDUpdateDir
+fn_80179118 CARDMountAsync
+fn_80179354 CARDUnmount
+fn_80179544 __CARDFormatRegionAsync
+fn_8017A808 CARDReadAsync
+fn_8017AB6C CARDWriteAsync
+fn_8017AD24 CARDDeleteAsync
+fn_8017C5A0 __CARDRead
+
+# GX - size OK
+fn_801812AC __GetImageTileCount

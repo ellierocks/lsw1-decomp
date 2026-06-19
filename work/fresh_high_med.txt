@@ -1,0 +1,12 @@
+# queue_to_batch.py --min-conf MEDIUM (6 renames)
+
+
+# === HIGH ===
+fn_80024520 NuGlassRenderStatic  # mac [gcnemo NuGlassClose..NuGobjInit]
+
+# === MEDIUM ===
+fn_8000C9AC NuVecRotateAxis  # mac [gcnemo NuVecRotateZ..NuVecScale]
+fn_80023F80 NuCameraClipTestBoundingSphere  # mac [crashwoc_retail NuCameraTransformClip..NuCameraDistSqr]
+fn_80024398 NuGlassInit  # mac [crashwoc_retail NuGlassLoad..NuGlassClose]
+fn_8003F02C NuGCutSceneSysUpdate  # mac [gcnemo NuGCutSceneSysInit..NuGCutSceneSysRender]
+fn_8003F27C instNuGCutSceneCreate  # mac [crashwoc_retail NuGCutSceneFixUp..instNuGCutSceneDestroy]

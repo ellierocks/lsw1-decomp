@@ -1,9 +1,6 @@
 confidence	source	crash_name	gc_fn	gc_addr	crash_size	crash_addr	gc_size	notes
 LOW	crashwoc_retail	pftaOn	fn_8001610C	0x8001610c	0x0048	0x800ba9e0	0x0048	norm-body-match; module=gamecode
 LOW	crashwoc_retail	pftaOff	fn_80016154	0x80016154	0x0048	0x800baa28	0x0048	norm-body-match; module=gamecode
-LOW	crashwoc_retail	NuHazeClose	fn_80024BD8	0x80024bd8	0x0018	0x800b0668	0x0018	norm-body-match; module=nu2_engine
-LOW	crashwoc_retail	NuScratchRelease	fn_80039D64	0x80039d64	0x0010	0x800c3220	0x0010	norm-body-match; module=nu2_engine
-LOW	gcnemo	NuGCutSceneSysInit	fn_8003F018	0x8003f018	0x0014	0x800ef0d4	0x0014	norm-body-match; module=nu2_engine
 LOW	gcnemo	decv_decode	fn_80049DC0	0x80049dc0	0x0164	0x801220ac	0x0164	norm-body-match; module=gamecode
 LOW	gcnemo	callback	fn_8004BD4C	0x8004bd4c	0x0084	0x80123460	0x0084	norm-body-match; module=gamecode
 LOW	gcnemo	fstat_update	fn_8004BDD0	0x8004bdd0	0x005c	0x801234e4	0x005c	norm-body-match; module=gamecode
@@ -16,17 +13,7 @@ LOW	gcnemo	CC_scale	fn_8011B02C	0x8011b02c	0x000c	0x8001c030	0x000c	norm-body-ma
 LOW	gcnemo	CSC_fpsec	fn_8011BE44	0x8011be44	0x000c	0x8001d5a0	0x000c	norm-body-match; module=gamecode
 LOW	crashwoc_retail	DrawWeatherResearchLevelExtra	fn_8014FD9C	0x8014fd9c	0x002c	0x80072438	0x002c	norm-body-match; module=gamecode
 LOW	crashwoc_retail	OnReset	fn_80160BB8	0x80160bb8	0x003c	0x800dff04	0x003c	norm-body-match; module=gamecode; lsw2_gc_exact=0x801e7044; narnia_gc_exact=0x801ff8b8
-LOW	gcnemo	KillThreads	fn_801610B0	0x801610b0	0x0068	0x80074838	0x0068	norm-body-match; module=gamecode
 LOW	crashwoc_retail	UnsetRun	fn_801625B0	0x801625b0	0x0068	0x800e1380	0x0068	norm-body-match; module=gamecode
 LOW	gcnemo	ProbeBarnacle	fn_80165360	0x80165360	0x018c	0x8007ba64	0x018c	norm-body-match; module=gamecode
-LOW	crashwoc_retail	InitializeUART	fn_801656A8	0x801656a8	0x0070	0x800ff918	0x0070	norm-body-match; module=gamecode
-LOW	crashwoc_retail	CategorizeError	fn_801683C0	0x801683c0	0x00b4	0x800e3714	0x00b4	norm-body-match; module=gamecode
-LOW	crashwoc_retail	AlarmHandlerForTimeout	fn_8016B3E8	0x8016b3e8	0x0070	0x800e64c8	0x0070	norm-body-match; module=gamecode
 LOW	gcnemo	DummyLen	fn_8017B514	0x8017b514	0x00c4	0x8008fae4	0x00c4	norm-body-match; module=gamecode
-LOW	gcnemo	DBRead	fn_8018A374	0x8018a374	0x008c	0x8009c3bc	0x008c	norm-body-match; module=gamecode
-LOW	gcnemo	DBQueryData	fn_8018A400	0x8018a400	0x009c	0x8009c448	0x009c	norm-body-match; module=gamecode
-LOW	gcnemo	DBInitComm	fn_8018A4F0	0x8018a4f0	0x0078	0x8009c688	0x0078	norm-body-match; module=gamecode
-LOW	crashwoc_retail	DBGHandler	fn_8018A568	0x8018a568	0x0040	0x800fdbb8	0x0040	norm-body-match; module=gamecode
-LOW	crashwoc_retail	MWCallback	fn_8018A5A8	0x8018a5a8	0x003c	0x800fdb7c	0x003c	norm-body-match; module=gamecode
 LOW	gcnemo	ScreenReport	fn_8018BE6C	0x8018be6c	0x03dc	0x80132de8	0x03dc	norm-body-match; module=gamecode
-LOW	gcnemo	ConfigureVideo	fn_8018C248	0x8018c248	0x00fc	0x801331c4	0x00fc	norm-body-match; module=gamecode

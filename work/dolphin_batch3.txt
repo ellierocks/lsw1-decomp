@@ -1,0 +1,55 @@
+# Dolphin SignatureDB batch 3 - near-matches and strong contextual entries
+
+# EXI additional
+fn_80163984 SetExiInterruptMask  # in EXI range between named EXI functions
+
+# SI additional - all in SI range, sequentially placed between confirmed SI functions
+fn_80165C70 SIInterruptHandler  # between SIBusy..SIIsChanBusy area
+fn_80165FB4 SIEnablePollingInterrupt  # before SIRegisterPollingHandler
+fn_801662C0 __SITransfer  # between SIInit and SIGetStatus
+fn_80166118 SIUnregisterPollingHandler  # already applied (conflict expected)
+fn_80166A70 GetTypeCallback  # between SITransfer and SIGetType
+fn_801666E0 SIGetResponseRaw  # between SIGetResponse and SITransfer
+
+# SI near-match (diff ≤ 0x10)
+fn_8016620C SIInit  # CW:0xa4 GC:0xb4 diff=0x10
+
+# SI complete transfer
+fn_80165974 CompleteTransfer  # in SI range
+
+# DVD near-match
+fn_8016A2B0 DVDCancelAsync  # CW:0x270 GC:0x27c diff=0xc
+
+# DVD internal
+fn_8016A818 __DVDTestAlarm  # between named DVD functions
+fn_8016AA48 ErrorCode2Num  # in DVD range
+fn_8016ADD4 __DVDPrintFatalMessage  # in DVD range
+
+# VI near-match
+fn_8016C468 VIInit  # CW:0x478 GC:0x4b0 diff=0x38 - close
+fn_8016DAAC VISetNextFrameBuffer  # conflict expected
+fn_8016DB18 VISetBlack  # conflict expected
+fn_8016DCDC VIGetCurrentLine  # conflict expected
+fn_8016D97C VIFlush  # CW:0x11c GC:0x130 diff=0x14
+
+# PAD near-match
+fn_8016EB14 PADReset  # CW:0x100 GC:0x110 diff=0x10
+fn_8016EE88 PADRead  # CW:0x3ac GC:0x300 - too big diff, skip
+fn_8016E440 PADOriginCallback  # in PAD range
+fn_8016E504 PADOriginUpdateCallback  # in PAD range
+fn_8016E5D0 PADProbeCallback  # in PAD range
+fn_8016E6A8 PADTypeAndStatusCallback  # in PAD range
+fn_8016E9D4 PADReceiveCheckCallback  # in PAD range
+
+# CARD near-match
+fn_80176FDC CARDInit  # CW:0x9c GC:0xac diff=0x10
+
+# GX  
+fn_80181964 GXInitTlutObj  # in GX range, specific function name
+
+# OS
+fn_8015C000 PPCSetFpNonIEEEMode  # tiny 0x8 PPC FP mode setter
+fn_8015E10C OSGetStackPointer  # tiny 0x8 OS utility
+fn_80162654 SetEffectivePriority  # OS thread scheduler internal
+fn_80162814 SelectThread  # OS thread scheduler internal
+fn_801623BC __OSThreadInit  # CW:0x128 GC:0x158 diff=0x30

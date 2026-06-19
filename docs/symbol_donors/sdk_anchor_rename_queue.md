@@ -10,22 +10,10 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 
 ## Summary
 - HIGH: 0
-- MEDIUM: 9
-- LOW: 3
+- MEDIUM: 0
+- LOW: 0
 
 ## Candidates
 
 | Conf | GC | New name | Source | Anchors | Gap |
 |---|---:|---|---|---|---:|
-| MEDIUM | `fn_8016A1A4` @ `0x8016A1A4` | `DVDGetDriveStatus` | `crashwoc_symbols.txt` | `DVDGetCommandBlockStatus` .. `DVDSetAutoInvalidation` | 1:1 |
-| MEDIUM | `fn_801725BC` @ `0x801725BC` | `__AXRemoveFromStack` | `crashwoc_symbols.txt` | `__AXPopCallbackStack` .. `AXAcquireVoice` | 2:2 |
-| MEDIUM | `fn_80172650` @ `0x80172650` | `AXFreeVoice` | `crashwoc_symbols.txt` | `__AXPopCallbackStack` .. `AXAcquireVoice` | 2:2 |
-| MEDIUM | `fn_8017EB00` @ `0x8017EB00` | `GXSetVtxAttrFmt` | `crashwoc_symbols.txt` | `GXClearVtxDesc` .. `GXInvalidateVtxCache` | 5:5 |
-| MEDIUM | `fn_8017ED5C` @ `0x8017ED5C` | `GXSetVtxAttrFmtv` | `crashwoc_symbols.txt` | `GXClearVtxDesc` .. `GXInvalidateVtxCache` | 5:5 |
-| MEDIUM | `fn_8017EFDC` @ `0x8017EFDC` | `__GXSetVAT` | `crashwoc_symbols.txt` | `GXClearVtxDesc` .. `GXInvalidateVtxCache` | 5:5 |
-| MEDIUM | `fn_8017F064` @ `0x8017F064` | `GXGetVtxAttrFmt` | `crashwoc_symbols.txt` | `GXClearVtxDesc` .. `GXInvalidateVtxCache` | 5:5 |
-| MEDIUM | `fn_8017F2E4` @ `0x8017F2E4` | `GXSetArray` | `crashwoc_symbols.txt` | `GXClearVtxDesc` .. `GXInvalidateVtxCache` | 5:5 |
-| MEDIUM | `fn_801810EC` @ `0x801810EC` | `__GXGetTexTileShift` | `crashwoc_symbols.txt` | `GXSetChanCtrl` .. `GXGetTexBufferSize` | 1:1 |
-| LOW | `fn_8016A5FC` @ `0x8016A5FC` | `DVDReadPrio` | `crashwoc_symbols.txt` | `DVDClose` .. `__DVDPrepareResetAsync` | 2:10 |
-| LOW | `fn_8016A604` @ `0x8016A604` | `DVDPrepareStreamAbsAsync` | `crashwoc_symbols.txt` | `DVDClose` .. `__DVDPrepareResetAsync` | 2:10 |
-| LOW | `fn_8016B084` @ `0x8016B084` | `__DVDInterruptHandler` | `crashwoc_symbols.txt` | `__DVDInitWA` .. `DVDLowRead` | 5:1 |

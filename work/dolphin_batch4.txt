@@ -1,0 +1,60 @@
+# Dolphin SignatureDB batch 4 - contextual entries in confirmed SDK ranges
+
+# DVD state machine (0x80168xxx range, between named DVD functions)
+fn_80167FD0 cbForReadAsync
+fn_8016891C stateCheckID
+fn_80168ACC stateCheckID2
+fn_80168EE0 stateCoverClosed_CMD
+
+# DVD internals
+fn_8016AE04 cb
+fn_8016B458 Read
+fn_8016B568 SeekTwiceBeforeRead
+
+# VI internals (VI range 0x8016Cxxx)
+fn_8016C96C setFbbRegs
+fn_8016CC40 setVerticalRegs
+fn_8016DDDC __VIDisplayPositionToXY
+fn_8016DFF8 __VIGetCurrentPosition
+
+# VI near-match
+fn_8016DD74 VIGetTvFormat  # CW:0x7c vs GC:0x68 diff=0x14
+
+# PAD internals (already applied via batch3 except these)
+fn_8016E440 PADOriginCallback
+fn_8016E504 PADOriginUpdateCallback
+fn_8016E5D0 PADProbeCallback
+fn_8016E6A8 PADTypeAndStatusCallback
+fn_8016E9D4 PADReceiveCheckCallback
+fn_8016ED38 PADInit
+fn_8016F588 SPEC2_MakeStatus
+fn_8016E2C4 UpdateOrigin
+
+# CARD internals (in CARD range 0x80176xxx-0x8017Cxxx)
+fn_80177BB8 VerifyID
+fn_80178944 IsCard
+fn_801792B8 DoUnmount
+fn_80179400 FormatCallback
+fn_8017A6D8 ReadCallback
+fn_8017AC80 DeleteCallback
+fn_8017B3D0 ReadArrayUnlock
+fn_8017B514 DummyLen
+fn_8017C130 InitCallback
+fn_8017C1A0 DoneCallback
+fn_8017C4C4 BlockReadCallback
+
+# CARD near-match
+fn_8017B5D8 __CARDUnlock  # CW:0xb3c vs GC:0xb58 diff=0x1c
+
+# MTX (between DB and DVD)
+fn_80167398 PSMTXConcat
+
+# OS SRAM helper
+fn_80161A90 UnlockSram
+
+# AXFX hooks (in game range but AXFX is a real GC lib used here)
+fn_8002765C AXFXSetHooks
+fn_80160F00 AXFXGetHooks
+
+# GX
+fn_80181964 GXInitTlutObj

@@ -1530,8 +1530,6 @@ gcnemo	exact	DTKTestFileState	0x80120bf8	0x0004	fn_8018A110	0x8018a110	0x0004
 gcnemo	exact	DVDCloseDir	0x8007ee60	0x0008	fn_80027824	0x80027824	0x0008
 gcnemo	exact	DVDCloseDir	0x8007ee60	0x0008	fn_80027BEC	0x80027bec	0x0008
 gcnemo	exact	DVDCloseDir	0x8007ee60	0x0008	fn_801680C0	0x801680c0	0x0008
-crashwoc_retail	exact	DVDGetCurrentDiskID	0x800e5938	0x0008	fn_8016A5FC	0x8016a5fc	0x0008
-gcnemo	exact	DVDGetCurrentDiskID	0x80082a74	0x0008	fn_8016A5FC	0x8016a5fc	0x0008
 gcnemo	exact	DaveTestWaterInit	0x800b524c	0x0004	fn_8000A8A4	0x8000a8a4	0x0004
 gcnemo	exact	DaveTestWaterInit	0x800b524c	0x0004	fn_8000A8A8	0x8000a8a8	0x0004
 gcnemo	exact	DaveTestWaterInit	0x800b524c	0x0004	fn_8000AFB8	0x8000afb8	0x0004
@@ -32282,7 +32280,6 @@ gcnemo	norm	AIReset	0x801393c4	0x000c	fn_80049BD8	0x80049bd8	0x000c
 gcnemo	norm	AIReset	0x801393c4	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	AIReset	0x801393c4	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	AIReset	0x801393c4	0x000c	fn_8011F118	0x8011f118	0x000c
-gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -32303,7 +32300,6 @@ gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	AI_BruceKill	0x80008b40	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -32324,16 +32320,12 @@ gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	AI_ChaseKill	0x80008654	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	AI_SetEvent0	0x80005960	0x0024	fn_80023D5C	0x80023d5c	0x0024
 gcnemo	norm	AI_SetEvent0	0x80005960	0x0024	fn_800716B0	0x800716b0	0x0024
 gcnemo	norm	AI_SetEvent0	0x80005960	0x0024	fn_800ABA78	0x800aba78	0x0024
-gcnemo	norm	AI_SetEvent0BranchLabel	0x80005aa0	0x0024	fn_80023D5C	0x80023d5c	0x0024
 gcnemo	norm	AI_SetEvent0BranchLabel	0x80005aa0	0x0024	fn_800716B0	0x800716b0	0x0024
 gcnemo	norm	AI_SetEvent0BranchLabel	0x80005aa0	0x0024	fn_800ABA78	0x800aba78	0x0024
-gcnemo	norm	AI_SetEvent0Function	0x80005a30	0x0024	fn_80023D5C	0x80023d5c	0x0024
 gcnemo	norm	AI_SetEvent0Function	0x80005a30	0x0024	fn_800716B0	0x800716b0	0x0024
 gcnemo	norm	AI_SetEvent0Function	0x80005a30	0x0024	fn_800ABA78	0x800aba78	0x0024
-gcnemo	norm	AI_SetEvent0Index	0x80005b08	0x0024	fn_80023D5C	0x80023d5c	0x0024
 gcnemo	norm	AI_SetEvent0Index	0x80005b08	0x0024	fn_800716B0	0x800716b0	0x0024
 gcnemo	norm	AI_SetEvent0Index	0x80005b08	0x0024	fn_800ABA78	0x800aba78	0x0024
 gcnemo	norm	ARCheckInit	0x80139988	0x0008	fn_8001AF7C	0x8001af7c	0x0008
@@ -32778,8 +32770,6 @@ gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	AlarmHandlerForTimeout	0x800e64c8	0x0070	fn_8016B3E8	0x8016b3e8	0x0070
-gcnemo	norm	AlarmHandlerForTimeout	0x80083cfc	0x0070	fn_8016B3E8	0x8016b3e8	0x0070
 gcnemo	norm	CARDGetVendorID	0x8008f230	0x0008	fn_80177088	0x80177088	0x0008
 gcnemo	norm	CARDSrand	0x8008f4f0	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	CARDSrand	0x8008f4f0	0x0008	fn_80009998	0x80009998	0x0008
@@ -32849,15 +32839,12 @@ gcnemo	norm	Callback	0x80079a70	0x000c	fn_80027C00	0x80027c00	0x000c
 gcnemo	norm	Callback	0x80079a70	0x000c	fn_80037B74	0x80037b74	0x000c
 gcnemo	norm	Callback	0x80079a70	0x000c	fn_8015EE74	0x8015ee74	0x000c
 gcnemo	norm	Callback	0x80079a70	0x000c	fn_80173678	0x80173678	0x000c
-crashwoc_retail	norm	CategorizeError	0x800e3714	0x00b4	fn_801683C0	0x801683c0	0x00b4
-gcnemo	norm	CategorizeError	0x8007f490	0x00b4	fn_801683C0	0x801683c0	0x00b4
 gcnemo	norm	ClearCones	0x800547c0	0x0010	fn_80030A54	0x80030a54	0x0010
 gcnemo	norm	ClearCones	0x800547c0	0x0010	fn_8003776C	0x8003776c	0x0010
 gcnemo	norm	ClearCones	0x800547c0	0x0010	fn_800790B8	0x800790b8	0x0010
 gcnemo	norm	ClearCones	0x800547c0	0x0010	fn_80172928	0x80172928	0x0010
 crashwoc_retail	norm	CloseShaders	0x800d130c	0x0024	fn_8000CB50	0x8000cb50	0x0024
 crashwoc_retail	norm	CloseShaders	0x800d130c	0x0024	fn_800CF214	0x800cf214	0x0024
-gcnemo	norm	ConfigureVideo	0x801331c4	0x00fc	fn_8018C248	0x8018c248	0x00fc
 gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_8001AF7C	0x8001af7c	0x0008
 gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_8001AF84	0x8001af84	0x0008
 gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_80037218	0x80037218	0x0008
@@ -32872,7 +32859,6 @@ gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_8016DB94	0x8016db94	0x0008
 gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	CrashDataPtr	0x80107318	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -32893,11 +32879,6 @@ gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8018AC38	0x8018ac38	
 gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	CreateAlphaBlendTexture256	0x800f5090	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	DBGHandler	0x800fdbb8	0x0040	fn_8018A568	0x8018a568	0x0040
-gcnemo	norm	DBGHandler	0x8009c700	0x0040	fn_8018A568	0x8018a568	0x0040
-gcnemo	norm	DBInitComm	0x8009c688	0x0078	fn_8018A4F0	0x8018a4f0	0x0078
-gcnemo	norm	DBQueryData	0x8009c448	0x009c	fn_8018A400	0x8018a400	0x009c
-gcnemo	norm	DBRead	0x8009c3bc	0x008c	fn_8018A374	0x8018a374	0x008c
 crashwoc_retail	norm	DEMOGetCurrentBuffer	0x800c81f8	0x0008	fn_8001AF7C	0x8001af7c	0x0008
 crashwoc_retail	norm	DEMOGetCurrentBuffer	0x800c81f8	0x0008	fn_8001AF84	0x8001af84	0x0008
 crashwoc_retail	norm	DEMOGetCurrentBuffer	0x800c81f8	0x0008	fn_80037218	0x80037218	0x0008
@@ -33675,7 +33656,6 @@ gcnemo	norm	DebrisSetSeed	0x800cc0c0	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	DebrisSetSeed	0x800cc0c0	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	DebrisSetSeed	0x800cc0c0	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	DebrisSetSeed	0x800cc0c0	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -33697,7 +33677,6 @@ crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	DebrisSetup	0x80081f40	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 gcnemo	norm	DestroyStripping	0x800b7194	0x002c	fn_8006EB98	0x8006eb98	0x002c
-crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -33719,7 +33698,6 @@ crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8018AC58	0x8018ac58	0x002
 crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	DrawCutMovie	0x800210b8	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 crashwoc_retail	norm	DrawEarthBossLevelExtra	0x80077c38	0x0028	fn_80044D20	0x80044d20	0x0028
-gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -33740,7 +33718,6 @@ gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	DrawFishNetRescue	0x8003ad44	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -33761,7 +33738,6 @@ gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	DrawMap	0x8003b62c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -33783,7 +33759,6 @@ crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8018AC58	0x8018ac58	0
 crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	DrawVehicleTrail	0x80078f0c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 crashwoc_retail	norm	DrawWeatherResearchLevelExtra	0x80072438	0x002c	fn_8014FD9C	0x8014fd9c	0x002c
-crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -33862,7 +33837,6 @@ gcnemo	norm	EdFileSetMedia	0x800d20f8	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	EdFileSetMedia	0x800d20f8	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	EdFileSetMedia	0x800d20f8	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	EdFileSetMedia	0x800d20f8	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	GBA_Init	0x800c7ad8	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	GBA_Init	0x800c7ad8	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	GBA_Init	0x800c7ad8	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	GBA_Init	0x800c7ad8	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34216,7 +34190,6 @@ crashwoc_proto	norm	GS_EnableSpecular	0x800cb428	0x0008	fn_80094F90	0x80094f90	0
 crashwoc_proto	norm	GS_EnableSpecular	0x800cb428	0x0008	fn_80095874	0x80095874	0x0008
 crashwoc_proto	norm	GS_EnableSpecular	0x800cb428	0x0008	fn_800E32F8	0x800e32f8	0x0008
 crashwoc_proto	norm	GS_EnableSpecular	0x800cb428	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	GS_EndScene	0x800c8cdc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	GS_EndScene	0x800c8cdc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	GS_EndScene	0x800c8cdc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	GS_EndScene	0x800c8cdc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34449,7 +34422,6 @@ crashwoc_proto	norm	GS_SetMaterialSourceEmissive	0x800cb418	0x0008	fn_80094F90	0
 crashwoc_proto	norm	GS_SetMaterialSourceEmissive	0x800cb418	0x0008	fn_80095874	0x80095874	0x0008
 crashwoc_proto	norm	GS_SetMaterialSourceEmissive	0x800cb418	0x0008	fn_800E32F8	0x800e32f8	0x0008
 crashwoc_proto	norm	GS_SetMaterialSourceEmissive	0x800cb418	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	GS_SetTevModulate	0x800cc0cc	0x0024	fn_80023D5C	0x80023d5c	0x0024
 crashwoc_retail	norm	GS_SetTevModulate	0x800cc0cc	0x0024	fn_800716B0	0x800716b0	0x0024
 crashwoc_retail	norm	GS_SetTevModulate	0x800cc0cc	0x0024	fn_800ABA78	0x800aba78	0x0024
 crashwoc_retail	norm	GS_SetVertexSource	0x800d4238	0x0008	fn_80007594	0x80007594	0x0008
@@ -34674,7 +34646,6 @@ gcnemo	norm	GXSaveCPUFifo	0x80091638	0x0020	fn_80188758	0x80188758	0x0020
 gcnemo	norm	GXSetBreakPtCallback	0x80091980	0x0044	fn_8016FBE4	0x8016fbe4	0x0044
 gcnemo	norm	GXSetDrawDoneCallback	0x800941b0	0x0044	fn_8016FBE4	0x8016fbe4	0x0044
 gcnemo	norm	GXSetDrawSyncCallback	0x800940e4	0x0044	fn_8016FBE4	0x8016fbe4	0x0044
-crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34695,7 +34666,6 @@ crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8018AC38	0x8018ac38	0x
 crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	GenDebIndexSort	0x8007fa98	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	GenDebIndexSort	0x800c5f50	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	GenDebIndexSort	0x800c5f50	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	GenDebIndexSort	0x800c5f50	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	GenDebIndexSort	0x800c5f50	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34758,7 +34728,6 @@ gcnemo	norm	GetGlassSpecularTexId	0x800af4e8	0x0008	fn_8016DB94	0x8016db94	0x000
 gcnemo	norm	GetGlassSpecularTexId	0x800af4e8	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	GetGlassSpecularTexId	0x800af4e8	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	GetGlassSpecularTexId	0x800af4e8	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	GetSplineSegLen	0x8005d19c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	GetSplineSegLen	0x8005d19c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	GetSplineSegLen	0x8005d19c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	GetSplineSegLen	0x8005d19c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34836,7 +34805,6 @@ crashwoc_proto	norm	InitRumblePanel	0x800769f0	0x000c	fn_80049BD8	0x80049bd8	0x0
 crashwoc_proto	norm	InitRumblePanel	0x800769f0	0x000c	fn_8007917C	0x8007917c	0x000c
 crashwoc_proto	norm	InitRumblePanel	0x800769f0	0x000c	fn_80103F64	0x80103f64	0x000c
 crashwoc_proto	norm	InitRumblePanel	0x800769f0	0x000c	fn_8011F118	0x8011f118	0x000c
-crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34857,10 +34825,7 @@ crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8018AC38	0x8018ac38	0x
 crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	InitWeatherBoss	0x80070054	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	InitializeUART	0x800ff918	0x0070	fn_801656A8	0x801656a8	0x0070
-gcnemo	norm	InitializeUART	0x8007bdac	0x0070	fn_801656A8	0x801656a8	0x0070
 crashwoc_proto	norm	InitializeXFVerifyData	0x80103c5c	0x0020	fn_80188758	0x80188758	0x0020
-gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34881,7 +34846,6 @@ gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	InstGSceneDestroy	0x800f531c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34902,7 +34866,6 @@ gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	InstSceneDestroy	0x800f535c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	InstSceneLoad	0x800f533c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	InstSceneLoad	0x800f533c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	InstSceneLoad	0x800f533c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	InstSceneLoad	0x800f533c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -34927,8 +34890,6 @@ crashwoc_proto	norm	KillLoadingScreen	0x8004fd30	0x000c	fn_80027C00	0x80027c00	0
 crashwoc_proto	norm	KillLoadingScreen	0x8004fd30	0x000c	fn_80037B74	0x80037b74	0x000c
 crashwoc_proto	norm	KillLoadingScreen	0x8004fd30	0x000c	fn_8015EE74	0x8015ee74	0x000c
 crashwoc_proto	norm	KillLoadingScreen	0x8004fd30	0x000c	fn_80173678	0x80173678	0x000c
-gcnemo	norm	KillThreads	0x80074838	0x0068	fn_801610B0	0x801610b0	0x0068
-gcnemo	norm	LoadScreenFunction	0x8003f6f4	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	LoadScreenFunction	0x8003f6f4	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	LoadScreenFunction	0x8003f6f4	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	LoadScreenFunction	0x8003f6f4	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -35030,8 +34991,6 @@ gcnemo	norm	MIXSetSoundMode	0x8013f8e0	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	MIXSetSoundMode	0x8013f8e0	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	MIXSetSoundMode	0x8013f8e0	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	MIXSetSoundMode	0x8013f8e0	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	MWCallback	0x800fdb7c	0x003c	fn_8018A5A8	0x8018a5a8	0x003c
-gcnemo	norm	MWCallback	0x8009c740	0x003c	fn_8018A5A8	0x8018a5a8	0x003c
 gcnemo	norm	MoveScreen	0x800412b0	0x00a0	fn_8009FAD8	0x8009fad8	0x00a0
 gcnemo	norm	NewRaySetDisablePalt	0x801096ec	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	NewRaySetDisablePalt	0x801096ec	0x0008	fn_80009998	0x80009998	0x0008
@@ -35548,7 +35507,6 @@ gcnemo	norm	NuDisableVBlank	0x80118a60	0x0024	fn_8000CB50	0x8000cb50	0x0024
 gcnemo	norm	NuDisableVBlank	0x80118a60	0x0024	fn_800CF214	0x800cf214	0x0024
 gcnemo	norm	NuEnableVBlank	0x80118a3c	0x0024	fn_8000CB50	0x8000cb50	0x0024
 gcnemo	norm	NuEnableVBlank	0x80118a3c	0x0024	fn_800CF214	0x800cf214	0x0024
-crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -35569,7 +35527,6 @@ crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8018AC38	0x8018ac38	0x0020
 crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	NuFParClose	0x800be488	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuFParClose	0x8011c218	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuFParClose	0x8011c218	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuFParClose	0x8011c218	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuFParClose	0x8011c218	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -35635,9 +35592,6 @@ gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_801740D8	0x801740d8	0x0008
 gcnemo	norm	NuFntMoveAbs	0x800af364	0x000c	fn_8002765C	0x8002765c	0x000c
-gcnemo	norm	NuGCutCharSysDestroy	0x800f40c8	0x0030	fn_800401B4	0x800401b4	0x0030
-crashwoc_retail	norm	NuGCutCharSysFixUp	0x8008bb34	0x0030	fn_800401B4	0x800401b4	0x0030
-gcnemo	norm	NuGCutCharSysFixUp	0x800f4098	0x0030	fn_800401B4	0x800401b4	0x0030
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_8000A754	0x8000a754	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_8001AF70	0x8001af70	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_800372DC	0x800372dc	0x000c
@@ -35648,8 +35602,6 @@ gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_80049BD8	0x80049b
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_8011F118	0x8011f118	0x000c
-gcnemo	norm	NuGCutSceneSysInit	0x800ef0d4	0x0014	fn_8003F018	0x8003f018	0x0014
-gcnemo	norm	NuGScnRndr2	0x80117d24	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuGScnRndr2	0x80117d24	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuGScnRndr2	0x80117d24	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuGScnRndr2	0x80117d24	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -35835,7 +35787,6 @@ gcnemo	norm	NuGobjEnableSharedVB	0x800af784	0x0008	fn_801733FC	0x801733fc	0x0008
 crashwoc_retail	norm	NuHGobjRndrMtx	0x800b6b84	0x0024	fn_80063E40	0x80063e40	0x0024
 crashwoc_retail	norm	NuHGobjRndrMtx	0x800b6b84	0x0024	fn_80095B58	0x80095b58	0x0024
 gcnemo	norm	NuHGobjRndrMtx	0x800bb7b8	0x0028	fn_80019F08	0x80019f08	0x0028
-crashwoc_retail	norm	NuHazeClose	0x800b0668	0x0018	fn_80024BD8	0x80024bd8	0x0018
 gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_80009998	0x80009998	0x0008
 gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_8000C108	0x8000c108	0x0008
@@ -35889,7 +35840,6 @@ gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuHazeSetTint	0x800b1c3c	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuJointNodeDestroy	0x8011d480	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuJointNodeDestroy	0x8011d480	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuJointNodeDestroy	0x8011d480	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuJointNodeDestroy	0x8011d480	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36005,7 +35955,6 @@ gcnemo	norm	NuLightGetHazeMtl	0x800b1de4	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	NuLightGetHazeMtl	0x800b1de4	0x0008	fn_801740D8	0x801740d8	0x0008
 gcnemo	norm	NuLineToPointDistSqr	0x800a6130	0x0024	fn_80006038	0x80006038	0x0024
 gcnemo	norm	NuLineToPointDistSqr	0x800a6130	0x0024	fn_80008E54	0x80008e54	0x0024
-crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36026,7 +35975,6 @@ crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8018AC38	0x8018ac38	0x002
 crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	NuLstDestroy	0x8004e9b4	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36047,7 +35995,6 @@ gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8018AC38	0x8018ac38	0x0
 gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMemDestroyDiscardable	0x800a0048	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuMemFree	0x800be6fc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuMemFree	0x800be6fc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuMemFree	0x800be6fc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuMemFree	0x800be6fc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36082,7 +36029,6 @@ gcnemo	norm	NuMemGetExternal	0x800a008c	0x0008	fn_8016DB94	0x8016db94	0x0008
 gcnemo	norm	NuMemGetExternal	0x800a008c	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	NuMemGetExternal	0x800a008c	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	NuMemGetExternal	0x800a008c	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	NuMemGetFree	0x800a0964	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMemGetFree	0x800a0964	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMemGetFree	0x800a0964	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMemGetFree	0x800a0964	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36119,7 +36065,6 @@ gcnemo	norm	NuMemGetPeakAllocAddr	0x800a0240	0x0008	fn_80172CCC	0x80172ccc	0x000
 gcnemo	norm	NuMemGetPeakAllocAddr	0x800a0240	0x0008	fn_801740D8	0x801740d8	0x0008
 gcnemo	norm	NuMemSetDiscardable	0x8009ffc4	0x0010	fn_8000605C	0x8000605c	0x0010
 gcnemo	norm	NuMemSetDiscardable	0x8009ffc4	0x0010	fn_80071D90	0x80071d90	0x0010
-gcnemo	norm	NuMeshNodeDestroy	0x8011d5cc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMeshNodeDestroy	0x8011d5cc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMeshNodeDestroy	0x8011d5cc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMeshNodeDestroy	0x8011d5cc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36193,7 +36138,6 @@ gcnemo	norm	NuMtlFlipFaceOnOrder	0x800b64a8	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	NuMtlFlipFaceOnOrder	0x800b64a8	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	NuMtlFlipFaceOnOrder	0x800b64a8	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuMtlFlipFaceOnOrder	0x800b64a8	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuMtlInitEx	0x800b577c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtlInitEx	0x800b577c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtlInitEx	0x800b577c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtlInitEx	0x800b577c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36256,7 +36200,6 @@ gcnemo	norm	NuMtlNum	0x800b5a64	0x0008	fn_8016DB94	0x8016db94	0x0008
 gcnemo	norm	NuMtlNum	0x800b5a64	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	NuMtlNum	0x800b5a64	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	NuMtlNum	0x800b5a64	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36277,7 +36220,6 @@ gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMtlRelease	0x800b6f60	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMtlRemoveFromSystemList	0x800b5e4c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtlRemoveFromSystemList	0x800b5e4c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtlRemoveFromSystemList	0x800b5e4c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtlRemoveFromSystemList	0x800b5e4c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36457,7 +36399,6 @@ crashwoc_proto	norm	NuMtlSetStencilRender	0x800b3fe0	0x0008	fn_80094F90	0x80094f
 crashwoc_proto	norm	NuMtlSetStencilRender	0x800b3fe0	0x0008	fn_80095874	0x80095874	0x0008
 crashwoc_proto	norm	NuMtlSetStencilRender	0x800b3fe0	0x0008	fn_800E32F8	0x800e32f8	0x0008
 crashwoc_proto	norm	NuMtlSetStencilRender	0x800b3fe0	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuMtlUpdateEx	0x800b5ffc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtlUpdateEx	0x800b5ffc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtlUpdateEx	0x800b5ffc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtlUpdateEx	0x800b5ffc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36486,7 +36427,6 @@ crashwoc_retail	norm	NuMtxLookAtZ	0x800c050c	0x0074	fn_8000E830	0x8000e830	0x007
 crashwoc_retail	norm	NuMtxLookAtZ	0x800c050c	0x0074	fn_8000E8A4	0x8000e8a4	0x0074
 gcnemo	norm	NuMtxLookAtZ	0x800a42ac	0x0074	fn_8000E830	0x8000e830	0x0074
 gcnemo	norm	NuMtxLookAtZ	0x800a42ac	0x0074	fn_8000E8A4	0x8000e8a4	0x0074
-gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36507,7 +36447,6 @@ gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMtxMulArrayVU0	0x800a1490	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36528,7 +36467,6 @@ gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMtxMulRVU0	0x800a14b0	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36549,7 +36487,6 @@ gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMtxMulVU0	0x800a1620	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36570,7 +36507,6 @@ gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMtxPreScaleVU0	0x800a155c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36591,7 +36527,6 @@ gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuMtxScaleVU0	0x800a1470	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuMtxSetRotateXYZVU0	0x800a1430	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuMtxSetRotateXYZVU0	0x800a1430	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuMtxSetRotateXYZVU0	0x800a1430	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuMtxSetRotateXYZVU0	0x800a1430	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36665,7 +36600,6 @@ gcnemo	norm	NuNodeKeepNames	0x8011cb58	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	NuNodeKeepNames	0x8011cb58	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	NuNodeKeepNames	0x8011cb58	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuNodeKeepNames	0x8011cb58	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuPlnLineVU0	0x800a13c8	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuPlnLineVU0	0x800a13c8	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuPlnLineVU0	0x800a13c8	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuPlnLineVU0	0x800a13c8	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36688,7 +36622,6 @@ gcnemo	norm	NuPlnLineVU0	0x800a13c8	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuPlnLineVU0	0x800a13c8	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 gcnemo	norm	NuPortalEnabled	0x8011da68	0x0010	fn_8000605C	0x8000605c	0x0010
 gcnemo	norm	NuPortalEnabled	0x8011da68	0x0010	fn_80071D90	0x80071d90	0x0010
-crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36709,7 +36642,6 @@ crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	NuPs2Init	0x800c435c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuPs2OpenPad	0x800c3450	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuPs2OpenPad	0x800c3450	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuPs2OpenPad	0x800c3450	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuPs2OpenPad	0x800c3450	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36933,7 +36865,6 @@ gcnemo	norm	NuRandSeed	0x800a647c	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuRandSeed	0x800a647c	0x0008	fn_801733FC	0x801733fc	0x0008
 gcnemo	norm	NuRndrEndScene	0x800b7628	0x0024	fn_8000CB50	0x8000cb50	0x0024
 gcnemo	norm	NuRndrEndScene	0x800b7628	0x0024	fn_800CF214	0x800cf214	0x0024
-gcnemo	norm	NuRndrEndSceneEx	0x800b764c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuRndrEndSceneEx	0x800b764c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuRndrEndSceneEx	0x800b764c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuRndrEndSceneEx	0x800b764c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36956,7 +36887,6 @@ gcnemo	norm	NuRndrEndSceneEx	0x800b764c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuRndrEndSceneEx	0x800b764c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 crashwoc_retail	norm	NuRndrFlush	0x800b4570	0x0024	fn_8000CB50	0x8000cb50	0x0024
 crashwoc_retail	norm	NuRndrFlush	0x800b4570	0x0024	fn_800CF214	0x800cf214	0x0024
-gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -36977,7 +36907,6 @@ gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuRndrFlush	0x800b766c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuRndrFx	0x800b7458	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuRndrFx	0x800b7458	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuRndrFx	0x800b7458	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuRndrFx	0x800b7458	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -37122,7 +37051,6 @@ gcnemo	norm	NuRndrGlobalMtl	0x800b7a24	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	NuRndrGlobalMtl	0x800b7a24	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	NuRndrGlobalMtl	0x800b7a24	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuRndrGlobalMtl	0x800b7a24	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -37143,7 +37071,6 @@ gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuRndrGradClear	0x800b79a8	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -37164,7 +37091,6 @@ crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8018AC38	0x8018ac38	0x002
 crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	NuRndrInitEx	0x800c2fb8	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuRndrInitEx	0x800bc4fc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuRndrInitEx	0x800bc4fc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuRndrInitEx	0x800bc4fc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuRndrInitEx	0x800bc4fc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -37242,7 +37168,6 @@ gcnemo	norm	NuRndrShadowOnOff	0x800bc14c	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	NuRndrShadowOnOff	0x800bc14c	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	NuRndrShadowOnOff	0x800bc14c	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuRndrShadowOnOff	0x800bc14c	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -37263,9 +37188,6 @@ gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuRndrSkinItem	0x800ba508	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuScratchRelease	0x800c3220	0x0010	fn_80039D64	0x80039d64	0x0010
-crashwoc_proto	norm	NuScratchRelease	0x800c4d40	0x0010	fn_80039D64	0x80039d64	0x0010
-gcnemo	norm	NuScratchRelease	0x80117ca8	0x0010	fn_80039D64	0x80039d64	0x0010
 gcnemo	norm	NuSetCutSceneCharacterCreateDataFn	0x800f4934	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	NuSetCutSceneCharacterCreateDataFn	0x800f4934	0x0008	fn_80009998	0x80009998	0x0008
 gcnemo	norm	NuSetCutSceneCharacterCreateDataFn	0x800f4934	0x0008	fn_8000C108	0x8000c108	0x0008
@@ -38273,7 +38195,6 @@ crashwoc_proto	norm	NuShaderSetBypassShaders	0x800cf1c4	0x0008	fn_80094F90	0x800
 crashwoc_proto	norm	NuShaderSetBypassShaders	0x800cf1c4	0x0008	fn_80095874	0x80095874	0x0008
 crashwoc_proto	norm	NuShaderSetBypassShaders	0x800cf1c4	0x0008	fn_800E32F8	0x800e32f8	0x0008
 crashwoc_proto	norm	NuShaderSetBypassShaders	0x800cf1c4	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	NuSoundInit	0x800c23d0	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuSoundInit	0x800c23d0	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuSoundInit	0x800c23d0	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuSoundInit	0x800c23d0	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38308,7 +38229,6 @@ crashwoc_proto	norm	NuSoundKeyStatus	0x800c442c	0x0008	fn_8016DB94	0x8016db94	0x
 crashwoc_proto	norm	NuSoundKeyStatus	0x800c442c	0x0008	fn_801706C8	0x801706c8	0x0008
 crashwoc_proto	norm	NuSoundKeyStatus	0x800c442c	0x0008	fn_80172CCC	0x80172ccc	0x0008
 crashwoc_proto	norm	NuSoundKeyStatus	0x800c442c	0x0008	fn_801740D8	0x801740d8	0x0008
-crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38329,7 +38249,6 @@ crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8018AC38	0x8018ac38	0x
 crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	NuSoundLocalSet	0x800c2788	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38351,7 +38270,6 @@ crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8018AC58	0x8018ac58	0x
 crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	NuSoundPauseSfx	0x800c28a0	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 crashwoc_retail	norm	NuSoundPlay	0x800c23f0	0x0024	fn_800099D4	0x800099d4	0x0024
-gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38372,7 +38290,6 @@ gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuSoundPlayStereo	0x8011455c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	NuSoundResumeSfx	0x800c28c0	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	NuSoundResumeSfx	0x800c28c0	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	NuSoundResumeSfx	0x800c28c0	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	NuSoundResumeSfx	0x800c28c0	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38446,7 +38363,6 @@ gcnemo	norm	NuSoundSetRummble	0x801149f0	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	NuSoundSetRummble	0x801149f0	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	NuSoundSetRummble	0x801149f0	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	NuSoundSetRummble	0x801149f0	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38468,7 +38384,6 @@ gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuSoundUpdateEx	0x80114630	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 gcnemo	norm	NuStrCat	0x800a0994	0x0024	fn_800099D4	0x800099d4	0x0024
-gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38489,7 +38404,6 @@ gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuStrCmp	0x800a0a28	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuStrLen	0x800a09e4	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuStrLen	0x800a09e4	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuStrLen	0x800a09e4	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuStrLen	0x800a09e4	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38521,7 +38435,6 @@ gcnemo	norm	NuTexAnimProgRelease	0x800c1954	0x000c	fn_80049BD8	0x80049bd8	0x000c
 gcnemo	norm	NuTexAnimProgRelease	0x800c1954	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	NuTexAnimProgRelease	0x800c1954	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	NuTexAnimProgRelease	0x800c1954	0x000c	fn_8011F118	0x8011f118	0x000c
-gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38542,7 +38455,6 @@ gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuTexCreateEx	0x800c0b4c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38563,7 +38475,6 @@ gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuTexInitEx	0x800c06f4	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38584,7 +38495,6 @@ gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuTexReadBitmapMMEx	0x800c13dc	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38605,7 +38515,6 @@ gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8018AC38	0x8018ac38	0x00
 gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuTransformNodeDestroy	0x8011d368	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -38626,7 +38535,6 @@ gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8018AC38	0x8018ac38	0x00
 gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	NuVec4MtxTransformHVU0	0x800a1450	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	NuVec4ScaleXYZVU0	0x800a153c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	NuVec4ScaleXYZVU0	0x800a153c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	NuVec4ScaleXYZVU0	0x800a153c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	NuVec4ScaleXYZVU0	0x800a153c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39375,7 +39283,6 @@ gcnemo	norm	PadPlayOff	0x8011aa90	0x000c	fn_80049BD8	0x80049bd8	0x000c
 gcnemo	norm	PadPlayOff	0x8011aa90	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	PadPlayOff	0x8011aa90	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	PadPlayOff	0x8011aa90	0x000c	fn_8011F118	0x8011f118	0x000c
-crashwoc_retail	norm	PauseGameAudio	0x80061524	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	PauseGameAudio	0x80061524	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	PauseGameAudio	0x80061524	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	PauseGameAudio	0x80061524	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39411,7 +39318,6 @@ gcnemo	norm	PlatformCrush	0x80107e08	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	PlatformCrush	0x80107e08	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	PlatformCrush	0x80107e08	0x0008	fn_801740D8	0x801740d8	0x0008
 gcnemo	norm	ProbeBarnacle	0x8007ba64	0x018c	fn_80165360	0x80165360	0x018c
-crashwoc_retail	norm	ProcessCrashteroidsIntro	0x80071c5c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	ProcessCrashteroidsIntro	0x80071c5c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	ProcessCrashteroidsIntro	0x80071c5c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	ProcessCrashteroidsIntro	0x80071c5c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39698,7 +39604,6 @@ gcnemo	norm	RWSetPreSpaceRenderFunc	0x801180ec	0x0008	fn_80094F90	0x80094f90	0x0
 gcnemo	norm	RWSetPreSpaceRenderFunc	0x801180ec	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	RWSetPreSpaceRenderFunc	0x801180ec	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	RWSetPreSpaceRenderFunc	0x801180ec	0x0008	fn_801733FC	0x801733fc	0x0008
-crashwoc_retail	norm	ReadNuIFFGeomCntrl	0x800b87ac	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	ReadNuIFFGeomCntrl	0x800b87ac	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	ReadNuIFFGeomCntrl	0x800b87ac	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	ReadNuIFFGeomCntrl	0x800b87ac	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39752,7 +39657,6 @@ gcnemo	norm	ResetPipes	0x800508a8	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	ResetPipes	0x800508a8	0x000c	fn_8011F118	0x8011f118	0x000c
 gcnemo	norm	ResetSeeds	0x8002d738	0x0048	fn_800B9EF0	0x800b9ef0	0x0048
 gcnemo	norm	ResetVIS	0x8003fc6c	0x002c	fn_8006EB98	0x8006eb98	0x002c
-crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39773,7 +39677,6 @@ crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	ResumeGame	0x8005082c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_retail	norm	ResumeGameAudio	0x80061544	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	ResumeGameAudio	0x80061544	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	ResumeGameAudio	0x80061544	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	ResumeGameAudio	0x80061544	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39797,7 +39700,6 @@ crashwoc_retail	norm	ResumeGameAudio	0x80061544	0x0020	fn_8018ACA8	0x8018aca8	0x
 gcnemo	norm	RotateGameMatrix	0x80036f28	0x0148	fn_800D0374	0x800d0374	0x0148
 crashwoc_retail	norm	SS_StopAllSFX	0x800cdff4	0x0024	fn_8000CB50	0x8000cb50	0x0024
 crashwoc_retail	norm	SS_StopAllSFX	0x800cdff4	0x0024	fn_800CF214	0x800cf214	0x0024
-crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -39819,7 +39721,6 @@ crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8018AC58	0x8018ac58	
 crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	SS_TrackSetRepeat	0x800cea2c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 gcnemo	norm	ScreenReport	0x80132de8	0x03dc	fn_8018BE6C	0x8018be6c	0x03dc
-gcnemo	norm	SeqFileGetDvdStatus	0x80123994	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	SeqFileGetDvdStatus	0x80123994	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	SeqFileGetDvdStatus	0x80123994	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	SeqFileGetDvdStatus	0x80123994	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -40341,7 +40242,6 @@ gcnemo	norm	__init_user	0x80079270	0x0020	fn_80188758	0x80188758	0x0020
 gcnemo	norm	_cleanup	0x8012e51c	0x0024	fn_800CDB98	0x800cdb98	0x0024
 gcnemo	norm	_cleanup	0x8012e51c	0x0024	fn_80136D84	0x80136d84	0x0024
 gcnemo	norm	abort	0x80079338	0x0020	fn_80188758	0x80188758	0x0020
-gcnemo	norm	atof	0x80069898	0x0024	fn_80023D5C	0x80023d5c	0x0024
 gcnemo	norm	atof	0x80069898	0x0024	fn_800716B0	0x800716b0	0x0024
 gcnemo	norm	atof	0x80069898	0x0024	fn_800ABA78	0x800aba78	0x0024
 gcnemo	norm	callback	0x80123460	0x0084	fn_8004BD4C	0x8004bd4c	0x0084
@@ -40361,7 +40261,6 @@ gcnemo	norm	cbPtlCancel	0x800ee83c	0x000c	fn_80049BD8	0x80049bd8	0x000c
 gcnemo	norm	cbPtlCancel	0x800ee83c	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	cbPtlCancel	0x800ee83c	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	cbPtlCancel	0x800ee83c	0x000c	fn_8011F118	0x8011f118	0x000c
-gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -40383,7 +40282,6 @@ gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	cbmcfgCancel	0x8010c264	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 crashwoc_proto	norm	close	0x800d24f8	0x0024	fn_800099D4	0x800099d4	0x0024
-gcnemo	norm	close	0x80068ae4	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	close	0x80068ae4	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	close	0x80068ae4	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	close	0x80068ae4	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41540,7 +41438,6 @@ gcnemo	norm	edobjRegisterBaseScene	0x800d8514	0x0008	fn_80094F90	0x80094f90	0x00
 gcnemo	norm	edobjRegisterBaseScene	0x800d8514	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	edobjRegisterBaseScene	0x800d8514	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	edobjRegisterBaseScene	0x800d8514	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	edobjRegisterLevel	0x800d76dc	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	edobjRegisterLevel	0x800d76dc	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	edobjRegisterLevel	0x800d76dc	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	edobjRegisterLevel	0x800d76dc	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41571,7 +41468,6 @@ gcnemo	norm	edobjcbCancelOptMenu	0x800dc970	0x000c	fn_80049BD8	0x80049bd8	0x000c
 gcnemo	norm	edobjcbCancelOptMenu	0x800dc970	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	edobjcbCancelOptMenu	0x800dc970	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	edobjcbCancelOptMenu	0x800dc970	0x000c	fn_8011F118	0x8011f118	0x000c
-gcnemo	norm	edobjcbResetAnims	0x800d8498	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	edobjcbResetAnims	0x800d8498	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	edobjcbResetAnims	0x800d8498	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	edobjcbResetAnims	0x800d8498	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41597,7 +41493,6 @@ gcnemo	norm	edppMultipleCopyClear	0x800e0490	0x0010	fn_8003776C	0x8003776c	0x001
 gcnemo	norm	edppMultipleCopyClear	0x800e0490	0x0010	fn_800790B8	0x800790b8	0x0010
 gcnemo	norm	edppMultipleCopyClear	0x800e0490	0x0010	fn_80172928	0x80172928	0x0010
 crashwoc_retail	norm	edppRegisterPointerToGameCharLocation	0x80088478	0x0024	fn_800099D4	0x800099d4	0x0024
-gcnemo	norm	edppRegisterPointerToGameCharLocation	0x800dfb98	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	edppRegisterPointerToGameCharLocation	0x800dfb98	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	edppRegisterPointerToGameCharLocation	0x800dfb98	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	edppRegisterPointerToGameCharLocation	0x800dfb98	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41620,7 +41515,6 @@ gcnemo	norm	edppRegisterPointerToGameCharLocation	0x800dfb98	0x0020	fn_8018AC88	
 gcnemo	norm	edppRegisterPointerToGameCharLocation	0x800dfb98	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 crashwoc_retail	norm	edqrand	0x80084718	0x001c	fn_800B9ED4	0x800b9ed4	0x001c
 gcnemo	norm	edqrand	0x800d134c	0x001c	fn_800B9ED4	0x800b9ed4	0x001c
-gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41641,7 +41535,6 @@ gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	eduiInit	0x80112208	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	eduicbPickCFGCancel	0x8010e510	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	eduicbPickCFGCancel	0x8010e510	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	eduicbPickCFGCancel	0x8010e510	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	eduicbPickCFGCancel	0x8010e510	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41689,7 +41582,6 @@ gcnemo	norm	gcSetBootMoviesFinished	0x80116bc0	0x000c	fn_80049BD8	0x80049bd8	0x0
 gcnemo	norm	gcSetBootMoviesFinished	0x80116bc0	0x000c	fn_8007917C	0x8007917c	0x000c
 gcnemo	norm	gcSetBootMoviesFinished	0x80116bc0	0x000c	fn_80103F64	0x80103f64	0x000c
 gcnemo	norm	gcSetBootMoviesFinished	0x80116bc0	0x000c	fn_8011F118	0x8011f118	0x000c
-gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41725,7 +41617,6 @@ gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_8016DB94	0x8016db94	0x0008
 gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	lflush	0x8012ed44	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	lflush	0x8012ed44	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	lflush	0x8012ed44	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	lflush	0x8012ed44	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41753,7 +41644,6 @@ crashwoc_proto	norm	localeconv	0x800d9a74	0x0024	fn_80136D84	0x80136d84	0x0024
 gcnemo	norm	localeconv	0x8006d574	0x0024	fn_800CDB98	0x800cdb98	0x0024
 gcnemo	norm	localeconv	0x8006d574	0x0024	fn_80136D84	0x80136d84	0x0024
 crashwoc_proto	norm	lseek	0x800d252c	0x0024	fn_800099D4	0x800099d4	0x0024
-gcnemo	norm	lseek	0x80068b14	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	lseek	0x80068b14	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	lseek	0x80068b14	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	lseek	0x80068b14	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41779,7 +41669,6 @@ crashwoc_retail	norm	pftaOff	0x800baa28	0x0048	fn_80016154	0x80016154	0x0048
 gcnemo	norm	pftaOff	0x800c247c	0x0048	fn_80016154	0x80016154	0x0048
 crashwoc_retail	norm	pftaOn	0x800ba9e0	0x0048	fn_8001610C	0x8001610c	0x0048
 gcnemo	norm	pftaOn	0x800c2434	0x0048	fn_8001610C	0x8001610c	0x0048
-gcnemo	norm	popmcbCancel	0x8010bfa0	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	popmcbCancel	0x8010bfa0	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	popmcbCancel	0x8010bfa0	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	popmcbCancel	0x8010bfa0	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41804,7 +41693,6 @@ crashwoc_retail	norm	qrand	0x8002e9cc	0x001c	fn_800B9ED4	0x800b9ed4	0x001c
 gcnemo	norm	qrand	0x8002d71c	0x001c	fn_800B9ED4	0x800b9ed4	0x001c
 crashwoc_retail	norm	read	0x800d4db0	0x0024	fn_800099D4	0x800099d4	0x0024
 crashwoc_proto	norm	read	0x800d2550	0x0024	fn_800099D4	0x800099d4	0x0024
-gcnemo	norm	read	0x80068b34	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	read	0x80068b34	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	read	0x80068b34	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	read	0x80068b34	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41825,7 +41713,6 @@ gcnemo	norm	read	0x80068b34	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	read	0x80068b34	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	read	0x80068b34	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	read	0x80068b34	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	saveloadASDelete	0x8005ae28	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	saveloadASDelete	0x8005ae28	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	saveloadASDelete	0x8005ae28	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	saveloadASDelete	0x8005ae28	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -41927,7 +41814,6 @@ gcnemo	norm	saveloadSetUserResponse	0x8005a19c	0x0008	fn_80094F90	0x80094f90	0x0
 gcnemo	norm	saveloadSetUserResponse	0x8005a19c	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	saveloadSetUserResponse	0x8005a19c	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	saveloadSetUserResponse	0x8005a19c	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	seqfile_cancel	0x80123310	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	seqfile_cancel	0x80123310	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	seqfile_cancel	0x80123310	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	seqfile_cancel	0x80123310	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -42001,7 +41887,6 @@ gcnemo	norm	setloadingscreen	0x801196e4	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	setloadingscreen	0x801196e4	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	setloadingscreen	0x801196e4	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	setloadingscreen	0x801196e4	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -42022,7 +41907,6 @@ gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	strtodf	0x80069d1c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	tbsetDestroy	0x8011b20c	0x0020	fn_8000EA74	0x8000ea74	0x0020
 gcnemo	norm	tbsetDestroy	0x8011b20c	0x0020	fn_8000EA94	0x8000ea94	0x0020
 gcnemo	norm	tbsetDestroy	0x8011b20c	0x0020	fn_8000EB24	0x8000eb24	0x0020
 gcnemo	norm	tbsetDestroy	0x8011b20c	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -42045,7 +41929,6 @@ gcnemo	norm	tbsetDestroy	0x8011b20c	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	tbsetDestroy	0x8011b20c	0x0020	fn_8018ACA8	0x8018aca8	0x0020
 gcnemo	norm	tbslotBeginFn	0x8011b2bc	0x0024	fn_8002CDA8	0x8002cda8	0x0024
 gcnemo	norm	tbslotBeginFn	0x8011b2bc	0x0024	fn_80064A04	0x80064a04	0x0024
-crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8000EB44	0x8000eb44	0x0020
@@ -42066,7 +41949,6 @@ crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8018AC38	0x8018ac38	0x0020
 crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	timeGetTime	0x800ceaf4	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-crashwoc_proto	norm	write	0x800d24d8	0x0020	fn_8000EA74	0x8000ea74	0x0020
 crashwoc_proto	norm	write	0x800d24d8	0x0020	fn_8000EA94	0x8000ea94	0x0020
 crashwoc_proto	norm	write	0x800d24d8	0x0020	fn_8000EB24	0x8000eb24	0x0020
 crashwoc_proto	norm	write	0x800d24d8	0x0020	fn_8000EB44	0x8000eb44	0x0020

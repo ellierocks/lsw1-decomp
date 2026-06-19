@@ -1,13 +1,1 @@
 confidence	score	gc_old	gc_addr	gc_size	new_name	source	left_anchor	right_anchor	gap
-MEDIUM	4	fn_8016A1A4	0x8016A1A4	0xAC	DVDGetDriveStatus	crashwoc_symbols.txt	DVDGetCommandBlockStatus	DVDSetAutoInvalidation	1:1
-MEDIUM	4	fn_801725BC	0x801725BC	0x94	__AXRemoveFromStack	crashwoc_symbols.txt	__AXPopCallbackStack	AXAcquireVoice	2:2
-MEDIUM	4	fn_80172650	0x80172650	0x80	AXFreeVoice	crashwoc_symbols.txt	__AXPopCallbackStack	AXAcquireVoice	2:2
-MEDIUM	4	fn_8017EB00	0x8017EB00	0x25C	GXSetVtxAttrFmt	crashwoc_symbols.txt	GXClearVtxDesc	GXInvalidateVtxCache	5:5
-MEDIUM	4	fn_8017ED5C	0x8017ED5C	0x280	GXSetVtxAttrFmtv	crashwoc_symbols.txt	GXClearVtxDesc	GXInvalidateVtxCache	5:5
-MEDIUM	4	fn_8017EFDC	0x8017EFDC	0x88	__GXSetVAT	crashwoc_symbols.txt	GXClearVtxDesc	GXInvalidateVtxCache	5:5
-MEDIUM	4	fn_8017F064	0x8017F064	0x280	GXGetVtxAttrFmt	crashwoc_symbols.txt	GXClearVtxDesc	GXInvalidateVtxCache	5:5
-MEDIUM	4	fn_8017F2E4	0x8017F2E4	0x44	GXSetArray	crashwoc_symbols.txt	GXClearVtxDesc	GXInvalidateVtxCache	5:5
-MEDIUM	4	fn_801810EC	0x801810EC	0x64	__GXGetTexTileShift	crashwoc_symbols.txt	GXSetChanCtrl	GXGetTexBufferSize	1:1
-LOW	1	fn_8016A5FC	0x8016A5FC	0x8	DVDReadPrio	crashwoc_symbols.txt	DVDClose	__DVDPrepareResetAsync	2:10
-LOW	0	fn_8016A604	0x8016A604	0xF8	DVDPrepareStreamAbsAsync	crashwoc_symbols.txt	DVDClose	__DVDPrepareResetAsync	2:10
-LOW	0	fn_8016B084	0x8016B084	0x2E0	__DVDInterruptHandler	crashwoc_symbols.txt	__DVDInitWA	DVDLowRead	5:1

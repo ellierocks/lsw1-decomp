@@ -19,6 +19,7 @@ orig/*/*
 *.o
 *.map
 *.MAP
+!config/GL5E4F/GL5E4F.map
 *.iso
 
 # Build files

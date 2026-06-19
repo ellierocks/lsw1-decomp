@@ -1,0 +1,44 @@
+# Dolphin SignatureDB verified names - size-confirmed against crashwoc ELF
+# OK = exact size match; CW=? = not in crashwoc but plausible context
+
+# OS internal - size matched
+fn_8015DA0C L2GlobalInvalidate  # CW:0x98=GC:0x98 OK
+fn_8015DAA4 DMAErrorHandler  # CW:0x160=GC:0x160 OK
+fn_80160D78 __OSInitMemoryProtection  # CW:0x120~GC:0x118 OK
+fn_801619D8 __OSLockSram  # CW:0x5c=GC:0x5c OK; pairs with __OSUnlockSram
+fn_80161A34 __OSLockSramEx  # CW:0x5c=GC:0x5c OK; pairs with __OSUnlockSramEx
+fn_80161FB4 OSGetWirelessID  # CW:0x84=GC:0x84 OK (GC had wireless adapter)
+fn_80162354 __OSInitSystemCall  # CW:0x64=GC:0x64 OK
+
+# OS internal - CW=? but strong Dolphin match + context
+fn_8015C674 OSExceptionInit  # Dolphin unique; OS exception init size 0x280
+fn_80160BF4 MEMIntrruptHandler  # Dolphin unique; MEM interrupt handler, in OS range
+fn_80161F48 OSGetLanguage  # Dolphin unique; standard GC OS function
+fn_801620E4 OSGetGbsMode  # Dolphin unique; GBS = Game Boy Advance connection GC feature
+fn_80162154 OSSetGbsMode  # Dolphin unique; paired with OSGetGbsMode
+
+# EXI island - size matched (EXI = External Interface, GC hardware)
+fn_80163A78 EXIImm  # CW:0x25c=GC:0x25c OK
+fn_801640F4 EXISetExiCallback  # CW:0x7c=GC:0x7c OK
+fn_801642E4 EXIProbe  # CW:0x80=GC:0x80 OK
+fn_80164364 EXIProbeEx  # CW:0xb4=GC:0xb4 OK
+fn_80164418 EXIAttach  # CW:0x10c=GC:0x10c OK
+fn_80164524 EXIDetach  # CW:0xbc=GC:0xbc OK
+fn_801645E0 EXISelect  # CW:0x12c=GC:0x12c OK
+fn_8016470C EXIDeselect  # CW:0x110=GC:0x110 OK
+fn_80164DA0 EXILock  # CW:0xf4=GC:0xf4 OK
+fn_80164E94 EXIUnlock  # CW:0xdc=GC:0xdc OK
+fn_80164F70 EXIGetState  # CW:0x18=GC:0x18 OK
+
+# EXI internal - Dolphin unique but sequential in EXI address range
+fn_80164170 __EXIProbe  # Dolphin unique; between EXISetExiCallback and EXIProbe
+fn_8016481C EXIIntrruptHandler  # Dolphin unique; EXI interrupt handler, in EXI range
+fn_801648E4 TCIntrruptHandler  # Dolphin unique; TC (transfer complete) interrupt
+fn_80164AFC EXTIntrruptHandler  # Dolphin unique; EXT interrupt handler
+
+# SI - size matched
+fn_80165918 SIBusy  # CW:0x20=GC:0x20 OK
+fn_80165938 SIIsChanBusy  # CW:0x3c=GC:0x3c OK
+
+# CW runtime
+fn_8011EA74 __fini_cpp_exceptions  # Dolphin unique; CW C++ exceptions cleanup
