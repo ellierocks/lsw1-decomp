@@ -8,5 +8,9 @@ Sections:
 	.sbss       type:bss align:4
 	.sdata2     type:rodata align:32
 
+numath/nurand.c:
+	.text       start:0x8000C0C0 end:0x8000C1B8
+	.sdata      start:0x80407B40 end:0x80407B64
+
 nu3dx/nuanim.c:
 	.text       start:0x80016A98 end:0x8001752C

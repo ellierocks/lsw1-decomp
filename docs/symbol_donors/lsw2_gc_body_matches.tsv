@@ -82,14 +82,8 @@ exact	fn_80160BB8	0x80160bb8	0x003c	0x801e7044	body occurs in GL7E64 main.dol
 exact	fn_80160D60	0x80160d60	0x0018	0x801e71ec	body occurs in GL7E64 main.dol
 exact	fn_80160E90	0x80160e90	0x0070	0x801e731c	body occurs in GL7E64 main.dol
 exact	fn_80162514	0x80162514	0x0010	0x801e8bd4	body occurs in GL7E64 main.dol
-exact	fn_80166548	0x80166548	0x0014	0x801ca788	body occurs in GL7E64 main.dol
-exact	fn_8016655C	0x8016655c	0x0010	0x801ca79c	body occurs in GL7E64 main.dol
-exact	fn_8016765C	0x8016765c	0x008c	0x801cb89c	body occurs in GL7E64 main.dol
-exact	fn_80167FD0	0x80167fd0	0x0030	0x801f2714	body occurs in GL7E64 main.dol
 exact	fn_8016C264	0x8016c264	0x0204	0x801cbd64	body occurs in GL7E64 main.dol
 exact	fn_8016DB9C	0x8016db9c	0x003c	0x801cd69c	body occurs in GL7E64 main.dol
-exact	fn_8016DFF8	0x8016dff8	0x0060	0x801cdb34	body occurs in GL7E64 main.dol
 exact	fn_80174AB0	0x80174ab0	0x0044	0x801d45f0	body occurs in GL7E64 main.dol
-exact	fn_80181964	0x80181964	0x0038	0x801ef6a8	body occurs in GL7E64 main.dol
 exact	fn_80188758	0x80188758	0x0020	0x801e0ae0	body occurs in GL7E64 main.dol
 exact	fn_8018AC38	0x8018ac38	0x0020	0x801f7068	body occurs in GL7E64 main.dol

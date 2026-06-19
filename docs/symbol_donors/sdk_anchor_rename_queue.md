@@ -9,11 +9,29 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 - `docs/symbol_donors/sdk_symbol_sources/imported/crashwoc_symbols.order.tsv`: 882 symbols
 
 ## Summary
-- HIGH: 0
-- MEDIUM: 0
-- LOW: 0
+- HIGH: 7
+- MEDIUM: 7
+- LOW: 4
 
 ## Candidates
 
 | Conf | GC | New name | Source | Anchors | Gap |
 |---|---:|---|---|---|---:|
+| HIGH | `fn_8017C754` @ `0x8017C754` | `__GXDefaultTlutRegionCallback` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| HIGH | `fn_8017C758` @ `0x8017C758` | `GXGetFifoBase` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| HIGH | `fn_8017C75C` @ `0x8017C75C` | `GXGetFifoSize` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| HIGH | `fn_8017C764` @ `0x8017C764` | `__GXXfVtxSpecs` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| HIGH | `fn_8017C76C` @ `0x8017C76C` | `GXSetVtxDescv` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| HIGH | `fn_8017C774` @ `0x8017C774` | `__GXSetVCD` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| HIGH | `fn_8017C778` @ `0x8017C778` | `GXDrawDone` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| MEDIUM | `fn_80164418` @ `0x80164418` | `EXIAttach` | `crashwoc_symbols.txt` | `EXIProbeEx` .. `EXIDetach` | 1:1 |
+| MEDIUM | `fn_80166ECC` @ `0x80166ECC` | `SIGetTypeAsync` | `crashwoc_symbols.txt` | `SIGetType` .. `SIDecodeType` | 1:1 |
+| MEDIUM | `fn_8016FBE4` @ `0x8016FBE4` | `AIRegisterDMACallback` | `crashwoc_symbols.txt` | `__PADDisableRecalibration` .. `AIInitDMA` | 1:1 |
+| MEDIUM | `fn_8017C604` @ `0x8017C604` | `__CARDWrite` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| MEDIUM | `fn_8017C6EC` @ `0x8017C6EC` | `__GXDefaultTexRegionCallback` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| MEDIUM | `fn_8017C77C` @ `0x8017C77C` | `GXTokenInterruptHandler` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| MEDIUM | `fn_8017C878` @ `0x8017C878` | `GXFinishInterruptHandler` | `crashwoc_symbols.txt` | `__CARDRead` .. `GXCopyTex` | 11:11 |
+| LOW | `fn_801623B8` @ `0x801623B8` | `__OSThreadInit` | `crashwoc_symbols.txt` | `__OSInitSystemCall` .. `OSDisableScheduler` | 4:3 |
+| LOW | `fn_801623BC` @ `0x801623BC` | `OSInitThreadQueue` | `crashwoc_symbols.txt` | `__OSInitSystemCall` .. `OSDisableScheduler` | 4:3 |
+| LOW | `fn_80162514` @ `0x80162514` | `OSGetCurrentThread` | `crashwoc_symbols.txt` | `__OSInitSystemCall` .. `OSDisableScheduler` | 4:3 |
+| LOW | `fn_8017A94C` @ `0x8017A94C` | `CARDRead` | `crashwoc_symbols.txt` | `CARDReadAsync` .. `CARDWriteAsync` | 2:1 |

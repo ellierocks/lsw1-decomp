@@ -21702,9 +21702,6 @@ gcnemo	exact	OLDsceLseek	0x801196e0	0x0004	fn_8018A110	0x8018a110	0x0004
 crashwoc_retail	exact	OSGetCurrentThread	0x800e12f4	0x000c	fn_80162524	0x80162524	0x000c
 crashwoc_proto	exact	OSGetCurrentThread	0x800e3c3c	0x000c	fn_80162524	0x80162524	0x000c
 gcnemo	exact	OSGetCurrentThread	0x80076a5c	0x000c	fn_80162524	0x80162524	0x000c
-crashwoc_retail	exact	OSGetStackPointer	0x800def1c	0x0008	fn_8015E10C	0x8015e10c	0x0008
-crashwoc_proto	exact	OSGetStackPointer	0x800e1454	0x0008	fn_8015E10C	0x8015e10c	0x0008
-gcnemo	exact	OSGetStackPointer	0x80072338	0x0008	fn_8015E10C	0x8015e10c	0x0008
 crashwoc_proto	exact	OSInitMutexQueue	0x800e3c1c	0x0010	fn_80162514	0x80162514	0x0010
 crashwoc_retail	exact	OSInitThreadQueue	0x800e12e4	0x0010	fn_80162514	0x80162514	0x0010
 crashwoc_proto	exact	OSInitThreadQueue	0x800e3c2c	0x0010	fn_80162514	0x80162514	0x0010
@@ -21911,7 +21908,6 @@ gcnemo	exact	PPCMtpmc1	0x8006fbd8	0x0008	fn_8015BF58	0x8015bf58	0x0008
 gcnemo	exact	PPCMtpmc2	0x8006fbe8	0x0008	fn_8015BF60	0x8015bf60	0x0008
 gcnemo	exact	PPCMtpmc3	0x8006fbf8	0x0008	fn_8015BF68	0x8015bf68	0x0008
 gcnemo	exact	PPCMtpmc4	0x8006fc08	0x0008	fn_8015BF70	0x8015bf70	0x0008
-gcnemo	exact	PPCSetFpNonIEEEMode	0x8006fd0c	0x0008	fn_8015C000	0x8015c000	0x0008
 gcnemo	exact	PlanetSysGetByName	0x801182fc	0x0008	fn_80024DC0	0x80024dc0	0x0008
 gcnemo	exact	PlanetSysGetByName	0x801182fc	0x0008	fn_80024F10	0x80024f10	0x0008
 gcnemo	exact	PlanetSysGetByName	0x801182fc	0x0008	fn_80027688	0x80027688	0x0008
@@ -26084,10 +26080,6 @@ gcnemo	exact	ResumeThread	0x80118330	0x0004	fn_8017C778	0x8017c778	0x0004
 gcnemo	exact	ResumeThread	0x80118330	0x0004	fn_80182624	0x80182624	0x0004
 gcnemo	exact	ResumeThread	0x80118330	0x0004	fn_8018A10C	0x8018a10c	0x0004
 gcnemo	exact	ResumeThread	0x80118330	0x0004	fn_8018A110	0x8018a110	0x0004
-crashwoc_retail	exact	SISetCommand	0x801007a8	0x0014	fn_80166548	0x80166548	0x0014
-gcnemo	exact	SISetCommand	0x8007cf00	0x0014	fn_80166548	0x80166548	0x0014
-crashwoc_retail	exact	SITransferCommands	0x801007bc	0x0010	fn_8016655C	0x8016655c	0x0010
-gcnemo	exact	SITransferCommands	0x8007cf28	0x0010	fn_8016655C	0x8016655c	0x0010
 gcnemo	exact	SOUND_StopSound	0x80114a70	0x0008	fn_80024DC0	0x80024dc0	0x0008
 gcnemo	exact	SOUND_StopSound	0x80114a70	0x0008	fn_80024F10	0x80024f10	0x0008
 gcnemo	exact	SOUND_StopSound	0x80114a70	0x0008	fn_80027688	0x80027688	0x0008
@@ -29365,11 +29357,6 @@ gcnemo	exact	callbackTracksFlushed	0x8011324c	0x0004	fn_8017C778	0x8017c778	0x00
 gcnemo	exact	callbackTracksFlushed	0x8011324c	0x0004	fn_80182624	0x80182624	0x0004
 gcnemo	exact	callbackTracksFlushed	0x8011324c	0x0004	fn_8018A10C	0x8018a10c	0x0004
 gcnemo	exact	callbackTracksFlushed	0x8011324c	0x0004	fn_8018A110	0x8018a110	0x0004
-crashwoc_retail	exact	cbForPrepareStreamAsync	0x800e33a8	0x0030	fn_80167FD0	0x80167fd0	0x0030
-gcnemo	exact	cbForPrepareStreamAsync	0x8007ef60	0x0030	fn_80167FD0	0x80167fd0	0x0030
-crashwoc_retail	exact	cbForReadAsync	0x800e3150	0x0030	fn_80167FD0	0x80167fd0	0x0030
-gcnemo	exact	cbForReadAsync	0x8007e970	0x0030	fn_80167FD0	0x80167fd0	0x0030
-gcnemo	exact	cbForSeekAsync	0x8007eb74	0x0030	fn_80167FD0	0x80167fd0	0x0030
 gcnemo	exact	cbGradChange	0x80112204	0x0004	fn_8000A8A4	0x8000a8a4	0x0004
 gcnemo	exact	cbGradChange	0x80112204	0x0004	fn_8000A8A8	0x8000a8a8	0x0004
 gcnemo	exact	cbGradChange	0x80112204	0x0004	fn_8000AFB8	0x8000afb8	0x0004
@@ -32450,8 +32437,6 @@ gcnemo	norm	AXGetMode	0x8013d1e8	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	AXGetMode	0x8013d1e8	0x0008	fn_801740D8	0x801740d8	0x0008
 crashwoc_retail	norm	AXInit	0x800ebdf4	0x0034	fn_80172348	0x80172348	0x0034
 gcnemo	norm	AXQuit	0x8013bd38	0x0034	fn_80172348	0x80172348	0x0034
-gcnemo	norm	AXRegisterAuxACallback	0x8013ca88	0x000c	fn_8002765C	0x8002765c	0x000c
-gcnemo	norm	AXRegisterAuxBCallback	0x8013ca94	0x000c	fn_8002765C	0x8002765c	0x000c
 crashwoc_retail	norm	AXRegisterCallback	0x800ed028	0x0008	fn_80007594	0x80007594	0x0008
 crashwoc_retail	norm	AXRegisterCallback	0x800ed028	0x0008	fn_80009998	0x80009998	0x0008
 crashwoc_retail	norm	AXRegisterCallback	0x800ed028	0x0008	fn_8000C108	0x8000c108	0x0008
@@ -32770,7 +32755,6 @@ gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	AXSetStepMode	0x8013d3f4	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	CARDGetVendorID	0x8008f230	0x0008	fn_80177088	0x80177088	0x0008
 gcnemo	norm	CARDSrand	0x8008f4f0	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	CARDSrand	0x8008f4f0	0x0008	fn_80009998	0x80009998	0x0008
 gcnemo	norm	CARDSrand	0x8008f4f0	0x0008	fn_8000C108	0x8000c108	0x0008
@@ -33779,7 +33763,6 @@ crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8018AC38	0x
 crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8018AC58	0x8018ac58	0x0020
 crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8018AC88	0x8018ac88	0x0020
 crashwoc_retail	norm	DrawWesternArenaLevelExtra	0x80049838	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	DummyLen	0x8008fae4	0x00c4	fn_8017B514	0x8017b514	0x00c4
 gcnemo	norm	DumpHeap	0x8011ba38	0x0024	fn_800CDB98	0x800cdb98	0x0024
 gcnemo	norm	DumpHeap	0x8011ba38	0x0024	fn_80136D84	0x80136d84	0x0024
 gcnemo	norm	EShadowInfo	0x80104c00	0x0018	fn_8005A5E0	0x8005a5e0	0x0018
@@ -33871,7 +33854,6 @@ gcnemo	norm	GDGetOverflowCallback	0x8012ff68	0x0008	fn_8016DB94	0x8016db94	0x000
 gcnemo	norm	GDGetOverflowCallback	0x8012ff68	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	GDGetOverflowCallback	0x8012ff68	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	GDGetOverflowCallback	0x8012ff68	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	GDOverflowed	0x8012ff30	0x0030	fn_8016ADD4	0x8016add4	0x0030
 gcnemo	norm	GDSetOverflowCallback	0x8012ff60	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	GDSetOverflowCallback	0x8012ff60	0x0008	fn_80009998	0x80009998	0x0008
 gcnemo	norm	GDSetOverflowCallback	0x8012ff60	0x0008	fn_8000C108	0x8000c108	0x0008
@@ -35591,7 +35573,6 @@ gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_8016DB94	0x8016db94	0x0008
 gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	NuFileGetMediaMode	0x8009d720	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	NuFntMoveAbs	0x800af364	0x000c	fn_8002765C	0x8002765c	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_8000A754	0x8000a754	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_8001AF70	0x8001af70	0x000c
 gcnemo	norm	NuGCutSceneSysBackgroundFlush	0x800ef0c8	0x000c	fn_800372DC	0x800372dc	0x000c
@@ -38928,8 +38909,6 @@ gcnemo	norm	OSGetArenaLo	0x80071144	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	OSGetArenaLo	0x80071144	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	OSGetArenaLo	0x80071144	0x0008	fn_801740D8	0x801740d8	0x0008
 gcnemo	norm	OSGetResetSwitchState	0x80074f90	0x0020	fn_80188758	0x80188758	0x0020
-gcnemo	norm	OSGetSaveRegion	0x80079c50	0x0014	fn_80160F00	0x80160f00	0x0014
-gcnemo	norm	OSGetSavedRegion	0x80079c64	0x0014	fn_80160F00	0x80160f00	0x0014
 gcnemo	norm	OSInitCond	0x800796d4	0x0020	fn_80188758	0x80188758	0x0020
 crashwoc_retail	norm	OSSetArenaHi	0x800de410	0x0008	fn_80007594	0x80007594	0x0008
 crashwoc_retail	norm	OSSetArenaHi	0x800de410	0x0008	fn_80009998	0x80009998	0x0008
@@ -39253,7 +39232,6 @@ crashwoc_retail	norm	OSSetCurrentHeap	0x800ddfa8	0x0010	fn_8000605C	0x8000605c	0
 crashwoc_retail	norm	OSSetCurrentHeap	0x800ddfa8	0x0010	fn_80071D90	0x80071d90	0x0010
 gcnemo	norm	OSSetCurrentHeap	0x80132684	0x0010	fn_8000605C	0x8000605c	0x0010
 gcnemo	norm	OSSetCurrentHeap	0x80132684	0x0010	fn_80071D90	0x80071d90	0x0010
-gcnemo	norm	OSSetSaveRegion	0x80079c44	0x000c	fn_8002765C	0x8002765c	0x000c
 gcnemo	norm	OSSignalCond	0x800797c8	0x0020	fn_80188758	0x80188758	0x0020
 gcnemo	norm	OSVReport	0x80072980	0x0020	fn_80188758	0x80188758	0x0020
 crashwoc_retail	norm	OnReset	0x800dff04	0x003c	fn_80160BB8	0x80160bb8	0x003c
@@ -40082,7 +40060,6 @@ gcnemo	norm	__AXGetNumVoices	0x8013ddfc	0x0008	fn_8016DB94	0x8016db94	0x0008
 gcnemo	norm	__AXGetNumVoices	0x8013ddfc	0x0008	fn_801706C8	0x801706c8	0x0008
 gcnemo	norm	__AXGetNumVoices	0x8013ddfc	0x0008	fn_80172CCC	0x80172ccc	0x0008
 gcnemo	norm	__AXGetNumVoices	0x8013ddfc	0x0008	fn_801740D8	0x801740d8	0x0008
-gcnemo	norm	__CARDGetFontEncode	0x8008a7d8	0x0008	fn_80177088	0x80177088	0x0008
 gcnemo	norm	__DSPGetCurrentTask	0x80143660	0x0008	fn_8001AF7C	0x8001af7c	0x0008
 gcnemo	norm	__DSPGetCurrentTask	0x80143660	0x0008	fn_8001AF84	0x8001af84	0x0008
 gcnemo	norm	__DSPGetCurrentTask	0x80143660	0x0008	fn_80037218	0x80037218	0x0008
@@ -40150,7 +40127,6 @@ gcnemo	norm	__DTKShowDiskError	0x80120c54	0x0008	fn_80094F90	0x80094f90	0x0008
 gcnemo	norm	__DTKShowDiskError	0x80120c54	0x0008	fn_80095874	0x80095874	0x0008
 gcnemo	norm	__DTKShowDiskError	0x80120c54	0x0008	fn_800E32F8	0x800e32f8	0x0008
 gcnemo	norm	__DTKShowDiskError	0x80120c54	0x0008	fn_801733FC	0x801733fc	0x0008
-gcnemo	norm	__DVDPrintFatalMessage	0x80083654	0x0030	fn_8016ADD4	0x8016add4	0x0030
 gcnemo	norm	__DVDSetOptionalCommandChecker	0x8007f168	0x0008	fn_80007594	0x80007594	0x0008
 gcnemo	norm	__DVDSetOptionalCommandChecker	0x8007f168	0x0008	fn_80009998	0x80009998	0x0008
 gcnemo	norm	__DVDSetOptionalCommandChecker	0x8007f168	0x0008	fn_8000C108	0x8000c108	0x0008
@@ -41602,7 +41578,6 @@ gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8018AC38	0x8018ac38	0x0020
 gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8018AC58	0x8018ac58	0x0020
 gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8018AC88	0x8018ac88	0x0020
 gcnemo	norm	gcfontDrawString	0x80119384	0x0020	fn_8018ACA8	0x8018aca8	0x0020
-gcnemo	norm	gcutSetSoundVol	0x800efcec	0x000c	fn_8002765C	0x8002765c	0x000c
 gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_8001AF7C	0x8001af7c	0x0008
 gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_8001AF84	0x8001af84	0x0008
 gcnemo	norm	getdiskerrorflag	0x80119b6c	0x0008	fn_80037218	0x80037218	0x0008
