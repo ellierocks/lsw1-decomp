@@ -298,6 +298,7 @@ config.libs = [
         "progress_category": "game",
         "objects": [
             Object(NonMatching, "numath/nurand.c"),
+            Object(NonMatching, "numath/nuvec.c"),
             Object(NonMatching, "nu3dx/nuanim.c"),
             Object(NonMatching, "auto_00_80003100_init", asm_dir="build/GL5E4F/asm"),
             Object(NonMatching, "auto_01_800034A0_text", asm_dir="build/GL5E4F/asm"),
