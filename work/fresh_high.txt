@@ -1,0 +1,11 @@
+# queue_to_batch.py --min-conf HIGH (7 renames)
+
+
+# === HIGH ===
+fn_8017C754 __GXDefaultTlutRegionCallback  # sdk [__CARDRead..GXCopyTex]
+fn_8017C758 GXGetFifoBase  # sdk [__CARDRead..GXCopyTex]
+fn_8017C75C GXGetFifoSize  # sdk [__CARDRead..GXCopyTex]
+fn_8017C764 __GXXfVtxSpecs  # sdk [__CARDRead..GXCopyTex]
+fn_8017C76C GXSetVtxDescv  # sdk [__CARDRead..GXCopyTex]
+fn_8017C774 __GXSetVCD  # sdk [__CARDRead..GXCopyTex]
+fn_8017C778 GXDrawDone  # sdk [__CARDRead..GXCopyTex]

@@ -1,0 +1,8 @@
+# queue_to_batch.py --min-conf MEDIUM (4 renames)
+
+
+# === MEDIUM ===
+fn_8017C604 __CARDWrite  # sdk [__CARDRead..GXCopyTex]
+fn_8017C6EC __GXDefaultTexRegionCallback  # sdk [__CARDRead..GXCopyTex]
+fn_8017C77C GXTokenInterruptHandler  # sdk [__CARDRead..GXCopyTex]
+fn_8017C878 GXFinishInterruptHandler  # sdk [__CARDRead..GXCopyTex]
