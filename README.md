@@ -4,20 +4,35 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 ## Target Version
 
-- **Game ID:** `GL5E4F`
-- **Platform:** Nintendo GameCube
-- **Region:** USA / NTSC
-- **DOL SHA-1:** `95cca08a19224775d1a8d6cc64601fb7d0080981`
+| Field | Value |
+|-------|-------|
+| Game ID | `GL5E4F` |
+| Platform | Nintendo GameCube |
+| Region | USA / NTSC |
+| DOL SHA-1 | `95cca08a19224775d1a8d6cc64601fb7d0080981` |
+
+## Project Status
+
+| Section | Named | Total | Progress |
+|---------|-------|-------|----------|
+| `.text` (functions) | 1,053 | 4,197 | 25.1% |
+| `.rodata` | 774 | 8,383 | 9.2% |
+| `.bss` | 11 | 733 | 1.5% |
+
+All code is currently in auto-generated assembly stubs. Active work is focused on function naming via donor binary analysis (CrashWOC, LSW1 Mac demo, LSW2 Mac) and writing matched C source for the Nu2 animation subsystem.
+
+Track live progress:
+```sh
+python3 tools/progress.py
+```
 
 ## Prerequisites
 
-- **Python 3.8+** — Install from [python.org](https://www.python.org/downloads/) (Windows), or use your system package manager (macOS/Linux).
-- **Ninja** build system — Install via `pip install ninja` (Windows) or `brew install ninja` (macOS), or your Linux package manager.
-- **A clean disc image** of LEGO Star Wars: The Video Game (GameCube, NTSC-U).
+- **Python 3.8+**
+- **Ninja** build system — `pip install ninja` or system package manager
+- **A clean disc image** of LEGO Star Wars: The Video Game (GameCube, NTSC-U)
 
-On Linux and macOS, [wibo](https://github.com/decompals/wibo), a minimal 32-bit Windows binary wrapper, will be automatically downloaded and used.
-
-On Windows, native tooling is recommended (no WSL/msys2 needed). [objdiff](https://github.com/encounter/objdiff) cannot get filesystem notifications under WSL.
+On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit Windows binary wrapper) is downloaded automatically.
 
 ## Quick Start
 
@@ -27,100 +42,115 @@ On Windows, native tooling is recommended (no WSL/msys2 needed). [objdiff](https
    cd lsw1-decomp
    ```
 
-2. **Place your disc image:**
-   Copy your clean disc image to `orig/GL5E4F/`. The build system will extract the DOL automatically.
+2. **Place your disc image** in `orig/GL5E4F/`.
 
-3. **Run the build script:**
+3. **Build:**
    ```sh
    ./build.sh
    ```
-   This handles the full build process including tool downloads and a workaround for a known decomp-toolkit issue. The first build takes several minutes.
+   Handles tool download, `dtk dol split`, symbol fixes, and the initial ninja build.
 
-   **Manual build (alternative):**
-   ```sh
-   python3 configure.py
-   build/tools/dtk dol split config/GL5E4F/config.yml build/GL5E4F
-   python3 tools/fix_symbols.py          # Fix duplicate symbols if dtk panics
-   python3 tools/add_documented_symbols.py  # Apply names from research docs
-   python3 tools/batch_rename_strings.py    # Apply names from DOL string extraction
-   ninja
-   ```
-
-## Known Issues
-
-**dtk split panic:** The `dtk dol split` command may panic with a regex error when processing certain symbol configurations. The `build.sh` script handles this automatically by:
-1. Running the split with a timeout
-2. Fixing duplicate symbols in `symbols.txt` via `tools/fix_symbols.py`
-3. Creating a minimal `config.json` if needed
-
-If you encounter build issues:
-```sh
-rm -rf build/
-./build.sh
-```
-
-## Project Status
-
-The project is in early stages with:
-- **16,713 symbols** identified
-- **4,138 functions** detected
-- **1.57 MB of code** across 8 translation units
-- **Baseline build** established
-
-All code is currently in auto-generated assembly. The next phase is to begin decompiling functions into C/C++ source files.
-
-Track progress with:
-```sh
-ninja progress
-```
-Or check `build/GL5E4F/report.json` for detailed metrics.
-
-## Documentation
-
-### Build & Configuration
-- [Build Configuration Reference](docs/build_config.md) - symbols.txt/splits.txt formats, common BSS, and CodeWarrior `.comment` section
-
-### Game Research
-- [Menu System](docs/menu_system.md) - Debug menu/LEGO Options, memory watches, menu callback tables, and runtime stack
-- [Engine Analysis](docs/engine_analysis.md) - Library boundaries, Nu2 engine subsystems, string xrefs, AI script parser, and external references
-- [External Sources](docs/external_sources.md) - PAL GC, LSW2 PS2 prototype, TCS Wii prototype, and PC version analysis
-
-### Reference
-- `docs/reference/CoolsWatches260522.dmw` - Dolphin Memory Watch file
+> **Known issue:** `dtk dol split` may panic with a regex error on certain symbol configurations. `build.sh` handles this automatically. If the build breaks, run `rm -rf build/ && ./build.sh`.
 
 ## Contributing
 
-### How to Contribute
+### Naming Symbols
 
-**Decompiling Functions:** Pick a function from `build/GL5E4F/asm/` (start with small ones!), create a `.c` or `.cpp` file in `src/`, write equivalent C/C++ code, update `configure.py` to use your source file, and verify with `ninja`. Use [objdiff](https://github.com/encounter/objdiff) to compare your output with the original.
+The fastest path to progress. Update `config/GL5E4F/symbols.txt` with descriptive names (use `PascalCase` — e.g. `NuAnimLoad` instead of `fn_8001A234`).
 
-**Naming Symbols:** Update names in `config/GL5E4F/symbols.txt` using descriptive PascalCase (`Player_Init` instead of `fn_800034A0`). See the [Build Configuration Reference](docs/build_config.md) for the symbol format.
+The AI-assisted workflow:
 
-**Common commands:**
 ```sh
-./build.sh                           # Full build with workarounds
-python3 configure.py                 # Regenerate build files
-ninja                                # Build the project
-ninja progress                       # Show decompilation progress
-python3 tools/fix_symbols.py         # Fix duplicate symbols after dtk split
-python3 tools/add_documented_symbols.py  # Apply names from research docs
+python tools/ls1_match_plan.py nuanim          # candidates in a module
+python tools/ls1_lookup_symbol.py 0x8001E76C   # cross-ref a function
+python tools/ls1_rename.py --suggest fn_8001E76C  # check Mac demo for name hints
+python tools/ls1_rename.py fn_8001E76C NuAnimKeyLerp  # apply + verify build
 ```
 
+Refresh donor evidence first if queues look stale:
+```sh
+python tools/binary_mining_pipeline.py
+```
+
+See [AGENTS.md](AGENTS.md) for the full symbol recovery workflow used in active sessions.
+
+### Decompiling Functions
+
+1. Pick a function from `build/GL5E4F/asm/` (start with small ones — under `0x60` bytes).
+2. Generate a task pack:
+   ```sh
+   python tools/ls1_task_pack.py fn_8001E76C
+   ```
+3. Write matching C in `src/<module>/<file>.c`.
+4. Register it in `configure.py` and rebuild:
+   ```sh
+   python3 configure.py && ninja
+   ```
+5. Verify match with [objdiff](https://github.com/encounter/objdiff).
+
+Open C tasks are in [`tasks/`](tasks/index.md).
+
 ### Code Style
-- C/C++: 4-space indent, follow existing style, meaningful variable names
-- Assembly: Keep auto-generated asm files unchanged in `build/GL5E4F/asm/`
-- Function names: `PascalCase` (e.g., `Player_Init`, `Menu_Update`)
-- Variable names: `camelCase` or `snake_case` (e.g., `playerHealth`, `g_currentMenu`)
+
+- C/C++: 4-space indent, follow existing style
+- Function names: `Nu{Subsystem}{Verb}` (engine), `Action_*` / `Condition_*` (AI dispatch)
+- Struct tags: `nu{name}_s` (engine), `NU{NAME}_s` (game)
+- Fields: `camelCase`
 
 ### Before Submitting
-1. Run `ninja` — should build without errors
-2. Run `ninja progress` — verify progress hasn't regressed
-3. If you added C code, verify it matches the original assembly with objdiff
 
-### Important Notes
-- **No copyrighted code:** Never commit original game code or assets
-- **Clean room only:** All code must be written from scratch based on analysis
-- **Attribution:** If you use information from other projects, credit them
+1. `ninja` — builds without errors
+2. `python3 tools/progress.py` — progress hasn't regressed
+3. If you added C code, verify with objdiff
+
+### No Copyrighted Code
+
+Never commit original game code or assets. All source must be written from scratch based on analysis.
+
+## Documentation
+
+### Build System
+- [Build Configuration](docs/build_config.md) — `symbols.txt` / `splits.txt` formats, BSS, CodeWarrior `.comment` section
+
+### Game Research
+- [Engine Analysis](docs/engine_analysis.md) — Nu2 engine subsystems, string xrefs, library boundaries
+- [External Sources](docs/external_sources.md) — PAL GC, PS2/Xbox lineage, PC version analysis
+- [Menu System](docs/menu_system.md) — Debug menu, memory watches, callback tables
+- [Game AI](docs/game_ai.md) — AI action/condition dispatch tables (`Action_*`, `Condition_*`)
+- [Level Scripts](docs/level_script_commands.md) — In-world script command grammar
+- [Nu2 Engine Reference](docs/nu2_engine_reference.md) — Nu2 structs and subsystem layout (from CrashWOC)
+
+### Matching
+- [Matching Notes](docs/matching_notes.md) — Compiler quirks, register allocation, diff-fixing techniques
+- [Struct Typing Analysis](docs/struct_typing_analysis.md) — Field-offset patterns and inferred struct layouts
+- [Module Split Plan](docs/splits_plan.md) — Proposed `.c` source file boundaries
+
+### Cross-Version Research
+- [`research/revisions/`](research/revisions/revision_graph.md) — Build archaeology: revision graph, string similarity, and leads across GC/PS2/Xbox/PC builds
+- [`docs/symbol_donors/`](docs/symbol_donors/) — Mac demo symbols, CrashWOC matches, Nu2 body confirmations, rename queues
+
+## Project Structure
+
+```
+.
+├── build.sh                    # Full build helper (handles dtk workarounds)
+├── configure.py                # Project configuration and ninja build generator
+├── config/GL5E4F/
+│   ├── config.yml              # dtk split configuration
+│   ├── symbols.txt             # Symbol definitions (~16,800 symbols)
+│   ├── splits.txt              # Section split definitions
+│   └── build.sha1              # Expected DOL checksum
+├── src/                        # Decompiled C/C++ source files
+├── include/                    # C/C++ header files
+├── tasks/                      # Per-function task packs for C decompilation
+├── docs/                       # Research notes and reference documentation
+│   └── symbol_donors/          # Rename queues, match TSVs, donor analysis
+├── research/
+│   └── revisions/              # Build revision archaeology and graph
+├── orig/                       # Original game files (gitignored)
+├── build/                      # Build artifacts (gitignored)
+└── tools/                      # Build scripts and analysis utilities
+```
 
 ## Resources
 
@@ -129,37 +159,6 @@ python3 tools/add_documented_symbols.py  # Apply names from research docs
 - **[decomp.me](https://decomp.me)** — Collaborate on function matches
 - **[decomp.dev](https://decomp.dev)** — Decompilation progress hub and API
 
-## Project Structure
-
-```
-.
-├── build.sh                    # Build helper script (handles dtk workarounds)
-├── configure.py                # Project configuration and build generator
-├── config/GL5E4F/              # Version-specific configuration
-│   ├── config.yml              # Main configuration file
-│   ├── symbols.txt             # Symbol definitions (16,713 symbols)
-│   ├── splits.txt              # Section split definitions
-│   └── build.sha1              # Expected checksums
-├── build/                      # Build artifacts (gitignored)
-├── orig/                       # Original game files (gitignored)
-├── docs/                       # Documentation and research notes
-│   ├── build_config.md         # Build system reference
-│   ├── menu_system.md          # Menu system analysis
-│   ├── engine_analysis.md      # Engine internals analysis
-│   ├── external_sources.md     # Cross-version source analysis
-│   └── reference/              # Reference files (memory watches, etc.)
-├── include/                    # C/C++ header files (to be created)
-├── src/                        # C/C++ source files (to be created)
-└── tools/                      # Build scripts and utilities
-    ├── fix_symbols.py          # Symbol deduplication helper
-    ├── add_documented_symbols.py   # Apply names from research docs
-    ├── batch_rename_strings.py     # Apply names from DOL string extraction
-    ├── project.py              # Build system utilities
-    └── ninja_syntax.py         # Ninja file generation
-```
-
 ## License
 
-This repository does not contain any game assets or copyrighted code. It is a clean-room implementation that requires the original game to build.
-
-The documentation and build scripts are licensed under CC0 1.0 Universal.
+This repository contains no game assets or copyrighted code. Documentation and build scripts are licensed under CC0 1.0 Universal.

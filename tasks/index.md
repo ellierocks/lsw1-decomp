@@ -17,4 +17,7 @@ Priority scores: higher = easier to match first.
 | 8 | ◆ hard | `fn_8002163C` | nuanim | 0xE0 | TODO |
 | 8 | ◆ hard | `fn_80023CD0` | nuanim | 0x8C | TODO |
 | 7 | ◆ hard | `fn_80023F80` | nuanim | 0xEC | TODO |
+| 7 | ◆ hard | `fn_80018DA8` | nuanim | 0xBC | TODO |
 | 4 | ▲ complex | `fn_8001C20C` | nuanim | 0x848 | TODO |
+| 4 | ▲ complex | `fn_80017EA0` | nuanim | 0x6B8 | TODO |
+| 4 | ▲ complex | `fn_8001752C` | nuanim | 0x974 | TODO |

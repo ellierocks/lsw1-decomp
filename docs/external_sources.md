@@ -15,21 +15,18 @@ This document summarizes findings from the extra knowledge bases under `orig/` b
 
 ## Tools
 
+Cross-version analysis is handled by the binary mining pipeline:
+
 ```sh
-python3 tools/lineage_analysis.py          # PAL GC, LSW2 PS2, TCS Wii
-python3 tools/pc_versions_analysis.py      # PC retail and demo
-python3 tools/ps2_prototype_analysis.py    # PS2 prototype deep analysis
+python tools/binary_mining_pipeline.py cross-lineage   # PAL GC, PS2, Xbox string similarity
+python tools/binary_mining_pipeline.py pc-versions     # PC retail/demo shared strings
 ```
 
 Generated outputs:
-- `build/region/GL5P4F/main.dol`
-- `build/lineage/lineage_analysis.txt`
-- `build/lineage/us_pal_shared.txt`, `us_lsw2_shared.txt`, `us_tcs_shared.txt`
-- `build/lineage/lsw2_key_strings.txt`, `tcs_key_strings.txt`
+- `build/cross_binary_lineage/lineage_report.md`
+- `build/cross_binary_lineage/string_similarity.tsv`
 - `build/pc_analysis/pc_analysis.txt`
 - `build/pc_analysis/pc_symbol_proposals.txt`
-- `build/pc_analysis/pc_gc_shared_strings.txt`
-- `build/pc_analysis/retail_unique_strings.txt`, `demo_unique_strings.txt`
 
 ## PAL GameCube Retail
 
