@@ -10,29 +10,34 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 
 ## Summary
 - HIGH: 0
-- MEDIUM: 0
-- LOW: 115
+- MEDIUM: 8
+- LOW: 84
 
 ## Candidates
 
 | Conf | GC | New name | Source | Anchors | Gap |
 |---|---:|---|---|---|---:|
-| LOW | `fn_8015C918` @ `0x8015C918` | `__OSDBINTSTART` | `crashwoc_symbols.txt` | `__OSDBIntegrator` .. `OSDefaultExceptionHandler` | 4:11 |
-| LOW | `fn_8015C91C` @ `0x8015C91C` | `__OSDBJump` | `crashwoc_symbols.txt` | `__OSDBIntegrator` .. `OSDefaultExceptionHandler` | 4:11 |
-| LOW | `fn_8015C938` @ `0x8015C938` | `__OSDBJUMPSTART` | `crashwoc_symbols.txt` | `__OSDBIntegrator` .. `OSDefaultExceptionHandler` | 4:11 |
-| LOW | `fn_8015C94C` @ `0x8015C94C` | `__OSDBJUMPEND` | `crashwoc_symbols.txt` | `__OSDBIntegrator` .. `OSDefaultExceptionHandler` | 4:11 |
-| LOW | `fn_8015DF44` @ `0x8015DF44` | `OSLoadFPUContext` | `crashwoc_symbols.txt` | `__OSSaveFPUContext` .. `OSSetCurrentContext` | 1:2 |
+| MEDIUM | `fn_80167178` @ `0x80167178` | `SISetSamplingRate` | `crashwoc_symbols.txt` | `SIProbe` .. `SIRefreshSamplingRate` | 1:1 |
+| MEDIUM | `fn_8016B940` @ `0x8016B940` | `DVDLowReadDiskID` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| MEDIUM | `fn_8016B9E4` @ `0x8016B9E4` | `DVDLowStopMotor` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| MEDIUM | `fn_8016BA70` @ `0x8016BA70` | `DVDLowRequestError` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| MEDIUM | `fn_8016BAFC` @ `0x8016BAFC` | `DVDLowInquiry` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| MEDIUM | `fn_8016BB98` @ `0x8016BB98` | `DVDLowAudioStream` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| MEDIUM | `fn_8016BC30` @ `0x8016BC30` | `DVDLowRequestAudioStatus` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| MEDIUM | `fn_8016BCBC` @ `0x8016BCBC` | `DVDLowAudioBufferConfig` | `crashwoc_symbols.txt` | `DVDLowWaitCoverClose` .. `DVDLowReset` | 7:7 |
+| LOW | `fn_8015C158` @ `0x8015C158` | `OSInit` | `crashwoc_symbols.txt` | `OSGetConsoleType` .. `__OSDBIntegrator` | 3:2 |
+| LOW | `fn_8015C194` @ `0x8015C194` | `OSExceptionInit` | `crashwoc_symbols.txt` | `OSGetConsoleType` .. `__OSDBIntegrator` | 3:2 |
+| LOW | `fn_8015C918` @ `0x8015C918` | `__OSDBINTSTART` | `crashwoc_symbols.txt` | `__OSDBIntegrator` .. `__OSSetExceptionHandler` | 1:4 |
+| LOW | `fn_8015C94C` @ `0x8015C94C` | `OSExceptionVector` | `crashwoc_symbols.txt` | `__OSGetExceptionHandler` .. `OSDefaultExceptionHandler` | 1:5 |
 | LOW | `fn_8016148C` @ `0x8016148C` | `OSGetResetButtonState` | `crashwoc_symbols.txt` | `__OSResetSWInterruptHandler` .. `__OSUnlockSram` | 7:4 |
 | LOW | `fn_80161724` @ `0x80161724` | `__OSInitSram` | `crashwoc_symbols.txt` | `__OSResetSWInterruptHandler` .. `__OSUnlockSram` | 7:4 |
 | LOW | `fn_80161784` @ `0x80161784` | `__OSLockSram` | `crashwoc_symbols.txt` | `__OSResetSWInterruptHandler` .. `__OSUnlockSram` | 7:4 |
 | LOW | `fn_8016189C` @ `0x8016189C` | `__OSLockSramEx` | `crashwoc_symbols.txt` | `__OSResetSWInterruptHandler` .. `__OSUnlockSram` | 7:4 |
-| LOW | `fn_80167300` @ `0x80167300` | `__DBIsExceptionMarked` | `crashwoc_symbols.txt` | `__DBExceptionDestination` .. `PSMTXInverse` | 5:3 |
-| LOW | `fn_8016731C` @ `0x8016731C` | `PSMTXIdentity` | `crashwoc_symbols.txt` | `__DBExceptionDestination` .. `PSMTXInverse` | 5:3 |
-| LOW | `fn_8016736C` @ `0x8016736C` | `PSMTXTranspose` | `crashwoc_symbols.txt` | `__DBExceptionDestination` .. `PSMTXInverse` | 5:3 |
-| LOW | `fn_8016A818` @ `0x8016A818` | `__DVDClearWaitingQueue` | `crashwoc_symbols.txt` | `__DVDPrepareResetAsync` .. `__DVDDequeueWaitingQueue` | 5:4 |
-| LOW | `fn_8016A850` @ `0x8016A850` | `__DVDPushWaitingQueue` | `crashwoc_symbols.txt` | `__DVDPrepareResetAsync` .. `__DVDDequeueWaitingQueue` | 5:4 |
-| LOW | `fn_8016A888` @ `0x8016A888` | `__DVDPopWaitingQueue` | `crashwoc_symbols.txt` | `__DVDPrepareResetAsync` .. `__DVDDequeueWaitingQueue` | 5:4 |
-| LOW | `fn_8016A8F0` @ `0x8016A8F0` | `__DVDCheckWaitingQueue` | `crashwoc_symbols.txt` | `__DVDPrepareResetAsync` .. `__DVDDequeueWaitingQueue` | 5:4 |
+| LOW | `fn_8016731C` @ `0x8016731C` | `PSMTXIdentity` | `crashwoc_symbols.txt` | `__DBIsExceptionMarked` .. `PSMTXInverse` | 4:2 |
+| LOW | `fn_8016736C` @ `0x8016736C` | `PSMTXTranspose` | `crashwoc_symbols.txt` | `__DBIsExceptionMarked` .. `PSMTXInverse` | 4:2 |
+| LOW | `fn_801675AC` @ `0x801675AC` | `PSMTXScale` | `crashwoc_symbols.txt` | `PSMTXInverse` .. `__DVDFSInit` | 5:3 |
+| LOW | `fn_801675E0` @ `0x801675E0` | `C_MTXPerspective` | `crashwoc_symbols.txt` | `PSMTXInverse` .. `__DVDFSInit` | 5:3 |
+| LOW | `fn_80167608` @ `0x80167608` | `C_MTXOrtho` | `crashwoc_symbols.txt` | `PSMTXInverse` .. `__DVDFSInit` | 5:3 |
 | LOW | `fn_8016BE88` @ `0x8016BE88` | `__VIRetraceHandler` | `crashwoc_symbols.txt` | `__DVDLowSetWAType` .. `VIWaitForRetrace` | 7:4 |
 | LOW | `fn_8016BEC0` @ `0x8016BEC0` | `VISetPostRetraceCallback` | `crashwoc_symbols.txt` | `__DVDLowSetWAType` .. `VIWaitForRetrace` | 7:4 |
 | LOW | `fn_8016C134` @ `0x8016C134` | `__VIInit` | `crashwoc_symbols.txt` | `__DVDLowSetWAType` .. `VIWaitForRetrace` | 7:4 |
@@ -43,43 +48,14 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 | LOW | `fn_8017217C` @ `0x8017217C` | `ARQPostRequest` | `crashwoc_symbols.txt` | `__ARQInterruptServiceRoutine` .. `__AXServiceCallbackStack` | 6:4 |
 | LOW | `fn_801722D8` @ `0x801722D8` | `AXInit` | `crashwoc_symbols.txt` | `__ARQInterruptServiceRoutine` .. `__AXServiceCallbackStack` | 6:4 |
 | LOW | `fn_801722FC` @ `0x801722FC` | `__AXGetStackHead` | `crashwoc_symbols.txt` | `__ARQInterruptServiceRoutine` .. `__AXServiceCallbackStack` | 6:4 |
-| LOW | `fn_80172408` @ `0x80172408` | `__AXAllocInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801724BC` @ `0x801724BC` | `__AXPushFreeStack` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172570` @ `0x80172570` | `__AXPushCallbackStack` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172590` @ `0x80172590` | `__AXPopCallbackStack` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801725A0` @ `0x801725A0` | `__AXRemoveFromStack` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801725BC` @ `0x801725BC` | `AXFreeVoice` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172650` @ `0x80172650` | `AXAcquireVoice` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801726D0` @ `0x801726D0` | `__AXAuxInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172844` @ `0x80172844` | `__AXGetAuxAInput` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172928` @ `0x80172928` | `__AXGetAuxAOutput` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172938` @ `0x80172938` | `__AXGetAuxBInput` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_8017296C` @ `0x8017296C` | `__AXGetAuxBOutput` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_8017298C` @ `0x8017298C` | `__AXProcessAux` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801729A8` @ `0x801729A8` | `__AXGetCommandListCycles` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801729C8` @ `0x801729C8` | `__AXGetCommandListAddress` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801729E8` @ `0x801729E8` | `__AXNextFrame` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172A08` @ `0x80172A08` | `__AXClInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172A3C` @ `0x80172A3C` | `__AXOutNewFrame` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172A58` @ `0x80172A58` | `__AXOutAiCallback` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172A74` @ `0x80172A74` | `__AXDSPInitCallback` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172A90` @ `0x80172A90` | `__AXDSPResumeCallback` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172CCC` @ `0x80172CCC` | `__AXDSPDoneCallback` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172CD4` @ `0x80172CD4` | `__AXOutInitDSP` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80172D10` @ `0x80172D10` | `__AXOutInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801733C0` @ `0x801733C0` | `AXRegisterCallback` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801733E4` @ `0x801733E4` | `__AXGetStudio` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801733E8` @ `0x801733E8` | `__AXPrintStudio` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801733FC` @ `0x801733FC` | `__AXSPBInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80173404` @ `0x80173404` | `__AXDepopVoice` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801735BC` @ `0x801735BC` | `__AXGetNumVoices` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80173678` @ `0x80173678` | `__AXServiceVPB` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80173684` @ `0x80173684` | `__AXSyncPBs` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801736DC` @ `0x801736DC` | `__AXGetPBs` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80173708` @ `0x80173708` | `__AXSetPBDefault` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_801737D4` @ `0x801737D4` | `__AXVPBInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80173B74` @ `0x80173B74` | `AXSetVoiceState` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
-| LOW | `fn_80173BCC` @ `0x80173BCC` | `__AXGetCurrentProfile` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `DSPCheckMailToDSP` | 59:37 |
+| LOW | `fn_80172408` @ `0x80172408` | `__AXAllocInit` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `__AXPushCallbackStack` | 3:2 |
+| LOW | `fn_801724BC` @ `0x801724BC` | `__AXPushFreeStack` | `crashwoc_symbols.txt` | `__AXServiceCallbackStack` .. `__AXPushCallbackStack` | 3:2 |
+| LOW | `fn_801736DC` @ `0x801736DC` | `__AXDSPDoneCallback` | `crashwoc_symbols.txt` | `__AXDSPResumeCallback` .. `__AXSPBInit` | 7:6 |
+| LOW | `fn_80173708` @ `0x80173708` | `__AXOutInitDSP` | `crashwoc_symbols.txt` | `__AXDSPResumeCallback` .. `__AXSPBInit` | 7:6 |
+| LOW | `fn_801737D4` @ `0x801737D4` | `__AXOutInit` | `crashwoc_symbols.txt` | `__AXDSPResumeCallback` .. `__AXSPBInit` | 7:6 |
+| LOW | `fn_80173B74` @ `0x80173B74` | `AXRegisterCallback` | `crashwoc_symbols.txt` | `__AXDSPResumeCallback` .. `__AXSPBInit` | 7:6 |
+| LOW | `fn_80173BCC` @ `0x80173BCC` | `__AXGetStudio` | `crashwoc_symbols.txt` | `__AXDSPResumeCallback` .. `__AXSPBInit` | 7:6 |
+| LOW | `fn_80173C10` @ `0x80173C10` | `__AXPrintStudio` | `crashwoc_symbols.txt` | `__AXDSPResumeCallback` .. `__AXSPBInit` | 7:6 |
 | LOW | `fn_80175F78` @ `0x80175F78` | `__CARDDefaultApiCallback` | `crashwoc_symbols.txt` | `__DSP_remove_task` .. `__CARDEnableInterrupt` | 5:6 |
 | LOW | `fn_80175F7C` @ `0x80175F7C` | `__CARDSyncCallback` | `crashwoc_symbols.txt` | `__DSP_remove_task` .. `__CARDEnableInterrupt` | 5:6 |
 | LOW | `fn_80176054` @ `0x80176054` | `__CARDExtHandler` | `crashwoc_symbols.txt` | `__DSP_remove_task` .. `__CARDEnableInterrupt` | 5:6 |
@@ -104,6 +80,22 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 | LOW | `fn_80179E14` @ `0x80179E14` | `__CARDGetFileNo` | `crashwoc_symbols.txt` | `__CARDCompareFileName` .. `CARDClose` | 5:4 |
 | LOW | `fn_80179F08` @ `0x80179F08` | `CARDOpen` | `crashwoc_symbols.txt` | `__CARDCompareFileName` .. `CARDClose` | 5:4 |
 | LOW | `fn_8017DFC4` @ `0x8017DFC4` | `GXGetGPStatus` | `crashwoc_symbols.txt` | `GXSetGPFifo` .. `__GXFifoInit` | 1:3 |
+| LOW | `fn_8017F6E4` @ `0x8017F6E4` | `GXAbortFrame` | `crashwoc_symbols.txt` | `GXFlush` .. `GXSetDrawSync` | 2:1 |
+| LOW | `fn_8017FC20` @ `0x8017FC20` | `GXTokenInterruptHandler` | `crashwoc_symbols.txt` | `GXPokeZMode` .. `__GXPEInit` | 4:2 |
+| LOW | `fn_8017FC64` @ `0x8017FC64` | `GXFinishInterruptHandler` | `crashwoc_symbols.txt` | `GXPokeZMode` .. `__GXPEInit` | 4:2 |
+| LOW | `fn_80180144` @ `0x80180144` | `GXAdjustForOverscan` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_80180288` @ `0x80180288` | `GXSetDispCopySrc` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_80180304` @ `0x80180304` | `GXSetTexCopySrc` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_80180380` @ `0x80180380` | `GXSetDispCopyDst` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_801803B4` @ `0x801803B4` | `GXSetTexCopyDst` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_801804E4` @ `0x801804E4` | `GXSetDispCopyFrame2Field` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_80180508` @ `0x80180508` | `GXSetCopyClamp` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_80180560` @ `0x80180560` | `GXGetYScaleFactor` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_8018062C` @ `0x8018062C` | `GXSetDispCopyYScale` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_801806A4` @ `0x801806A4` | `GXSetCopyClear` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_801808AC` @ `0x801808AC` | `GXSetCopyFilter` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_801808C0` @ `0x801808C0` | `GXSetDispCopyGamma` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
+| LOW | `fn_80180A28` @ `0x80180A28` | `GXCopyDisp` | `crashwoc_symbols.txt` | `__GXSetGenMode` .. `GXClearBoundingBox` | 13:14 |
 | LOW | `fn_80182140` @ `0x80182140` | `GXSetTevIndirect` | `crashwoc_symbols.txt` | `__GXSetTmemConfig` .. `GXSetTevDirect` | 5:3 |
 | LOW | `fn_801821AC` @ `0x801821AC` | `GXSetIndTexCoordScale` | `crashwoc_symbols.txt` | `__GXSetTmemConfig` .. `GXSetTevDirect` | 5:3 |
 | LOW | `fn_80182324` @ `0x80182324` | `GXSetNumIndStages` | `crashwoc_symbols.txt` | `__GXSetTmemConfig` .. `GXSetTevDirect` | 5:3 |
@@ -117,18 +109,3 @@ This queue is source-driven. Add local symbol-order files under `docs/symbol_don
 | LOW | `fn_80182AE8` @ `0x80182AE8` | `GXSetNumTevStages` | `crashwoc_symbols.txt` | `GXSetTevAlphaOp` .. `GXSetBlendMode` | 12:10 |
 | LOW | `fn_80182B74` @ `0x80182B74` | `GXSetFog` | `crashwoc_symbols.txt` | `GXSetTevAlphaOp` .. `GXSetBlendMode` | 12:10 |
 | LOW | `fn_80182D10` @ `0x80182D10` | `GXSetFogRangeAdj` | `crashwoc_symbols.txt` | `GXSetTevAlphaOp` .. `GXSetBlendMode` | 12:10 |
-| LOW | `fn_801830C4` @ `0x801830C4` | `GXSetColorUpdate` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_801830F0` @ `0x801830F0` | `GXSetAlphaUpdate` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_8018311C` @ `0x8018311C` | `GXSetZMode` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_80183150` @ `0x80183150` | `GXSetZCompLoc` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_80183184` @ `0x80183184` | `GXSetPixelFmt` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_80183258` @ `0x80183258` | `GXSetDither` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_80183284` @ `0x80183284` | `GXSetDstAlpha` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_801832C0` @ `0x801832C0` | `GXSetFieldMask` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_801832F8` @ `0x801832F8` | `GXSetFieldMode` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_80183370` @ `0x80183370` | `GXSetProjection` | `crashwoc_symbols.txt` | `GXSetBlendMode` .. `GXLoadPosMtxImm` | 12:10 |
-| LOW | `fn_80183698` @ `0x80183698` | `GXSetViewportJitter` | `crashwoc_symbols.txt` | `GXLoadTexMtxImm` .. `__GXSetMatrixIndex` | 6:5 |
-| LOW | `fn_80183728` @ `0x80183728` | `GXSetViewport` | `crashwoc_symbols.txt` | `GXLoadTexMtxImm` .. `__GXSetMatrixIndex` | 6:5 |
-| LOW | `fn_80183780` @ `0x80183780` | `GXSetScissor` | `crashwoc_symbols.txt` | `GXLoadTexMtxImm` .. `__GXSetMatrixIndex` | 6:5 |
-| LOW | `fn_801837C8` @ `0x801837C8` | `GXSetScissorBoxOffset` | `crashwoc_symbols.txt` | `GXLoadTexMtxImm` .. `__GXSetMatrixIndex` | 6:5 |
-| LOW | `fn_80183840` @ `0x80183840` | `GXSetClipMode` | `crashwoc_symbols.txt` | `GXLoadTexMtxImm` .. `__GXSetMatrixIndex` | 6:5 |

@@ -1,7 +1,5 @@
 match_type	lsw1_fn	lsw1_addr	lsw1_size	lsw2_addr	notes
 exact	fn_80003254	0x80003254	0x006c	0x80003254	body occurs in GL7E64 main.dol
-exact	fn_80003300	0x80003300	0x0028	0x80003300	body occurs in GL7E64 main.dol
-exact	fn_80003334	0x80003334	0x0130	0x80003334	body occurs in GL7E64 main.dol
 exact	fn_80006DD4	0x80006dd4	0x0030	0x80115c10	body occurs in GL7E64 main.dol
 exact	fn_80006E04	0x80006e04	0x0018	0x80115c40	body occurs in GL7E64 main.dol
 exact	fn_8000759C	0x8000759c	0x0050	0x8011655c	body occurs in GL7E64 main.dol
@@ -91,9 +89,6 @@ exact	fn_8015114C	0x8015114c	0x0044	0x801beaac	body occurs in GL7E64 main.dol
 exact	fn_80151190	0x80151190	0x01c0	0x801beaf0	body occurs in GL7E64 main.dol
 exact	fn_80151350	0x80151350	0x01c0	0x801becb0	body occurs in GL7E64 main.dol
 exact	fn_80151510	0x80151510	0x0214	0x801bee70	body occurs in GL7E64 main.dol
-exact	fn_8015D8C0	0x8015d8c0	0x0014	0x801e3d4c	body occurs in GL7E64 main.dol
-exact	fn_8015D9C0	0x8015d9c0	0x0010	0x801e3e4c	body occurs in GL7E64 main.dol
-exact	fn_8015D9D0	0x8015d9d0	0x0014	0x801e3e5c	body occurs in GL7E64 main.dol
 exact	fn_8015EDCC	0x8015edcc	0x0028	0x801e5258	body occurs in GL7E64 main.dol
 exact	fn_8015EDF4	0x8015edf4	0x0014	0x801c825c	body occurs in GL7E64 main.dol
 exact	fn_80160BB8	0x80160bb8	0x003c	0x801e7044	body occurs in GL7E64 main.dol

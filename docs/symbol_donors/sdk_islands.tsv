@@ -1,5 +1,5 @@
 priority	family	start	end	bytes	functions	named	unnamed	unnamed_bytes	anchors	anchor_families	incoming_named	outgoing_named	note
-HIGH	sdk/GX	0x8017CA2C	0x80182708	0x5CDC	117	42	75	0x375C	__GXInitRevisionBits, GXInit, __GXInitGX, GXCPInterruptHandler, GXInitFifoBase, GXInitFifoPtrs, GXInitFifoLimits, GXSetCPUFifo, GXSetGPFifo, __GXFifoInit, __GXFifoReadEnable, __GXFifoReadDisable, __GXFifoLink, __GXWriteFifoIntEnable, __GXWriteFifoIntReset, __GXCleanGPFifo	GX:41, runtime:1	GXCPInterruptHandler, GXInit, GXInitFifoBase, GXInitTexCacheRegion, GXSetCPUFifo, GXSetGPFifo, GXSetMisc, __GXInitGX, __GXInitRevisionBits, __GXSetSUTexRegs, __GXSetTmemConfig	GXInit, GXInitFifoPtrs, GXInitTexCacheRegion, GXInitTlutRegion, GXInvalidateTexAll, GXSetGPFifo, GXSetMisc, __GXInitGX, __GXInitRevisionBits, __GXSetIndirectMask, __GXSetSUTexRegs, __GXSetTmemConfig	dense GX anchor island
+HIGH	sdk/GX	0x8017CA2C	0x80182708	0x5CDC	117	93	24	0x1D70	__GXInitRevisionBits, GXInit, __GXInitGX, GXCPInterruptHandler, GXInitFifoBase, GXInitFifoPtrs, GXInitFifoLimits, GXSetCPUFifo, GXSetGPFifo, __GXFifoInit, __GXFifoReadEnable, __GXFifoReadDisable, __GXFifoLink, __GXWriteFifoIntEnable, __GXWriteFifoIntReset, __GXCleanGPFifo	GX:92, runtime:1	GXCPInterruptHandler, GXInit, GXInitFifoBase, GXInitTexCacheRegion, GXSetCPUFifo, GXSetGPFifo, GXSetMisc, __GXInitGX, __GXInitRevisionBits, __GXSetSUTexRegs	GXInit, GXInitFifoPtrs, GXInitTexCacheRegion, GXInitTlutRegion, GXInvalidateTexAll, GXSetGPFifo, GXSetMisc, __GXInitGX, __GXInitRevisionBits, __GXSetSUTexRegs, __GXSetTmemConfig	dense GX anchor island
 HIGH	sdk/GX	0x8017CA2C	0x8017CBD0	0x1A4	1	1	0	0x0	__GXInitRevisionBits	GX:1	__GXInitRevisionBits	__GXInitRevisionBits	anchor gap from __GXInitRevisionBits to GXInit
 HIGH	sdk/GX	0x8017CBD0	0x8017D1D0	0x600	1	1	0	0x0	GXInit	GX:1	GXInit	GXInit, GXInitTlutRegion, __GXInitGX	anchor gap from GXInit to __GXInitGX
 HIGH	sdk/GX	0x8017D1D0	0x8017DB08	0x938	1	1	0	0x0	__GXInitGX	GX:1	GXInit, __GXInitGX	__GXInitGX	anchor gap from __GXInitGX to GXCPInterruptHandler
@@ -15,51 +15,140 @@ HIGH	sdk/GX	0x8017E078	0x8017E09C	0x24	1	1	0	0x0	__GXFifoReadDisable	GX:1			anch
 HIGH	sdk/GX	0x8017E09C	0x8017E0D0	0x34	1	1	0	0x0	__GXFifoLink	GX:1			anchor gap from __GXFifoLink to __GXWriteFifoIntEnable
 HIGH	sdk/GX	0x8017E0D0	0x8017E100	0x30	1	1	0	0x0	__GXWriteFifoIntEnable	GX:1			anchor gap from __GXWriteFifoIntEnable to __GXWriteFifoIntReset
 HIGH	sdk/GX	0x8017E100	0x8017E130	0x30	1	1	0	0x0	__GXWriteFifoIntReset	GX:1			anchor gap from __GXWriteFifoIntReset to __GXCleanGPFifo
-HIGH	sdk/GX	0x8017E130	0x8017E7F0	0x6C0	6	1	5	0x5C0	__GXCleanGPFifo	GX:1	GXSetGPFifo		anchor gap from __GXCleanGPFifo to __GXCalculateVLim
+HIGH	sdk/GX	0x8017E130	0x8017E230	0x100	1	1	0	0x0	__GXCleanGPFifo	GX:1			anchor gap from __GXCleanGPFifo to GXGetCPUFifo
+HIGH	sdk/GX	0x8017E230	0x8017E238	0x8	1	1	0	0x0	GXGetCPUFifo	GX:1			anchor gap from GXGetCPUFifo to GXGetGPFifo
+HIGH	sdk/GX	0x8017E238	0x8017E7F0	0x5B8	4	1	3	0x5B0	GXGetGPFifo	GX:1	GXSetGPFifo		anchor gap from GXGetGPFifo to __GXCalculateVLim
 HIGH	sdk/GX	0x8017E7F0	0x8017F328	0xB38	8	1	7	0xA14	__GXCalculateVLim	GX:1	GXCPInterruptHandler, GXSetCPUFifo	GXSetMisc	anchor gap from __GXCalculateVLim to GXInvalidateVtxCache
 HIGH	sdk/GX	0x8017F328	0x8017F5F4	0x2CC	3	1	2	0x2BC	GXInvalidateVtxCache	GX:1		GXSetMisc	anchor gap from GXInvalidateVtxCache to GXSetMisc
-HIGH	sdk/GX	0x8017F5F4	0x8017FDB0	0x7BC	19	1	18	0x728	GXSetMisc	GX:1	GXSetMisc		anchor gap from GXSetMisc to __GXPEInit
+HIGH	sdk/GX	0x8017F5F4	0x8017F688	0x94	1	1	0	0x0	GXSetMisc	GX:1			anchor gap from GXSetMisc to GXFlush
+HIGH	sdk/GX	0x8017F688	0x8017FA18	0x390	3	1	2	0x334	GXFlush	GX:1	GXSetMisc		anchor gap from GXFlush to GXSetDrawSync
+HIGH	sdk/GX	0x8017FA18	0x8017FACC	0xB4	1	1	0	0x0	GXSetDrawSync	GX:1			anchor gap from GXSetDrawSync to GXReadDrawSync
+HIGH	sdk/GX	0x8017FACC	0x8017FAD8	0xC	1	1	0	0x0	GXReadDrawSync	GX:1			anchor gap from GXReadDrawSync to GXPixModeSync
+HIGH	sdk/GX	0x8017FAD8	0x8017FAFC	0x24	1	1	0	0x0	GXPixModeSync	GX:1			anchor gap from GXPixModeSync to GXPokeAlphaMode
+HIGH	sdk/GX	0x8017FAFC	0x8017FB10	0x14	1	1	0	0x0	GXPokeAlphaMode	GX:1			anchor gap from GXPokeAlphaMode to GXPokeAlphaRead
+HIGH	sdk/GX	0x8017FB10	0x8017FB30	0x20	1	1	0	0x0	GXPokeAlphaRead	GX:1			anchor gap from GXPokeAlphaRead to GXPokeAlphaUpdate
+HIGH	sdk/GX	0x8017FB30	0x8017FB48	0x18	1	1	0	0x0	GXPokeAlphaUpdate	GX:1			anchor gap from GXPokeAlphaUpdate to GXPokeBlendMode
+HIGH	sdk/GX	0x8017FB48	0x8017FBAC	0x64	1	1	0	0x0	GXPokeBlendMode	GX:1			anchor gap from GXPokeBlendMode to GXPokeColorUpdate
+HIGH	sdk/GX	0x8017FBAC	0x8017FBC4	0x18	1	1	0	0x0	GXPokeColorUpdate	GX:1			anchor gap from GXPokeColorUpdate to GXPokeDstAlpha
+HIGH	sdk/GX	0x8017FBC4	0x8017FBE8	0x24	1	1	0	0x0	GXPokeDstAlpha	GX:1			anchor gap from GXPokeDstAlpha to GXPokeDither
+HIGH	sdk/GX	0x8017FBE8	0x8017FC00	0x18	1	1	0	0x0	GXPokeDither	GX:1			anchor gap from GXPokeDither to GXPokeZMode
+HIGH	sdk/GX	0x8017FC00	0x8017FC20	0x20	1	1	0	0x0	GXPokeZMode	GX:1			anchor gap from GXPokeZMode to GXSetDrawSyncCallback
+HIGH	sdk/GX	0x8017FC20	0x8017FC64	0x44	1	1	0	0x0	GXSetDrawSyncCallback	GX:1			anchor gap from GXSetDrawSyncCallback to __GXDrawSyncCallback
+HIGH	sdk/GX	0x8017FC64	0x8017FCEC	0x88	1	1	0	0x0	__GXDrawSyncCallback	GX:1			anchor gap from __GXDrawSyncCallback to GXSetBreakPtCallback
+HIGH	sdk/GX	0x8017FCEC	0x8017FD30	0x44	1	1	0	0x0	GXSetBreakPtCallback	GX:1			anchor gap from GXSetBreakPtCallback to __GXBreakPtCallback
+HIGH	sdk/GX	0x8017FD30	0x8017FDB0	0x80	1	1	0	0x0	__GXBreakPtCallback	GX:1			anchor gap from __GXBreakPtCallback to __GXPEInit
 HIGH	sdk/GX	0x8017FDB0	0x8017FE24	0x74	1	1	0	0x0	__GXPEInit	GX:1			anchor gap from __GXPEInit to __GXSetDirtyState
 HIGH	sdk/GX	0x8017FE24	0x8017FEA4	0x80	1	1	0	0x0	__GXSetDirtyState	GX:1			anchor gap from __GXSetDirtyState to GXBegin
 HIGH	sdk/GX	0x8017FEA4	0x8017FF74	0xD0	1	1	0	0x0	GXBegin	GX:1			anchor gap from GXBegin to __GXSendFlushPrim
-HIGH	sdk/GX	0x8017FF74	0x80180BEC	0xC78	21	1	20	0xBF0	__GXSendFlushPrim	GX:1			anchor gap from __GXSendFlushPrim to GXInitLightAttn
-HIGH	sdk/GX	0x80180BEC	0x80180D98	0x1AC	2	1	1	0x190	GXInitLightAttn	GX:1			anchor gap from GXInitLightAttn to GXInitLightPos
+HIGH	sdk/GX	0x8017FF74	0x8017FFFC	0x88	1	1	0	0x0	__GXSendFlushPrim	GX:1			anchor gap from __GXSendFlushPrim to GXSetLineWidth
+HIGH	sdk/GX	0x8017FFFC	0x8018003C	0x40	1	1	0	0x0	GXSetLineWidth	GX:1			anchor gap from GXSetLineWidth to GXSetPointSize
+HIGH	sdk/GX	0x8018003C	0x8018007C	0x40	1	1	0	0x0	GXSetPointSize	GX:1			anchor gap from GXSetPointSize to GXEnableTexOffsets
+HIGH	sdk/GX	0x8018007C	0x801800C4	0x48	1	1	0	0x0	GXEnableTexOffsets	GX:1			anchor gap from GXEnableTexOffsets to GXSetCullMode
+HIGH	sdk/GX	0x801800C4	0x801800EC	0x28	1	1	0	0x0	GXSetCullMode	GX:1			anchor gap from GXSetCullMode to GXSetCoPlanar
+HIGH	sdk/GX	0x801800EC	0x80180120	0x34	1	1	0	0x0	GXSetCoPlanar	GX:1			anchor gap from GXSetCoPlanar to __GXSetGenMode
+HIGH	sdk/GX	0x80180120	0x80180144	0x24	1	1	0	0x0	__GXSetGenMode	GX:1			anchor gap from __GXSetGenMode to GXAdjustForOverscan
+HIGH	sdk/GX	0x80180144	0x80180288	0x144	1	1	0	0x0	GXAdjustForOverscan	GX:1			anchor gap from GXAdjustForOverscan to GXSetDispCopySrc
+HIGH	sdk/GX	0x80180288	0x80180304	0x7C	1	1	0	0x0	GXSetDispCopySrc	GX:1			anchor gap from GXSetDispCopySrc to GXSetTexCopySrc
+HIGH	sdk/GX	0x80180304	0x80180380	0x7C	1	1	0	0x0	GXSetTexCopySrc	GX:1			anchor gap from GXSetTexCopySrc to GXSetDispCopyDst
+HIGH	sdk/GX	0x80180380	0x801803B4	0x34	1	1	0	0x0	GXSetDispCopyDst	GX:1			anchor gap from GXSetDispCopyDst to GXSetTexCopyDst
+HIGH	sdk/GX	0x801803B4	0x801804E4	0x130	1	1	0	0x0	GXSetTexCopyDst	GX:1			anchor gap from GXSetTexCopyDst to GXSetDispCopyFrame2Field
+HIGH	sdk/GX	0x801804E4	0x80180508	0x24	1	1	0	0x0	GXSetDispCopyFrame2Field	GX:1			anchor gap from GXSetDispCopyFrame2Field to GXSetCopyClamp
+HIGH	sdk/GX	0x80180508	0x80180560	0x58	1	1	0	0x0	GXSetCopyClamp	GX:1			anchor gap from GXSetCopyClamp to GXGetYScaleFactor
+HIGH	sdk/GX	0x80180560	0x8018062C	0xCC	1	1	0	0x0	GXGetYScaleFactor	GX:1			anchor gap from GXGetYScaleFactor to GXSetDispCopyYScale
+HIGH	sdk/GX	0x8018062C	0x801806A4	0x78	1	1	0	0x0	GXSetDispCopyYScale	GX:1			anchor gap from GXSetDispCopyYScale to GXSetCopyClear
+HIGH	sdk/GX	0x801806A4	0x801808AC	0x208	1	1	0	0x0	GXSetCopyClear	GX:1			anchor gap from GXSetCopyClear to GXSetCopyFilter
+HIGH	sdk/GX	0x801808AC	0x801808C0	0x14	1	1	0	0x0	GXSetCopyFilter	GX:1			anchor gap from GXSetCopyFilter to GXSetDispCopyGamma
+HIGH	sdk/GX	0x801808C0	0x80180A28	0x168	1	1	0	0x0	GXSetDispCopyGamma	GX:1			anchor gap from GXSetDispCopyGamma to GXCopyDisp
+HIGH	sdk/GX	0x80180A28	0x80180BB4	0x18C	1	1	0	0x0	GXCopyDisp	GX:1			anchor gap from GXCopyDisp to GXClearBoundingBox
+HIGH	sdk/GX	0x80180BB4	0x80180BEC	0x38	1	1	0	0x0	GXClearBoundingBox	GX:1			anchor gap from GXClearBoundingBox to GXInitLightAttn
+HIGH	sdk/GX	0x80180BEC	0x80180C08	0x1C	1	1	0	0x0	GXInitLightAttn	GX:1			anchor gap from GXInitLightAttn to GXInitLightDistAttn
+HIGH	sdk/GX	0x80180C08	0x80180D98	0x190	1	1	0	0x0	GXInitLightDistAttn	GX:1			anchor gap from GXInitLightDistAttn to GXInitLightPos
 HIGH	sdk/GX	0x80180D98	0x80180DA8	0x10	1	1	0	0x0	GXInitLightPos	GX:1			anchor gap from GXInitLightPos to GXInitLightColor
 HIGH	sdk/GX	0x80180DA8	0x80180DB4	0xC	1	1	0	0x0	GXInitLightColor	GX:1			anchor gap from GXInitLightColor to GXLoadLightObjImm
-HIGH	sdk/GX	0x80180DB4	0x801815C0	0x80C	9	1	8	0x790	GXLoadLightObjImm	GX:1	GXInit		anchor gap from GXLoadLightObjImm to GXInitTexObjCI
-HIGH	sdk/GX	0x801815C0	0x8018177C	0x1BC	4	1	3	0x174	GXInitTexObjCI	GX:1			anchor gap from GXInitTexObjCI to GXGetTexObjMipMap
+HIGH	sdk/GX	0x80180DB4	0x80180E30	0x7C	1	1	0	0x0	GXLoadLightObjImm	GX:1			anchor gap from GXLoadLightObjImm to GXSetChanAmbColor
+HIGH	sdk/GX	0x80180E30	0x80180F18	0xE8	1	1	0	0x0	GXSetChanAmbColor	GX:1			anchor gap from GXSetChanAmbColor to GXSetChanMatColor
+HIGH	sdk/GX	0x80180F18	0x80181000	0xE8	1	1	0	0x0	GXSetChanMatColor	GX:1			anchor gap from GXSetChanMatColor to GXSetNumChans
+HIGH	sdk/GX	0x80181000	0x8018103C	0x3C	1	1	0	0x0	GXSetNumChans	GX:1			anchor gap from GXSetNumChans to GXSetChanCtrl
+HIGH	sdk/GX	0x8018103C	0x801815C0	0x584	5	1	4	0x4D4	GXSetChanCtrl	GX:1	GXInit		anchor gap from GXSetChanCtrl to GXInitTexObjCI
+HIGH	sdk/GX	0x801815C0	0x80181608	0x48	1	1	0	0x0	GXInitTexObjCI	GX:1			anchor gap from GXInitTexObjCI to GXInitTexObjLOD
+HIGH	sdk/GX	0x80181608	0x8018176C	0x164	1	1	0	0x0	GXInitTexObjLOD	GX:1			anchor gap from GXInitTexObjLOD to GXInitTexObjUserData
+HIGH	sdk/GX	0x8018176C	0x80181774	0x8	1	1	0	0x0	GXInitTexObjUserData	GX:1			anchor gap from GXInitTexObjUserData to GXGetTexObjUserData
+HIGH	sdk/GX	0x80181774	0x8018177C	0x8	1	1	0	0x0	GXGetTexObjUserData	GX:1			anchor gap from GXGetTexObjUserData to GXGetTexObjMipMap
 HIGH	sdk/GX	0x8018177C	0x80181A34	0x2B8	5	1	4	0x2A0	GXGetTexObjMipMap	GX:1			anchor gap from GXGetTexObjMipMap to GXInitTexCacheRegion
 HIGH	sdk/GX	0x80181A34	0x80181B28	0xF4	1	1	0	0x0	GXInitTexCacheRegion	GX:1	GXInitTexCacheRegion	GXInitTexCacheRegion, GXInitTlutRegion, GXInvalidateTexAll	anchor gap from GXInitTexCacheRegion to GXInitTlutRegion
 HIGH	sdk/GX	0x80181B28	0x80181B60	0x38	1	1	0	0x0	GXInitTlutRegion	GX:1	GXInit, GXInitTexCacheRegion		anchor gap from GXInitTlutRegion to GXInvalidateTexAll
 HIGH	sdk/GX	0x80181B60	0x80181BA8	0x48	1	1	0	0x0	GXInvalidateTexAll	GX:1	GXInitTexCacheRegion		anchor gap from GXInvalidateTexAll to GXSetTexRegionCallback
 HIGH	sdk/GX	0x80181BA8	0x80181BBC	0x14	1	1	0	0x0	GXSetTexRegionCallback	GX:1			anchor gap from GXSetTexRegionCallback to GXSetTlutRegionCallback
 HIGH	sdk/GX	0x80181C70	0x80181DEC	0x17C	1	1	0	0x0	__GXSetSUTexRegs	GX:1	__GXSetSUTexRegs	__GXSetSUTexRegs, __GXSetTmemConfig	anchor gap from __GXSetSUTexRegs to __GXSetTmemConfig
-HIGH	sdk/GX	0x80181DEC	0x80182578	0x78C	6	1	5	0x438	__GXSetTmemConfig	GX:1	__GXSetSUTexRegs, __GXSetTmemConfig	__GXSetIndirectMask	anchor gap from __GXSetTmemConfig to GXSetTevDirect
+HIGH	sdk/GX	0x80181DEC	0x80182140	0x354	1	1	0	0x0	__GXSetTmemConfig	GX:1	__GXSetSUTexRegs		anchor gap from __GXSetTmemConfig to GXSetTevIndirect
+HIGH	sdk/GX	0x80182140	0x801821AC	0x6C	1	1	0	0x0	GXSetTevIndirect	GX:1			anchor gap from GXSetTevIndirect to GXSetIndTexMtx
+HIGH	sdk/GX	0x801821AC	0x80182324	0x178	1	1	0	0x0	GXSetIndTexMtx	GX:1			anchor gap from GXSetIndTexMtx to GXSetIndTexCoordScale
+HIGH	sdk/GX	0x80182324	0x80182468	0x144	1	1	0	0x0	GXSetIndTexCoordScale	GX:1			anchor gap from GXSetIndTexCoordScale to GXSetIndTexOrder
+HIGH	sdk/GX	0x80182468	0x80182554	0xEC	1	1	0	0x0	GXSetIndTexOrder	GX:1			anchor gap from GXSetIndTexOrder to GXSetNumIndStages
+HIGH	sdk/GX	0x80182554	0x80182578	0x24	1	1	0	0x0	GXSetNumIndStages	GX:1			anchor gap from GXSetNumIndStages to GXSetTevDirect
 HIGH	sdk/GX	0x80182578	0x801825C0	0x48	1	1	0	0x0	GXSetTevDirect	GX:1			anchor gap from GXSetTevDirect to GXSetTevIndWarp
 HIGH	sdk/GX	0x801825C0	0x80182628	0x68	2	1	1	0x4	GXSetTevIndWarp	GX:1			anchor gap from GXSetTevIndWarp to __GXSetIndirectMask
 HIGH	sdk/GX	0x80182628	0x80182658	0x30	1	1	0	0x0	__GXSetIndirectMask	GX:1			anchor gap from __GXSetIndirectMask to __GXFlushTextureState
 HIGH	sdk/GX	0x80182658	0x8018267C	0x24	1	1	0	0x0	__GXFlushTextureState	GX:1			anchor gap from __GXFlushTextureState to GXSetTevOp
 HIGH	sdk/GX	0x8018267C	0x80182708	0x8C	1	1	0	0x0	GXSetTevOp	GX:1			anchor gap from GXSetTevOp to GXSetTevColorIn
-HIGH	sdk/GX-or-video-tail	0x80182708	0x8018CB00	0xA3F4	122	46	76	0x6D3C	GXSetTevColorIn, GXSetTevAlphaIn, GXSetTevColorOp, GXSetTevAlphaOp, GXSetBlendMode, GXLoadPosMtxImm, GXLoadNrmMtxImm, GXSetCurrentMtx, GXLoadTexMtxImm, __GXSetMatrixIndex, setHVQPlaneDesc, getByte, Ipic_BasisNumDec, IpicDcvDec, getBit, decodeHuff	GX:10, runtime:1	Action_SetNearestSpline, Action_SetRandomSpline, Action_SetVisibility, GXInit, Menu_FullReset, Menu_NavigateForward, Menu_Unknown4_HandleSelection, Player_UpdateState, __GXInitGX	GXInit, GXSetCPUFifo, GXSetGPFifo, MemZero, Menu_Unknown3_HandleSelection, __GXSetTmemConfig	post-GX tail, needs symbol order source
+HIGH	sdk/GX-or-video-tail	0x80182708	0x8018CB00	0xA3F4	122	86	36	0x463C	GXSetTevColorIn, GXSetTevAlphaIn, GXSetTevColorOp, GXSetTevAlphaOp, GXSetTevColor, GXSetTevColorS10, GXSetTevKColorSel, GXSetTevKAlphaSel, GXSetTevSwapMode, GXSetTevSwapModeTable, GXSetAlphaCompare, GXSetZTexture, GXSetTexCoordGen2, GXSetNumTexGens, GXSetFog, GXSetFogColor	GX:43, runtime:1	Action_SetNearestSpline, Action_SetRandomSpline, Action_SetVisibility, GXInit, Menu_Unknown4_HandleSelection, Player_UpdateState, __GXInitGX	GXSetCPUFifo, GXSetGPFifo, MemZero, Menu_Unknown3_HandleSelection, __GXSetTmemConfig	post-GX tail, needs symbol order source
 HIGH	sdk/GX	0x80182708	0x8018274C	0x44	1	1	0	0x0	GXSetTevColorIn	GX:1			anchor gap from GXSetTevColorIn to GXSetTevAlphaIn
 HIGH	sdk/GX	0x8018274C	0x80182790	0x44	1	1	0	0x0	GXSetTevAlphaIn	GX:1			anchor gap from GXSetTevAlphaIn to GXSetTevColorOp
 HIGH	sdk/GX	0x80182790	0x801827F8	0x68	1	1	0	0x0	GXSetTevColorOp	GX:1			anchor gap from GXSetTevColorOp to GXSetTevAlphaOp
-HIGH	sdk/GX	0x801827F8	0x80183070	0x878	13	1	12	0x810	GXSetTevAlphaOp	GX:1	Menu_FullReset		anchor gap from GXSetTevAlphaOp to GXSetBlendMode
-HIGH	sdk/GX	0x80183070	0x80183510	0x4A0	13	1	12	0x44C	GXSetBlendMode	GX:1			anchor gap from GXSetBlendMode to GXLoadPosMtxImm
+HIGH	sdk/GX	0x801827F8	0x80182860	0x68	1	1	0	0x0	GXSetTevAlphaOp	GX:1			anchor gap from GXSetTevAlphaOp to GXSetTevColor
+HIGH	sdk/GX	0x80182860	0x801828C0	0x60	1	1	0	0x0	GXSetTevColor	GX:1			anchor gap from GXSetTevColor to GXSetTevColorS10
+HIGH	sdk/GX	0x801828C0	0x80182924	0x64	1	1	0	0x0	GXSetTevColorS10	GX:1			anchor gap from GXSetTevColorS10 to GXSetTevKColorSel
+HIGH	sdk/GX	0x80182924	0x80182980	0x5C	1	1	0	0x0	GXSetTevKColorSel	GX:1			anchor gap from GXSetTevKColorSel to GXSetTevKAlphaSel
+HIGH	sdk/GX	0x80182980	0x801829DC	0x5C	1	1	0	0x0	GXSetTevKAlphaSel	GX:1			anchor gap from GXSetTevKAlphaSel to GXSetTevSwapMode
+HIGH	sdk/GX	0x801829DC	0x80182A24	0x48	1	1	0	0x0	GXSetTevSwapMode	GX:1			anchor gap from GXSetTevSwapMode to GXSetTevSwapModeTable
+HIGH	sdk/GX	0x80182A24	0x80182AA4	0x80	1	1	0	0x0	GXSetTevSwapModeTable	GX:1			anchor gap from GXSetTevSwapModeTable to GXSetAlphaCompare
+HIGH	sdk/GX	0x80182AA4	0x80182AE8	0x44	1	1	0	0x0	GXSetAlphaCompare	GX:1			anchor gap from GXSetAlphaCompare to GXSetZTexture
+HIGH	sdk/GX	0x80182AE8	0x80182B74	0x8C	1	1	0	0x0	GXSetZTexture	GX:1			anchor gap from GXSetZTexture to GXSetTexCoordGen2
+HIGH	sdk/GX	0x80182B74	0x80182D10	0x19C	1	1	0	0x0	GXSetTexCoordGen2	GX:1			anchor gap from GXSetTexCoordGen2 to GXSetNumTexGens
+HIGH	sdk/GX	0x80182D10	0x80182D38	0x28	1	1	0	0x0	GXSetNumTexGens	GX:1			anchor gap from GXSetNumTexGens to GXSetFog
+HIGH	sdk/GX	0x80182D38	0x80182F4C	0x214	1	1	0	0x0	GXSetFog	GX:1			anchor gap from GXSetFog to GXSetFogColor
+HIGH	sdk/GX	0x80182F4C	0x80183070	0x124	1	1	0	0x0	GXSetFogColor	GX:1			anchor gap from GXSetFogColor to GXSetBlendMode
+HIGH	sdk/GX	0x80183070	0x801830C4	0x54	1	1	0	0x0	GXSetBlendMode	GX:1			anchor gap from GXSetBlendMode to GXSetColorUpdate
+HIGH	sdk/GX	0x801830C4	0x801830F0	0x2C	1	1	0	0x0	GXSetColorUpdate	GX:1			anchor gap from GXSetColorUpdate to GXSetAlphaUpdate
+HIGH	sdk/GX	0x801830F0	0x8018311C	0x2C	1	1	0	0x0	GXSetAlphaUpdate	GX:1			anchor gap from GXSetAlphaUpdate to GXSetZMode
+HIGH	sdk/GX	0x8018311C	0x80183150	0x34	1	1	0	0x0	GXSetZMode	GX:1			anchor gap from GXSetZMode to GXSetZCompLoc
+HIGH	sdk/GX	0x80183150	0x80183184	0x34	1	1	0	0x0	GXSetZCompLoc	GX:1			anchor gap from GXSetZCompLoc to GXSetPixelFmt
+HIGH	sdk/GX	0x80183184	0x80183258	0xD4	1	1	0	0x0	GXSetPixelFmt	GX:1			anchor gap from GXSetPixelFmt to GXSetDither
+HIGH	sdk/GX	0x80183258	0x80183284	0x2C	1	1	0	0x0	GXSetDither	GX:1			anchor gap from GXSetDither to GXSetDstAlpha
+HIGH	sdk/GX	0x80183284	0x801832C0	0x3C	1	1	0	0x0	GXSetDstAlpha	GX:1			anchor gap from GXSetDstAlpha to GXSetFieldMask
+HIGH	sdk/GX	0x801832C0	0x801832F8	0x38	1	1	0	0x0	GXSetFieldMask	GX:1			anchor gap from GXSetFieldMask to GXSetFieldMode
+HIGH	sdk/GX	0x801832F8	0x80183370	0x78	1	1	0	0x0	GXSetFieldMode	GX:1			anchor gap from GXSetFieldMode to GXCallDisplayList
+HIGH	sdk/GX	0x80183370	0x801833E0	0x70	1	1	0	0x0	GXCallDisplayList	GX:1			anchor gap from GXCallDisplayList to GXSetProjection
+HIGH	sdk/GX	0x801833E0	0x80183484	0xA4	1	1	0	0x0	GXSetProjection	GX:1			anchor gap from GXSetProjection to GXSetProjectionv
+HIGH	sdk/GX	0x80183484	0x80183510	0x8C	1	1	0	0x0	GXSetProjectionv	GX:1			anchor gap from GXSetProjectionv to GXLoadPosMtxImm
 HIGH	sdk/GX	0x80183510	0x80183560	0x50	1	1	0	0x0	GXLoadPosMtxImm	GX:1			anchor gap from GXLoadPosMtxImm to GXLoadNrmMtxImm
 HIGH	sdk/GX	0x80183560	0x801835B0	0x50	1	1	0	0x0	GXLoadNrmMtxImm	GX:1			anchor gap from GXLoadNrmMtxImm to GXSetCurrentMtx
 HIGH	sdk/GX	0x801835B0	0x801835E4	0x34	1	1	0	0x0	GXSetCurrentMtx	GX:1			anchor gap from GXSetCurrentMtx to GXLoadTexMtxImm
-HIGH	sdk/GX	0x801835E4	0x801838A8	0x2C4	7	1	6	0x210	GXLoadTexMtxImm	GX:1	Menu_NavigateForward		anchor gap from GXLoadTexMtxImm to __GXSetMatrixIndex
+HIGH	sdk/GX	0x801835E4	0x80183698	0xB4	1	1	0	0x0	GXLoadTexMtxImm	GX:1			anchor gap from GXLoadTexMtxImm to __GXSetViewport
+HIGH	sdk/GX	0x80183698	0x80183728	0x90	1	1	0	0x0	__GXSetViewport	GX:1			anchor gap from __GXSetViewport to GXSetViewportJitter
+HIGH	sdk/GX	0x80183728	0x80183780	0x58	1	1	0	0x0	GXSetViewportJitter	GX:1			anchor gap from GXSetViewportJitter to GXSetViewport
+HIGH	sdk/GX	0x80183780	0x801837C8	0x48	1	1	0	0x0	GXSetViewport	GX:1			anchor gap from GXSetViewport to GXSetScissor
+HIGH	sdk/GX	0x801837C8	0x80183840	0x78	1	1	0	0x0	GXSetScissor	GX:1			anchor gap from GXSetScissor to GXSetScissorBoxOffset
+HIGH	sdk/GX	0x80183840	0x80183880	0x40	1	1	0	0x0	GXSetScissorBoxOffset	GX:1			anchor gap from GXSetScissorBoxOffset to GXSetClipMode
+HIGH	sdk/GX	0x80183880	0x801838A8	0x28	1	1	0	0x0	GXSetClipMode	GX:1			anchor gap from GXSetClipMode to __GXSetMatrixIndex
+HIGH	sdk/GX	0x801838A8	0x8018392C	0x84	1	1	0	0x0	__GXSetMatrixIndex	GX:1			anchor gap from __GXSetMatrixIndex to GXSetGPMetric
+HIGH	sdk/GX	0x8018392C	0x80184174	0x848	1	1	0	0x0	GXSetGPMetric	GX:1			anchor gap from GXSetGPMetric to GXReadGPMetric
+HIGH	sdk/GX	0x80184174	0x8018431C	0x1A8	1	1	0	0x0	GXReadGPMetric	GX:1			anchor gap from GXReadGPMetric to GXClearGPMetric
 MEDIUM	runtime/PPC	0x8015BFC0	0x8015BFD8	0x18	3	3	0	0x0	PPCMfhid2, PPCMthid2, PPCMtwpar	PPC:3			confirmed PPC helpers
 MEDIUM	sdk/PPC	0x8015BFC0	0x8015BFC8	0x8	1	1	0	0x0	PPCMfhid2	PPC:1			anchor gap from PPCMfhid2 to PPCMthid2
 MEDIUM	sdk/PPC	0x8015BFC8	0x8015BFD0	0x8	1	1	0	0x0	PPCMthid2	PPC:1			anchor gap from PPCMthid2 to PPCMtwpar
 MEDIUM	sdk/PPC	0x8015BFD0	0x8015BFD8	0x8	1	1	0	0x0	PPCMtwpar	PPC:1			anchor gap from PPCMtwpar to PPCDisableSpeculation
-MEDIUM	sdk/OS	0x8015C8F4	0x8015C9E8	0xF4	5	1	4	0xD0	__OSDBIntegrator	OS:1			anchor gap from __OSDBIntegrator to OSDefaultExceptionHandler
+MEDIUM	sdk/OS	0x8015C008	0x8015C130	0x128	1	1	0	0x0	__OSFPRInit	OS:1			anchor gap from __OSFPRInit to OSGetConsoleType
+MEDIUM	sdk/OS	0x8015C130	0x8015C8F4	0x7C4	4	1	3	0x79C	OSGetConsoleType	OS:1	UI_DrawText	UI_DrawText	anchor gap from OSGetConsoleType to __OSDBIntegrator
+MEDIUM	sdk/OS	0x8015C8F4	0x8015C91C	0x28	2	1	1	0x4	__OSDBIntegrator	OS:1			anchor gap from __OSDBIntegrator to __OSSetExceptionHandler
+MEDIUM	sdk/OS	0x8015C91C	0x8015C938	0x1C	1	1	0	0x0	__OSSetExceptionHandler	OS:1			anchor gap from __OSSetExceptionHandler to __OSGetExceptionHandler
+MEDIUM	sdk/OS	0x8015C938	0x8015C9E8	0xB0	2	1	1	0x9C	__OSGetExceptionHandler	OS:1			anchor gap from __OSGetExceptionHandler to OSDefaultExceptionHandler
 MEDIUM	sdk/OS	0x8015C9E8	0x8015CA40	0x58	1	1	0	0x0	OSDefaultExceptionHandler	OS:1			anchor gap from OSDefaultExceptionHandler to __OSPSInit
 MEDIUM	sdk/OS	0x8015CA40	0x8015CA94	0x54	1	1	0	0x0	__OSPSInit	OS:1			anchor gap from __OSPSInit to __OSGetDIConfig
 MEDIUM	sdk/OS	0x8015CA94	0x8015CAA8	0x14	1	1	0	0x0	__OSGetDIConfig	OS:1			anchor gap from __OSGetDIConfig to OSRegisterVersion
-MEDIUM	sdk/OS	0x8015CAA8	0x80161040	0x4598	95	51	44	0x2A40	OSRegisterVersion, OSCreateAlarm, InsertAlarm, OSSetAlarm, OSSetPeriodicAlarm, OSCancelAlarm, DecrementerExceptionCallback, DecrementerExceptionHandler, DLInsert, OSAllocFromHeap, OSFreeToHeap, OSSetCurrentHeap, OSInitAlloc, OSCreateHeap, OSCheckHeap, OSReferentSize	OS:36	Condition_TurretAliveInit, MemZero, OSRegisterResetFunction	Action_AddPart, Action_AttackButtonMash, Action_CreateSockCreatures, Action_JudderGameCamera, Action_OpenDoor, Action_SetDoorFinished, Action_SetFormationCommander, Action_SetRandomSpline, Action_SetTaggable, Condition_AngleFromPlayerToMe, MemZero, Menu_AddOption	OS anchors and reset registration
-MEDIUM	sdk/OS	0x8015CAA8	0x8015CB2C	0x84	2	1	1	0x58	OSRegisterVersion	OS:1			anchor gap from OSRegisterVersion to OSCreateAlarm
+MEDIUM	sdk/OS	0x8015CAA8	0x80161040	0x4598	95	61	34	0x2738	OSRegisterVersion, __OSInitAlarm, OSCreateAlarm, InsertAlarm, OSSetAlarm, OSSetPeriodicAlarm, OSCancelAlarm, DecrementerExceptionCallback, DecrementerExceptionHandler, DLInsert, OSAllocFromHeap, OSFreeToHeap, OSSetCurrentHeap, OSInitAlloc, OSCreateHeap, OSCheckHeap	OS:43	Condition_TurretAliveInit, MemZero, OSRegisterResetFunction	Action_AddPart, Action_AttackButtonMash, Action_CreateSockCreatures, Action_JudderGameCamera, Action_OpenDoor, Action_SetDoorFinished, Action_SetFormationCommander, Action_SetRandomSpline, Action_SetTaggable, MemZero, Menu_AddOption, OSRegisterResetFunction	OS anchors and reset registration
+MEDIUM	sdk/OS	0x8015CAA8	0x8015CAD4	0x2C	1	1	0	0x0	OSRegisterVersion	OS:1			anchor gap from OSRegisterVersion to __OSInitAlarm
+MEDIUM	sdk/OS	0x8015CAD4	0x8015CB2C	0x58	1	1	0	0x0	__OSInitAlarm	OS:1			anchor gap from __OSInitAlarm to OSCreateAlarm
 MEDIUM	sdk/OS	0x8015CB2C	0x8015CD8C	0x260	2	2	0	0x0	OSCreateAlarm, InsertAlarm	OS:1			anchor gap from OSCreateAlarm to OSSetAlarm
 MEDIUM	sdk/OS	0x8015CD8C	0x8015CDF4	0x68	1	1	0	0x0	OSSetAlarm	OS:1			anchor gap from OSSetAlarm to OSSetPeriodicAlarm
 MEDIUM	sdk/OS	0x8015CDF4	0x8015CE70	0x7C	1	1	0	0x0	OSSetPeriodicAlarm	OS:1			anchor gap from OSSetPeriodicAlarm to OSCancelAlarm
@@ -76,12 +165,15 @@ MEDIUM	sdk/OS	0x8015D5F0	0x8015D5F8	0x8	1	1	0	0x0	OSGetArenaLo	OS:1			anchor gap
 MEDIUM	sdk/OS	0x8015D5F8	0x8015D600	0x8	1	1	0	0x0	OSSetArenaHi	OS:1			anchor gap from OSSetArenaHi to OSSetArenaLo
 MEDIUM	sdk/OS	0x8015D600	0x8015D62C	0x2C	1	1	0	0x0	OSSetArenaLo	OS:1			anchor gap from OSSetArenaLo to __OSInitAudioSystem
 MEDIUM	sdk/OS	0x8015D62C	0x8015D7E8	0x1BC	1	1	0	0x0	__OSInitAudioSystem	OS:1			anchor gap from __OSInitAudioSystem to __OSStopAudioSystem
-MEDIUM	sdk/OS	0x8015D7E8	0x8015DCF8	0x510	13	7	6	0x324	__OSStopAudioSystem, DCInvalidateRange, DCFlushRange, DCStoreRange, DCFlushRangeNoSync, ICInvalidateRange, LCDisable	OS:1		MemZero	anchor gap from __OSStopAudioSystem to __OSLoadFPUContext
+MEDIUM	sdk/OS	0x8015D7E8	0x8015DC04	0x41C	12	10	2	0x1F8	__OSStopAudioSystem, DCEnable, DCInvalidateRange, DCFlushRange, DCStoreRange, DCFlushRangeNoSync, ICInvalidateRange, ICFlashInvalidate, ICEnable, LCDisable	OS:1		MemZero	anchor gap from __OSStopAudioSystem to __OSCacheInit
+MEDIUM	sdk/OS	0x8015DC04	0x8015DCF8	0xF4	1	1	0	0x0	__OSCacheInit	OS:1			anchor gap from __OSCacheInit to __OSLoadFPUContext
 MEDIUM	sdk/OS	0x8015DCF8	0x8015DE1C	0x124	1	1	0	0x0	__OSLoadFPUContext	OS:1			anchor gap from __OSLoadFPUContext to __OSSaveFPUContext
-MEDIUM	sdk/OS	0x8015DE1C	0x8015DF4C	0x130	2	1	1	0x8	__OSSaveFPUContext	OS:1			anchor gap from __OSSaveFPUContext to OSSetCurrentContext
+MEDIUM	sdk/OS	0x8015DE1C	0x8015DF44	0x128	1	1	0	0x0	__OSSaveFPUContext	OS:1			anchor gap from __OSSaveFPUContext to OSSaveFPUContext
+MEDIUM	sdk/OS	0x8015DF44	0x8015DF4C	0x8	1	1	0	0x0	OSSaveFPUContext	OS:1			anchor gap from OSSaveFPUContext to OSSetCurrentContext
 MEDIUM	sdk/OS	0x8015DF4C	0x8015DFA8	0x5C	1	1	0	0x0	OSSetCurrentContext	OS:1			anchor gap from OSSetCurrentContext to OSGetCurrentContext
 MEDIUM	sdk/OS	0x8015DFA8	0x8015DFB4	0xC	1	1	0	0x0	OSGetCurrentContext	OS:1			anchor gap from OSGetCurrentContext to OSSaveContext
-MEDIUM	sdk/OS	0x8015DFB4	0x8015E114	0x160	3	1	2	0xE0	OSSaveContext	OS:1			anchor gap from OSSaveContext to OSSwitchFiber
+MEDIUM	sdk/OS	0x8015DFB4	0x8015E034	0x80	1	1	0	0x0	OSSaveContext	OS:1			anchor gap from OSSaveContext to OSLoadContext
+MEDIUM	sdk/OS	0x8015E034	0x8015E114	0xE0	2	1	1	0x8	OSLoadContext	OS:1			anchor gap from OSLoadContext to OSSwitchFiber
 MEDIUM	sdk/OS	0x8015E114	0x8015E144	0x30	1	1	0	0x0	OSSwitchFiber	OS:1			anchor gap from OSSwitchFiber to OSClearContext
 MEDIUM	sdk/OS	0x8015E144	0x8015E168	0x24	1	1	0	0x0	OSClearContext	OS:1			anchor gap from OSClearContext to OSInitContext
 MEDIUM	sdk/OS	0x8015E168	0x8015E4CC	0x364	2	1	1	0x2A8	OSInitContext	OS:1		Action_CreateSockCreatures	anchor gap from OSInitContext to OSSwitchFPUContext
@@ -90,7 +182,10 @@ MEDIUM	sdk/OS	0x8015E550	0x8015E598	0x48	1	1	0	0x0	__OSContextInit	OS:1			anchor
 MEDIUM	sdk/OS	0x8015E598	0x80160130	0x1B98	20	2	18	0x19A4	OSReport, Decode	OS:1	MemZero	Action_AddPart, Action_AttackButtonMash, Action_JudderGameCamera, Action_OpenDoor, Action_SetDoorFinished, Action_SetFormationCommander, Action_SetRandomSpline, Action_SetTaggable, MemZero, Menu_AddOption, UI_DrawText	anchor gap from OSReport to OSDisableInterrupts
 MEDIUM	sdk/OS	0x80160130	0x80160144	0x14	1	1	0	0x0	OSDisableInterrupts	OS:1			anchor gap from OSDisableInterrupts to OSEnableInterrupts
 MEDIUM	sdk/OS	0x80160144	0x80160158	0x14	1	1	0	0x0	OSEnableInterrupts	OS:1			anchor gap from OSEnableInterrupts to OSRestoreInterrupts
-MEDIUM	sdk/OS	0x80160158	0x801604F8	0x3A0	5	2	3	0xA4	OSRestoreInterrupts, SetInterruptMask	OS:1		Condition_AngleFromPlayerToMe	anchor gap from OSRestoreInterrupts to __OSMaskInterrupts
+MEDIUM	sdk/OS	0x80160158	0x8016017C	0x24	1	1	0	0x0	OSRestoreInterrupts	OS:1			anchor gap from OSRestoreInterrupts to __OSSetInterruptHandler
+MEDIUM	sdk/OS	0x8016017C	0x80160198	0x1C	1	1	0	0x0	__OSSetInterruptHandler	OS:1			anchor gap from __OSSetInterruptHandler to __OSGetInterruptHandler
+MEDIUM	sdk/OS	0x80160198	0x801601AC	0x14	1	1	0	0x0	__OSGetInterruptHandler	OS:1			anchor gap from __OSGetInterruptHandler to __OSInterruptInit
+MEDIUM	sdk/OS	0x801601AC	0x801604F8	0x34C	2	2	0	0x0	__OSInterruptInit, SetInterruptMask	OS:1			anchor gap from __OSInterruptInit to __OSMaskInterrupts
 MEDIUM	sdk/OS	0x801604F8	0x80160580	0x88	1	1	0	0x0	__OSMaskInterrupts	OS:1			anchor gap from __OSMaskInterrupts to __OSUnmaskInterrupts
 MEDIUM	sdk/OS	0x80160580	0x8016099C	0x41C	3	2	1	0x344	__OSUnmaskInterrupts, ExternalInterruptHandler	OS:1		MemZero	anchor gap from __OSUnmaskInterrupts to __OSModuleInit
 MEDIUM	sdk/OS	0x8016099C	0x80160F14	0x578	12	3	9	0x460	__OSModuleInit, Config24MB, Config48MB	OS:1	Condition_TurretAliveInit	MemZero, Menu_AddOption	anchor gap from __OSModuleInit to OSRegisterResetFunction
@@ -104,22 +199,33 @@ MEDIUM	sdk/OS	0x80161DF0	0x80161E24	0x34	2	1	1	0x10	__OSUnlockSramEx	OS:1			anch
 MEDIUM	sdk/OS	0x80161E24	0x80162530	0x70C	15	2	13	0x5C8	__OSReadROM, SystemCallVector	OS:1	MemZero	Action_DontPush_Level, MemZero, PodraceUpdateMine	anchor gap from __OSReadROM to OSDisableScheduler
 MEDIUM	sdk/OS	0x80162530	0x80162570	0x40	1	1	0	0x0	OSDisableScheduler	OS:1			anchor gap from OSDisableScheduler to OSEnableScheduler
 MEDIUM	sdk/OS	0x80162570	0x80162618	0xA8	2	1	1	0x68	OSEnableScheduler	OS:1			anchor gap from OSEnableScheduler to __OSGetEffectivePriority
-MEDIUM	sdk/OS	0x80162618	0x80162C90	0x678	6	1	5	0x63C	__OSGetEffectivePriority	OS:1	MemZero, Menu_Unknown14_HandleSelection	MemZero, PodraceLoadLapSettings	anchor gap from __OSGetEffectivePriority to OSExitThread
+MEDIUM	sdk/OS	0x80162618	0x80162A3C	0x424	3	1	2	0x3E8	__OSGetEffectivePriority	OS:1	MemZero, Menu_Unknown14_HandleSelection	MemZero, PodraceLoadLapSettings	anchor gap from __OSGetEffectivePriority to __OSReschedule
+MEDIUM	sdk/OS	0x80162A3C	0x80162A6C	0x30	1	1	0	0x0	__OSReschedule	OS:1			anchor gap from __OSReschedule to OSYieldThread
+MEDIUM	sdk/OS	0x80162A6C	0x80162AA8	0x3C	1	1	0	0x0	OSYieldThread	OS:1			anchor gap from OSYieldThread to OSCreateThread
+MEDIUM	sdk/OS	0x80162AA8	0x80162C90	0x1E8	1	1	0	0x0	OSCreateThread	OS:1			anchor gap from OSCreateThread to OSExitThread
 MEDIUM	sdk/OS	0x80162C90	0x80162D74	0xE4	1	1	0	0x0	OSExitThread	OS:1			anchor gap from OSExitThread to OSCancelThread
 MEDIUM	sdk/OS	0x80162D74	0x80162F30	0x1BC	1	1	0	0x0	OSCancelThread	OS:1			anchor gap from OSCancelThread to OSJoinThread
-MEDIUM	sdk/OS	0x80162F30	0x801632F8	0x3C8	2	1	1	0x288	OSJoinThread	OS:1		MemZero	anchor gap from OSJoinThread to OSSuspendThread
+MEDIUM	sdk/OS	0x80162F30	0x80163070	0x140	1	1	0	0x0	OSJoinThread	OS:1			anchor gap from OSJoinThread to OSResumeThread
+MEDIUM	sdk/OS	0x80163070	0x801632F8	0x288	1	1	0	0x0	OSResumeThread	OS:1			anchor gap from OSResumeThread to OSSuspendThread
 MEDIUM	sdk/OS	0x801632F8	0x80163468	0x170	1	1	0	0x0	OSSuspendThread	OS:1			anchor gap from OSSuspendThread to OSSleepThread
-MEDIUM	sdk/OS	0x80163468	0x80163658	0x1F0	2	1	1	0x104	OSSleepThread	OS:1	OSRegisterVersion	MemZero	anchor gap from OSSleepThread to OSSetThreadPriority
+MEDIUM	sdk/OS	0x80163468	0x80163554	0xEC	1	1	0	0x0	OSSleepThread	OS:1			anchor gap from OSSleepThread to OSWakeupThread
+MEDIUM	sdk/OS	0x80163554	0x80163658	0x104	1	1	0	0x0	OSWakeupThread	OS:1			anchor gap from OSWakeupThread to OSSetThreadPriority
 MEDIUM	sdk/OS	0x80163658	0x80163718	0xC0	1	1	0	0x0	OSSetThreadPriority	OS:1			anchor gap from OSSetThreadPriority to OSClearStack
 MEDIUM	sdk/OS	0x80163718	0x801637C4	0xAC	1	1	0	0x0	OSClearStack	OS:1			anchor gap from OSClearStack to OSGetTime
 MEDIUM	sdk/OS	0x801637C4	0x801637DC	0x18	1	1	0	0x0	OSGetTime	OS:1			anchor gap from OSGetTime to OSGetTick
 MEDIUM	sdk/OS	0x801637DC	0x801637E4	0x8	1	1	0	0x0	OSGetTick	OS:1			anchor gap from OSGetTick to __OSGetSystemTime
 MEDIUM	sdk/OS	0x801637E4	0x80163848	0x64	1	1	0	0x0	__OSGetSystemTime	OS:1			anchor gap from __OSGetSystemTime to __OSTimeToSystemTime
-MEDIUM	sdk/OS	0x80163848	0x80163914	0xCC	3	1	2	0x74	__OSTimeToSystemTime	OS:1			anchor gap from __OSTimeToSystemTime to __OSUnlockAllMutex
+MEDIUM	sdk/runtime	0x801638A0	0x801638C0	0x20	1	1	0	0x0	__init_user	runtime:1			anchor gap from __init_user to __init_cpp_exceptions
 MEDIUM	sdk/EXI	0x80163CD4	0x80163D74	0xA0	1	1	0	0x0	EXIImmEx	EXI:1			anchor gap from EXIImmEx to EXIDma
 MEDIUM	sdk/EXI	0x80163D74	0x80163E60	0xEC	1	1	0	0x0	EXIDma	EXI:1			anchor gap from EXIDma to EXISync
 MEDIUM	sdk/EXI	0x80163E60	0x801640AC	0x24C	1	1	0	0x0	EXISync	EXI:1			anchor gap from EXISync to EXIClearInterrupts
 MEDIUM	sdk/SI	0x80167008	0x80167154	0x14C	1	1	0	0x0	SIDecodeType	SI:1			anchor gap from SIDecodeType to SIProbe
+MEDIUM	sdk/SI	0x80167154	0x8016725C	0x108	2	1	1	0xE4	SIProbe	SI:1		__GXSetTmemConfig	anchor gap from SIProbe to SIRefreshSamplingRate
+MEDIUM	sdk/runtime	0x801672F0	0x80167300	0x10	1	1	0	0x0	__DBExceptionDestination	runtime:1			anchor gap from __DBExceptionDestination to __DBIsExceptionMarked
+MEDIUM	sdk/DVD	0x80167780	0x801677B8	0x38	1	1	0	0x0	__DVDFSInit	DVD:1			anchor gap from __DVDFSInit to DVDConvertPathToEntrynum
+MEDIUM	sdk/DVD	0x801677B8	0x80167AAC	0x2F4	1	1	0	0x0	DVDConvertPathToEntrynum	DVD:1			anchor gap from DVDConvertPathToEntrynum to DVDOpen
+MEDIUM	sdk/DVD	0x80167AAC	0x80167B74	0xC8	1	1	0	0x0	DVDOpen	DVD:1			anchor gap from DVDOpen to DVDClose
+MEDIUM	sdk/DVD	0x80167B74	0x80167CF8	0x184	2	2	0	0x0	DVDClose, entryToPath	DVD:1			anchor gap from DVDClose to DVDConvertEntrynumToPath
 MEDIUM	sdk/DVD	0x80167CF8	0x80167E4C	0x154	1	1	0	0x0	DVDConvertEntrynumToPath	DVD:1			anchor gap from DVDConvertEntrynumToPath to DVDGetCurrentDir
 MEDIUM	sdk/DVD	0x80167E4C	0x80169D08	0x1EBC	35	2	33	0x1DC4	DVDGetCurrentDir, stateTimeout	DVD:1	MemZero, Menu_AddOption, PodraceCreateMine, PodraceInitBoost	Action_Activate, Action_CanHitForceObjects, Action_JudderGameCamera, Action_Respawnable, Action_SetIgnoreAntinodes_Level, Action_UpdateSockPos, Condition_BeenToLevel, Condition_CutScenePlaying, Condition_FromNode, Condition_ToNodeInit	anchor gap from DVDGetCurrentDir to DVDReadAbsAsyncPrio
 MEDIUM	sdk/DVD	0x80169D08	0x80169DE4	0xDC	1	1	0	0x0	DVDReadAbsAsyncPrio	DVD:1			anchor gap from DVDReadAbsAsyncPrio to DVDReadAbsAsyncForBS
@@ -130,10 +236,15 @@ MEDIUM	sdk/DVD	0x8016A044	0x8016A114	0xD0	1	1	0	0x0	DVDInquiryAsync	DVD:1			anch
 MEDIUM	sdk/DVD	0x8016A114	0x8016A158	0x44	1	1	0	0x0	DVDReset	DVD:1			anchor gap from DVDReset to DVDGetCommandBlockStatus
 MEDIUM	sdk/DVD	0x8016A158	0x8016A260	0x108	3	1	2	0xBC	DVDGetCommandBlockStatus	DVD:1	Menu_AddOption		anchor gap from DVDGetCommandBlockStatus to DVDResume
 MEDIUM	sdk/DVD	0x8016A260	0x8016A6FC	0x49C	6	1	5	0x44C	DVDResume	DVD:1	Menu_AddOption, PodraceCreateCollapsingMush	DebugMenu_HandleEntry4	anchor gap from DVDResume to __DVDPrepareResetAsync
-MEDIUM	sdk/DVD	0x8016A6FC	0x8016A9E8	0x2EC	6	1	5	0x1D0	__DVDPrepareResetAsync	DVD:1			anchor gap from __DVDPrepareResetAsync to __DVDDequeueWaitingQueue
+MEDIUM	sdk/DVD	0x8016A6FC	0x8016A850	0x154	2	1	1	0x38	__DVDPrepareResetAsync	DVD:1			anchor gap from __DVDPrepareResetAsync to __DVDClearWaitingQueue
+MEDIUM	sdk/DVD	0x8016A850	0x8016A888	0x38	1	1	0	0x0	__DVDClearWaitingQueue	DVD:1			anchor gap from __DVDClearWaitingQueue to __DVDPushWaitingQueue
+MEDIUM	sdk/DVD	0x8016A888	0x8016A8F0	0x68	1	1	0	0x0	__DVDPushWaitingQueue	DVD:1			anchor gap from __DVDPushWaitingQueue to __DVDPopWaitingQueue
+MEDIUM	sdk/DVD	0x8016A8F0	0x8016A990	0xA0	1	1	0	0x0	__DVDPopWaitingQueue	DVD:1			anchor gap from __DVDPopWaitingQueue to __DVDCheckWaitingQueue
+MEDIUM	sdk/DVD	0x8016A990	0x8016A9E8	0x58	1	1	0	0x0	__DVDCheckWaitingQueue	DVD:1			anchor gap from __DVDCheckWaitingQueue to __DVDDequeueWaitingQueue
 MEDIUM	sdk/DVD	0x8016A9E8	0x8016AB64	0x17C	2	1	1	0x11C	__DVDDequeueWaitingQueue	DVD:1	Menu_AddOption		anchor gap from __DVDDequeueWaitingQueue to __DVDStoreErrorCode
 MEDIUM	sdk/DVD	0x8016AB64	0x8016ABE0	0x7C	1	1	0	0x0	__DVDStoreErrorCode	DVD:1			anchor gap from __DVDStoreErrorCode to DVDCompareDiskID
-MEDIUM	sdk/DVD	0x8016ABE0	0x8016BD58	0x1178	22	1	21	0x1080	DVDCompareDiskID	DVD:1	Menu_AddOption	Action_AttackOpponent, Action_CreateCreatures, Action_CreateSockCreatures, Action_CreateSplineCreatures, Action_DontPush_Level, Action_EngageObject, Action_EngageOpponent, Action_FollowSpline, Action_PlaceOnSock, Action_SetAIOverrideControl, Action_SetInvulnerable, Action_SetPathCnxFlag	anchor gap from DVDCompareDiskID to DVDLowReset
+MEDIUM	sdk/DVD	0x8016ABE0	0x8016B914	0xD34	14	1	13	0xC3C	DVDCompareDiskID	DVD:1	Menu_AddOption	Action_CreateCreatures, Action_CreateSockCreatures, Action_CreateSplineCreatures, Action_EngageObject, Action_EngageOpponent, Action_FollowSpline, Action_PlaceOnSock, Action_SetAIOverrideControl, Action_SetPathCnxFlag, Action_SetScriptState, Action_UseForce, Condition_BeenHit	anchor gap from DVDCompareDiskID to DVDLowWaitCoverClose
+MEDIUM	sdk/DVD	0x8016B914	0x8016BD58	0x444	8	1	7	0x418	DVDLowWaitCoverClose	DVD:1		Action_AttackOpponent, Action_DontPush_Level, Action_EngageObject, Action_EngageOpponent, Action_SetInvulnerable, Action_SnapToOrigin, Action_SnapToSockPosition	anchor gap from DVDLowWaitCoverClose to DVDLowReset
 MEDIUM	sdk/DVD	0x8016BD58	0x8016BE14	0xBC	1	1	0	0x0	DVDLowReset	DVD:1			anchor gap from DVDLowReset to DVDLowBreak
 MEDIUM	sdk/DVD	0x8016BE14	0x8016BE28	0x14	1	1	0	0x0	DVDLowBreak	DVD:1			anchor gap from DVDLowBreak to DVDLowClearCallback
 MEDIUM	sdk/DVD	0x8016BE28	0x8016BE44	0x1C	1	1	0	0x0	DVDLowClearCallback	DVD:1			anchor gap from DVDLowClearCallback to __DVDLowSetWAType
@@ -160,6 +271,21 @@ MEDIUM	sdk/AR	0x801706D0	0x80170748	0x78	1	1	0	0x0	__ARHandler	AR:1			anchor gap
 MEDIUM	sdk/AR	0x80170748	0x80171F3C	0x17F4	1	1	0	0x0	__ARChecksize	AR:1			anchor gap from __ARChecksize to __ARQServiceQueueLo
 MEDIUM	sdk/AR	0x80171F3C	0x8017203C	0x100	1	1	0	0x0	__ARQServiceQueueLo	AR:1			anchor gap from __ARQServiceQueueLo to __ARQCallbackHack
 MEDIUM	sdk/AR	0x8017203C	0x80172040	0x4	1	1	0	0x0	__ARQCallbackHack	AR:1			anchor gap from __ARQCallbackHack to __ARQInterruptServiceRoutine
+MEDIUM	sdk/AX	0x80172394	0x80172590	0x1FC	4	1	3	0x188	__AXServiceCallbackStack	AX:1			anchor gap from __AXServiceCallbackStack to __AXPushCallbackStack
+MEDIUM	sdk/AX	0x80172590	0x801725A0	0x10	1	1	0	0x0	__AXPushCallbackStack	AX:1			anchor gap from __AXPushCallbackStack to __AXPopCallbackStack
+MEDIUM	sdk/AX	0x801725A0	0x801733E8	0xE48	22	1	21	0xE2C	__AXPopCallbackStack	AX:1			anchor gap from __AXPopCallbackStack to AXSetMode
+MEDIUM	sdk/AX	0x801733E8	0x80173684	0x29C	5	1	4	0x288	AXSetMode	AX:1		Action_CnxController, Action_GoToLevelPath, Action_ObjectController	anchor gap from AXSetMode to __AXDSPResumeCallback
+MEDIUM	sdk/AX	0x80173684	0x80174014	0x990	8	1	7	0x938	__AXDSPResumeCallback	AX:1		Action_BigJump, Action_CreateSockCreatures, Action_RaceOpponent, ConfigureTubes	anchor gap from __AXDSPResumeCallback to __AXSPBInit
+MEDIUM	sdk/AX	0x80174014	0x80174044	0x30	2	1	1	0x4	__AXSPBInit	AX:1			anchor gap from __AXSPBInit to __AXDepopVoice
+MEDIUM	sdk/AX	0x80174044	0x80174CFC	0xCB8	8	1	7	0xC24	__AXDepopVoice	AX:1		ConfigureBlupUps, ConfigureDoorTriggers	anchor gap from __AXDepopVoice to AXSetVoiceSrcType
+MEDIUM	sdk/AX	0x80174CFC	0x80174DC0	0xC4	1	1	0	0x0	AXSetVoiceSrcType	AX:1			anchor gap from AXSetVoiceSrcType to AXSetVoiceState
+MEDIUM	sdk/AX	0x80174DC0	0x80174E1C	0x5C	1	1	0	0x0	AXSetVoiceState	AX:1			anchor gap from AXSetVoiceState to AXSetVoiceType
+MEDIUM	sdk/AX	0x80174E1C	0x801750BC	0x2A0	2	1	1	0x254	AXSetVoiceType	AX:1			anchor gap from AXSetVoiceType to AXSetVoiceVe
+MEDIUM	sdk/AX	0x801750BC	0x80175114	0x58	1	1	0	0x0	AXSetVoiceVe	AX:1			anchor gap from AXSetVoiceVe to AXSetVoiceAddr
+MEDIUM	sdk/AX	0x80175114	0x80175224	0x110	1	1	0	0x0	AXSetVoiceAddr	AX:1			anchor gap from AXSetVoiceAddr to AXSetVoiceAdpcm
+MEDIUM	sdk/AX	0x80175224	0x801752C8	0xA4	1	1	0	0x0	AXSetVoiceAdpcm	AX:1			anchor gap from AXSetVoiceAdpcm to AXSetVoiceSrc
+MEDIUM	sdk/AX	0x801752C8	0x80175360	0x98	1	1	0	0x0	AXSetVoiceSrc	AX:1			anchor gap from AXSetVoiceSrc to AXSetVoiceAdpcmLoop
+MEDIUM	sdk/AX	0x80175360	0x801753CC	0x6C	1	1	0	0x0	AXSetVoiceAdpcmLoop	AX:1			anchor gap from AXSetVoiceAdpcmLoop to __AXGetCurrentProfile
 MEDIUM	sdk/DSP	0x80175414	0x80175424	0x10	1	1	0	0x0	DSPCheckMailToDSP	DSP:1			anchor gap from DSPCheckMailToDSP to DSPCheckMailFromDSP
 MEDIUM	sdk/DSP	0x80175424	0x80175434	0x10	1	1	0	0x0	DSPCheckMailFromDSP	DSP:1			anchor gap from DSPCheckMailFromDSP to DSPReadMailFromDSP
 MEDIUM	sdk/DSP	0x80175434	0x8017544C	0x18	1	1	0	0x0	DSPReadMailFromDSP	DSP:1			anchor gap from DSPReadMailFromDSP to DSPSendMailToDSP
