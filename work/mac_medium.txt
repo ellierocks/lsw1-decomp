@@ -1,0 +1,10 @@
+# queue_to_batch.py --min-conf MEDIUM (6 renames)
+
+
+# === MEDIUM ===
+fn_80017EA0 NuAnimCurve2SetApplyToJoint  # mac [mac_lsw2_ppc NuAnimCurve2CalcValEx..NuAnimDataRead]
+fn_8003F904 NuGCutLocatorCalcMtx  # mac [crashwoc_retail NuGCutLocatorSysFixPtrs..instNuGCutLocatorSysUpdate]
+fn_8003F940 NuGCutLocatorIsVisble  # mac [crashwoc_retail NuGCutLocatorSysFixPtrs..instNuGCutLocatorSysUpdate]
+fn_8003FA64 instNuGCutLocatorSysStart  # mac [crashwoc_retail instNuGCutLocatorSysUpdate..NuGCutRigidSysFixPtrs]
+fn_8004036C NuSetCutSceneCharacterRenderFn  # mac [crashwoc_retail NuGCutCharAnimProcess..NuGCutTriggerSysFixPtrs]
+fn_800403FC NuSetCutSceneFindCharactersFn  # mac [crashwoc_retail NuGCutCharAnimProcess..NuGCutTriggerSysFixPtrs]

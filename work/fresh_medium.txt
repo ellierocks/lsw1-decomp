@@ -1,0 +1,20 @@
+# queue_to_batch.py --min-conf MEDIUM (16 renames)
+
+
+# === MEDIUM ===
+fn_8000EDD4 NuVecAdd  # mac [crashwoc_retail NuVecMtxTransform..NuVecCross]
+fn_8000EDF8 NuVecSub  # mac [crashwoc_retail NuVecMtxTransform..NuVecCross]
+fn_80023D5C NuCameraCalcFrustrumPlanes  # mac [crashwoc_retail NuCameraCreate..NuCameraGetMtx]
+fn_80143828 AIRegisterDMACallback  # mac [crashwoc_retail DVDCancelAsync..GXInitTexObj]
+fn_80143A54 AIRegisterStreamCallback  # mac [crashwoc_retail DVDCancelAsync..GXInitTexObj]
+fn_80143ED8 AIResetStreamSampleCount  # mac [crashwoc_retail DVDCancelAsync..GXInitTexObj]
+fn_80144A88 AISetStreamTrigger  # mac [crashwoc_retail DVDCancelAsync..GXInitTexObj]
+fn_8016A1A4 DVDGetDriveStatus  # sdk [DVDGetCommandBlockStatus..DVDSetAutoInvalidation]
+fn_801725BC __AXRemoveFromStack  # sdk [__AXPopCallbackStack..AXAcquireVoice]
+fn_80172650 AXFreeVoice  # sdk [__AXPopCallbackStack..AXAcquireVoice]
+fn_8017EB00 GXSetVtxAttrFmt  # sdk [GXClearVtxDesc..GXInvalidateVtxCache]
+fn_8017ED5C GXSetVtxAttrFmtv  # sdk [GXClearVtxDesc..GXInvalidateVtxCache]
+fn_8017EFDC __GXSetVAT  # sdk [GXClearVtxDesc..GXInvalidateVtxCache]
+fn_8017F064 GXGetVtxAttrFmt  # sdk [GXClearVtxDesc..GXInvalidateVtxCache]
+fn_8017F2E4 GXSetArray  # sdk [GXClearVtxDesc..GXInvalidateVtxCache]
+fn_801810EC __GXGetTexTileShift  # sdk [GXSetChanCtrl..GXGetTexBufferSize]

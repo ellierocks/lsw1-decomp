@@ -1,0 +1,43 @@
+# Curated LOW confidence renames
+# Mac close-ratio (gap ≤ 2:1): Nu2 engine functions
+fn_8002406C NuCameraDistSqr         # gap=12:11 score=13
+fn_800401B4 NuGCutCharSysDestroy    # gap=1:2 score=13
+fn_80024124 NuPs2CreateSkin         # gap=12:11 score=12
+fn_80024098 NuCameraEnableClipping  # gap=12:11 score=10
+fn_800244A8 NuGlassClose            # gap=12:11 score=10
+fn_800240EC NuCameraTransformScreenClip # gap=12:11 score=9
+fn_8002415C NuGlassProcessScene     # gap=12:11 score=9
+fn_8002423C NuGlassLoad             # gap=12:11 score=9
+fn_8002452C NuGobjInit              # gap=12:11 score=9
+fn_8003DC14 instNuGCutRigidSysReset # gap=4:3 score=9
+fn_8003F2B0 instNuGCutSceneDestroy  # gap=7:8 score=9
+fn_8003F2D0 instNuGCutSceneEnd      # gap=7:8 score=9
+fn_8003F3B8 instNuGCutSceneClipTest # gap=7:8 score=9
+fn_8000EA74 NuVec4MtxTransformVU0x4 # gap=2:1 score=9
+fn_8003DD80 instNuGCutRigidSysEnd   # gap=4:3 score=8
+fn_8003F2C0 instNuGCutSceneStart    # gap=7:8 score=8
+fn_8003F31C instNuGCutSceneSetEndCallback # gap=7:8 score=8
+fn_8003F4DC instNuGCutSceneUpdate   # gap=7:8 score=8
+
+# Nu2 body-confirmed LOW entries (module=nu2_engine)
+fn_80024BD8 NuHazeClose             # norm-body-match
+fn_80039D64 NuScratchRelease        # norm-body-match
+fn_8003F018 NuGCutSceneSysInit      # norm-body-match
+
+# Generic SDK/debug entries (game-agnostic, norm-body-match)
+fn_801610B0 KillThreads             # norm-body-match
+fn_801656A8 InitializeUART          # norm-body-match
+fn_801683C0 CategorizeError         # norm-body-match
+fn_8016B3E8 AlarmHandlerForTimeout  # norm-body-match
+fn_8018A374 DBRead                  # norm-body-match
+fn_8018A400 DBQueryData             # norm-body-match
+fn_8018A4F0 DBInitComm              # norm-body-match
+fn_8018A568 DBGHandler              # norm-body-match
+fn_8018A5A8 MWCallback              # norm-body-match
+fn_8018C248 ConfigureVideo          # norm-body-match
+
+# SDK LOW from sdk_anchor queue
+fn_8016A5FC DVDGetCurrentDiskID     # body: lis r3,0x8000; blr (returns 0x80000000 = disk ID addr)
+fn_8016A604 DVDPrepareStreamAbsAsync # anchor gap
+fn_8016B084 __DVDInterruptHandler   # anchor gap
+fn_80161E14 __OSSyncSram            # anchor gap: exactly matches crashwoc body pattern

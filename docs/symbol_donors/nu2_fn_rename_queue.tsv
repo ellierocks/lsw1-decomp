@@ -15,13 +15,13 @@ LOW	gcnemo	CC_maxy	fn_8011B020	0x8011b020	0x000c	0x8001c024	0x000c	norm-body-mat
 LOW	gcnemo	CC_scale	fn_8011B02C	0x8011b02c	0x000c	0x8001c030	0x000c	norm-body-match; module=gamecode
 LOW	gcnemo	CSC_fpsec	fn_8011BE44	0x8011be44	0x000c	0x8001d5a0	0x000c	norm-body-match; module=gamecode
 LOW	crashwoc_retail	DrawWeatherResearchLevelExtra	fn_8014FD9C	0x8014fd9c	0x002c	0x80072438	0x002c	norm-body-match; module=gamecode
+LOW	crashwoc_retail	OnReset	fn_80160BB8	0x80160bb8	0x003c	0x800dff04	0x003c	norm-body-match; module=gamecode; lsw2_gc_exact=0x801e7044; narnia_gc_exact=0x801ff8b8
 LOW	gcnemo	KillThreads	fn_801610B0	0x801610b0	0x0068	0x80074838	0x0068	norm-body-match; module=gamecode
 LOW	crashwoc_retail	UnsetRun	fn_801625B0	0x801625b0	0x0068	0x800e1380	0x0068	norm-body-match; module=gamecode
 LOW	gcnemo	ProbeBarnacle	fn_80165360	0x80165360	0x018c	0x8007ba64	0x018c	norm-body-match; module=gamecode
 LOW	crashwoc_retail	InitializeUART	fn_801656A8	0x801656a8	0x0070	0x800ff918	0x0070	norm-body-match; module=gamecode
 LOW	crashwoc_retail	CategorizeError	fn_801683C0	0x801683c0	0x00b4	0x800e3714	0x00b4	norm-body-match; module=gamecode
 LOW	crashwoc_retail	AlarmHandlerForTimeout	fn_8016B3E8	0x8016b3e8	0x0070	0x800e64c8	0x0070	norm-body-match; module=gamecode
-LOW	gcnemo	cbForCancelAllSync	fn_801736DC	0x801736dc	0x002c	0x80082a48	0x002c	norm-body-match; module=gamecode
 LOW	gcnemo	DummyLen	fn_8017B514	0x8017b514	0x00c4	0x8008fae4	0x00c4	norm-body-match; module=gamecode
 LOW	gcnemo	DBRead	fn_8018A374	0x8018a374	0x008c	0x8009c3bc	0x008c	norm-body-match; module=gamecode
 LOW	gcnemo	DBQueryData	fn_8018A400	0x8018a400	0x009c	0x8009c448	0x009c	norm-body-match; module=gamecode
