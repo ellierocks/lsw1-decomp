@@ -1,0 +1,7 @@
+fn_800385BC = .text:0x800385BC; // type:function size:0x18
+fn_800385D4 = .text:0x800385D4; // type:function size:0x54
+fn_80038628 = .text:0x80038628; // type:function size:0x470
+NuInitHardware = .text:0x80038A98; // type:function size:0xB50
+fn_800395E8 = .text:0x800395E8; // type:function size:0x5F8
+fn_80039BE0 = .text:0x80039BE0; // type:function size:0x4
+fn_80039BE4 = .text:0x80039BE4; // type:function size:0xC0

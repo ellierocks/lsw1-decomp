@@ -1,0 +1,24 @@
+caller_address	caller_name	callee_address	callee_name	callsite_address	evidence
+0x80038A98	NuInitHardware	0x80005504	NuDatFileOpenSize	0x800393EC	instruction=0x4BFCC119; direct_target=0x80005504
+0x80038A98	NuInitHardware	0x80006038	fn_80006038	0x80039418	instruction=0x4BFCCC21; direct_target=0x80006038
+0x80038A98	NuInitHardware	0x8000605C	fn_8000605C	0x8003941C	instruction=0x4BFCCC41; direct_target=0x8000605C
+0x80038A98	NuInitHardware	0x80016558	fn_80016558	0x8003942C	instruction=0x4BFDD12D; direct_target=0x80016558
+0x80038A98	NuInitHardware	0x800163F4	fn_800163F4	0x80039440	instruction=0x4BFDCFB5; direct_target=0x800163F4
+0x80038A98	NuInitHardware	0x8000AFB8	fn_8000AFB8	0x80039448	instruction=0x4BFD1B71; direct_target=0x8000AFB8
+0x80038A98	NuInitHardware	0x8002415C	NuGlassProcessScene	0x8003944C	instruction=0x4BFEAD11; direct_target=0x8002415C
+0x80038A98	NuInitHardware	0x80024F0C	fn_80024F0C	0x80039458	instruction=0x4BFEBAB5; direct_target=0x80024F0C
+0x80038A98	NuInitHardware	0x8002746C	fn_8002746C	0x8003946C	instruction=0x4BFEE001; direct_target=0x8002746C
+0x80038A98	NuInitHardware	0x8002BD84	fn_8002BD84	0x8003947C	instruction=0x4BFF2909; direct_target=0x8002BD84
+0x80038A98	NuInitHardware	0x80024670	fn_80024670	0x80039480	instruction=0x4BFEB1F1; direct_target=0x80024670
+0x80038A98	NuInitHardware	0x800248CC	fn_800248CC	0x80039484	instruction=0x4BFEB449; direct_target=0x800248CC
+0x80038A98	NuInitHardware	0x8005A338	fn_8005A338	0x80039494	instruction=0x48020EA5; direct_target=0x8005A338
+0x80038A98	NuInitHardware	0x800281EC	fn_800281EC	0x80039498	instruction=0x4BFEED55; direct_target=0x800281EC
+0x80038A98	NuInitHardware	0x80018A70	NuAnimInit	0x800394AC	instruction=0x4BFDF5C5; direct_target=0x80018A70
+0x80038A98	NuInitHardware	0x80043FA0	NuSoundInitV	0x800394F0	instruction=0x4800AAB1; direct_target=0x80043FA0
+0x80038A98	NuInitHardware	0x800163F4	fn_800163F4	0x8003955C	instruction=0x4BFDCE99; direct_target=0x800163F4
+0x80038A98	NuInitHardware	0x80009948	fn_80009948	0x8003957C	instruction=0x4BFD03CD; direct_target=0x80009948
+0x80038A98	NuInitHardware	0x800274BC	fn_800274BC	0x800395A0	instruction=0x4BFEDF1D; direct_target=0x800274BC
+0x80038A98	NuInitHardware	0x8002765C	AXFXSetHooks	0x800395B4	instruction=0x4BFEE0A9; direct_target=0x8002765C
+0x80038A98	NuInitHardware	0x80027564	fn_80027564	0x800395B8	instruction=0x4BFEDFAD; direct_target=0x80027564
+0x80038A98	NuInitHardware	0x80025A70	NuRndrFootPrints	0x800395C0	instruction=0x4BFEC4B1; direct_target=0x80025A70
+0x80038A98	NuInitHardware	0x800410B8	fn_800410B8	0x800395CC	instruction=0x48007AED; direct_target=0x800410B8

@@ -1,0 +1,2 @@
+caller_address	caller_name	callee_address	callee_name	callsite_address	evidence
+0x800A0844	Menu_FullReset	0x8009CC00	fn_8009CC00	0x800A0870	instruction=0x4BFFC391; direct_target=0x8009CC00

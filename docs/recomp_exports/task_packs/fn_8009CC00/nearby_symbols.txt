@@ -1,0 +1,7 @@
+fn_8009CB2C = .text:0x8009CB2C; // type:function size:0x5C
+fn_8009CB88 = .text:0x8009CB88; // type:function size:0x3C
+fn_8009CBC4 = .text:0x8009CBC4; // type:function size:0x3C
+fn_8009CC00 = .text:0x8009CC00; // type:function size:0x14C
+fn_8009CD4C = .text:0x8009CD4C; // type:function size:0x1E0
+fn_8009CF2C = .text:0x8009CF2C; // type:function size:0x4
+fn_8009CF30 = .text:0x8009CF30; // type:function size:0xC0
