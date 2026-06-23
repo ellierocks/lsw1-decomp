@@ -171,11 +171,9 @@ config.wibo_tag = "1.0.3"
 # Project
 config.config_path = Path("config") / config.version / "config.yml"
 config.check_sha_path = Path("config") / config.version / "build.sha1"
-config.split_command = "$python tools/synth_config_from_splits.py"
-config.split_dependencies = [
-    Path("config") / config.version / "splits.txt",
-    Path("tools") / "synth_config_from_splits.py",
-]
+# Native `dtk dol split` now works on this ProDG DOL (see the patched dtk +
+# symbols.txt OSTime fixes), so the synth_config_from_splits.py / make_target_obj.py
+# workaround is retired: dtk produces config.json and per-unit target objects itself.
 config.asflags = [
     "-mgekko",
     "--strip-local-absolute",
@@ -322,14 +320,8 @@ config.libs = [
             Object(NonMatching, "numath/numtx.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/nu_asm.c"),
             Object(NonMatching, "nu3dx/nuanim.c"),
-            Object(NonMatching, "auto_00_80003100_init", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_01_800034A0_text", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_02_8018CB00_rodata", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_03_801B0640_data", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_04_801FD080_bss", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_05_80407A40_sdata", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_06_8040A2C0_sbss", asm_dir="build/GL5E4F/asm"),
-            Object(NonMatching, "auto_07_8040B300_sdata2", asm_dir="build/GL5E4F/asm"),
+            # Auto-generated fallback units (auto_NN_*) come from dtk's config.json;
+            # native split produces their asm and objects, so they are not listed here.
         ],
     },
     {

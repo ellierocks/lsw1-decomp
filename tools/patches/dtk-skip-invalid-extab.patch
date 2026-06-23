@@ -1,5 +1,5 @@
 diff --git a/src/util/config.rs b/src/util/config.rs
-index d34cfb9..d6606d0 100644
+index d34cfb9..f5958ed 100644
 --- a/src/util/config.rs
 +++ b/src/util/config.rs
 @@ -79,7 +79,7 @@ pub fn parse_symbol_line(line: &str, obj: &mut ObjInfo) -> Result<Option<ObjSymb
@@ -20,10 +20,10 @@ index d34cfb9..d6606d0 100644
          for attr in attrs {
              if let Some((name, value)) = attr.split_once(':') {
                  match name {
-@@ -288,7 +288,16 @@ where W: Write + ?Sized {
+@@ -287,8 +287,17 @@ where W: Write + ?Sized {
+ 
  fn write_symbol<W>(w: &mut W, obj: &ObjInfo, symbol: &ObjSymbol) -> Result<()>
  where W: Write + ?Sized {
--    let section = symbol.section.and_then(|idx| obj.sections.get(idx));
 +    let section = symbol.section.and_then(|idx| obj.sections.get(idx)).or_else(|| {
 +        if obj.kind == ObjKind::Executable {
 +            obj.sections.at_address(symbol.address as u32).ok().map(|(_, section)| section)
@@ -34,15 +34,42 @@ index d34cfb9..d6606d0 100644
 +    if section.is_none() && obj.kind == ObjKind::Executable && is_auto_label(symbol) {
 +        return Ok(());
 +    }
-+    write!(w, "{} = ", symbol.name)?;
+     write!(w, "{} = ", symbol.name)?;
+-    let section = symbol.section.and_then(|idx| obj.sections.get(idx));
      if let Some(section) = section {
          write!(w, "{}:", section.name)?;
      }
 diff --git a/src/util/dol.rs b/src/util/dol.rs
-index 3ad425a..c5d9db4 100644
+index 3ad425a..8abdbac 100644
 --- a/src/util/dol.rs
 +++ b/src/util/dol.rs
-@@ -907,12 +907,18 @@ fn locate_extab_extabindex(obj: &mut ObjInfo) -> Result<()> {
+@@ -4,7 +4,7 @@ use std::{
+     io::{Cursor, Read, Seek, SeekFrom, Write},
+ };
+ 
+-use anyhow::{Context, Result, anyhow, bail, ensure};
++use anyhow::{Result, anyhow, bail, ensure};
+ use itertools::Itertools;
+ 
+ use crate::{
+@@ -691,8 +691,14 @@ fn validate_eti_init_info(
+         && eti_init_info.eti_end < eti_section_end
+     {
+         if let Ok((_, code_section)) = obj.sections.at_address(eti_init_info.code_start) {
+-            if eti_init_info.code_start + eti_init_info.code_size
+-                <= (code_section.address + code_section.size) as u32
++            // ProDG (SN/GCC) binaries emit no Metrowerks _eti_init_info, but a data
++            // table can coincidentally satisfy the range checks above. Reject those
++            // false positives: a real entry covers a non-empty span of an actual code
++            // section (code_start points into .init/.text, code_size > 0).
++            if eti_init_info.code_size != 0
++                && code_section.kind == ObjSectionKind::Code
++                && eti_init_info.code_start + eti_init_info.code_size
++                    <= (code_section.address + code_section.size) as u32
+             {
+                 return Ok(true);
+             }
+@@ -907,12 +913,18 @@ fn locate_extab_extabindex(obj: &mut ObjInfo) -> Result<()> {
                  for addr in (eti_init_info.eti_start..eti_init_info.eti_end).step_by(12) {
                      let eti_entry = read_eti_entry(obj, addr)?;
                      let (entry_section_index, _) =

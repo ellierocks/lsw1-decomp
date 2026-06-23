@@ -4,7 +4,7 @@
 Wraps the four steps you otherwise run by hand after editing a unit's C:
 
     1. ninja build/<ver>/src/<unit>.o          (compile your source)
-    2. tools/make_target_obj.py <unit>.c        (rebuild the objdiff target)
+    2. ninja build/<ver>/obj/<unit>.o           (rebuild the objdiff target via dtk split)
     3. ninja build/<ver>/report.json            (byte-level match report)
     4. read report.json + show diffs            (per-function status)
 
@@ -61,12 +61,12 @@ def main() -> None:
         print(f"{RED}compile failed:{RST}\n{r.stdout}{r.stderr}")
         sys.exit(1)
 
-    # 2. target object
-    r = run([PY, "tools/make_target_obj.py", f"{unit}.c"])
+    # 2. target object (produced by `dtk dol split`; re-runs if symbols/splits changed)
+    tgt_obj = f"build/{VERSION}/obj/{unit}.o"
+    r = run(["ninja", tgt_obj])
     if r.returncode != 0:
-        print(f"{RED}make_target_obj failed:{RST}\n{r.stdout}{r.stderr}")
+        print(f"{RED}target split failed:{RST}\n{r.stdout}{r.stderr}")
         sys.exit(1)
-    print(DIM + r.stdout.strip() + RST)
 
     # 3. report
     r = run(["ninja", str(REPORT.relative_to(ROOT))])

@@ -38,20 +38,37 @@ jobs:
             echo "::warning::ORIG_KEY secret unavailable (fork PR?); skipping build."
           fi
 
+      - name: Set up Rust
+        if: steps.haskey.outputs.available == 'true'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache patched dtk build
+        if: steps.haskey.outputs.available == 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: /tmp/decomp-toolkit
+
       - name: Decrypt original DOL
         if: steps.haskey.outputs.available == 'true'
         run: bash tools/orig_crypt.sh decrypt
 
-      - name: Download build tools
+      # LSW1 needs a patched dtk that tolerates this ProDG binary's exception
+      # tables (stock dtk panics, producing empty target objects). Built from a
+      # pinned source ref + tools/patches/. See docs/ci_and_decomp_dev.md.
+      - name: Build patched dtk
+        if: steps.haskey.outputs.available == 'true'
+        run: bash tools/build_patched_dtk.sh
+
+      - name: Configure and download tools
         if: steps.haskey.outputs.available == 'true'
         run: |
           python3 configure.py
-          ninja build/tools/dtk_patched build/tools/objdiff-cli \
-                build/tools/wibo build/binutils build/compilers
+          ninja build/tools/objdiff-cli build/tools/wibo \
+                build/binutils build/compilers
 
-      - name: Synthesize split config
+      - name: Split DOL (native dtk dol split)
         if: steps.haskey.outputs.available == 'true'
-        run: python3 tools/synth_config_from_splits.py
+        run: ninja build/GL5E4F/config.json
 
       - name: Build progress report
         if: steps.haskey.outputs.available == 'true'

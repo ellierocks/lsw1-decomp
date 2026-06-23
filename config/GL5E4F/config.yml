@@ -13,3 +13,8 @@ mw_comment_version: 11
 skip_cfa_ranges:
 - start: .text:0x80151AFC
   end: .text:0x8015BF48
+
+# __start (.init) loads a small-data-base address (0x8040B2E4) that dtk cannot
+# resolve to a section, which otherwise aborts `dol split`. Block the relocation.
+block_relocations:
+- source: .init:0x8000315C

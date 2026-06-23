@@ -19,28 +19,29 @@ fi
 # Step 1: Configure and download tools
 echo "[1/3] Running configure.py and downloading tools..."
 python3 configure.py
-# Download tools by running ninja with a tools target
-if [ ! -f "build/tools/dtk_patched" ]; then
+# Download stock tools by running ninja with a tools target
+if [ ! -f "build/tools/dtk" ]; then
     echo "Downloading build tools (first time only)..."
-    ninja build/tools/dtk_patched build/tools/objdiff-cli build/tools/wibo build/binutils build/compilers 2>&1 | grep -E "(Downloading|TOOL)" || true
+    ninja build/tools/dtk build/tools/objdiff-cli build/tools/wibo build/binutils build/compilers 2>&1 | grep -E "(Downloading|TOOL)" || true
 fi
 
-echo "Using synthesized split configuration"
-
-# Step 2: Check if split is needed
-if [ ! -f "build/GL5E4F/config.json" ] || \
-   [ "config/GL5E4F/config.yml" -nt "build/GL5E4F/config.json" ] || \
-   [ "config/GL5E4F/splits.txt" -nt "build/GL5E4F/config.json" ]; then
-    echo "[2/3] Synthesizing config.json from splits.txt..."
-    python3 tools/synth_config_from_splits.py
-    
-    echo
-    echo "Configuration complete! Object files are in build/GL5E4F/obj/"
-    echo
-    echo "Ninja uses the same synthesized configuration and will not rerun dtk split."
-else
-    echo "[2/3] Split up to date, skipping..."
+# LSW1 needs a patched dtk (skips invalid ProDG extab entries; stock dtk panics).
+# Build it from source the first time. Requires a Rust toolchain (cargo).
+# See docs/ci_and_decomp_dev.md for the upstreaming plan to remove this fork.
+if [ ! -f "build/tools/dtk_patched" ]; then
+    echo "Building patched dtk (first time only; requires cargo)..."
+    bash tools/build_patched_dtk.sh
+    # Re-run configure so the build wires the patched dtk.
+    python3 configure.py
 fi
+
+echo "Using native dtk dol split (patched for ProDG)"
+
+# Step 2: Native split. configure.py emits a build.ninja whose SPLIT rule runs
+# `dtk dol split`; ninja regenerates config.json (and the per-unit target objects)
+# from config.yml/splits.txt/symbols.txt on demand, so just drive it through ninja.
+echo "[2/3] Running dtk dol split via ninja..."
+ninja build/GL5E4F/config.json
 
 # Step 3: Show status
 echo "[3/3] Build status:"
