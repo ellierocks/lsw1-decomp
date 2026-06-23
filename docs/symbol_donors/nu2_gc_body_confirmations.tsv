@@ -31,13 +31,7 @@ lsw2_gc	exact	fn_8000A768	0x8000a768	0x0010	0x8011a9c8	body occurs in lsw2_gc ma
 narnia_gc	exact	fn_8000A768	0x8000a768	0x0010	0x8000a764	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8000A778	0x8000a778	0x0010	0x8011a9c8	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_8000A778	0x8000a778	0x0010	0x8000a764	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_8000A8AC	0x8000a8ac	0x00a0	0x8011aee4	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_8000A8AC	0x8000a8ac	0x00a0	0x8000a8dc	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_8000A94C	0x8000a94c	0x00a4	0x8011af84	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_8000A94C	0x8000a94c	0x00a4	0x8000a97c	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8000BE70	0x8000be70	0x009c	0x8011c2ac	body occurs in lsw2_gc main.dol
-lsw2_gc	exact	fn_8000C0E4	0x8000c0e4	0x0024	0x8011c53c	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_8000C0E4	0x8000c0e4	0x0024	0x8000bd20	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8000E918	0x8000e918	0x00a4	0x8011af84	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_8000E918	0x8000e918	0x00a4	0x8000a97c	body occurs in narnia_gc main.dol
 narnia_gc	exact	fn_8000EB44	0x8000eb44	0x0020	0x8000e62c	body occurs in narnia_gc main.dol
@@ -68,8 +62,6 @@ lsw2_gc	exact	fn_800133FC	0x800133fc	0x0058	0x801251d8	body occurs in lsw2_gc ma
 narnia_gc	exact	fn_800133FC	0x800133fc	0x0058	0x80012e8c	body occurs in narnia_gc main.dol
 narnia_gc	exact	fn_80013454	0x80013454	0x00fc	0x80012ee4	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_80013550	0x80013550	0x0030	0x80124e50	body occurs in lsw2_gc main.dol
-lsw2_gc	exact	fn_80013580	0x80013580	0x0030	0x80125238	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_80013580	0x80013580	0x0030	0x80013058	body occurs in narnia_gc main.dol
 narnia_gc	exact	fn_800135B0	0x800135b0	0x0068	0x80013088	body occurs in narnia_gc main.dol
 narnia_gc	exact	fn_80013618	0x80013618	0x00b4	0x800131c4	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8001384C	0x8001384c	0x0044	0x801253b4	body occurs in lsw2_gc main.dol
@@ -116,15 +108,7 @@ narnia_gc	exact	fn_80040DE8	0x80040de8	0x002c	0x80043cd8	body occurs in narnia_g
 lsw2_gc	exact	fn_80040E14	0x80040e14	0x0034	0x8015b6bc	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_80040E14	0x80040e14	0x0034	0x80043d04	body occurs in narnia_gc main.dol
 narnia_gc	exact	fn_80043F58	0x80043f58	0x0044	0x80048d1c	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_8004AEA4	0x8004aea4	0x0010	0x801690a8	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_8004AEA4	0x8004aea4	0x0010	0x800532a0	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_8004AF70	0x8004af70	0x0018	0x80169174	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_8004AF70	0x8004af70	0x0018	0x8005336c	body occurs in narnia_gc main.dol
 narnia_gc	exact	fn_80064C54	0x80064c54	0x0050	0x80071708	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_80064CF4	0x80064cf4	0x001c	0x801828c8	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_80064CF4	0x80064cf4	0x001c	0x800717a8	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_80064D40	0x80064d40	0x001c	0x80182914	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_80064D40	0x80064d40	0x001c	0x800717f4	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_80071668	0x80071668	0x0048	0x8018d604	body occurs in lsw2_gc main.dol
 lsw2_gc	exact	fn_80071CC8	0x80071cc8	0x0040	0x8018dc98	body occurs in lsw2_gc main.dol
 lsw2_gc	exact	fn_8008CDE8	0x8008cde8	0x0124	0x801ae310	body occurs in lsw2_gc main.dol
@@ -189,11 +173,11 @@ lsw2_gc	exact	fn_8015EDF4	0x8015edf4	0x0014	0x801c825c	body occurs in lsw2_gc ma
 narnia_gc	exact	fn_8015EDF4	0x8015edf4	0x0014	0x801e1914	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_80160BB8	0x80160bb8	0x003c	0x801e7044	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_80160BB8	0x80160bb8	0x003c	0x801ff8b8	body occurs in narnia_gc main.dol
-lsw2_gc	exact	fn_80160D60	0x80160d60	0x0018	0x801e71ec	body occurs in lsw2_gc main.dol
-narnia_gc	exact	fn_80160D60	0x80160d60	0x0018	0x801ffa60	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_80160E90	0x80160e90	0x0070	0x801e731c	body occurs in lsw2_gc main.dol
 lsw2_gc	exact	fn_80162514	0x80162514	0x0010	0x801e8bd4	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_80162514	0x80162514	0x0010	0x80201464	body occurs in narnia_gc main.dol
+lsw2_gc	exact	fn_801638A0	0x801638a0	0x0020	0x801ea2e0	body occurs in lsw2_gc main.dol
+narnia_gc	exact	fn_801638A0	0x801638a0	0x0020	0x802027d0	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8016C264	0x8016c264	0x0204	0x801cbd64	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_8016C264	0x8016c264	0x0204	0x801e9940	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8016DB9C	0x8016db9c	0x003c	0x801cd69c	body occurs in lsw2_gc main.dol
@@ -205,4 +189,3 @@ lsw2_gc	exact	fn_80188758	0x80188758	0x0020	0x801e0ae0	body occurs in lsw2_gc ma
 narnia_gc	exact	fn_80188758	0x80188758	0x0020	0x8020e890	body occurs in narnia_gc main.dol
 lsw2_gc	exact	fn_8018AC38	0x8018ac38	0x0020	0x801f7068	body occurs in lsw2_gc main.dol
 narnia_gc	exact	fn_8018AC38	0x8018ac38	0x0020	0x80210d70	body occurs in narnia_gc main.dol
-narnia_gc	exact	fn_8018AC78	0x8018ac78	0x0010	0x80210db0	body occurs in narnia_gc main.dol

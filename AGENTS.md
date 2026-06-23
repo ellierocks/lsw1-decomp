@@ -1,8 +1,11 @@
 # LSW1 Decomp Agent Guide
 
 Matching decompilation of LEGO Star Wars: The Video Game (2005) for GameCube.
-Retail target: `GL5E4F`. Compiler: Metrowerks CodeWarrior for GameCube
-(bz2 .exports, `DTK_FIXED=1`).
+Retail target: `GL5E4F`. Compiler: **SN Systems ProDG (GCC)**, driven by
+`tools/prodg_cc.py` — *not* Metrowerks CodeWarrior. See
+[docs/code_matching_workflow.md](docs/code_matching_workflow.md). (Donor decomps
+like CrashWOC are MWCC, so their source patterns transfer but their codegen does
+not.)
 
 ## Quick start
 
@@ -44,6 +47,21 @@ bash build.sh                                    # final check
 | `sdk_island_analysis.py` | Maps likely Dolphin SDK/MSL/runtime islands for known-library matching |
 | `sdk_anchor_rename_queue.py` | Uses local SDK symbol-order sources plus GC named anchors to emit SDK rename candidates |
 
+## Code matching workflow
+
+Use [docs/code_matching_workflow.md](docs/code_matching_workflow.md) as the
+source of truth for C matching.
+
+Tool roles:
+
+| Tool | Role |
+|------|------|
+| `crashwoc_code_queue.py` | Generates donor-guided candidate rows from a local CrashWOC checkout. It does not change build wiring. |
+| `verify_fn.py` | Compiles a candidate object and compares its instruction stream against the target asm. This is the primary scoring loop. |
+| `asm_function_slice.py` | Plans the before/C/after split for a verified function. `--write` only emits generated slices; it does not automatically wire them into the build. |
+| `symbols_to_map.py --all` | Produces the Dolphin `.map` file with `zz_<address>_` placeholders. This is separate from code matching. |
+| `matching_progress.py` | Reads objdiff progress only. It does not validate a candidate function. |
+
 ## Matching workflow (symbol recovery)
 
 1. `python tools/binary_mining_pipeline.py` — refresh donor evidence and rename queues
@@ -57,10 +75,12 @@ bash build.sh                                    # final check
 
 ## C matching workflow
 
-1. `python tools/ls1_task_pack.py <fn_name> --out-dir work` — generate task pack
-2. Write matching C in `work/<Fn>/source.c` (or inline into `src/<module>/<file>.c`)
-3. Add the object to `configure.py` and run `python3 configure.py && ninja`
-4. Check match: `ninja build/GL5E4F/report.json` or `objdiff-cli`
+1. `python tools/crashwoc_code_queue.py /tmp/crashwoc-decomp` — refresh exact donor-guided candidates
+2. `python tools/ls1_task_pack.py <fn_name> --out-dir work` — generate task pack
+3. Write matching C in `work/<Fn>/source.c` (or inline into `src/<module>/<file>.c`)
+4. `python3 configure.py && ninja build/GL5E4F/src/<unit>.o` — compile the candidate object
+5. `python3 tools/verify_fn.py <fn_name> --unit <unit> [--compiled-symbol <symbol>]` — compare compiled instructions against the target
+6. When the candidate is proven, add the split and object wiring, then re-run `python3 configure.py && ninja`
 
 ## Module address ranges
 

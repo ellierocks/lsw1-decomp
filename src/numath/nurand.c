@@ -1,7 +1,7 @@
-#include "nurand.h"
+#include "numath/nurand.h"
 
-static u32 fseed;
 static struct nunrand_s global_rand;
+static u32 fseed;
 
 u32 NuRandInt(void)
 {
@@ -32,10 +32,12 @@ void NuRandSetSeed(struct nunrand_s* nrand, s32 seed)
 s32 NuRand(struct nunrand_s* nrand)
 {
     s32 k, tmp;
-    if (nrand == 0) {
+    if (nrand != 0) {
+        if (nrand->idum == 0) {
+            nrand->idum = 1;
+        }
+    } else {
         nrand = &global_rand;
-    } else if (nrand->idum == 0) {
-        nrand->idum = 1;
     }
     tmp = nrand->idum ^ 0x75bd924;
     k = tmp / 127773;

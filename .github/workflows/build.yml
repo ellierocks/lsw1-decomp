@@ -1,0 +1,80 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and report progress
+    runs-on: ubuntu-latest
+    env:
+      ORIG_KEY: ${{ secrets.ORIG_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      # Fork PRs have no access to secrets, so they cannot decrypt the original
+      # DOL. Skip the build there rather than fail; the decomp.dev report is
+      # produced from same-repo runs on `main`.
+      - name: Check for original DOL key
+        id: haskey
+        run: |
+          if [ -n "$ORIG_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ORIG_KEY secret unavailable (fork PR?); skipping build."
+          fi
+
+      - name: Decrypt original DOL
+        if: steps.haskey.outputs.available == 'true'
+        run: bash tools/orig_crypt.sh decrypt
+
+      - name: Download build tools
+        if: steps.haskey.outputs.available == 'true'
+        run: |
+          python3 configure.py
+          ninja build/tools/dtk_patched build/tools/objdiff-cli \
+                build/tools/wibo build/binutils build/compilers
+
+      - name: Synthesize split config
+        if: steps.haskey.outputs.available == 'true'
+        run: python3 tools/synth_config_from_splits.py
+
+      - name: Build progress report
+        if: steps.haskey.outputs.available == 'true'
+        run: ninja build/GL5E4F/report.json
+
+      - name: Summarize progress
+        if: steps.haskey.outputs.available == 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          m = json.load(open("build/GL5E4F/report.json"))["measures"]
+          pct = m.get("matched_code_percent", 0.0)
+          print(f"matched code: {pct:.2f}%  "
+                f"({int(m.get('matched_code',0)):,}/{int(m.get('total_code',0)):,} bytes, "
+                f"{int(m.get('matched_functions',0))}/{int(m.get('total_functions',0))} funcs)")
+          PY
+
+      # decomp.dev ingests this artifact. The name must follow the
+      # <VERSION>_report convention.
+      - name: Upload progress report
+        if: steps.haskey.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GL5E4F_report
+          path: build/GL5E4F/report.json
+          if-no-files-found: error

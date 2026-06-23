@@ -13,6 +13,9 @@ __pycache__
 # Original files
 orig/*/*
 !orig/*/.gitkeep
+# Encrypted original DOL for CI (ciphertext only; decrypted via the ORIG_KEY secret)
+!orig/GL5E4F/sys/
+!orig/GL5E4F/sys/main.dol.enc
 *.dol
 *.rel
 *.elf

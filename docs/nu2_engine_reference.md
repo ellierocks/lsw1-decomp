@@ -3,8 +3,10 @@
 ## Source
 
 Crash: Wrath of Cortex GameCube decomp: https://github.com/denzi-gh/crashwoc-decomp
-Same engine (Nu2), same platform (GC), same compiler (Metrowerks).
-Struct layouts, function names, and patterns transfer directly to LSW1.
+Same engine (Nu2), same platform (GC), but a **different compiler**: CrashWOC is
+Metrowerks CodeWarrior, whereas LSW1 is SN Systems ProDG (GCC). Struct layouts,
+function names, and source patterns transfer directly to LSW1; instruction-level
+codegen does not, so always re-verify matches against the LSW1 asm.
 
 ## Naming Conventions
 

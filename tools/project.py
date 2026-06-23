@@ -163,6 +163,8 @@ class ProjectConfig:
         self.build_rels: bool = True  # Build REL files
         self.check_sha_path: Optional[Path] = None  # Path to version.sha1
         self.config_path: Optional[Path] = None  # Path to config.yml
+        self.split_command: Optional[str] = None  # Override `dtk dol split` for this project
+        self.split_dependencies: List[Path] = []  # Extra inputs for a split_command
         self.generate_map: bool = False  # Generate map file(s)
         self.asflags: Optional[List[str]] = None  # Assembler flags
         self.ldflags: Optional[List[str]] = None  # Linker flags
@@ -704,6 +706,19 @@ def generate_build_ninja(
     # include macros.inc directly as an implicit dependency
     gnu_as_implicit.append(build_path / "include" / "macros.inc")
 
+    # ProDG (SN Systems GCC): the real LSW1 toolchain. Driven by tools/prodg_cc.py,
+    # which runs CPP -> cc1 -> powerpc-eabi-as -> dtk fixup. Selected per-object via
+    # mw_version "ProDG/<ver>". $cflags are GCC-style (-I/-D/-O...).
+    prodg_cc = config.tools_dir / "prodg_cc.py"
+    prodg_wibo = f"--wibo {wrapper} " if wrapper is not None else ""
+    prodg_cmd = (
+        f"$python {prodg_cc} --compiler {compiler_path} --as-bin {gnu_as} "
+        f"--dtk {dtk} {prodg_wibo}--dep $basefile.d $cflags -c $in -o $out"
+    )
+    prodg_implicit: List[Optional[Path]] = [
+        prodg_cc, compilers_implicit, wrapper_implicit, binutils_implicit or gnu_as, dtk
+    ]
+
     if os.name != "nt":
         transform_dep = config.tools_dir / "transform_dep.py"
         mwcc_cmd += f" && $python {transform_dep} $basefile.d $basefile.d"
@@ -742,6 +757,16 @@ def generate_build_ninja(
         name="mwcc",
         command=mwcc_cmd,
         description="MWCC $out",
+        depfile="$basefile.d",
+        deps="gcc",
+    )
+    n.newline()
+
+    n.comment("ProDG (SN GCC) build")
+    n.rule(
+        name="prodg",
+        command=prodg_cmd,
+        description="PRODG $out",
         depfile="$basefile.d",
         deps="gcc",
     )
@@ -1035,7 +1060,10 @@ def generate_build_ninja(
                 "basefile": obj.src_obj_path.with_suffix(""),
             }
 
-            if obj.options["shift_jis"] and obj.options["extab_padding"] is not None:
+            if str(obj.options["mw_version"]).startswith("ProDG"):
+                build_rule = "prodg"
+                build_implcit = prodg_implicit
+            elif obj.options["shift_jis"] and obj.options["extab_padding"] is not None:
                 build_rule = "mwcc_sjis_extab"
                 build_implcit = mwcc_sjis_extab_implicit
                 variables["extab_padding"] = "".join(
@@ -1489,18 +1517,20 @@ def generate_build_ninja(
     ###
     build_config_path = build_path / "config.json"
     n.comment("Split DOL into relocatable objects")
-    n.rule(
-        name="split",
-        command=f"{dtk} dol split $in $out_dir",
-        description="SPLIT $in",
-        depfile="$out_dir/dep",
-        deps="gcc",
-    )
+    split_rule = {
+        "name": "split",
+        "command": config.split_command or f"{dtk} dol split $in $out_dir",
+        "description": "SPLIT $in",
+    }
+    if config.split_command is None:
+        split_rule["depfile"] = "$out_dir/dep"
+        split_rule["deps"] = "gcc"
+    n.rule(**split_rule)
     n.build(
-        inputs=config.config_path,
+        inputs=[config.config_path, *config.split_dependencies],
         outputs=build_config_path,
         rule="split",
-        implicit=dtk,
+        implicit=None if config.split_command is not None else dtk,
         variables={"out_dir": build_path},
     )
     n.newline()
@@ -1636,6 +1666,11 @@ def generate_objdiff_config(
         build_obj: BuildConfigUnit, module_name: str, progress_categories: List[str]
     ) -> None:
         obj_path, obj_name = build_obj["object"], build_obj["name"]
+        # Degrade gracefully: a stale config.json may reference a target object
+        # that no longer exists on disk. objdiff hard-fails on a missing target,
+        # so drop the path and let the unit be skipped instead.
+        if obj_path is not None and not Path(obj_path).exists():
+            obj_path = None
         base_object = Path(obj_name).with_suffix("")
         name = str(Path(module_name) / base_object).replace(os.sep, "/")
         unit_config: Dict[str, Any] = {
@@ -1693,7 +1728,11 @@ def generate_objdiff_config(
 
         compiler_version = COMPILER_MAP.get(obj.options["mw_version"])
         if compiler_version is None:
-            print(f"Missing scratch compiler mapping for {obj.options['mw_version']}")
+            # ProDG (the real LSW1 toolchain) has no decomp.me scratch preset, so
+            # these units intentionally get no `scratch` block. Only warn for
+            # genuinely unexpected (e.g. mistyped MWCC) versions.
+            if not str(obj.options["mw_version"]).startswith("ProDG"):
+                print(f"Missing scratch compiler mapping for {obj.options['mw_version']}")
         else:
             cflags_str = make_flags_str(all_cflags)
             unit_config["scratch"] = {

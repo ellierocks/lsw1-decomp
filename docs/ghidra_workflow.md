@@ -2,7 +2,7 @@
 
 Ghidra is optional in this repo. The normal matching build does not require it.
 Use it to generate C-like reference output for understanding control flow before
-writing matching CodeWarrior C by hand.
+writing matching ProDG (SN GCC) C by hand.
 
 ## Setup
 
@@ -59,7 +59,7 @@ Treat Ghidra output as reference material only:
 - Write matching source manually in `src/`.
 - Verify with `bash build.sh`, `ninja`, and objdiff.
 
-Do not commit Ghidra output as matching source. It is not CodeWarrior-shaped C and
+Do not commit Ghidra output as matching source. It is not ProDG-shaped C and
 will usually need substantial cleanup to compile or match.
 
 ## Rename Handoff Loop

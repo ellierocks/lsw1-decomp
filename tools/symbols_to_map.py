@@ -7,7 +7,7 @@ via Symbols → Load Symbol Map.
 Usage:
     python tools/symbols_to_map.py
     python tools/symbols_to_map.py -o path/to/GL5E4F.map
-    python tools/symbols_to_map.py --all   # include unnamed fn_ placeholders
+    python tools/symbols_to_map.py --all   # include unnamed functions as zz_ placeholders
 """
 import argparse
 import sys
@@ -38,6 +38,12 @@ def parse_symbols(path: Path, include_unnamed: bool) -> list[tuple[int, int, str
             continue
         if size == 0:
             continue
+        # Dolphin sorts symbols by name in several views. Keep anonymous
+        # functions visible without interleaving them with recovered names.
+        # This matches the zz_ convention used by the external map supplied
+        # for this build.
+        if include_unnamed and name.startswith("fn_"):
+            name = f"zz_{addr:08x}_"
         funcs.append((addr, size, name))
     funcs.sort()
     return funcs
@@ -56,7 +62,7 @@ def main() -> None:
     ap.add_argument("-o", "--output", default=str(DEFAULT_OUT),
                     help=f"Output .map path (default: {DEFAULT_OUT})")
     ap.add_argument("--all", action="store_true",
-                    help="Include unnamed fn_ placeholders as zz_ entries")
+                    help="Include unnamed fn_ placeholders as zz_<address>_ entries")
     ap.add_argument("--input", default=str(SYMTAB),
                     help=f"Input symbols.txt (default: {SYMTAB})")
     args = ap.parse_args()
@@ -65,7 +71,7 @@ def main() -> None:
     dst = Path(args.output)
 
     funcs = parse_symbols(src, include_unnamed=args.all)
-    named = sum(1 for _, _, n in funcs if not n.startswith("fn_"))
+    named = sum(1 for _, _, n in funcs if not n.startswith("zz_"))
     write_map(funcs, dst)
 
     total = len(funcs)

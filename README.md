@@ -9,6 +9,7 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 | Game ID | `GL5E4F` |
 | Platform | Nintendo GameCube |
 | Region | USA / NTSC |
+| Compiler | SN Systems ProDG (GCC) — see [code matching workflow](docs/code_matching_workflow.md) |
 | DOL SHA-1 | `95cca08a19224775d1a8d6cc64601fb7d0080981` |
 
 ## Project Status
@@ -19,7 +20,7 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 | `.rodata` | 774 | 8,383 | 9.2% |
 | `.bss` | 11 | 733 | 1.5% |
 
-All code is currently in auto-generated assembly stubs. Active work is focused on function naming via donor binary analysis (CrashWOC, LSW1 Mac demo, LSW2 Mac) and writing matched C source for the Nu2 animation subsystem.
+Most code is still in auto-generated assembly stubs. Active work is focused on function naming via donor binary analysis (CrashWOC, LSW1 Mac demo, LSW2 Mac) and on donor-guided C matching for the Nu2 animation subsystem.
 
 Track live progress:
 ```sh
@@ -73,6 +74,20 @@ python tools/binary_mining_pipeline.py
 ```
 
 See [AGENTS.md](AGENTS.md) for the full symbol recovery workflow used in active sessions.
+See [docs/code_matching_workflow.md](docs/code_matching_workflow.md) for the current C matching loop and its caveats.
+
+## Dolphin symbol map
+
+`config/GL5E4F/GL5E4F.map` is generated from `symbols.txt` and is intentionally
+not tracked. It includes unnamed functions as `zz_<address>_` placeholders, so
+Dolphin keeps recovered names together in its symbol views. Download the
+`GL5E4F-dolphin-map` artifact from the latest successful **Build Dolphin symbol
+map** run on `main`, then load it in Dolphin with **Symbols → Load Symbol Map**.
+To generate it locally, run:
+
+```sh
+python3 tools/symbols_to_map.py --all -o GL5E4F.map
+```
 
 ### Decompiling Functions
 
@@ -87,6 +102,10 @@ See [AGENTS.md](AGENTS.md) for the full symbol recovery workflow used in active 
    python3 configure.py && ninja
    ```
 5. Verify match with [objdiff](https://github.com/encounter/objdiff).
+
+For the current donor-guided C matching path, use
+[docs/code_matching_workflow.md](docs/code_matching_workflow.md) and
+`tools/verify_fn.py` instead of relying on the objdiff split flow alone.
 
 Open C tasks are in [`tasks/`](tasks/index.md).
 
@@ -110,7 +129,8 @@ Never commit original game code or assets. All source must be written from scrat
 ## Documentation
 
 ### Build System
-- [Build Configuration](docs/build_config.md) — `symbols.txt` / `splits.txt` formats, BSS, CodeWarrior `.comment` section
+- [Build Configuration](docs/build_config.md) — `symbols.txt` / `splits.txt` formats, BSS, `.comment` section
+- [CI and decomp.dev](docs/ci_and_decomp_dev.md) — progress reporting, the `GL5E4F_report` artifact, and one-time admin setup
 
 ### Game Research
 - [Engine Analysis](docs/engine_analysis.md) — Nu2 engine subsystems, string xrefs, library boundaries

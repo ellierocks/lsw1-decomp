@@ -1,4 +1,5 @@
 confidence	source	crash_name	gc_fn	gc_addr	crash_size	crash_addr	gc_size	notes
+HIGH	crashwoc_retail	NuVec4MtxTransformVU0	fn_8000E918	0x8000e918	0x00a4	0x800be7c0	0x00a4	exact-body-match; module=nu2_engine; lsw2_gc_exact=0x8011af84; narnia_gc_exact=0x8000a97c
 LOW	crashwoc_retail	pftaOn	fn_8001610C	0x8001610c	0x0048	0x800ba9e0	0x0048	norm-body-match; module=gamecode
 LOW	crashwoc_retail	pftaOff	fn_80016154	0x80016154	0x0048	0x800baa28	0x0048	norm-body-match; module=gamecode
 LOW	gcnemo	decv_decode	fn_80049DC0	0x80049dc0	0x0164	0x801220ac	0x0164	norm-body-match; module=gamecode

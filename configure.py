@@ -171,6 +171,11 @@ config.wibo_tag = "1.0.3"
 # Project
 config.config_path = Path("config") / config.version / "config.yml"
 config.check_sha_path = Path("config") / config.version / "build.sha1"
+config.split_command = "$python tools/synth_config_from_splits.py"
+config.split_dependencies = [
+    Path("config") / config.version / "splits.txt",
+    Path("tools") / "synth_config_from_splits.py",
+]
 config.asflags = [
     "-mgekko",
     "--strip-local-absolute",
@@ -253,6 +258,20 @@ cflags_rel = [
     "-sdata2 0",
 ]
 
+# ProDG (SN Systems GCC) flags — the real LSW1 toolchain. These are GCC-style and
+# are consumed by tools/prodg_cc.py (only preprocessor/codegen flags matter; any
+# leftover mwcc-style flags are ignored). Objects opt in via mw_version=PRODG_VERSION.
+PRODG_VERSION = "ProDG/3.9.3"
+cflags_prodg = [
+    "-O2",
+    "-I src",
+    "-I include",
+    f"-I build/{config.version}/include",
+    f"-DBUILD_VERSION={version_num}",
+    f"-DVERSION_{config.version}",
+    "-DDEBUG=1" if args.debug else "-DNDEBUG=1",
+]
+
 config.linker_version = "GC/1.3.2"
 
 
@@ -297,8 +316,11 @@ config.libs = [
         "cflags": cflags_base,
         "progress_category": "game",
         "objects": [
-            Object(NonMatching, "numath/nurand.c"),
-            Object(NonMatching, "numath/nuvec.c"),
+            Object(NonMatching, "nucore/nufile.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/nurand.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/nuvec.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/numtx.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/nu_asm.c"),
             Object(NonMatching, "nu3dx/nuanim.c"),
             Object(NonMatching, "auto_00_80003100_init", asm_dir="build/GL5E4F/asm"),
             Object(NonMatching, "auto_01_800034A0_text", asm_dir="build/GL5E4F/asm"),
