@@ -5,8 +5,8 @@
 # Capture each as a raw MEM1 dump from Dolphin at a meaningful, stable game state.
 # Suggested big-picture snapshots:
 #
-# title  = title.raw
-# hub    = hub.raw
-# shop   = shop.raw
-# level1 = level1.raw
-# status = status.raw
+title  = title screen.raw
+movie  = title movie.raw
+hub    = hub.raw
+hubout = hub outside.raw
+ep1    = episode 1 room.raw
