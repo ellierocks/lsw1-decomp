@@ -19,7 +19,6 @@ orig/*/*
 *.o
 *.map
 *.MAP
-!config/GL5E4F/GL5E4F.map
 *.iso
 
 # Build files
@@ -38,6 +37,10 @@ compile_commands.json
 # Logs and temporary files
 *.log
 dtk-split.log
+
+# RAM dumps (24 MiB MEM1 images) — keep snapshots local, see docs/ramdump_workflow.md
+/dumps/*.raw
+/dumps/*.bin
 
 # Miscellaneous
 /*.txt

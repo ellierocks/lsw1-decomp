@@ -1,0 +1,12 @@
+# RAM-dump label manifest for tools/ramdump.py
+# One "label = path" per line; paths are relative to this dumps/ dir (or absolute).
+# Then you can use a label instead of a path:  python tools/ramdump.py read hub 0x80407B40 --type f32
+#
+# Capture each as a raw MEM1 dump from Dolphin at a meaningful, stable game state.
+# Suggested big-picture snapshots:
+#
+# title  = title.raw
+# hub    = hub.raw
+# shop   = shop.raw
+# level1 = level1.raw
+# status = status.raw
