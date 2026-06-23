@@ -56,6 +56,7 @@ struct nuangvec_s {
 
 // Math functions
 void NuVecMtxTransform(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
+void NuVecMtxTransformH(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
 void NuVecMtxRotate(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
 void NuVecInvMtxTransform(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
 void NuVecInvMtxRotate(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
@@ -72,7 +73,7 @@ f32 NuVecDot(struct nuvec_s* a, struct nuvec_s* b);
 f32 NuVecMag(struct nuvec_s* v);
 f32 NuVecMagSqr(struct nuvec_s* v);
 f32 NuVecNorm(struct nuvec_s* v);
-f32 NuVecDist(struct nuvec_s* a, struct nuvec_s* b);
+f32 NuVecDist(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* dist);
 f32 NuVecXZDist(struct nuvec_s* a, struct nuvec_s* b);
 void NuVecMax(struct nuvec_s* dst, struct nuvec_s* a, struct nuvec_s* b);
 void NuVecMin(struct nuvec_s* dst, struct nuvec_s* a, struct nuvec_s* b);
@@ -84,6 +85,13 @@ void NuMtxSetRotationY(struct numtx_s* mtx, f32 angle);
 void NuMtxSetRotationZ(struct numtx_s* mtx, f32 angle);
 void NuMtxMul(struct numtx_s* dst, struct numtx_s* a, struct numtx_s* b);
 void NuMtxTranspose(struct numtx_s* dst, struct numtx_s* src);
+void NuMtxTranslate(struct numtx_s* m, struct nuvec_s* v);
+void NuMtxPreTranslate(struct numtx_s* m, struct nuvec_s* v);
+void NuMtxScale(struct numtx_s* m, struct nuvec_s* v);
+void NuMtxScaleU(struct numtx_s* m, f32 s);
+struct nuvec_s* NuMtxGetScale(struct nuvec_s* dest, struct numtx_s* m);
+void NuMtxPreScale(struct numtx_s* m, struct nuvec_s* v);
+f32 NuFsqrt(f32 x);
 void NuMtxInv(struct numtx_s* dst, struct numtx_s* src);
 void NuMtxToQuat(struct Quat* dst, struct numtx_s* src);
 void NuQuatToMtx(struct numtx_s* dst, struct Quat* src);
