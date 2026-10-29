@@ -37,6 +37,10 @@ jobs:
         run: bash tools/orig_crypt.sh decrypt
       - name: Compile candidates and generate report
         run: bash build.sh
+      - name: Verifier regression tests on genuine ProDG objects
+        env:
+          VERIFY_FN_REQUIRE_RETAIL: "1"
+        run: python3 -m unittest -v tests.test_verify_fn
   build:
     if: github.server_url == 'https://github.com'
     name: Build and report progress

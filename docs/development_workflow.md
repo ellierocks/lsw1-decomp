@@ -59,7 +59,7 @@ into the build until it matches.
 | Job | Workflow file | Runs on | Forge | Purpose |
 |-----|---------------|---------|-------|---------|
 | `tooling` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo and GitHub | Portable checks above |
-| `retail` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo only | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` |
+| `retail` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo only | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` and the verifier tests against genuine ProDG objects (`VERIFY_FN_REQUIRE_RETAIL=1`) |
 | `build` | `.github/workflows/build.yml` | push to `main`, PRs | GitHub only | Builds the report and uploads `GL5E4F_report` for decomp.dev |
 | `build-map` | `.github/workflows/generate-map.yml` | changes to symbols or map tooling | GitHub only | Uploads the Dolphin map |
 
