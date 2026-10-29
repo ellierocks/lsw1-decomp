@@ -111,7 +111,7 @@ python3 tools/symbols_to_map.py --all -o GL5E4F.map
 
 For the current donor-guided C matching path, use
 [docs/code_matching_workflow.md](docs/code_matching_workflow.md) and
-`tools/verify_fn.py` instead of relying on the objdiff split flow alone.
+`tools/verify_fn.py` for a strict per-function check alongside objdiff.
 
 Open C tasks are in [`tasks/`](tasks/index.md).
 

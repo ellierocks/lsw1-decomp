@@ -57,7 +57,7 @@ Tool roles:
 | Tool | Role |
 |------|------|
 | `crashwoc_code_queue.py` | Generates donor-guided candidate rows from a local CrashWOC checkout. It does not change build wiring. |
-| `verify_fn.py` | Compiles a candidate object and compares its instruction stream against the target asm. This is the primary scoring loop. |
+| `verify_fn.py` | Strictly compares a built candidate's instruction words and relocations (and referenced constants) with the retail target; exit 0 only on an exact match. This is the primary scoring loop. |
 | `asm_function_slice.py` | Plans the before/C/after split for a verified function. `--write` only emits generated slices; it does not automatically wire them into the build. |
 | `symbols_to_map.py --all` | Produces the Dolphin `.map` file with `zz_<address>_` placeholders. This is separate from code matching. |
 | `matching_progress.py` | Reads objdiff progress only. It does not validate a candidate function. |
@@ -79,7 +79,7 @@ Tool roles:
 2. `python tools/ls1_task_pack.py <fn_name> --out-dir work` — generate task pack
 3. Write matching C in `work/<Fn>/source.c` (or inline into `src/<module>/<file>.c`)
 4. `python3 configure.py && ninja build/GL5E4F/src/<unit>.o` — compile the candidate object
-5. `python3 tools/verify_fn.py <fn_name> --unit <unit> [--compiled-symbol <symbol>]` — compare compiled instructions against the target
+5. `python3 tools/verify_fn.py <fn_name> --unit <unit> --build [--compiled-symbol <symbol>]` — strict compare against the target (exit 0 = match, 1 = mismatch, 2 = error)
 6. When the candidate is proven, add the split and object wiring, then re-run `python3 configure.py && ninja`
 
 ## Module address ranges
