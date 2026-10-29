@@ -10,7 +10,21 @@ permissions:
   contents: read
 
 jobs:
+  tooling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python tooling
+        run: |
+          python3 -m compileall -q configure.py tools tests
+          python3 -m unittest discover -s tests
+          python3 configure.py
+          mkdir -p artifacts
+          python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map
+      - name: Check shell syntax
+        run: bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh
   build:
+    if: github.server_url == 'https://github.com'
     name: Build and report progress
     runs-on: ubuntu-latest
     env:

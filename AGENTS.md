@@ -114,3 +114,18 @@ Tool roles:
 - Fields: `camelCase`
 - Error strings: `str_FunctionName_Description`
 - No comments in decomp source unless explaining a subtle match constraint
+
+## Repository workflow
+
+Forgejo `ellie/lsw1-decomp` is primary; GitHub and Codeberg are push mirrors.
+`CLAUDE.md` imports this file. See `docs/workflow_status.md` for the migration
+baseline and the difference between portable CI and retail comparison checks.
+
+- `src/`, `include/`: candidate code and types; `config/`: symbols and splits.
+- `tools/`: build adapters and research utilities; `docs/`: retained evidence.
+- `tests/`: portable tooling regressions; `orig/`: local retail input/ciphertext.
+- CI: `python3 -m compileall -q configure.py tools tests`,
+  `python3 -m unittest discover -s tests`, `python3 configure.py`,
+  `python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map`
+  (create `artifacts/` first), and `bash -n` on build/bootstrap/crypto scripts.
+- View the result with `python3 tools/matching_progress.py` after `bash build.sh`.

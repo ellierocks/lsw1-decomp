@@ -63,6 +63,8 @@ class Object:
             "extra_clang_flags": [],
             "lib": None,
             "mw_version": None,
+            "compiler": None,
+            "compiler_version": None,
             "progress_category": None,
             "scratch_preset_id": None,
             "shift_jis": None,
@@ -95,6 +97,10 @@ class Object:
         set_default("asm_dir", config.asm_dir)
         set_default("extab_padding", None)
         set_default("mw_version", config.linker_version)
+        set_default("compiler", "mwcc")
+        set_default("compiler_version", obj.options["mw_version"])
+        if obj.options["compiler"] not in ("mwcc", "prodg"):
+            raise ValueError(f"Unknown compiler backend: {obj.options['compiler']}")
         set_default("scratch_preset_id", config.scratch_preset_id)
         set_default("shift_jis", config.shift_jis)
         set_default("src_dir", config.src_dir)
@@ -708,11 +714,11 @@ def generate_build_ninja(
 
     # ProDG (SN Systems GCC): the real LSW1 toolchain. Driven by tools/prodg_cc.py,
     # which runs CPP -> cc1 -> powerpc-eabi-as -> dtk fixup. Selected per-object via
-    # mw_version "ProDG/<ver>". $cflags are GCC-style (-I/-D/-O...).
+    # compiler="prodg", compiler_version="ProDG/<ver>". $cflags are GCC-style (-I/-D/-O...).
     prodg_cc = config.tools_dir / "prodg_cc.py"
     prodg_wibo = f"--wibo {wrapper} " if wrapper is not None else ""
     prodg_cmd = (
-        f"$python {prodg_cc} --compiler {compiler_path} --as-bin {gnu_as} "
+        f"$python {prodg_cc} --compiler {compilers / '$compiler_version'} --as-bin {gnu_as} "
         f"--dtk {dtk} {prodg_wibo}--dep $basefile.d $cflags -c $in -o $out"
     )
     prodg_implicit: List[Optional[Path]] = [
@@ -986,7 +992,7 @@ def generate_build_ninja(
     link_outputs: List[Path] = []
     if build_config:
         link_steps: List[LinkStep] = []
-        used_compiler_versions: Set[str] = set()
+        used_compiler_versions: Set[Tuple[str, str]] = set()
         source_inputs: List[Path] = []
         source_added: Set[Path] = set()
 
@@ -1034,7 +1040,7 @@ def generate_build_ninja(
 
             # Add appropriate language flag if it doesn't exist already
             # Added directly to the source so it flows to other generation tasks
-            if not any(flag.startswith("-lang") for flag in cflags) and not any(
+            if obj.options["compiler"] == "mwcc" and not any(flag.startswith("-lang") for flag in cflags) and not any(
                 flag.startswith("-lang") for flag in extra_cflags
             ):
                 # Ensure extra_cflags is a unique instance,
@@ -1047,20 +1053,21 @@ def generate_build_ninja(
 
             all_cflags = cflags + extra_cflags
             cflags_str = make_flags_str(all_cflags)
-            used_compiler_versions.add(obj.options["mw_version"])
+            used_compiler_versions.add((obj.options["compiler"], obj.options["compiler_version"]))
 
             # Add MWCC build rule
             lib_name = obj.options["lib"]
             build_rule = "mwcc"
             build_implcit = mwcc_implicit
             variables = {
-                "mw_version": Path(obj.options["mw_version"]),
+                "mw_version": Path(obj.options["compiler_version"]),
+                "compiler_version": Path(obj.options["compiler_version"]),
                 "cflags": cflags_str,
                 "basedir": os.path.dirname(obj.src_obj_path),
                 "basefile": obj.src_obj_path.with_suffix(""),
             }
 
-            if str(obj.options["mw_version"]).startswith("ProDG"):
+            if obj.options["compiler"] == "prodg":
                 build_rule = "prodg"
                 build_implcit = prodg_implicit
             elif obj.options["shift_jis"] and obj.options["extab_padding"] is not None:
@@ -1225,10 +1232,12 @@ def generate_build_ninja(
         n.newline()
 
         # Check if all compiler versions exist
-        for mw_version in used_compiler_versions:
-            mw_path = compilers / mw_version / "mwcceppc.exe"
-            if config.compilers_path and not os.path.exists(mw_path):
-                sys.exit(f"Compiler {mw_path} does not exist")
+        for backend, version in used_compiler_versions:
+            executables = ("CPP.exe", "cc1.exe") if backend == "prodg" else ("mwcceppc.exe",)
+            for executable in executables:
+                compiler_exe = compilers / version / executable
+                if config.compilers_path and not compiler_exe.is_file():
+                    sys.exit(f"Compiler {compiler_exe} does not exist")
 
         # Check if linker exists
         mw_path = compilers / str(config.linker_version) / "mwldeppc.exe"
@@ -1726,12 +1735,12 @@ def generate_objdiff_config(
                 elif value == "nodeferred":
                     reverse_fn_order = False
 
-        compiler_version = COMPILER_MAP.get(obj.options["mw_version"])
+        compiler_version = COMPILER_MAP.get(obj.options["compiler_version"])
         if compiler_version is None:
             # ProDG (the real LSW1 toolchain) has no decomp.me scratch preset, so
             # these units intentionally get no `scratch` block. Only warn for
             # genuinely unexpected (e.g. mistyped MWCC) versions.
-            if not str(obj.options["mw_version"]).startswith("ProDG"):
+            if obj.options["compiler"] != "prodg":
                 print(f"Missing scratch compiler mapping for {obj.options['mw_version']}")
         else:
             cflags_str = make_flags_str(all_cflags)
