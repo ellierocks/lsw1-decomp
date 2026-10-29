@@ -1,75 +1,74 @@
-# CI and decomp.dev Progress Reporting
+# CI and Progress Reporting
 
-This project follows the standard GameCube/Wii decomp convention: a CI workflow
-builds the project, generates an [objdiff](https://github.com/encounter/objdiff)
-`report.json`, and uploads it as an artifact that [decomp.dev](https://decomp.dev)
-ingests to track matching progress over time.
+Two forges run CI for this repository. Forgejo is primary; the GitHub mirror runs
+the jobs that feed the public decomp.dev progress hub. The branch and PR process is in
+[development workflow](development_workflow.md).
+
+## Jobs
+
+| Job | Forge | Trigger | Needs `ORIG_KEY` | Output |
+|-----|-------|---------|------------------|--------|
+| `tooling` (`build.yml`) | Forgejo, GitHub | push to `main`, PRs | no | Unit tests, configure check, map check, shell syntax |
+| `retail` (`build.yml`) | Forgejo | push to `main`, PRs | yes | Decrypts and hash-checks the DOL, runs `bash build.sh` |
+| `build` (`build.yml`) | GitHub | push to `main`, PRs | yes | Builds the patched DTK and report, uploads `GL5E4F_report` |
+| `build-map` (`generate-map.yml`) | GitHub | changes to symbols or map tooling | no | Uploads `GL5E4F-dolphin-map` |
+
+`build.yml` picks the retail job by server: `retail` runs when the server is not
+github.com, and `build` runs only on github.com. Forgejo's `retail` job fails if
+`ORIG_KEY` is missing. GitHub's `build` job skips on fork PRs, where secrets are
+unavailable.
+
+The `retail` and `build` jobs both decrypt `orig/GL5E4F/sys/main.dol.enc`. The
+encrypted blob is committed; the plaintext DOL never is.
+
+## decomp.dev reporting
 
 The matching metric decomp.dev shows is the **objdiff matched-code percentage**
-(per-function instruction matching), which is distinct from the symbol-naming
-percentages in the README status table.
+(per-function instruction matching). This is distinct from the symbol-naming percentages
+in the README status table.
 
-## How it works
+- The `build` job runs `ninja build/GL5E4F/report.json` and uploads it as
+  **`GL5E4F_report`**, the `<VERSION>_report` name decomp.dev expects.
+- decomp.dev reads that artifact from the latest successful run on `main`.
+- The full DOL link does not yet succeed, so the report targets `report.json`
+  directly. It is generated from per-unit objects and does not need a complete link.
+- The patched DTK tolerates this ProDG binary's exception tables. It is built from a
+  pinned commit by `tools/build_patched_dtk.sh`, with patches in `tools/patches/`.
 
-- `.github/workflows/build.yml` runs on every push to `main` and on PRs.
-- It decrypts the original DOL, builds, and runs `ninja build/GL5E4F/report.json`.
-- The report is uploaded as an artifact named **`GL5E4F_report`**
-  (the `<VERSION>_report` convention decomp.dev expects).
-- decomp.dev pulls that artifact from the latest successful `main` run.
+## One-time GitHub setup
 
-> The full DOL link does not yet succeed (early-stage decomp), so CI targets
-> `report.json` directly rather than the SHA-checked link. `report.json` is
-> generated from the per-unit objects and does not require a complete link.
+These steps need repository-admin access. The encrypted DOL is already committed.
 
-## One-time admin setup
+1. Set the `ORIG_KEY` secret: `gh secret set ORIG_KEY`, or in the repository's
+   **Settings → Secrets and variables → Actions**.
+2. Register the repository at <https://decomp.dev/manage/new>.
+3. Install the **decomp.dev GitHub App** on the repository or organization. It sends
+   workflow-completion webhooks and can post progress-diff comments on PRs.
 
-These steps require the original retail DOL and repo-admin access. Do them once.
+Once reports land on `main`, decomp.dev tracks the project automatically.
 
-### 1. Encrypt and commit the original DOL
+## Forgejo setup
 
-The retail DOL is copyrighted and must never be committed in the clear. We commit
-only an AES-256 blob and let CI decrypt it with a secret.
+Set the `ORIG_KEY` secret in the repository's Actions settings on Forgejo. The retail job
+does not run without it.
 
-```sh
-# Pick a strong passphrase and keep it somewhere safe (a password manager).
-export ORIG_KEY='<your-strong-passphrase>'
-
-# With your verified retail DOL at orig/GL5E4F/sys/main.dol:
-bash tools/orig_crypt.sh encrypt        # writes orig/GL5E4F/sys/main.dol.enc
-git add orig/GL5E4F/sys/main.dol.enc
-git commit -m "ci: add encrypted original DOL"
-```
-
-`tools/orig_crypt.sh` verifies the DOL SHA-1 (`95cca08a…`) before encrypting and
-again after decrypting, so a wrong key or wrong DOL fails loudly.
-
-### 2. Set the repository secret
+## Local equivalents
 
 ```sh
-gh secret set ORIG_KEY        # paste the same passphrase
+python3 tools/orig_crypt.sh decrypt   # with ORIG_KEY set, restores orig/GL5E4F/sys/main.dol
+bash build.sh                         # the retail job's steps, locally
+python3 tools/progress.py --matching  # matched-code summary from the report
 ```
 
-Or: repo **Settings → Secrets and variables → Actions → New repository secret**,
-name `ORIG_KEY`.
+## Rotating the key
 
-After this, push to `main` and confirm the **Build** workflow goes green and
-produces the `GL5E4F_report` artifact.
+Re-encrypt with the new passphrase, commit the new `main.dol.enc`, then update
+`ORIG_KEY` on both forges:
 
-### 3. Register on decomp.dev
+```sh
+ORIG_KEY='<new-passphrase>' bash tools/orig_crypt.sh encrypt
+```
 
-1. As a repo admin, go to <https://decomp.dev/manage/new> and add the repository.
-2. Install the **decomp.dev GitHub App** on the repo (or org). The app gives
-   decomp.dev workflow-completion webhooks (instead of 5-minute polling) and lets
-   it post progress-diff comments on PRs.
-
-That's it — once reports land on `main`, decomp.dev tracks the project
-automatically.
-
-## Notes
-
-- **Fork PRs** cannot read secrets, so CI skips the build there (it does not
-  fail). Progress is reported from same-repo runs on `main`.
-- To regenerate the report locally: `ninja build/GL5E4F/report.json`, then
-  `python3 tools/progress.py --matching`.
-- To rotate the key: re-run `encrypt` with a new `ORIG_KEY`, commit the new
-  `.enc`, and update the `ORIG_KEY` secret.
+`tools/orig_crypt.sh` verifies the DOL SHA-1 (`95cca08a…`) before encrypting and after
+decrypting, so a wrong key or wrong DOL fails loudly. Keep the passphrase in a password
+manager; never print it in logs or commit it.
