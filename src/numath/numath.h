@@ -97,7 +97,6 @@ void NuMtxToQuat(struct Quat* dst, struct numtx_s* src);
 void NuQuatToMtx(struct numtx_s* dst, struct Quat* src);
 void NuQuatMul(struct Quat* dst, struct Quat* a, struct Quat* b);
 void NuQuatNormalise(struct Quat* q);
-void NuQuatSlerp(struct Quat* dst, struct Quat* a, struct Quat* b, f32 t);
 s32 NuAtan2(f32 y, f32 x);
 f32 NuRand(void);
 void NuRandSeed(s32 seed);
