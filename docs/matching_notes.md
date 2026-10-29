@@ -3,7 +3,11 @@
 Compiler quirks, naming conventions, and diff-fixing techniques discovered
 while matching LEGO Star Wars: The Video Game (GameCube) functions.
 
-## Compiler: Metrowerks CodeWarrior for GameCube
+> Historical MWCC experiments below predate the ProDG identification. Their
+> compiler and register-allocation conclusions are superseded by
+> [the ProDG workflow](code_matching_workflow.md); retained as research history.
+
+## Historical compiler experiments: Metrowerks CodeWarrior
 
 ### Versions tried
 - `GC/1.3.2` (build.ninja default) — used for all tests below

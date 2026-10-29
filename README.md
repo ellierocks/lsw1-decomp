@@ -29,7 +29,7 @@ python3 tools/progress.py
 
 ## Prerequisites
 
-- **Python 3.8+**
+- **Python 3.10+**, Rust stable and Cargo (to build the patched DTK)
 - **Ninja** build system — `pip install ninja` or system package manager
 - **A clean disc image** of LEGO Star Wars: The Video Game (GameCube, NTSC-U)
 
@@ -39,19 +39,25 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/yourusername/lsw1-decomp.git
+   git clone ssh://forgejo@127.0.0.1:2222/ellie/lsw1-decomp.git
    cd lsw1-decomp
    ```
 
-2. **Place your disc image** in `orig/GL5E4F/`.
+2. **Extract your retail DOL** to `orig/GL5E4F/sys/main.dol` (never commit it):
+   ```sh
+   python3 tools/download_tool.py dtk build/tools/dtk --tag v1.8.3
+   build/tools/dtk vfs cp '/path/to/game.rvz:sys/main.dol' orig/GL5E4F/sys/main.dol
+   ```
 
 3. **Build:**
    ```sh
    ./build.sh
    ```
-   Handles tool download, `dtk dol split`, symbol fixes, and the initial ninja build.
+   Builds the patched splitter, downloads tools, compiles candidate objects and produces an objdiff report. This does not claim a fully matched, relinked game.
 
-> **Known issue:** `dtk dol split` may panic with a regex error on certain symbol configurations. `build.sh` handles this automatically. If the build breaks, run `rm -rf build/ && ./build.sh`.
+Forgejo is primary; the existing [GitHub repository](https://github.com/ellierocks/lsw1-decomp)
+is a public push mirror. Source, symbols and research remain in the original history.
+See [workflow status](docs/workflow_status.md) for verification and limitations.
 
 ## Contributing
 

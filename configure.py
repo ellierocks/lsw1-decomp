@@ -258,7 +258,7 @@ cflags_rel = [
 
 # ProDG (SN Systems GCC) flags — the real LSW1 toolchain. These are GCC-style and
 # are consumed by tools/prodg_cc.py (only preprocessor/codegen flags matter; any
-# leftover mwcc-style flags are ignored). Objects opt in via mw_version=PRODG_VERSION.
+# leftover mwcc-style flags are ignored). Objects opt in via compiler="prodg", compiler_version=PRODG_VERSION.
 PRODG_VERSION = "ProDG/3.9.3"
 cflags_prodg = [
     "-O2",
@@ -314,10 +314,10 @@ config.libs = [
         "cflags": cflags_base,
         "progress_category": "game",
         "objects": [
-            Object(NonMatching, "nucore/nufile.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "numath/nurand.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "numath/nuvec.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "numath/numtx.c", mw_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "nucore/nufile.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/nurand.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/nuvec.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "numath/numtx.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/nu_asm.c"),
             Object(NonMatching, "nu3dx/nuanim.c"),
             # Auto-generated fallback units (auto_NN_*) come from dtk's config.json;

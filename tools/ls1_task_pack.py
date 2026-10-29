@@ -364,14 +364,13 @@ Write a matching C function for `{name}` in the LEGO Star Wars: The Video Game
 
 ## Constraints
 
-- Match the original Metrowerks CodeWarrior for GameCube (PPC 750CL) compiler output exactly.
+- Match the original SN Systems ProDG for GameCube (Gekko) compiler output exactly.
 - Use the provided struct definitions from `context.md`.
 - Name all called functions exactly as given (keep `fn_ADDR` if unnamed).
 - The stack frame and prologue/epilogue must match exactly.
-- Preserve instruction selection — the compiler was not optimizing and
-  was fairly literal with C control flow.
+- Preserve instruction selection; use the ProDG flags in configure.py.
 - Register assignment in the original binary was determined by the
-  Metrowerks calling convention (r3–r10 for parameters, r3 for return,
+  PPC EABI calling convention (r3–r10 for parameters, r3 for return,
   r13–r31 are callee-saved).
 - Use `f32` for `float`, `s32` for `int` / `signed int`, `u32` for
   `unsigned int`, `s16` for `short`, `u16` for `unsigned short`, `s8`
@@ -394,10 +393,10 @@ def gen_context(name, addr, struct_defs_text, module):
 {struct_defs_text}
 
 ## Compilation
-- Compiler: Metrowerks CodeWarrior for GameCube (mwcceppc.exe)
-- CPU: PPC 750CL (Gekko)
+- Compiler: SN Systems ProDG 3.9.3 (tools/prodg_cc.py)
+- CPU: Gekko
 - Calling convention: PPC EABI (r3–r10 params, r3 return,
-  r13–r31 callee-saved, stack frames aligned to 8 bytes)
+  r13–r31 callee-saved, match the target stack frame)
 - ABI: No full IEEE denormals; `frsqrte` for reciprocal sqrt
 """
 

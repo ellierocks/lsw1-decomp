@@ -23,7 +23,7 @@ ProDG is the split GCC pipeline, driven by `tools/prodg_cc.py`
 Opt a module in per-object:
 
 ```py
-Object(NonMatching, "numath/foo.c", mw_version=PRODG_VERSION, cflags=cflags_prodg)
+Object(NonMatching, "numath/foo.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg)
 ```
 
 `verify_fn.py` works unchanged on ProDG objects. Remaining 1–2 instruction diffs
@@ -31,7 +31,7 @@ are now ordinary source-idiom tuning, not a toolchain wall.
 
 ## Current status
 
-- `dtk dol split` is still not the thing to depend on for this repo.
+- `dtk dol split` works with the pinned patch built by `tools/build_patched_dtk.sh`.
 - `tools/verify_fn.py` is the current scoring tool for C candidates.
 - `tools/crashwoc_code_queue.py` is the current CrashWOC candidate generator.
 - `tools/asm_function_slice.py` is planning-only by default; do not treat
