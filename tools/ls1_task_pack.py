@@ -6,8 +6,8 @@ Output (tasks/<FunctionName>/):
   context.md         — Struct definitions, signatures, types
   asm.s              — Extracted assembly for the function
   related_symbols.md — Callers, callees, Mac hints, data refs
-  verify.sh          — Verification instructions (with objdiff screenshot)
-  status.md          — Status: TODO / IN_PROGRESS / MATCHED / BLOCKED
+  verify.sh          — Strict rebuild and verification command
+  status.md          — Status: TODO / IN_PROGRESS / VERIFIED / PROMOTED / PARKED / BLOCKED
 
 In batch mode, functions are sorted by priority score so the easiest
 wins (small + named + Nu2 + struct hints + few callees) appear first.
@@ -112,21 +112,25 @@ def resolve_target(raw: str):
 def extract_asm(addr, size, known_name=None):
     """Extract assembly for the function at addr from the monolithic ASM file."""
     candidates = [f"fn_{addr:08X}"]
-    if known_name and any(known_name.startswith(p) for p in NU2_PREFIXES):
+    if known_name:
         candidates.insert(0, known_name)
-    lines = ASM_FILE.read_text().splitlines()
-    for candidate in candidates:
-        out = []
-        capture = False
-        for line in lines:
-            if f".fn {candidate}" in line:
-                capture = True
-            if capture:
-                out.append(line)
-            if capture and f".endfn {candidate}" in line:
-                break
-        if out:
-            return "\n".join(out) + "\n"
+    paths = [ASM_FILE] + sorted(ASM_FILE.parent.rglob("*.s"))
+    seen = set()
+    for path in paths:
+        if path in seen or not path.is_file():
+            continue
+        seen.add(path)
+        lines = path.read_text().splitlines()
+        for candidate in candidates:
+            out = []
+            capture = False
+            for line in lines:
+                if re.match(r"\s*\.fn\s+" + re.escape(candidate) + r"(?:,|\s|$)", line):
+                    capture = True
+                if capture:
+                    out.append(line)
+                if capture and re.match(r"\s*\.endfn\s+" + re.escape(candidate) + r"(?:\s|$)", line):
+                    return "\n".join(out) + "\n"
     return None
 
 
@@ -362,6 +366,17 @@ Write a matching C function for `{name}` in the LEGO Star Wars: The Video Game
 - **Section:** `{sec}`
 - **Source module:** `{module or "unknown"}`
 
+## Experiment loop
+
+Read `docs/ai_hillclimb.md`. Establish a compiled baseline, then change one
+source-level hypothesis per attempt. Record each with `tools/hillclimb.py try`
+using `--unit`, `--source` and `--hypothesis`. Keep the best source, inspect the
+first differing instructions, and park the target at the experiment budget.
+A strict function match is VERIFIED; only linked retail-range checks make it
+PROMOTED. Screenshots and mnemonic similarity are not acceptance evidence.
+Donor names and generated caller labels are hypotheses; check current evidence
+and rejected renames before using them as semantic facts.
+
 ## Constraints
 
 - Match the original SN Systems ProDG for GameCube (Gekko) compiler output exactly.
@@ -438,40 +453,15 @@ def gen_related_symbols(name, addr, callers, callees, mac_hits, data_refs):
 
 
 def gen_verify(name, addr, size, module):
-    obj_path = f"build/GL5E4F/obj/{module or 'auto'}/{name}.o"
     return f"""#!/usr/bin/env bash
-# Verification for {name} (0x{addr:08X})
-#
-# Steps:
-#   1. Write matching C in the appropriate src/<module>/{name}.c
-#   2. Add the object to configure.py under the {module or '???'} module
-#   3. Reconfigure and build:
-#
-#        python3 configure.py && ninja
-#
-#   4. Check the objdiff report:
-#
-#        ninja build/GL5E4F/report.json
-#        objdiff-cli report generate --config objdiff.json
-#
-#      Open build/GL5E4F/report.html in a browser for the visual diff,
-#      or run objdiff-cli directly:
-#
-#        objdiff-cli diff \\
-#          --base build/GL5E4F/obj/auto_01_800034A0_text.o \\
-#          --target {obj_path} \\
-#          --symbol {name} \\
-#          --output /tmp/{name}_diff.png
-#
-#   5. Screenshot the objdiff UI showing 100% match and save to:
-#      tasks/{name}/match_screenshot.png
-#
-# Troubleshooting:
-#   - Stack mismatch? Check prologue stwu / epilogue addi sp
-#   - Instruction mismatch? Verify register assignment matches
-#   - Size mismatch? Check for extra padding or missing code
-#
-echo "Run: ninja build/GL5E4F/report.json"
+# Strict verification for {name} (0x{addr:08X}). Run from repository root.
+# Configure the candidate as NonMatching with compiler="prodg" first.
+# Usage: bash work/{name}/verify.sh <unit> [compiled-symbol]
+set -euo pipefail
+unit=${{1:?Pass the configured comparison unit, e.g. numath/nuvec}}
+extra=()
+if [[ $# -ge 2 ]]; then extra+=(--compiled-symbol "$2"); fi
+exec python3 tools/verify_fn.py {name} --unit "$unit" --build --strict-symbols "${{extra[@]}}"
 """
 
 
@@ -483,7 +473,9 @@ Update this file as you work through the task.
 Valid statuses:
   - TODO        — not started
   - IN_PROGRESS — actively working
-  - MATCHED     — C compiles and matches 100%
+  - VERIFIED    — strict function match; not yet linked
+  - PROMOTED    — linked retail ranges verified
+  - PARKED      — budget exhausted; record next hypothesis
   - BLOCKED     — blocked on a dependency or question
 
 ## Notes
@@ -622,36 +614,15 @@ def gen_combined_related_symbols(cluster):
 
 
 def gen_object_verify(name, addr, cluster):
-    module = None
-    for mod, (lo, hi) in MODULES.items():
-        if lo <= addr < hi:
-            module = mod
-            break
-    cluster_names = [n for _, n, _, _ in cluster]
-    obj_path = f"build/GL5E4F/obj/{module or 'auto'}/cluster_{name}.o"
-    cluster_list = "\n#   ".join(cluster_names)
+    commands = "\n".join(
+        f'python3 tools/verify_fn.py {symbol} --unit "$unit" --build --strict-symbols'
+        for _, symbol, _, _ in cluster)
     return f"""#!/usr/bin/env bash
-# Object-neighborhood verification for {name} (0x{addr:08X})
-#
-# This task uses object-neighborhood matching — all {len(cluster)} functions
-# in the cluster are compiled together as a single .o file.
-#
-# Functions in cluster:
-#   {cluster_list}
-#
-# Steps:
-#   1. Fill in all function stubs in candidate.c
-#      (you may also split into separate files under src/<module>/)
-#   2. Add the object to configure.py:
-#        Object('{module or '???'}', 'cluster_{name}.c', ...)
-#   3. Reconfigure and build:
-#        python3 configure.py && ninja
-#   4. Check the objdiff report:
-#        ninja build/GL5E4F/report.json
-#        objdiff-cli report generate --config objdiff.json
-#   5. Check each function in the cluster for 100% match.
-#
-echo "Run: ninja build/GL5E4F/report.json"
+# Verify every function in the configured NonMatching ProDG cluster.
+# Read docs/ai_hillclimb.md before promotion.
+set -euo pipefail
+unit=${{1:?Pass the configured comparison unit}}
+{commands}
 """
 
 
@@ -782,6 +753,8 @@ def generate_object_pack(name, addr, size, out_root, mac_hits, callee_list, asm,
         return
 
     task_dir = out_root / name
+    if task_dir.exists() and any(task_dir.iterdir()):
+        raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
 
     struct_text, module = extract_struct_defs(name, addr)
@@ -817,7 +790,7 @@ def main():
     parser.add_argument("--all", action="store_true",
                         help="For module targets, generate for all unnamed")
     parser.add_argument("--status", default="TODO",
-                        choices=["TODO", "IN_PROGRESS", "MATCHED", "BLOCKED"],
+                        choices=["TODO", "IN_PROGRESS", "VERIFIED", "PROMOTED", "PARKED", "BLOCKED"],
                         help="Initial status for generated tasks (default: TODO)")
     parser.add_argument("--index", action="store_true",
                         help="Re-index existing task directories without regenerating")
@@ -913,6 +886,7 @@ def main():
         generate_pack(name, addr, size, out_root, mac_hits, callee_list, asm, args.status, sec)
 
     # Write index
+    out_root.mkdir(parents=True, exist_ok=True)
     index_text = gen_index([], out_root)
     if index_text:
         (out_root / "index.md").write_text(index_text)
@@ -932,6 +906,8 @@ def generate_pack(name, addr, size, out_root, mac_hits=None, callee_list=None, a
         return
 
     task_dir = out_root / display_name
+    if task_dir.exists() and any(task_dir.iterdir()):
+        raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
 
     if mac_hits is None:

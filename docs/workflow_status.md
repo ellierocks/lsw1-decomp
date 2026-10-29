@@ -4,6 +4,14 @@ Current verification baseline and known limits, as of 2026-10-29. Forges, CI job
 the PR process are described in [development workflow](development_workflow.md) and
 [CI and progress reporting](ci_and_decomp_dev.md).
 
+## AI iteration
+
+[AI hillclimb](ai_hillclimb.md) is the default agent workflow.
+`tools/hillclimb.py` records rebuilt, strict-verifier experiments with source
+snapshots, scores and bounded stop rules. Task packs find assembly across split
+units and generate executable strict checks. The active agent proposes source
+changes; this is not an unattended model runner or automatic promotion tool.
+
 ## Toolchain
 
 - The game was built with **ProDG** (SN Systems GCC). `tools/prodg_cc.py` drives it.

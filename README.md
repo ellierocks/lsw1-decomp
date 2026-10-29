@@ -89,9 +89,17 @@ Development happens on Forgejo, and the GitHub repository is a public mirror. Se
 Read [development workflow](docs/development_workflow.md) first. It covers branches,
 pull requests, the checks to run, CI jobs and merge requirements.
 
+### AI driven C matching
+
+Follow the [AI hillclimb](docs/ai_hillclimb.md): select a function, compile a
+baseline with ProDG, record one hypothesis per experiment, retain the best source,
+and promote only after strict object and linked-range verification. The local
+`tools/hillclimb.py` ledger records attempts and enforces search budgets; the
+active agent supplies the source changes.
+
 ### Naming Symbols
 
-The fastest path to progress. Update `config/GL5E4F/symbols.txt` with descriptive names
+Supporting evidence for C matching. Update `config/GL5E4F/symbols.txt` with descriptive names
 in `PascalCase`, for example `NuAnimLoad` instead of `fn_8001A234`.
 
 ```sh

@@ -91,6 +91,11 @@ and never print the key in logs. Rotation steps are in
 
 ## Matching evidence
 
+C matching sessions follow the bounded [AI hillclimb](ai_hillclimb.md). PRs
+retain the baseline, best attempt, target addresses and exact verification
+commands. Local experiment snapshots stay under ignored `work/`; include a
+concise explanation of what improved and whether any bytes were promoted.
+
 Symbol naming and matched code are separate measures. Naming (`config/GL5E4F/symbols.txt`)
 moves quickly from donor evidence. Matched code is what the objdiff report and decomp.dev
 measure. Report both, and state which one a change affects.

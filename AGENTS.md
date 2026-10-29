@@ -7,23 +7,29 @@ Retail target: `GL5E4F`. Compiler: **SN Systems ProDG (GCC)**, driven by
 like CrashWOC are MWCC, so their source patterns transfer but their codegen does
 not.)
 
-## Quick start
+## Default agent task: C matching
+
+Run the bounded [AI hillclimb](docs/ai_hillclimb.md). Select one function,
+establish a compiled baseline, change one source hypothesis, rebuild and record
+strict verifier evidence. Keep the best candidate; park a plateau with a concrete
+next hypothesis. Naming and donor mining are supporting work when needed by the
+selected target. Do not report renamed symbols as matching progress.
 
 ```sh
-bash build.sh                                    # full build (needs orig/GL5E4F/sys/main.dol)
-ninja build/GL5E4F/report.json                   # refresh progress
-
-python tools/ls1_match_plan.py nuanim            # see unnamed candidates
-python tools/ls1_lookup_symbol.py 0x8001E76C     # cross-reference
-python tools/ls1_rename.py --suggest fn_8001E76C # check Mac for name ideas
-python tools/ls1_rename.py fn_8001E76C NuAnimKeyLerp  # apply + verify
-python tools/ls1_task_pack.py NuAnimKeyLerp      # generate task pack for C work
-python tools/matching_progress.py                # show current code matching progress
-python tools/binary_mining_pipeline.py           # refresh donor-binary evidence
+bash build.sh
+python3 tools/matching_progress.py
+python3 tools/ls1_task_pack.py NuVecScale --out-dir work
+# Configure a NonMatching ProDG comparison unit before recording attempts.
+python3 tools/hillclimb.py try NuVecScale --unit numath/nuvec \
+  --source src/numath/nuvec.c --hypothesis 'baseline'
+python3 tools/hillclimb.py status NuVecScale --unit numath/nuvec
 ```
 
-Portable checks (no retail DOL needed) are listed under
-[Repository workflow](#repository-workflow).
+A strict function match is VERIFIED, not PROMOTED. Promotion also requires unit
+sections/relocations and linked retail ranges to match, with no regressions.
+Never weaken the oracle, pin changes, or split boundaries to improve a score.
+
+Portable checks are listed under [Repository workflow](#repository-workflow).
 
 ## Symbol sources (priority order)
 
@@ -77,11 +83,14 @@ Tool roles:
 
 ## C matching workflow
 
+The default iteration, budgets and handoff contract are in
+[AI hillclimb](docs/ai_hillclimb.md).
+
 1. `python tools/crashwoc_code_queue.py /tmp/crashwoc-decomp` — refresh exact donor-guided candidates
 2. `python tools/ls1_task_pack.py <fn_name> --out-dir work` — generate task pack
 3. Write matching C in `work/<Fn>/source.c` (or inline into `src/<module>/<file>.c`)
 4. `python3 configure.py && ninja build/GL5E4F/src/<unit>.o` — compile the candidate object
-5. `python3 tools/verify_fn.py <fn_name> --unit <unit> --build [--compiled-symbol <symbol>]` — strict compare against the target (exit 0 = match, 1 = mismatch, 2 = error)
+5. `python3 tools/verify_fn.py <fn_name> --unit <unit> --build --strict-symbols [--compiled-symbol <symbol>]` — strict compare against the target (use `--strict-symbols`: 0 = verified, 1 = mismatch, 2 = error, 3 = unverified references)
 6. When the candidate is proven, add the split and object wiring, then re-run `python3 configure.py && ninja`
 
 ## Module address ranges

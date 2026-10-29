@@ -48,3 +48,6 @@ dtk-split.log
 # Miscellaneous
 /*.txt
 *.exe
+
+# Local AI experiments (candidate snapshots, verifier output)
+/work/
