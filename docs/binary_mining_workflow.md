@@ -56,6 +56,11 @@ readiness and output status.
 4. Re-run the pipeline after a rename batch. More anchor gaps become usable as
    `symbols.txt` gains names.
 
+   Committed outputs capture the symbols at the time they were generated; see
+   [docs/symbol_donors/README.md](symbol_donors/README.md) for which are stale
+   and for `rejected_renames.tsv`, which the rename tools use to avoid
+   re-suggesting names already ruled out for an address.
+
 ## Evidence Priority
 
 Use this order when evidence conflicts:

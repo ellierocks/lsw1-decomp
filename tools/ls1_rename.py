@@ -14,6 +14,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    from tools.rejected_renames import load_rejected
+except ImportError:
+    from rejected_renames import load_rejected
+
 ROOT = Path(__file__).resolve().parent.parent
 SYMTAB = ROOT / "config/GL5E4F/symbols.txt"
 MAC_TSVS = [
@@ -88,7 +93,8 @@ def find_mac_suggestions(fn_addr):
             if name.startswith(prefix) and name != next_name:
                 suggestions.append((name, mac_syms[name]))
 
-    return sorted(set(suggestions))
+    rejected = load_rejected().get(fn_addr, ())
+    return sorted(s for s in set(suggestions) if s[0] not in rejected)
 
 
 def main():
@@ -143,6 +149,12 @@ def main():
 
     if old_line is None:
         print(f"Error: '{old_name}' not found in symbols.txt")
+        sys.exit(1)
+
+    old_addr = [a for a, n, s, l in load_symtab_funcs() if n == old_name]
+    if old_addr and new_name in load_rejected().get(old_addr[0], ()):
+        print(f"Error: '{new_name}' is listed as rejected for 0x{old_addr[0]:08X} "
+              "in docs/symbol_donors/rejected_renames.tsv")
         sys.exit(1)
 
     print(f"Old: {old_line}")
