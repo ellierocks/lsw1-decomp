@@ -77,7 +77,7 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
    ```sh
    bash build.sh
    ```
-   This verifies the input, bootstraps the patched splitter, compiles candidate objects
+   This verifies the input, bootstraps the patched splitter, compiles candidate objects,
    generates the objdiff report, links `main.dol` and checks promoted units against
    retail. It does not produce a fully matched, relinked game.
 
