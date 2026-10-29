@@ -1,5 +1,9 @@
 # Code Matching Workflow
 
+Start with the [AI hillclimb](ai_hillclimb.md) for target selection, bounded
+experiments, scoring and handoff. This page defines the verification and promotion
+contract; partial scores never relax that contract.
+
 This project now has a donor-guided C matching path, but it is not a fully
 automatic “drop in a C file and the build will link it” flow yet.
 
