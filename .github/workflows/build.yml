@@ -23,6 +23,20 @@ jobs:
           python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map
       - name: Check shell syntax
         run: bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh
+  retail:
+    name: Retail comparison (Forgejo)
+    if: github.server_url != 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: apt-get update && apt-get install -y --no-install-recommends ninja-build
+      - name: Decrypt and verify retail DOL
+        env:
+          ORIG_KEY: ${{ secrets.ORIG_KEY }}
+        run: bash tools/orig_crypt.sh decrypt
+      - name: Compile candidates and generate report
+        run: bash build.sh
   build:
     if: github.server_url == 'https://github.com'
     name: Build and report progress

@@ -35,9 +35,9 @@ Portable CI runs `python3 -m compileall -q configure.py tools tests`,
 checks and Dolphin map generation without proprietary input. The tooling job
 passed locally in the Forgejo runner image. Existing GitHub encrypted-DOL
 build/report and map artifact jobs remain GitHub-only because their artifact
-actions require GitHub. Forgejo does not yet have the existing ORIG_KEY secret;
-its tooling check does not certify a retail build. Full comparison was verified
-locally. Release-plz is not applicable: this is not a versioned Rust crate.
+actions require GitHub. Forgejo ORIG_KEY is provisioned from the verified `orig` password-store entry.
+The Forgejo retail job decrypts and hash-checks the DOL, then runs `bash build.sh`
+to compile candidates and generate the report. It fails if the key is missing. Release-plz is not applicable: this is not a versioned Rust crate.
 
 Renovate configuration covers supported dependency managers such as Actions;
 compiler and DTK pins still require deliberate toolchain verification.
