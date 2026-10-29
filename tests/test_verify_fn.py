@@ -322,6 +322,15 @@ class SyntheticDataTests(Env):
         self.assertEqual(code, 1, out)
         self.assertEqual(json.loads(out)["differences"][0]["kind"], "data")
 
+    def test_bss_in_mine_against_initialised_retail_data_stays_unverified(self):
+        self.retail_with(bytes(4) + bytes(4))
+        relocs_m = [(0, R_HA, "gvar", 0), (4, R_LO, "gvar", 0), (8, R_REL24, "ext_a", 0)]
+        self.mine(self.float_funcs(), undefined=["ext_a"], relocs=relocs_m, bss=4,
+                  extra_symbols=[("gvar", ".sbss", 0, 4)])
+        code, out, err = self.run_with_dol("--strict-symbols")
+        self.assertEqual(code, 3, out + err)
+        self.assertIn("section placement does not)", out)
+
     def test_target_object_not_matching_dol_is_error(self):
         const = struct.pack(">f", 1.0)
         self.retail_with(const)
@@ -528,10 +537,10 @@ class GenuineProdgTests(unittest.TestCase):
                 self.assertIn("retail DOL byte check: yes", r.stdout)
                 self.assertIn("RESULT: MATCH", r.stdout)
 
-    def test_global_reference_stays_unverified_where_retail_layout_differs(self):
+    def test_global_reference_is_verified_against_retail_data(self):
         r = run_real("NuRandInt", "--quiet", "--strict-symbols")
-        self.assertEqual(r.returncode, 3, r.stdout)
-        self.assertIn("section placement does not", r.stdout)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("verified: 4 bytes identical to retail", r.stdout)
 
     def test_function_checked_against_another_functions_code_fails(self):
         r = run_real("NuRandInt", "--quiet", "--compiled-symbol", "NuRandIntPtr")
