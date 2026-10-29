@@ -1,0 +1,17 @@
+# address	rejected_name	current_name	reason
+0x80017EA0	NuAnimCurve2SetApplyToJoint	NuAnimCurve2SetApplyToJointTransLoc	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x8001752C	NuAnimCurve2CalcValEx	NuAnimCurve2SetApplyBlendToJoint2TransLoc	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x80018558	NuAnimDataRead	NuAnimCurveSetApplyToMatrix	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x800187F4	NuAnimDataFindVersion	NuAnimCurve2SetApplyToMatrix	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x80018F78	NuAnimData2LoadBuffEx	NuHGobjEval	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x80019248	NuAnimData2FixPtrs	NuHGobjEvalAnim2Root	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x80019634	NuQuatSlerp	NuHGobjEvalDwa2	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x800197B8	NuAnimCurveSetApplyToMatrix	NuHGobjEvalDwaBlend2	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x80021784	NuAnimCurve2SetApplyBlendToJoint2TransLoc	fn_80021784	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x800225C4	NuAnimCurve2SetApplyToJointTransLoc	fn_800225C4	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x80022A88	NuAnimCurve2SetApplyToMatrix	fn_80022A88	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x8002303C	NuAnimCurve2SetApplyBlendToJoint2	fn_8002303C	PR #5: shifted/swapped gap-fill or CrashWOC size-coincidence name; see animation_restart_evidence.md
+0x800234A8	NuCameraDestroy	fn_800234A8	PR #5 rejected candidate: body is not camera code; see animation_restart_evidence.md
+0x80023628	NuCameraLookAt	fn_80023628	PR #5 rejected candidate: body is not camera code; see animation_restart_evidence.md
+0x8001610C	pftaOn	fn_8001610C	PR #5 rejected candidate: cross-module, body shape unrelated; see animation_restart_evidence.md
+0x80016154	pftaOff	fn_80016154	PR #5 rejected candidate: cross-module, body shape unrelated; see animation_restart_evidence.md

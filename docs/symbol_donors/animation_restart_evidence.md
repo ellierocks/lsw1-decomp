@@ -119,7 +119,9 @@ Outside the apply/eval cluster, so left for a later phase. Do not rely on them.
 - Generated artifacts (`call_graph.tsv`, `call_graph_rename_suggestions.md`,
   the mac-anchor queues, `named_to_unnamed_callees.md`) still use the old
   names. They were intentionally not regenerated so earlier research is
-  preserved. Treat names in them as pre-correction.
+  preserved. Treat names in them as pre-correction. The full list of affected
+  files, the reason they were not regenerated, and the per-address rejected
+  names are in [README.md](README.md) and [rejected_renames.tsv](rejected_renames.tsv).
 
 ## Next C-matching queue
 

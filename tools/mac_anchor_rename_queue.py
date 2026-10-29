@@ -20,6 +20,11 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    from tools.rejected_renames import load_rejected
+except ImportError:
+    from rejected_renames import load_rejected
+
 
 ROOT = Path(__file__).resolve().parents[1]
 GC_SYMBOLS = ROOT / "config" / "GL5E4F" / "symbols.txt"
@@ -292,7 +297,12 @@ def confidence(score: int, gap_exact: bool, source: str, size_points: int) -> st
     return "REVIEW"
 
 
-def build_candidates(gc_funcs: list[GcFunc], mac_funcs: list[MacFunc]) -> list[dict[str, object]]:
+def build_candidates(
+    gc_funcs: list[GcFunc],
+    mac_funcs: list[MacFunc],
+    rejected: dict[int, set[str]] | None = None,
+) -> list[dict[str, object]]:
+    rejected = load_rejected() if rejected is None else rejected
     gc_named = {f.name for f in gc_funcs if not is_auto_gc(f.name)}
     mac_by_name: dict[str, list[int]] = {}
     for i, f in enumerate(mac_funcs):
@@ -336,6 +346,8 @@ def build_candidates(gc_funcs: list[GcFunc], mac_funcs: list[MacFunc]) -> list[d
                 gc = gc_gap[offset]
                 mac = mac_gap[offset]
                 if not is_auto_gc(gc.name) or mac.name in gc_named:
+                    continue
+                if mac.name in rejected.get(gc.address, ()):
                     continue
                 score = mac.weight
                 score += 3 if gap_exact else 0

@@ -10,9 +10,15 @@ Usage:
     python tools/batch_rename.py --dry-run renames.txt
 """
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+try:
+    from tools.rejected_renames import load_rejected
+except ImportError:
+    from rejected_renames import load_rejected
 
 ROOT = Path(__file__).resolve().parent.parent
 SYMTAB = ROOT / "config/GL5E4F/symbols.txt"
@@ -48,13 +54,18 @@ def main():
         if "=" in line and not line.strip().startswith("#"):
             existing_names.add(line.split("=")[0].strip())
 
+    rejected = load_rejected()
     applied = []
     errors = []
     for old, new in pairs:
         target = f"{old} ="
-        found = any(ln.startswith(target) for ln in result.splitlines())
-        if not found:
+        old_line = next((ln for ln in result.splitlines() if ln.startswith(target)), None)
+        if old_line is None:
             errors.append(f"NOT FOUND: {old}")
+            continue
+        addr = re.search(r":0x([0-9A-Fa-f]+);", old_line)
+        if addr and new in rejected.get(int(addr.group(1), 16), ()):
+            errors.append(f"REJECTED: {new} is listed in rejected_renames.tsv for {old}")
             continue
         if new in existing_names and new != old:
             errors.append(f"CONFLICT: {new} already exists (trying to rename {old})")
