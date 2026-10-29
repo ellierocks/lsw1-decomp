@@ -109,6 +109,12 @@ Limitations (what a `MATCH` does not prove):
 - Only the named function's code and the data it references through
   relocations are compared; data layout, symbol placement, section choice
   (mine `.sbss` vs retail `.sdata`), alignment and linker ordering are not.
+- Referenced data is compared only for the width of the first load or store
+  that uses it (at most 8 bytes); the rest of a table or struct is not checked.
+- Two separate literals in mine that retail shares through one symbol are
+  reported as a mismatch (the name mapping is strictly one-to-one).
+- Exit 0 includes `MATCH (unverified references)`; scripts that must reject
+  names mapped only by consistency should pass `--strict-symbols` (exit 3).
 - Address-taken data (`addi rX, sym@l`, SDA21 `li`) and bss have no width or
   retail bytes to compare and stay "unverified".
 - Debug-only differences and anything after linking (SDA base, final addresses)

@@ -311,6 +311,17 @@ class SyntheticDataTests(Env):
         self.assertEqual(code, 1)
         self.assertEqual(json.loads(out)["differences"][0]["kind"], "data")
 
+    def test_locally_defined_symbol_with_target_name_is_still_data_checked(self):
+        self.retail_with(struct.pack(">f", 1.0) + bytes(4))
+        relocs_m = [(0, R_HA, "lbl_80200000", 0), (4, R_LO, "lbl_80200000", 0),
+                    (8, R_REL24, "ext_a", 0)]
+        self.mine(self.float_funcs(), undefined=["ext_a"], relocs=relocs_m,
+                  rodata=struct.pack(">f", 2.0) + bytes(4),
+                  extra_symbols=[("lbl_80200000", ".rodata", 0, 4)])
+        code, out, _ = self.run_with_dol("--json")
+        self.assertEqual(code, 1, out)
+        self.assertEqual(json.loads(out)["differences"][0]["kind"], "data")
+
     def test_target_object_not_matching_dol_is_error(self):
         const = struct.pack(">f", 1.0)
         self.retail_with(const)
@@ -331,6 +342,14 @@ class SyntheticDataTests(Env):
 
 
 class ErrorHandlingTests(Env):
+    def test_truncated_object_is_error_not_mismatch(self):
+        self.target()
+        good = build_elf([("Foo", FOO), ("Bar", [BLR, BLR])], undefined=["ext_a"],
+                         relocs=FOO_RELOCS)
+        self.put("mine", good[:len(good) - 40])
+        code, _, err = self.run_tool()
+        self.assertEqual(code, 2, err)
+
     def test_unknown_function(self):
         self.target(), self.mine()
         out, err = io.StringIO(), io.StringIO()

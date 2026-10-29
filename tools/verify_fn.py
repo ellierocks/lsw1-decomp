@@ -145,6 +145,7 @@ class Elf:
         for i, (name, typ, flags, _addr, off, size, *_rest) in enumerate(raw):
             self.sections.append(Section(i, self._cstr(strtab[4] + name), typ, flags, off, size))
         self.symbols: list[Symbol] = []
+        self._function_symbols: Optional[list[Symbol]] = None
         self.relocs: dict[int, list[RawReloc]] = {}
         for i, (_n, typ, _f, _a, off, size, link, info, _al, _es) in enumerate(raw):
             if typ == SHT_SYMTAB:
@@ -172,6 +173,11 @@ class Elf:
         return self.data[sec.offset: sec.offset + sec.size]
 
     def function_symbols(self) -> list[Symbol]:
+        if self._function_symbols is None:
+            self._function_symbols = self._build_function_symbols()
+        return self._function_symbols
+
+    def _build_function_symbols(self) -> list[Symbol]:
         return [s for s in self.symbols
                 if s.shndx and s.shndx < len(self.sections)
                 and self.sections[s.shndx].is_code
@@ -480,7 +486,8 @@ class Comparer:
         """('same'|'alias'|'mapped'|'diff', detail) for an otherwise equal pair."""
         if t.rtype != m.rtype:
             return "diff", f"relocation type: target {t.type_name} vs mine {m.type_name}"
-        if not m.is_section and not t.is_section and m.name == t.name and m.addend == t.addend:
+        if (not m.is_section and not t.is_section and m.name == t.name and m.addend == t.addend
+                and (m.loc is None or m.loc_is_code)):
             return "same", ""
         taddr = None if t.is_section else self.symbols.addr(t.name)
         if m.loc is not None and not m.loc_is_code:
@@ -894,7 +901,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     try:
         rep, target, mine, tdis, mdis, tpath, mpath, dol_checked = verify(args)
-    except ToolError as e:
+    except (ToolError, struct.error, ValueError, IndexError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)
         if args.json:
             print(json.dumps({"function": args.name, "verdict": "ERROR", "exit_code": EXIT_ERROR,

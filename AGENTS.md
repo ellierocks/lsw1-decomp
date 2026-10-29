@@ -59,7 +59,7 @@ Tool roles:
 | Tool | Role |
 |------|------|
 | `crashwoc_code_queue.py` | Generates donor-guided candidate rows from a local CrashWOC checkout. It does not change build wiring. |
-| `verify_fn.py` | Strictly compares a built candidate's instruction words and relocations (and referenced constants) with the retail target; exit 0 only on an exact match. This is the primary scoring loop. |
+| `verify_fn.py` | Strictly compares a built candidate's instruction words and relocations (and referenced constants) with the retail target; exit 0 only when code and relocations match exactly (add `--strict-symbols` to also reject unverified name mappings). This is the primary scoring loop. |
 | `asm_function_slice.py` | Plans the before/C/after split for a verified function. `--write` only emits generated slices; it does not automatically wire them into the build. |
 | `symbols_to_map.py --all` | Produces the Dolphin `.map` file with `zz_<address>_` placeholders. This is separate from code matching. |
 | `matching_progress.py` | Reads objdiff progress only. It does not validate a candidate function. |
