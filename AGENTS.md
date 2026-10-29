@@ -10,7 +10,7 @@ not.)
 ## Quick start
 
 ```sh
-bash build.sh                                    # full build
+bash build.sh                                    # full build (needs orig/GL5E4F/sys/main.dol)
 ninja build/GL5E4F/report.json                   # refresh progress
 
 python tools/ls1_match_plan.py nuanim            # see unnamed candidates
@@ -20,8 +20,10 @@ python tools/ls1_rename.py fn_8001E76C NuAnimKeyLerp  # apply + verify
 python tools/ls1_task_pack.py NuAnimKeyLerp      # generate task pack for C work
 python tools/matching_progress.py                # show current code matching progress
 python tools/binary_mining_pipeline.py           # refresh donor-binary evidence
-bash build.sh                                    # final check
 ```
+
+Portable checks (no retail DOL needed) are listed under
+[Repository workflow](#repository-workflow).
 
 ## Symbol sources (priority order)
 
@@ -71,7 +73,7 @@ Tool roles:
 5. `python tools/ls1_rename.py --suggest <fn_name>` — check Mac for name hints
 6. `python tools/ls1_rename.py <old> <new>` — apply and build-verify
 7. `bash build.sh` — final check
-8. Commit after each module phase
+8. Commit each module phase on the topic branch; see [development workflow](docs/development_workflow.md)
 
 ## C matching workflow
 
@@ -117,15 +119,23 @@ Tool roles:
 
 ## Repository workflow
 
-Forgejo `ellie/lsw1-decomp` is primary; GitHub and Codeberg are push mirrors.
-`CLAUDE.md` imports this file. See `docs/workflow_status.md` for the migration
-baseline and the difference between portable CI and retail comparison checks.
+The process lives in [docs/development_workflow.md](docs/development_workflow.md): remotes,
+branches, PRs, CI jobs and merge rules. Summary for agents:
 
-- `src/`, `include/`: candidate code and types; `config/`: symbols and splits.
-- `tools/`: build adapters and research utilities; `docs/`: retained evidence.
-- `tests/`: portable tooling regressions; `orig/`: local retail input/ciphertext.
-- CI: `python3 -m compileall -q configure.py tools tests`,
+- Forgejo is primary; GitHub and Codeberg are mirrors. Do not push to the mirrors.
+- Never commit directly to `main`. Work on a topic branch and open a PR.
+- Stage explicit paths. Use Conventional Commits with a lowercase imperative description.
+- Before pushing, run the portable checks:
+  `python3 -m compileall -q configure.py tools tests`,
   `python3 -m unittest discover -s tests`, `python3 configure.py`,
-  `python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map`
-  (create `artifacts/` first), and `bash -n` on build/bootstrap/crypto scripts.
-- View the result with `python3 tools/matching_progress.py` after `bash build.sh`.
+  `python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map` (create `artifacts/`
+  first), and `bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh`.
+- Run `bash build.sh` when a change touches splitting, configuration, compiler wiring,
+  candidate sources or the report, then check `python3 tools/matching_progress.py`.
+- A PR is ready only when required CI passes on its current head.
+
+Layout: `src/`, `include/` hold candidate code and types; `config/` holds symbols and splits;
+`tools/` holds build adapters and research utilities; `docs/` holds retained evidence;
+`tests/` holds portable tooling regressions; `orig/` holds local retail input and ciphertext.
+
+`CLAUDE.md` imports this file.
