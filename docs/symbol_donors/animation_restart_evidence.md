@@ -113,9 +113,17 @@ Outside the apply/eval cluster, so left for a later phase. Do not rely on them.
 
 ## Housekeeping notes
 
-- `src/numath/numath.h:100` still declares `NuQuatSlerp`. The symbol is no
-  longer mapped at `0x80019634`. No C defines it, so nothing breaks, but the
-  declaration should be revisited when quaternion functions are recovered.
+- The stale `NuQuatSlerp` prototype was removed from `src/numath/numath.h`;
+  nothing referenced it. No verified `NuQuatSlerp` exists in
+  `config/GL5E4F/symbols.txt`. The Mac demo has
+  `NuQuatSlerp(nuquat_s*, nuquat_s*, nuquat_s*, float)` at `0x160e10`
+  (0x1C0 bytes, after `NuQuatLerp`/`NuQuatHermiteInt`), so the function should
+  exist in retail, but no GC candidate was found: the only 0x184-sized
+  functions are `NuHGobjEvalDwa2`, `fn_8001D0D8`, `NuAnimKeyBlend`,
+  `fn_80024A34`, `AIScriptLoadScriptTxt`, `fn_800BB7CC` and `fn_8014165C`
+  (none in numath, none quaternion-shaped), and the CrashWOC size sequence
+  `NuQuatMul`/`NuQuatNormalise`/`NuQuatSlerp` does not recur in the numath range.
+  Declare it again, with the demo's `nuquat_s` tag, when a body is recovered.
 - Generated artifacts (`call_graph.tsv`, `call_graph_rename_suggestions.md`,
   the mac-anchor queues, `named_to_unnamed_callees.md`) still use the old
   names. They were intentionally not regenerated so earlier research is
