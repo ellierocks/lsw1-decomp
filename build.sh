@@ -15,4 +15,6 @@ if [[ ! -f build/tools/dtk_patched ]]; then
 fi
 python3 configure.py
 ninja build/GL5E4F/report.json
+ninja build/GL5E4F/main.dol
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
 python3 tools/matching_progress.py

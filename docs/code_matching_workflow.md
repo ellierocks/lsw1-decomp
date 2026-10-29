@@ -26,6 +26,11 @@ Opt a module in per-object:
 Object(NonMatching, "numath/foo.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg)
 ```
 
+A unit is only promoted (`Matching`) once its section bytes, relocations and
+linked DOL range match retail; `verify_fn.py` alone is not sufficient. See
+[nurand_matching.md](nurand_matching.md) for the procedure and
+`tools/dol_compare.py`.
+
 `verify_fn.py` works unchanged on ProDG objects. Remaining 1–2 instruction diffs
 are now ordinary source-idiom tuning, not a toolchain wall.
 

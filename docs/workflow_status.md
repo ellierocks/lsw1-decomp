@@ -14,20 +14,25 @@ integration. Its inherited MW linker settings do not identify the game's
 compiler. ProDG objects now select `compiler="prodg"` and
 `compiler_version=PRODG_VERSION` explicitly. The four existing ProDG units
 remain ProDG; the two historical MWCC candidates remain available for research.
-No candidate has been promoted to matching or wired into a replacement DOL.
+`numath/nurand.c` is the first unit promoted to `Matching` and linked into the
+relinked DOL; see [nurand_matching.md](nurand_matching.md). No other candidate
+has been promoted, and the relinked DOL as a whole still differs from retail.
 
 The pinned DTK patch built successfully with Rust stable. A DOL extracted
 from the local retail RVZ matches SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. Splitting produced 22 objects;
 compiling all six comparison units and generating the report succeeded.
-The report contains 2,032 / 1,569,532 matched code bytes and 23 / 4,147
-matched functions. Symbol naming is a separate measure.
+With objdiff's default lenient relocation mode the report contained 2,032 /
+1,569,532 matched code bytes and 23 / 4,147 matched functions; the report now
+uses `functionRelocDiffs=all`, giving 1,920 bytes and 22 functions (one false
+match in `nuvec` removed) plus 36 matched data bytes. Symbol naming is a separate measure.
 
 ## Checks
 
 `bash build.sh` verifies the input hash, bootstraps the patched splitter,
-compiles candidates and generates the comparison report. It does not claim
-a completely matching relinked game. Python 3.10+, Ninja, Rust stable/Cargo,
+compiles candidates, generates the comparison report, links `main.dol` and
+checks every promoted unit's byte ranges against retail with
+`tools/dol_compare.py`. It does not claim a completely matching relinked game. Python 3.10+, Ninja, Rust stable/Cargo,
 and network access for the pinned tools are needed.
 
 Portable CI runs `python3 -m compileall -q configure.py tools tests`,
