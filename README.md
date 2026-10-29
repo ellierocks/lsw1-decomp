@@ -16,12 +16,14 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 Two separate measures. Symbol naming is not matching.
 
-**Matched code** (objdiff report, as of 2026-10-29):
+**Matched code** (objdiff report with strict relocation comparison, as of 2026-10-29;
+`numath/nurand.c` is the first unit linked from source, see
+[nurand matching](docs/nurand_matching.md)):
 
 | Measure | Matched | Total | Progress |
 |---------|---------|-------|----------|
-| Code bytes | 2,032 | 1,569,532 | 0.13% |
-| Functions | 23 | 4,147 | 0.55% |
+| Code bytes | 1,920 | 1,569,532 | 0.12% |
+| Functions | 22 | 4,147 | 0.53% |
 
 **Symbol naming** (`config/GL5E4F/symbols.txt`, as of 2026-10-29):
 
@@ -75,8 +77,9 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
    ```sh
    bash build.sh
    ```
-   This verifies the input, bootstraps the patched splitter, compiles candidate objects
-   and generates the objdiff report. It does not produce a fully matched, relinked game.
+   This verifies the input, bootstraps the patched splitter, compiles candidate objects,
+   generates the objdiff report, links `main.dol` and checks promoted units against
+   retail. It does not produce a fully matched, relinked game.
 
 Development happens on Forgejo, and the GitHub repository is a public mirror. See
 [workflow status](docs/workflow_status.md) for what is verified and what is not.

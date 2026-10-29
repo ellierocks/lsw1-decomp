@@ -315,7 +315,7 @@ config.libs = [
         "progress_category": "game",
         "objects": [
             Object(NonMatching, "nucore/nufile.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "numath/nurand.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(Matching, "numath/nurand.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/nuvec.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/numtx.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/nu_asm.c"),
@@ -364,9 +364,10 @@ config.progress_categories = [
 config.progress_each_module = args.verbose
 # Optional extra arguments to `objdiff-cli report generate`
 config.progress_report_args = [
-    # Marks relocations as mismatching if the target value is different
-    # Default is "functionRelocDiffs=none", which is most lenient
-    # "--config functionRelocDiffs=data_value",
+    # Compare relocation targets and data values. The default ("none") is the most
+    # lenient and counts functions whose relocations point at the wrong symbol.
+    "--config",
+    "functionRelocDiffs=all",
 ]
 
 if args.mode == "configure":
