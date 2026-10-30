@@ -374,6 +374,7 @@ config.libs = [
         SDKObject("gx/GXTexture", Matching),
         SDKObject("gx/GXBump", Matching),
         SDKObject("gx/GXTev", Matching),
+        SDKObject("gx/GXPixel", Matching),
         SDKObject("gx/GXTransform", Matching),
         SDKObject("gx/GXPerf", Matching),
     ]),
