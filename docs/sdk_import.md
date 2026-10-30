@@ -572,6 +572,45 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 python3 tools/matching_progress.py
 ```
 
+## CARDDir follow-up
+
+Starting from `e0e82fc` (OSAudioSystem), CARDDir promotes four functions and
+612 code bytes, with no initialized data or BSS promotion. Its only allocated
+section is `.text` `801777A4..80177A08`; the donor contains exactly those four
+functions, so none is stripped. `WriteCallback` and `EraseCallback` match their
+retail instruction bytes and the addresses loaded for the respective callbacks.
+The complete-unit gate proves all 18 relocation offsets, types and targets.
+
+The donor CARDBios `__CARDEraseSector` matches the 272-byte retail function at
+`80176ECC` outside relocation fields; its call to `__CARDStart` lands at
+`80176A38`. Likewise the donor CARDRdwr `__CARDWrite` matches the 104-byte
+function at `8017C6EC` outside relocation fields, and its callback address and
+write-page call land at `8017C604` and `80176D90`. The former symbol names at
+these addresses were stale. The shared control block is referenced as the DTK
+fallback `lbl_8030E320` (two 0x110-byte records); its BSS is not promoted.
+
+Baseline was 28,580 code bytes, 171 functions and 2,620 data bytes; final is
+29,192 code bytes, 175 functions and 2,620 data bytes. After integrating the
+independently verified fstload import, the combined result is 29,768 code bytes,
+177 functions and 2,744 data bytes, still byte-identical to retail. All four functions pass
+`verify_fn.py --build --strict-symbols`, and `verify_unit.py dolphin/card/CARDDir
+--build` passes. The unmodified upstream stripped probe gives one MATCH and three
+UNVERIFIED because it retains the donor BSS name `__CARDBlock`; the imported
+source uses the exact fallback name and passes strict and complete-unit gates.
+The linked ranges and whole image match with zero differing bytes; SHA-1 is
+`95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+```sh
+bash build.sh
+python3 tools/matching_progress.py
+python3 tools/verify_unit.py dolphin/card/CARDDir --build
+for fn in __CARDGetDirBlock WriteCallback EraseCallback __CARDUpdateDir; do
+    python3 tools/verify_fn.py "$fn" --build --strict-symbols
+done
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported card/CARDDir
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+```
+
 ## Remaining Phase 1 work
 
 With the OSMemory import, total matching was **26,576 code bytes / 155 functions /
@@ -582,10 +621,11 @@ SHA-1 and all complete-unit proofs.
 OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
 bytes / 167 functions because its functions were already credited, and complete
 files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit.
-OSAudioSystem is the eighteenth and fstload the nineteenth. Current matching is
-**29,156 code bytes / 173 functions / 2,744 matched data bytes**; the 19 SDK
-units contribute 26,032 code bytes / 138 functions / 3,116 complete data bytes.
-There are 20 complete source-backed files including the non-SDK
+OSAudioSystem is the eighteenth, fstload the nineteenth and CARDDir the twentieth.
+Current matching is **29,768 code bytes / 177 functions / 2,744 matched data bytes**;
+the 20 SDK units contribute 26,644 code bytes / 142 functions / 3,116 complete
+data bytes.
+There are 21 complete source-backed files including the non-SDK
 `nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
 is promoted by name or layout alone, and no unverified BSS or unsupported
 relocation is accepted.
@@ -594,7 +634,6 @@ relocation is accepted.
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor the donor, add its split and statics, then run the unit and strict function gates |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version

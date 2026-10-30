@@ -12,9 +12,10 @@ The upstream libc shim headers, `cmath.h` and `fake_tgmath.h` live under
 `include/dolphin/` so SDK compilation can use their original include paths
 without changing the game's headers. Promoted translation units are vendored
 under `src/dolphin/`. Their C and private headers are unchanged except for
-`si/SISamplingRate.c` and `dvd/fstload.c`: their unverified BSS storage
-references are externalized to DTK split-local names so the storage remains in
-assembly fallback.
+`si/SISamplingRate.c`, `dvd/fstload.c` and `card/CARDDir.c`: their
+unverified BSS references are externalized to DTK fallback names so storage
+remains in assembly fallback. CARDDir uses `lbl_8030E320` for the shared card
+control block.
 
 These units use Nintendo's CodeWarrior GC/1.2.5n release flags and the retail
 ProDG 3.9.3 linker. Compiler flags, per-file overrides and dead stripping follow
