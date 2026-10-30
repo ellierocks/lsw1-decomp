@@ -880,3 +880,88 @@ python3 tools/verify_fn.py DBInit --unit dolphin/db/db --build --strict-symbols
 python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
 python3 tools/matching_progress.py
 ```
+
+## Batch 2: DVD, AI, AR, AX and EXI units
+
+Nine units were promoted on baseline `47c416e` (33 SDK units before, 42
+after). The batch adds **12,968 code bytes and 47 functions**; matching progress
+rises from 51,784 / 279 to 64,752 / 326 code bytes / functions and from 4,348 to
+5,624 matched data bytes. The whole image keeps zero differences and SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Every function passes
+`verify_fn.py --strict-symbols` and every unit passes `verify_unit.py` for all
+of its sections. `python3 -m unittest discover -s tests` runs 107 tests (2 skipped).
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `dvd/dvdqueue` | `8016A850..8016AA48` | 5 | 504 | 0 |
+| `dvd/dvderror` | `8016AA48..8016ABE0` | 2 | 408 | 72 |
+| `dvd/dvdidutils` | `8016ABE0..8016ACD8` | 1 | 248 | 0 |
+| `dvd/dvdFatal` | `8016ACD8..8016AE04` | 3 | 300 | 984 |
+| `exi/EXIUart` | `80165360..80165918` | 4 | 1,464 | 0 |
+| `ai/ai` | `8016FBE4..801704C8` | 19 | 2,276 | 72 |
+| `ar/ar` | `801704C8..80171F3C` | 7 | 6,772 | 72 |
+| `ar/arq` | `80171F3C..801722D8` | 5 | 924 | 76 |
+| `ax/AXProf` | `801753CC..80175414` | 1 | 72 | 0 |
+
+Evidence and limits:
+
+- **Misassigned names.** `symbols.txt` names in this region were shifted.
+  `AIRegisterDMACallback`, `AIRegisterStreamCallback`, `AIResetStreamSampleCount`
+  and `AISetStreamTrigger` sat at game addresses `80143828..80144A88` and are now
+  `fn_` names; the real AI code starts at `8016FBE4`. In AR, retail `ARInit` is at
+  `801705FC` (not `ARAlloc`), `801706C0` is `ARGetBaseAddress` and `801706C8` is
+  `ARGetSize`; the stray `ARGetBaseAddress` at `8013F540` became `fn_8013F540`.
+  `fn_80165360` is `ProbeBarnacle`. In dvdFatal and dvdidutils the retained
+  `fn_` functions and string tables (`Japanese`, `English`, `Europe`) were
+  renamed to the donor names, because `strip_unused.py` removes any donor symbol
+  absent from the DTK target object. `lbl_801560A4` is `strncmp`.
+- **Dead stripping.** Retail dropped `strnlen` and `DVDGenerateDiskID`
+  (dvdidutils), the queue inspection and dump functions (dvdqueue) and two AXProf
+  functions, so they were removed from the vendored source. The unreferenced AI,
+  AR and ARQ API functions need no edit because `strip_unused.py` removes them.
+- **Statics and BSS.** The AI, AR, ARQ and EXIUart statics live in `.sbss`. The
+  sources declare them `extern`, and `symbols.txt` names the retail slots after
+  the donor statics (`__AID_Callback`, `bound_32KHz`, `__AR_Size`,
+  `__ARQRequestPendingLo`, `Chan`, ...). The 8-byte `OSTime` statics replace the
+  paired 4-byte placeholders. `WaitingQueue` in dvdqueue is externalized BSS.
+  BSS is never promoted.
+- **Version strings.** `__AIVersion`, `__ARVersion` and `__ARQVersion` are
+  `.sdata` pointers to `.data` strings. Each pointer is padded to 8 bytes in
+  retail; the 4-byte padding stays in fallback because DTK splits must be
+  4-byte aligned. The ARQ string is 0x45 bytes, so its split ends at the aligned
+  address `801F6C60` and the verifier accepts the short all-zero tail.
+- **Shared call label.** AR calls the retail synchronization stub through
+  `lbl_8015BF2C` (`#define PPCSync lbl_8015BF2C`), as GXFifo and GXInit do.
+  The private `__ar.h` lives in `src/dolphin/os`, next to `__dvd.h` and `__os.h`.
+- **Verifier change.** `verify_unit.py` compared the relocation addend as well
+  as the resolved address, so a section symbol plus offset (the compiler's form)
+  was rejected against a named symbol with a zero addend (DTK's form). It now
+  compares kind, resolved address and mask only; the retail word is still
+  checked independently. A test covers an accepted and a rejected addend.
+
+Investigated but not promoted:
+
+- `dvdfs`, `dvdlow`, `dvd`: candidates were wired at `80167780..801680C0`,
+  `8016B044..8016BE88` and `801680C0..8016A850`. Stripping stopped at unmapped
+  data: `dvdfs` needs the retail address of `__DVDLongFileNameFlag` (a text
+  symbol currently holds that name), `dvdlow` needs the `AlarmForWA` storage and
+  `dvd` its `BB2` BSS. Probe rows were mostly `UNVERIFIED`, not strict results.
+- `EXIBios` (`80163984..80165360`): symbol names are correct, but `EXIInit` is
+  `fn_80164BCC` and reads `lbl_8040A008`, a 0x38-byte `.sdata` block that mixes
+  the EXI version pointer with the `EXIGetTypeString` strings, and `lbl_8040A850`
+  shared with the OS code. Ownership of that block must be settled first.
+- `AX`, `AXAlloc`, `AXAux`, `AXCL`, `AXOut`, `AXSPB`, `AXVPB`: retail order is
+  suspected to be AX, AXAlloc, AXAux, AXCL, AXOut, AXSPB, AXVPB, AXProf; the
+  `__AXGetStackHead` name at `801722FC` is probably `AXInitEx` territory. None
+  was wired.
+- `OSContext` (52 of 54 `OSLoadContext` instructions; the next hypothesis is a
+  donor-side reference to `OSDisableInterrupts+0xc`), `SIBios`, `Pad`, `mtx`,
+  `mtxvec`, `vi` and the CARD units were only probed.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/ai/ai --build
+python3 tools/verify_fn.py AIInit --unit dolphin/ai/ai --build --strict-symbols
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
