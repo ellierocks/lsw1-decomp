@@ -75,8 +75,12 @@ data bytes, and total matching reaches 20,652 code bytes / 121 functions /
 2,180 data bytes. Complete GXPixel adds 1,592 code bytes / 12 functions and 128
 data bytes: twelve SDK units contribute 20,200 code bytes / 110 functions / 2,272
 data bytes, and total matching reaches 22,244 code bytes / 133 functions / 2,308
-data bytes. The whole image remains identical to retail; remaining archives and
-version drift still need work.
+data bytes. Complete GXFrameBuf adds 2,728 code bytes / 14 functions and proves
+424 data bytes (objdiff credits 16 matched data bytes; see the evidence). Thirteen
+SDK units contribute 22,928 code bytes / 124 functions / 2,696 complete data bytes;
+total matching reaches 24,972 code bytes / 147 functions / 2,324 matched data bytes.
+The whole image remains identical to retail; remaining archives and version drift
+still need work.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
