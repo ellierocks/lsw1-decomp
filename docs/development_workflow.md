@@ -1,8 +1,7 @@
 # Development Workflow
 
-How changes get from a branch to `main`. Layout and tool usage live in
-[AGENTS.md](../AGENTS.md); CI job details and one-time forge setup live in
-[CI and progress reporting](ci_and_decomp_dev.md).
+How changes get from a branch to `main`. Build setup lives in [README.md](../README.md); C verification and promotion
+live in [C matching](code_matching_workflow.md).
 
 ## Repositories
 
@@ -60,6 +59,7 @@ into the build until it matches.
 |-----|---------------|---------|-------|---------|
 | `tooling` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo and GitHub | Portable checks above |
 | `retail` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo only | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` and the verifier tests against genuine ProDG objects (`VERIFY_FN_REQUIRE_RETAIL=1`) |
+| `readme` | `.github/workflows/build.yml` | successful main push or dispatched update branch | Forgejo only | Publishes and merges verified README-only progress PRs |
 | `build` | `.github/workflows/build.yml` | push to `main`, PRs | GitHub only | Builds the report and uploads `GL5E4F_report` for decomp.dev |
 | `build-map` | `.github/workflows/generate-map.yml` | changes to symbols or map tooling | GitHub only | Uploads the Dolphin map |
 
@@ -87,11 +87,11 @@ Delete the topic branch once it is merged.
 `ORIG_KEY` is the passphrase for `orig/GL5E4F/sys/main.dol.enc`. It is set as an
 Actions secret on each forge that runs the retail job. Never commit the decrypted DOL,
 and never print the key in logs. Rotation steps are in
-[CI and progress reporting](ci_and_decomp_dev.md#rotating-the-key).
+[key rotation](#key-rotation).
 
 ## Matching evidence
 
-C matching sessions follow the bounded [AI hillclimb](ai_hillclimb.md). PRs
+C matching sessions follow the bounded [matching loop](code_matching_workflow.md#measure-and-iterate). PRs
 retain the baseline, best attempt, target addresses and exact verification
 commands. Local experiment snapshots stay under ignored `work/`; include a
 concise explanation of what improved and whether any bytes were promoted.
@@ -104,9 +104,55 @@ Donor projects (CrashWOC, the LSW1 and LSW2 Mac builds) are evidence, not source
 Project code is written from analysis of this binary, and no original game code or assets
 are committed.
 
+## Reports and splitter maintenance
+
+The GitHub `build` job uploads `build/GL5E4F/report.json` as `GL5E4F_report`.
+decomp.dev consumes the latest successful `main` artifact. This measures objdiff
+matched code, with strict relocation comparison (`functionRelocDiffs=all`),
+separately from naming progress. Generating a report does not require a matching
+whole-DOL checksum.
+
+`tools/build_patched_dtk.sh` builds the pinned DTK commit with the patch in
+`tools/patches/`. The patch tolerates ProDG exception tables and the target
+symbol map. Do not substitute a release tag or unpatched splitter; see
+[build configuration](build_config.md#splitter-and-startup-constraints).
+
+Maintainers configure `ORIG_KEY` as an Actions secret on both forges. Public
+reporting additionally requires repository registration at decomp.dev and its
+GitHub App for workflow-completion webhooks. The `GL5E4F-dolphin-map` artifact
+comes from the separate GitHub map workflow.
+
+### Key rotation
+
+With the replacement `ORIG_KEY` supplied securely in the environment, run:
+
+```sh
+bash tools/orig_crypt.sh encrypt
+```
+
+Commit the new `orig/GL5E4F/sys/main.dol.enc`, then update the Actions secret on
+both forges. `orig_crypt.sh` checks the retail SHA-1 before encrypting and after
+decrypting. Keep plaintext retail input and passphrases out of commits and logs.
+
 ## Automatic README progress
 
-The Forgejo `readme` job publishes generated status figures after tooling and
-retail checks pass. It opens and automatically merges checked README-only PRs;
-see [automatic README progress](ci_and_decomp_dev.md#automatic-readme-progress)
-for validation and local refresh instructions.
+After the Forgejo `tooling` and `retail` checks succeed on `main`, the `readme`
+job publishes the README rendered by `python3 tools/update_readme.py` in the
+retail job. It renders the marked README status block from that build's
+`report.json` and `symbols.txt`, without changing surrounding prose. Missing reports fail rather than publishing zeros.
+Identical figures produce no commit, PR or date-only churn.
+
+Changed figures create a `ci/readme-progress-<source SHA>` branch and README-only
+PR using the job's Forgejo token, then explicitly dispatches `build.yml` on
+that branch to run tooling and retail checks again. Explicit dispatch is needed
+because [Forgejo automatic tokens](https://forgejo.org/docs/latest/user/actions/basic-concepts/)
+suppress workflows triggered indirectly by their commits and PRs.
+The dependent `readme` job merges only when the PR changes README alone and its entire
+contents reproduce the generated block applied to the current base README. The
+merge is guarded by the checked head SHA; branch protections still apply. GitHub
+only consumes the mirrored result. Older main runs skip publication after main
+advances. Failed checks leave the update PR unmerged.
+
+To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.
+Only the CI publication step needs repository contents and pull-request write
+permissions; it uses the existing job token, with no additional stored secret.

@@ -4,24 +4,10 @@
 
 Crash: Wrath of Cortex GameCube decomp: https://github.com/denzi-gh/crashwoc-decomp
 Same engine (Nu2), same platform (GC), but a **different compiler**: CrashWOC is
-Metrowerks CodeWarrior, whereas LSW1 is SN Systems ProDG (GCC). Struct layouts,
-function names, and source patterns transfer directly to LSW1; instruction-level
-codegen does not, so always re-verify matches against the LSW1 asm.
-
-## Naming Conventions
-
-| Category | Convention | Example |
-|----------|-----------|---------|
-| Engine struct tag | `nu{name}_s` | `struct nufile_s`, `struct nuvec_s`, `struct nugeom_s` |
-| Game struct tag | `NU{NAME}_s` or `struct {Name}_s` | `NUHGOBJ_s`, `struct creature_s` |
-| Struct fields | `camelCase` | `node_name`, `numkeys`, `blend_time` |
-| Engine functions | `Nu{Subsystem}{Verb}` | `NuFileOpen`, `NuMemAlloc`, `NuVecMtxTransform` |
-| Basic types | lowercase short names | `u8`/`s8`/`u16`/`s16`/`u32`/`s32`/`f32`/`f64` |
-| Angle type | `u16` (`angle`) | Range [0, 0x10000) |
-| Fixed point | `s32` (`fxi`) | Signed int fixed-point |
-| Error strings | `str_FunctionName_Description` | `str_NuFile_OpenFailed` |
-| Static locals | plain `static type name;` | No `s_`/`l_` prefix |
-| SDK functions | direct prototype decl | `void* memset(void* s, int c, unsigned int n);` |
+Metrowerks CodeWarrior, whereas LSW1 is SN Systems ProDG (GCC). Struct layouts, names and algorithms are hypotheses for LSW1. Check field
+offsets and behavior against the target assembly before using them in C.
+The declarations below are layout sketches, not a header to copy; the owning
+project types are in `src/` headers.
 
 ## Subsystem Boundaries
 
@@ -142,34 +128,162 @@ struct nuvtx_sk3tc1_s { nuvec_s pnt; float weights[2]; float indexes[3]; nuvec_s
 struct NuSndLoopInfo_s { nuvec_s* pos; s16 playing, channel, timer, pad, vol_l, vol_r; }; // 0x10
 ```
 
-## LSW1 Nu* Symbol Mapping
 
-| LSW1 Symbol | Crash Module | Notes |
-|-------------|-------------|-------|
-| `NuFileOpen` | `nucore/nufile.c` | Direct match |
-| `NuFileClose` | `nucore/nufile.c` | Direct match |
-| `NuFilePos` | `nucore/nufile.c` | Direct match |
-| `NuFileLoadBuffer` | `nucore/nufile.c` | Direct match |
-| `NuFileBeginBlkRead` | `nucore/nufile.c` | IFF chunk reading |
-| `NuFileEndBlockRead` | `nucore/nufile.c` | IFF chunk reading |
-| `NuDatFileOpen` | `nucore/nufile.c` | Direct match |
-| `NuDatFileLoadBuffer` | `nucore/nufile.c` | Direct match |
-| `NuDatFileLoadBufferLsn` | `nucore/nufile.c` | Direct match |
-| `NuDatOpenEx` | `nucore/nufile.c` | Direct match |
-| `NuMemAlloc` | `nucore/numem.c` | Direct match |
-| `NuMemFree` | `nucore/numem.c` | Direct match |
-| `NuPPLoadBuffer` | — | Packed-pixel loader (no crash equivalent) |
-| `NuSpecialFind` | `gamecode/main.h` | Object lookup |
-| `NuSpecialFindMulti` | `gamecode/main.h` | Multi-object lookup |
-| `NuAnimCurve2CalcVal` | `nu3dx/nuanim.c` | Direct match |
-| `NuRndrWaterLevel` | `nu3dx/nurndr.c` | Data symbol |
-| `NuRndrHackWaterLevel` | `nu3dx/nurndr.c` | Data symbol |
+## Library Boundaries
 
-## Matching Style
+A first-pass map of likely game, runtime, and SDK regions for `GL5E4F`. The analysis is based on lightweight checks: `strings`, generated symbols, and section layout. Treat ranges as working hypotheses until validated against target code and split/link evidence.
 
-- **K&R function redeclaration**: `void* malloc_x();` — generates crclr
-- **SDK wrapper ifdefs**: PS2 VU0 code wrapped in `#ifdef __MWERKS__`
-- **`ASSERTMSGLINE`**: defined as empty for matching
-- **String naming**: `str_FunctionName_Description` in `.rodata`
-- **Global declarations**: guarded with `#ifndef FIRST` / `#define FIRST 0` across .c files
-- **Include style**: Direct paths — `#include "nucore/nufile.h"`
+### High-Level Text Layout
+
+| Range | Confidence | Notes |
+| --- | --- | --- |
+| `.init:0x80003100-0x8000348C` | High | Startup/init section. Entry symbol is `__start` at `0x80003100`. |
+| `.text:0x800034A0-0x80150F04` | Medium | Mostly game/engine code based on address order and game strings before the SDK string cluster. |
+| `.text:0x80150F04-0x8015BF48` | Low | Problematic analyzer region. `dtk` over-extends control flow from `0x80151AFC`; keep this region isolated until manually reviewed. |
+| `.text:0x8015BF48-0x8015BFC0` | Medium | Small bridge/thunk region immediately before recognized low-level PPC helpers. |
+| `.text:0x8015BFC0-0x8018CAFC` | High | Dolphin SDK / runtime tail region. Confirmed by SDK release strings and named symbols. |
+
+The last generated text function is `fn_8018C51C` with size `0x5E0`, ending at `0x8018CAFC`. `.rodata` begins at `0x8018CB00`.
+
+### Confirmed SDK Symbols
+
+| Symbol | Address | Notes |
+| --- | --- | --- |
+| `__start` | `.init:0x80003100` | DOL entry. Renamed from generated `fn_80003100`. |
+| `PPCMfhid2` | `.text:0x8015BFC0` | Low-level PPC helper. Likely start of SDK/runtime block. |
+| `PPCMthid2` | `.text:0x8015BFC8` | Low-level PPC helper. |
+| `PPCMtwpar` | `.text:0x8015BFD0` | Low-level PPC helper. |
+| `OSRegisterVersion` | `.text:0x8015CAA8` | OS version registration. |
+| `OSRegisterResetFunction` | `.text:0x80160F14` | OS reset callback registration. |
+| `__GXInitRevisionBits` | `.text:0x8017CA2C` | GX init code anchor. |
+| `GXInit` | `.text:0x8017CBD0` | GX init. |
+| `__GXInitGX` | `.text:0x8017D1D0` | GX init internals. |
+| `GXInitFifoBase` | `.text:0x8017DC3C` | GX FIFO setup. |
+| `GXSetCPUFifo` | `.text:0x8017DD24` | GX FIFO setup. |
+| `GXSetGPFifo` | `.text:0x8017DE4C` | GX FIFO setup. |
+| `__GXFifoInit` | `.text:0x8017E008` | GX FIFO setup. |
+| `GXSetMisc` | `.text:0x8017F5F4` | GX misc state. |
+| `__GXPEInit` | `.text:0x8017FDB0` | GX pixel engine init. |
+| `GXInitTexCacheRegion` | `.text:0x80181A34` | GX texture cache setup. |
+| `GXInitTlutRegion` | `.text:0x80181B28` | GX TLUT setup. |
+| `__GXSetTmemConfig` | `.text:0x80181DEC` | GX texture memory setup. |
+| `__GXSetIndirectMask` | `.text:0x80182628` | GX indirect state. |
+| `__GXFlushTextureState` | `.text:0x80182658` | GX texture state flush. |
+
+### SDK String Evidence
+
+`strings -a orig/GL5E4F/sys/main.dol` shows these Dolphin SDK release markers:
+
+| Library | Release marker |
+| --- | --- |
+| OS | `May 21 2004 09:28:09 (0x2301)` |
+| EXI | `Apr  5 2004 04:14:14 (0x2301)` |
+| SI | `Apr  5 2004 04:14:16 (0x2301)` |
+| DVD | `Apr  5 2004 04:14:51 (0x2301)` |
+| VI | `Apr  7 2004 04:13:59 (0x2301)` |
+| PAD | `Apr  5 2004 04:14:49 (0x2301)` |
+| AI | `Apr  5 2004 04:15:02 (0x2301)` |
+| AR | `Apr  5 2004 04:15:03 (0x2301)` |
+| ARQ | `Apr  5 2004 04:15:04 (0x2301)` |
+| AX | `Apr  5 2004 04:15:05 (0x2301)` |
+| DSP | `Apr  5 2004 04:15:32 (0x2301)` |
+| CARD | `Apr  5 2004 04:15:35 (0x2301)` |
+| GX | `Apr  5 2004 04:14:28 (0x2301)` |
+
+### Problem Region
+
+`dtk dol info` and the initial split reported:
+
+```text
+Control flow from 1:0x80151AFC hit known function 1:0x801510E8
+Overlapping functions 1:0x80151AFC-1:0x8015BF48 -> 1:0x80152038
+```
+
+Current config skips CFA for:
+
+```yaml
+skip_cfa_ranges:
+
+- start: .text:0x80151AFC
+  end: .text:0x8015BF48
+```
+
+The generated symbols in this region are mostly labels, followed by short functions at `0x8015BF48` through `0x8015BF98`, then recognized PPC helpers at `0x8015BFC0`.
+
+
+## File and datpack call evidence
+
+String xrefs identified these symbol anchors (naming evidence, not C matches):
+
+- `NuFileOpen` at `0x800035F0`
+- `NuFilePos` at `0x800039BC`
+- `NuFileClose` at `0x80003C34`
+- `NuFileLoadBuffer` at `0x80003DBC`
+- `NuFileBeginBlkRead` at `0x80004390`
+- `NuDatFileLoadBufferLsn` at `0x800044A8`
+- `NuDatFileLoadBuffer` at `0x80004630`
+- `NuDatFileOpen` at `0x80004CF8`
+- `NuDatOpenEx` at `0x80004F6C`
+- `NuFileEndBlockRead` at `0x80005B1C`
+- `NuMemAlloc` at `0x80006F74`
+- `NuMemFree` at `0x8000726C`
+- `NuPPLoadBuffer` at `0x800082A4`
+- `NuSpecialFind` at `0x80012D00`
+- `NuSpecialFindMulti` at `0x80012E94`
+
+Control-flow evidence:
+
+- `NuFileLoadBuffer` calls `NuDatFileLoadBuffer` only when the DAT context global is active.
+- `NuDatFileLoadBuffer` first calls `NuDatFileLoadBufferLsn`; on success it returns that result directly.
+- If the LSN helper fails, `NuDatFileLoadBuffer` calls `NuDatFileOpen`, performs seek/read retry loops, emits the `Unpacking` message, and returns the loaded byte count or `0`.
+
+
+## Camera state boundary
+
+- `lbl_80313268` is currently typed in `symbols.txt` as a `0x20` BSS object,
+  but the camera-state cluster proves that boundary is too small:
+  - `fn_80023C70` copies `0x68` bytes from `lbl_80313268`
+  - `fn_80023CD0` allocates `0x68` bytes and initializes fields through `+0x64`
+  - `fn_80023F80` reads floats from `lbl_80313268 + 0x48` and `+0x4C`
+- Donor evidence in `docs/symbol_donors/mac_data_to_gc_verified.md`
+  links the start of this region to `DoorExitCameraSplineName`.
+- Working conclusion: `lbl_80313268` is the start of a larger
+  camera-related state struct, with `DoorExitCameraSplineName` as an
+  offset-0 field or prefix, not the whole object.
+- Stronger boundary conclusion:
+  - The live object spans `0x80313268..0x803132CF` (`0x68` bytes total)
+  - The next independently referenced object begins at `0x803132D0`
+  - Therefore `lbl_80313288`, `lbl_80313298`, `lbl_803132B0`, and
+    `lbl_803132B4` are field-level artifacts inside the same larger state block
+- Recovered shared type:
+  - `struct nucamstate_s` in `src/nu3dx/nu3dx.h`
+  - Layout:
+    - `0x00..0x3F` `numtx_s mtx`
+    - `0x40` `fov`
+    - `0x44` `aspect`
+    - `0x48` `nearclip`
+    - `0x4C` `farclip`
+    - `0x50` `nearclip_alt`
+    - `0x54` `farclip_alt`
+    - `0x58` `unk58`
+    - `0x5C..0x67` `nuvec_s pos`
+- Evidence for the field split:
+  - `fn_8001C20C` passes `0x40/0x44/0x48/0x4C` as four scalar camera/projection
+    parameters to `fn_800234A8`
+  - `fn_8001C20C` compares `0x50/0x54` against zero and falls back to
+    `0x48/0x4C`, indicating alternate clip-range fields
+  - `fn_8001C20C` passes `state + 0x5C` by pointer into `fn_8000EA74`,
+    so the tail is a 3-float vector, not padding
+
+
+## Recovering types and boundaries
+
+Use access width, offsets, allocation/copy size, callers and callees together.
+A 12-byte stride suggests a vector; a matching donor size alone does not prove
+a type. In particular, nearby generated data labels may be fields inside one
+larger object, as the camera block demonstrates.
+
+`ls1_match_plan.py <module>` supplies current symbol context. Confirm a proposed
+split against `config/GL5E4F/splits.txt`, data xrefs and linked ranges. The
+clustering output in [proposed splits](symbol_donors/proposed_splits.md) contains
+catch-all groups and is a discovery aid, not an object map.

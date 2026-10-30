@@ -1,80 +1,99 @@
-# Code Matching Workflow
+# C matching
 
-Start with the [AI hillclimb](ai_hillclimb.md) for target selection, bounded
-experiments, scoring and handoff. This page defines the verification and promotion
-contract; partial scores never relax that contract.
+Use ProDG to reproduce retail `GL5E4F`, then replace fallback assembly only
+when object sections, relocations and linked ranges are proven. A function
+can be **VERIFIED** without its unit being **PROMOTED**. Symbol names and
+partial instruction scores do not measure promoted code.
 
-This project now has a donor-guided C matching path, but it is not a fully
-automatic “drop in a C file and the build will link it” flow yet.
+## Toolchain
 
-The reliable loop today is:
+LSW1 GC uses **SN Systems ProDG (GCC)**. CrashWOC uses CodeWarrior;
+its algorithms and types are donor evidence, but its compiler flags and
+register-allocation behavior do not transfer.
 
-1. Use donor evidence to choose a candidate C body.
-2. Compile it in the project.
-3. Compare the emitted instruction stream against the target asm.
-4. Only then consider splitting the fallback assembly and promoting the source
-   into the normal build path.
-
-## Toolchain: ProDG (SN Systems GCC)
-
-LSW1 GC was built with **ProDG (SN GCC), not Metrowerks.** ProDG `cc1` reproduces
-the retail codegen exactly (high-register allocation, `lis/ori` constants,
-record-form `mr.` null checks); no MWCC version/flag does. `numath/nurand.c`
-matches all five functions under ProDG.
-
-ProDG is the split GCC pipeline, driven by `tools/prodg_cc.py`
-(`CPP -> cc1 -> powerpc-eabi-as -> dtk elf fixup`) behind a `prodg` ninja rule.
-Opt a module in per-object:
+`tools/prodg_cc.py` drives preprocessing, ProDG `cc1`, `powerpc-eabi-as`
+and DTK ELF fixup. Use the pinned `PRODG_VERSION` and `cflags_prodg` from
+`configure.py` for a comparison object:
 
 ```py
 Object(NonMatching, "numath/foo.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg)
 ```
 
-A unit is only promoted (`Matching`) once its section bytes, relocations and
-linked DOL range match retail; `verify_fn.py` alone is not sufficient. See
-[nurand_matching.md](nurand_matching.md) for the procedure and
-`tools/dol_compare.py`.
+`NonMatching` compiles the candidate for comparison while the retail target
+object remains linked. A source file under `work/` is not compiled automatically.
+`Matching` selects the compiled object for the final link. DTK's inherited
+Metrowerks linker settings do not identify the game's compiler.
 
-`verify_fn.py` compares ProDG objects against the retail target (see
-[Verifying a candidate](#verifying-a-candidate)). Remaining small diffs are
-ordinary source-idiom tuning, not a toolchain wall.
+## Select and prepare
 
-## Current status
+1. Read current symbol evidence and rejected renames. Prefer a small function with
+   a known prototype, useful types, few callees and a comparison unit already
+   configured. Use `ls1_task_pack.py` and donor queues as discovery aids, not proof.
+2. Check `tools/matching_progress.py`, then run `bash build.sh` once to establish
+   a working baseline. Keep the ProDG version and flags pinned. Do not start
+   source tuning when the compiler, target split or retail input is broken.
+3. Generate a task under ignored `work/`. Generation refuses to overwrite a
+   populated task. Configure the source as a **NonMatching** ProDG comparison
+   object; `work/Foo/source.c` is not compiled automatically. Prefer editing an
+   existing comparison unit. Keep fallback assembly linked until promotion.
+4. Write the signature and a plausible C body from the retail assembly and
+   verified types. Treat donor implementations as evidence about algorithms;
+   their MWCC code generation is not this game's ProDG code generation.
 
-- `dtk dol split` works with the pinned patch built by `tools/build_patched_dtk.sh`
-  (`bash build.sh`); older notes that say it panics predate that patch.
-- `tools/verify_fn.py` is the strict, relocation-aware check for C candidates.
-- `tools/crashwoc_code_queue.py` is the current CrashWOC candidate generator.
-- `tools/asm_function_slice.py` is planning-only by default; do not treat
-  `--write` as a ready-to-link workflow until the candidate is proven to match.
+## Measure and iterate
 
-## Tool roles
-
-| Tool | Role |
-|------|------|
-| `tools/crashwoc_code_queue.py` | Reads `docs/symbol_donors/nu2_fn_matches.tsv` and a local CrashWOC checkout, then emits one-to-one C candidates. Default is `exact` (byte-identical, mostly trivial stubs); pass `--include-norm` for the substantial normalized candidates. |
-| `tools/verify_fn.py` | Compares instruction words and relocations of one function in your built object with the DTK-split retail target (and the retail DOL). This is the main “does this compile like the target?” check; see below. |
-| `tools/asm_function_slice.py` | Locates the target in the fallback asm and emits a split plan or generated slice artifacts. It does not change build wiring on its own. |
-| `tools/symbols_to_map.py --all` | Generates the Dolphin map with `zz_<address>_` placeholders. It is unrelated to candidate verification. |
-| `tools/matching_progress.py` | Reads objdiff progress only. It is not a candidate verifier. |
-
-## Recommended sequence
+From the repository root (replace the example function, unit and source):
 
 ```sh
-python3 tools/crashwoc_code_queue.py /tmp/crashwoc-decomp --include-norm
 python3 configure.py
-python3 tools/verify_fn.py NuVec4MtxTransformVU0 --unit numath/nu_asm --build
-python3 tools/asm_function_slice.py NuVec4MtxTransformVU0
+python3 tools/hillclimb.py try NuVecScale --unit numath/nuvec \
+  --source src/numath/nuvec.c --source src/numath/numath.h \
+  --hypothesis 'baseline with existing vector types'
+python3 tools/hillclimb.py status NuVecScale --unit numath/nuvec
+python3 tools/verify_fn.py NuVecScale --unit numath/nuvec --build --strict-symbols --full
 ```
 
-Notes:
+The agent proposes changes; the local compiler and verifier judge them. This
+workflow uses the active agent session and does not invoke a model API or purchase
+compute. One owner writes each candidate; independent targets may use separate
+worktrees when explicitly delegated under the session's agent policy.
 
-- Pass `--compiled-symbol` to `verify_fn.py` if the source object emits a
-  different symbol name than the target function name.
-- The current CrashWOC queue is written to
-  `docs/symbol_donors/crashwoc_code_match_queue.tsv` and `.md`.
-- The `NuVec4MtxTransformVU0` candidate in `src/numath/nu_asm.c` is currently a
-  nonmatching source port candidate, not a linked replacement.
+For each attempt:
+
+1. Inspect the first meaningful divergence and state one falsifiable hypothesis:
+   signedness, expression order, pointer stride, loop shape, lifetime, or float
+   precision. Change one related source choice and compile again.
+2. Run `hillclimb.py try` with the hypothesis and **every edited source/header**
+   supplied through repeated `--source`. It runs the strict verifier with
+   `--build`; stale objects and compiler errors cannot become improvements.
+3. Inspect the report, not just the score. Lower lexicographic score wins:
+   fully verified match first, fewer differences, smaller instruction-count
+   difference, more exact instructions, fewer unverified references. This is a
+   search heuristic; aligned instruction counts can be discontinuous and a
+   score improvement does not prove semantics or permit promotion.
+4. Continue from the best candidate. Revert a losing experiment by deliberately
+   editing your own source back to its recorded snapshot. The tool never resets
+   the checkout. A neutral or worse experiment can inform a later hypothesis,
+   but it does not replace the incumbent best.
+
+Records are immutable numbered JSON files under `work/hillclimb/<identity>/`.
+They include hypotheses, source text and hashes, Git head, build configuration /
+verifier hashes, command, errors and the complete report. Identity includes the
+function, unit and optional compiled symbol: repeat `--compiled-symbol` for status.
+Only one writer can record a target at a time. An interrupted writer may leave
+`.lock`; confirm no writer remains before removing that lock. Logs stay local;
+retain a concise evidence summary and final C in the PR, not raw game artifacts.
+
+Defaults: 40 attempts, 8 consecutive attempts without improvement, 120 seconds
+per verifier invocation. Errors and timeouts consume attempts. `PARK` means stop
+and save the best attempt, remaining mismatch, rejected ideas and one concrete
+next hypothesis in the task's `status.md`; select a different target. Do not
+restart a ledger to hide exhausted work. A deliberately changed search budget or
+compiler/type context must be explained in the handoff; use a new `--ledger` for
+a new context so incompatible scores are never compared. Changes to stored
+configuration, symbol/split or verifier hashes block new attempts in that ledger. Source/header context changes still require
+the agent to decide whether prior scores are comparable.
+An attempt budget is not an agent token budget: follow account usage limits too.
 
 ## Verifying a candidate
 
@@ -82,11 +101,14 @@ Prerequisite: `bash build.sh` once (patched DTK, split target objects under
 `build/GL5E4F/obj`, retail DOL at `orig/GL5E4F/sys/main.dol`).
 
 ```sh
-python3 tools/verify_fn.py NuRandInt                       # check an already-built object
-python3 tools/verify_fn.py NuVecScale --unit numath/nuvec --build   # rebuild first
+python3 tools/verify_fn.py NuRandInt --strict-symbols      # check an already-built object
+python3 tools/verify_fn.py NuVecScale --unit numath/nuvec --build --strict-symbols # rebuild first
 python3 tools/verify_fn.py Foo --object work/Foo/source.o  # arbitrary candidate object
 python3 tools/verify_fn.py Foo --json                      # machine-readable
 ```
+
+Pass `--compiled-symbol <name>` when the candidate emits a different function
+name from the target. Use `--strict-symbols` for all acceptance checks.
 
 What is compared, per instruction: the 32-bit word with relocation-patched
 fields masked out, plus each relocation's type, symbol and addend. Register,
@@ -135,14 +157,137 @@ Regression tests: `tests/test_verify_fn.py` (synthetic objects everywhere; the
 genuine ProDG/retail cases run after `bash build.sh` and are required in the
 Forgejo retail CI job).
 
-## Linking a verified function
+## Promotion
 
-When a candidate becomes a true match:
+1. Restore the best source, rebuild, and run `verify_fn.py --build
+   --strict-symbols` for **every function in the affected unit**. Resolve
+   unverified names with address, type and data evidence.
+2. Compare raw bytes of every owned section and all relocation offsets,
+   types, addends and resolved section-relative targets against the DTK target
+   object. Match data placement, initializers, alignment and symbol visibility.
+3. For a partial assembly replacement, run `tools/asm_function_slice.py <name>`
+   to plan the before/C/after split. `--write` emits slices only; review them
+   and wire the source and `splits.txt` deliberately. Keep current boundaries
+   unless binary evidence supports changing them.
+4. Mark the verified unit `Matching` in `configure.py` and run `bash build.sh`.
+   It compares promoted units with retail using `dol_compare.py --linked-units`.
+   Compare the report and whole-image differences with the baseline too:
+   previously matched code and unrelated linked ranges must not regress.
+5. Retain target addresses, baseline/best attempt, exact verification commands,
+   promoted bytes/functions, report delta and remaining limits in the PR.
+   An improved `NonMatching` candidate is useful, but promotes zero bytes.
 
-1. Add the C file to `configure.py` as a linked object.
-2. Add a matching split entry in `config/GL5E4F/splits.txt`.
-3. Re-run `python3 configure.py && ninja`.
-4. Re-check the object with `tools/verify_fn.py` (expect `MATCH`).
+A strict function match proves only that function and the checked references.
+Do not weaken the verifier, toolchain pins or split boundaries to improve a score.
+The whole DOL remains the final goal; an existing link difference does not excuse
+new differences in a promoted range.
 
-The new source in `src/numath/nu_asm.c` is currently a nonmatching candidate,
-so it is present for comparison and iteration, not as a linked replacement yet.
+### Object and linked-range checks
+
+For the already promoted `numath/nurand` unit, after `bash build.sh`:
+
+```sh
+build/binutils/powerpc-eabi-objcopy -O binary -j .text build/GL5E4F/obj/numath/nurand.o /tmp/nurand-target.bin
+build/binutils/powerpc-eabi-objcopy -O binary -j .text build/GL5E4F/src/numath/nurand.o /tmp/nurand-source.bin
+cmp /tmp/nurand-target.bin /tmp/nurand-source.bin
+build/binutils/powerpc-eabi-readelf -r build/GL5E4F/obj/numath/nurand.o
+build/binutils/powerpc-eabi-readelf -r build/GL5E4F/src/numath/nurand.o
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+```
+
+Repeat the byte comparison for `.sdata` and any other owned sections. Relocation
+symbol spelling may differ; compare the actual section-relative targets.
+`--linked-units` reads complete units from `objdiff.json` and their section ranges
+from `splits.txt`. `tests/test_dol_compare.py` covers this check; retail verifier
+regressions live in `tests/test_verify_fn.py`.
+
+## nurand promotion evidence
+
+The initial promoted unit owns `.text` `0x8000C0C0..0x8000C1B8` (five functions,
+248 bytes) and `.sdata` `0x80407B40..0x80407B64` (36 bytes). At promotion, both
+sections and all five `R_PPC_EMB_SDA21` relocations matched the target object;
+all 284 linked bytes matched retail. Changing the LCG increment from
+`0x3c6ef35f` to `0x3c6ef35e` made the linked-range check fail at `0x8000C0D7`.
+
+| `.text` offset | Use | Target |
+|---|---|---|
+| `0x00`, `0x1C` | `NuRandInt` load/store | `.sdata+0` (`lbl_80407B40`) |
+| `0x48` | `NuRandSeed` store | `.sdata+0` |
+| `0x58` | `NuRandSetSeed` address | `.sdata+8` (`lbl_80407B48`) |
+| `0x84` | `NuRand` address | `.sdata+8` |
+
+### Source changes
+
+The pre-existing source matched `.text` but not data: it placed `fseed` and
+`global_rand` in `.sbss`, whereas retail has 36 initialised bytes in `.sdata`.
+ProDG 3.9.3 puts an explicit `= 0` initialiser in `.sdata` (it has no
+zero-initialised-in-bss mode for this), so the source now declares:
+
+| Retail address | Contents | Source |
+|----------------|----------|--------|
+| `0x80407B40` | `0x00000000` | `fseed` |
+| `0x80407B44` | `0x00001365` | `unk_80407B44` (no reference found in code) |
+| `0x80407B48` | `0x00000001` | `global_rand` |
+| `0x80407B4C`-`0x80407B63` | `0 0 0 0 0 1` | `unk_80407B4C`..`unk_80407B60` |
+
+ProDG's GCC keeps unreferenced statics and emits variables in definition order.
+Objects larger than 8 bytes go to `.data`, so the 24-byte tail must be several
+small objects; an array would land in `.data` and fail the layout.
+
+Two things here are **not** established by evidence:
+
+- Whether `unk_80407B44` and the tail belong to this translation unit. The tail
+  has no direct references; it is carried verbatim because the current split
+  includes it, and narrowing the split would leave `lbl_80407B48`
+  (`size:0x1C` in `symbols.txt`) straddling the boundary. The Mac demo has a
+  4-byte `global_rand`, so the real owner of the tail is probably a neighbour.
+  Fix by splitting `symbols.txt` and `splits.txt` together (the `symbols.txt`
+  change belongs to the symbol-naming workstream).
+- The names `unk_*` are placeholders.
+
+### Symbol names
+
+Other retail units reference the dtk names. `fn_8000C038` (float-generator candidate) uses
+`lbl_80407B40`, and a link with only local statics fails with
+`undefined: 'lbl_80407B40'`. Rather than editing `symbols.txt`, `nurand.c` ends with
+a top-level `asm` exporting `lbl_80407B40` and `lbl_80407B48` as aliases of
+`fseed` and `global_rand`. The linked ELF shows `80407b40 d fseed` and
+`80407b40 D lbl_80407B40` at the same address. Delete the `asm` block once
+`symbols.txt` names those two symbols.
+
+## Remaining link differences
+
+The initial nurand promotion left the same 1,192 differing bytes as an all-target
+object relink. This is historical evidence, not a substitute for measuring the
+current build:
+
+- 396 `.sdata2` references (1,188 differing bytes) used `r2` after linking with
+  `mwldeppc`; retail uses `r13`. Both reached the same effective addresses.
+  Retail `r13` is `0x8040FA40`; the linker's `.sdata2` base is `0x80413300`.
+  Folding sections in the linker script was rejected by `mwld`. Investigate
+  relocation handling or linker behavior before source-level tuning here.
+- Two `__start` words differed: the `r2` initializer at `0x8000310C` and the
+  `.sbss` clear end at `0x80003160`. Retail uses `0x8041FA40` and `0x8040B2E4`;
+  the relink used `0x80413300` and `0x8040BD40`.
+
+`build.sh` requests `main.dol` explicitly because the default Ninja checksum
+check still expects a whole-image match. The configured CFA exclusion and
+blocked startup relocation are documented in [build configuration](build_config.md).
+Do not hide these link differences with a broader exclusion.
+
+The preceding functions at `0x8000C038` and `0x8000C07C` use nurand's state
+and are grouped with it in the Mac demo. Matching them and establishing the
+owner of the `.sdata` tail are separate evidence tasks before extending this unit.
+
+## Discovery tools
+
+- `ls1_task_pack.py <name-or-address> --out-dir work`: assembly, context and
+  executable strict checks. Historical committed packs under `tasks/` may
+  contain superseded names; resolve addresses against current `symbols.txt`.
+- `crashwoc_code_queue.py /path/to/crashwoc-decomp --include-norm`: donor
+  candidates from `symbol_donors/nu2_fn_matches.tsv`. The default exact queue
+  is mostly trivial stubs; normalized candidates need full verification.
+- `matching_progress.py`: objdiff report, configured with
+  `functionRelocDiffs=all`. Lenient relocation mode previously produced a
+  false `NuVecRotateAxis` match against the wrong float constant.
+- [Research](research.md): symbol lookup, donor provenance, Ghidra and RAM dumps.
