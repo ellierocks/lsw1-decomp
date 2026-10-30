@@ -590,7 +590,9 @@ these addresses were stale. The shared control block is referenced as the DTK
 fallback `lbl_8030E320` (two 0x110-byte records); its BSS is not promoted.
 
 Baseline was 28,580 code bytes, 171 functions and 2,620 data bytes; final is
-29,192 code bytes, 175 functions and 2,620 data bytes. All four functions pass
+29,192 code bytes, 175 functions and 2,620 data bytes. After integrating the
+independently verified fstload import, the combined result is 29,768 code bytes,
+177 functions and 2,744 data bytes, still byte-identical to retail. All four functions pass
 `verify_fn.py --build --strict-symbols`, and `verify_unit.py dolphin/card/CARDDir
 --build` passes. The unmodified upstream stripped probe gives one MATCH and three
 UNVERIFIED because it retains the donor BSS name `__CARDBlock`; the imported
