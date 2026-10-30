@@ -232,15 +232,80 @@ The complete rebuilt image has zero differing bytes and retains SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. There is no remaining GXLight
 mismatch.
 
+## GXPixel follow-up
+
+Starting from merged GXLight PR #21 (`bfddf3f`), unchanged donor `gx/GXPixel.c`
+promotes **twelve retained functions, 1,592 code bytes and 128 data bytes**. Total
+matching is **22,244 code bytes / 133 functions / 2,308 data bytes**. Twelve SDK
+units contribute 20,200 code bytes / 110 functions / 2,272 data bytes. The function
+total rises by one because `__cvt_fp2unsigned` is now a typed function in
+`symbols.txt`, so the denominator becomes 4,148.
+
+| Section | Retail range, end exclusive | Bytes |
+|---|---|---:|
+| `.text` | `80182D38..80183370` | 1,592 |
+| `.data` | `801FB4D8..801FB4F8` | 32 |
+| `.sdata2` | `8040B8A8..8040B908` | 96 |
+
+The baseline GXPixel promotion was zero bytes. The only source change is the
+unchanged vendored donor file; the rest is symbol naming and unit wiring.
+
+- `GXSetFog` at `80182D38` strictly matches its 532 bytes. Its call resolves to
+  `80153184`, and the pinned MWCC object records that reference as
+  `__cvt_fp2unsigned`.
+- `__cvt_fp2unsigned` at `80153184` is 72 bytes. No donor function supplies its
+  body, so the name rests on instruction identity rather than a donor compile. Its
+  18 instructions match RE4's libsn `__cvt_fp2unsigned` in `src/lib/tealeaf.c`
+  (RE4 commit `9b76ff003081d6ece8b838453fb8310743a972c7`) one for one, with the
+  same branch displacements. The only difference is the constant's address: RE4 loads
+  `0x80225C60`, while LSW1 loads `0x801AFF78`, which holds the double
+  `0x41E0000000000000` (2^31). The routine compares its input with 2^31,
+  converts with `fctiwz`, and for larger inputs subtracts 2^31 and restores the
+  top bit with `xoris`. That is the conversion MWCC's float-to-unsigned call
+  expects.
+- `GXSetFogRangeAdj` at `80182F4C` replaces the stale `GXSetFogColor` name. Its
+  292 bytes strictly match the donor `GXSetFogRangeAdj`, and the old name is in
+  the rejected-renames ledger.
+- Donor `GXSetFogColor` (48 bytes) and `GXInitFogAdjTable` (432 bytes) have no
+  retail body. The retail fog code is contiguous from `GXSetFog` through
+  `GXSetFogRangeAdj` to `GXSetBlendMode` at `80183070`, with no room for them. The
+  SN linker dead-stripped both unreferenced functions, so they are absent from the
+  retained set rather than inferred from the donor.
+
+The `p2f[8] = {0, 1, 2, 3, 4, 4, 4, 5}` table referenced by `GXSetPixelFmt` is at
+`801FB4D8`. A byte search of the DOL finds it exactly in the gap between the GXTev
+and GXPerf `.data` ranges. `GXSetFog` loads eight small-data constants from
+`8040B8A8` through `8040B8E0`. The donor object's `.sdata2` is exactly 96 bytes,
+ending at GXTransform's `8040B908`; the final 40 bytes are pool entries that no
+retained function references, as with GXLight's stripped-function constants. The
+complete 96-byte block matches retail.
+
+All twelve retained functions pass `verify_fn.py NAME --build --strict-symbols`.
+The complete-unit gate passes all three sections, and the stripped donor probe
+reports `MATCH=12`. Reproduction:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/gx/GXPixel --build
+# Run the strict function gate for the twelve names listed above.
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported gx/GXPixel
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+sha1sum build/GL5E4F/main.dol
+```
+
+The complete rebuilt image has zero differing bytes and retains SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. There is no remaining GXPixel
+mismatch.
+
 ## Remaining Phase 1 work
 
-These eleven promoted units do not complete every SDK archive. Remaining
+These twelve promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
-| GXPixel | `GXSetFog` has an unresolved `__cvt_fp2unsigned` reference | Verify the MW runtime helper at `80153184`, then prove constants and the full unit |
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXFrameBuf / GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
 | OSCache / OSMemory | Pooled data, reset records and additional call names need proof | Establish complete sections and independently resolve their relocations; OS was rebuilt in May 2004 |
