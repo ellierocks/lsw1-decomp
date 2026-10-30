@@ -810,3 +810,73 @@ python3 tools/verify_unit.py dolphin/gx/GXInit --build
 python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
 python3 tools/matching_progress.py
 ```
+
+## Batch 1: OS, CARD, db and pad units
+
+Ten units were promoted together on baseline `e8c7276` (23 SDK units before,
+33 after). The batch adds **13,068 code bytes and 60 functions**; matching
+progress rises from 38,716 / 219 to 51,784 / 279 code bytes / functions and from
+3,360 to 4,348 matched data bytes. The whole image keeps zero differences and
+SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`. Every function that has a
+named retail symbol passes `verify_fn.py --strict-symbols`, and every unit
+passes `verify_unit.py` for all of its sections.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `os/OSTime` | `801637C4..801638A0` | 4 | 220 | 96 |
+| `os/OSInterrupt` | `80160130..8016099C` | 11 | 2,156 | 44 |
+| `os/OSAlarm` | `8015CAD4..8015D2AC` | 9 | 2,008 | 16 |
+| `os/OSArena` | `8015D5E0..8015D62C` | 5 | 76 | 4 |
+| `os/OSError` | `8015E598..8015EC44` | 4 | 1,708 | 804 |
+| `os/OSReset` | `80160F14..80161398` | 7 | 1,156 | 80 |
+| `card/CARDBlock` | `801773A0..801777A4` | 6 | 1,028 | 0 |
+| `card/CARDCheck` | `80177A08..80178944` | 7 | 3,900 | 0 |
+| `db/db` | `80167280..8016736C` | 5 | 236 | 24 |
+| `pad/Padclamp` | `8016E058..8016E29C` | 2 | 580 | 12 |
+
+Evidence and limits:
+
+- **Dead stripping.** The SN linker removed unreferenced donor functions and
+  data. Retail `db` has no `DBStack`/`DBStackEnd`, and `Padclamp` has no
+  `ClampCircle`, `PADClampCircle` or the `.sdata2` constants they pool, so those
+  definitions were removed from the vendored source rather than left to pool
+  unmatched data. `OSError`, `OSReset` and `OSTime` own static donor data
+  (error table, reset state, `YearDays`) that retail retains.
+- **Split boundaries.** Placeholder data symbols that straddled a boundary were
+  split without moving any address (`db` string and its four padding bytes,
+  `Padclamp` `ClampRegion` and the rest of its 36-byte neighbour, `OSReset`
+  `801E3E66`, `OSTime` year tables). Splits must be 4-byte aligned, so alignment
+  padding stays in fallback data where DTK requires it.
+- **Misassigned names.** The CARD region names in `symbols.txt` were shifted;
+  CARDBlock/CARDCheck were identified by function size sequence and strict
+  comparison. `fn_801776F8` is the real `__CARDUpdateFatBlock`; the thunk at
+  `801531DC` is a branch island to a 64-bit arithmetic shift-right helper and is
+  named `__shr2i`. `fn_8016E188` is `PADClamp`. Local names that collided
+  (`WriteCallback`, `EraseCallback`) became `CARDBlockWriteCallback` and
+  `CARDBlockEraseCallback`.
+- **BSS and small data.** Static BSS stays in fallback. OSError and OSReset use
+  `external_bss=True`; CARD units refer to the shared card control block as
+  `lbl_8030E320`; `db` declares `__DBInterface` and `DBVerbose` as externs for
+  retail's `.sbss` symbols. BSS is never promoted.
+- **Verifier change.** DTK emits a relocation for a branch back to its own
+  function entry, while MWCC resolves it in the object. `verify_fn.py` accepts
+  the pair as equal only when the assembled branch (same opcode, word-aligned)
+  lands on the relocation's target; `verify_unit.py` applies the same rule per
+  section and requires every other relocation to match exactly. Tests cover the
+  accepted case and a displacement that must still mismatch.
+
+Not promoted from this batch's research: `OSContext` (matched 52 of 54
+instructions in `OSLoadContext`; the donor's interrupt endpoint
+`__RAS_OSDisableInterrupts_end` is `OSDisableInterrupts+0xc` in retail, and its
+string data ranges are unproven), `ai/ai` (the candidate range is
+`8016FC28..801704C8`; its statics live in `.sbss` `8040AAA0` onward, which the
+BSS externalizer does not cover, and `__AIVersion` sits in `.data` `801F6B88`
+with its pointer in `.sdata` `8040A118`), and the AX units.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/db/db --build
+python3 tools/verify_fn.py DBInit --unit dolphin/db/db --build --strict-symbols
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
