@@ -47,5 +47,12 @@ retail `__OSInitAlarm` name, a unique `DVDAlarmHandler` name and the same BSS
 handling. CARDFormat uses the shared card control block name and drops the two
 dead-stripped synchronous wrappers. All BSS storage stays in assembly fallback.
 
+Batch 4 adds the matrix units, OSAlloc/OSLink/OSReboot, AX, DSP and five CARD
+units. Dead-stripped functions are omitted except helpers needed for inlining or
+constant/string pool order; the build strips their standalone bodies. OS and DSP
+BSS definitions become externs. CARD references the shared fallback control block,
+permission mask and retail libc names, and callbacks receive unique names. No BSS
+storage is promoted. The matrix sources retain donor assembly verbatim.
+
 See [SDK import evidence](../../docs/sdk_import.md) for ranges, verification,
 progress and remaining work.

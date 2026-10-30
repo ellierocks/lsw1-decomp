@@ -292,7 +292,7 @@ cflags_mw_sdk = [
     "-enum int", "-warn pragmas", "-requireprotos", '-pragma "cats off"',
     "-O4,p", "-inline auto", "-D__GEKKO__", "-DSDK_REVISION=1", "-DRELEASE",
     "-char unsigned", "-I-", "-i include", "-i include/dolphin", "-i include/dolphin/libc",
-    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/card",
+    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/ax", "-i src/dolphin/card",
 ]
 
 
@@ -371,7 +371,15 @@ config.libs = [
             # native split produces their asm and objects, so they are not listed here.
         ],
     },
+    DolphinLib("mtx", [
+        SDKObject("mtx/mtx", Matching),
+        SDKObject("mtx/mtxvec", Matching),
+        SDKObject("mtx/mtx44", Matching),
+    ]),
     DolphinLib("os", [
+        SDKObject("os/OSAlloc", Matching),
+        SDKObject("os/OSLink", Matching),
+        SDKObject("os/OSReboot", Matching),
         SDKObject("os/OSAlarm", Matching),
         SDKObject("os/OSContext", Matching),
         SDKObject("os/OSArena", Matching),
@@ -392,9 +400,24 @@ config.libs = [
     DolphinLib("dvd", [SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching, external_bss=True)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
-    DolphinLib("ax", [SDKObject("ax/AXProf", Matching)]),
-    DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
-    DolphinLib("card", [SDKObject("card/CARDBlock", Matching), SDKObject("card/CARDDir", Matching), SDKObject("card/CARDCheck", Matching), SDKObject("card/CARDStat", Matching), SDKObject("card/CARDFormat", Matching)]),
+    DolphinLib("ax", [SDKObject("ax/AX", Matching), SDKObject("ax/AXProf", Matching)]),
+    DolphinLib("dsp", [
+        SDKObject("dsp/dsp", Matching),
+        SDKObject("dsp/dsp_debug", Matching),
+        SDKObject("dsp/dsp_task", Matching),
+    ]),
+    DolphinLib("card", [
+        SDKObject("card/CARDBlock", Matching),
+        SDKObject("card/CARDDir", Matching),
+        SDKObject("card/CARDCheck", Matching),
+        SDKObject("card/CARDFormat", Matching),
+        SDKObject("card/CARDOpen", Matching),
+        SDKObject("card/CARDCreate", Matching),
+        SDKObject("card/CARDRead", Matching),
+        SDKObject("card/CARDWrite", Matching),
+        SDKObject("card/CARDDelete", Matching),
+        SDKObject("card/CARDStat", Matching),
+    ]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXInit", Matching, external_bss=True),

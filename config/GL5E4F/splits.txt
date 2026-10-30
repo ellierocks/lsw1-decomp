@@ -43,6 +43,10 @@ dolphin/os/OSAlarm.c:
 	.text       start:0x8015CAD4 end:0x8015D2AC
 	.data       start:0x801E2530 end:0x801E2540
 
+dolphin/os/OSAlloc.c:
+	.text       start:0x8015D2AC end:0x8015D5E0
+	.sdata      start:0x80409FD8 end:0x80409FDC
+
 dolphin/os/OSArena.c:
 	.text       start:0x8015D5E0 end:0x8015D62C
 	.sdata      start:0x80409FE0 end:0x80409FE4
@@ -68,9 +72,15 @@ dolphin/os/OSInterrupt.c:
 	.text       start:0x80160130 end:0x8016099C
 	.data       start:0x801E3D88 end:0x801E3DB4
 
+dolphin/os/OSLink.c:
+	.text       start:0x8016099C end:0x801609B4
+
 dolphin/os/OSMemory.c:
 	.text       start:0x80160BB8 end:0x80160E90
 	.data       start:0x801E3E08 end:0x801E3E18
+
+dolphin/os/OSReboot.c:
+	.text       start:0x80160E90 end:0x80160F14
 
 dolphin/os/OSReset.c:
 	.text       start:0x80160F14 end:0x80161398
@@ -101,6 +111,18 @@ dolphin/si/SISamplingRate.c:
 dolphin/db/db.c:
 	.text       start:0x80167280 end:0x8016736C
 	.data       start:0x801F5BD8 end:0x801F5BF0
+
+dolphin/mtx/mtx.c:
+	.text       start:0x8016736C end:0x80167608
+	.sdata      start:0x8040A060 end:0x8040A068
+	.sdata2     start:0x8040B710 end:0x8040B718
+
+dolphin/mtx/mtxvec.c:
+	.text       start:0x80167608 end:0x801676E8
+
+dolphin/mtx/mtx44.c:
+	.text       start:0x801676E8 end:0x80167780
+	.sdata2     start:0x8040B730 end:0x8040B740
 
 dolphin/dvd/dvdqueue.c:
 	.text       start:0x8016A850 end:0x8016AA48
@@ -147,11 +169,25 @@ dolphin/ar/arq.c:
 	.data       start:0x801F6C18 end:0x801F6C60
 	.sdata      start:0x8040A128 end:0x8040A12C
 
+dolphin/ax/AX.c:
+	.text       start:0x801722D8 end:0x8017237C
+	.data       start:0x801F6C60 end:0x801F6CA4
+	.sdata      start:0x8040A130 end:0x8040A134
+
 dolphin/ax/AXProf.c:
 	.text       start:0x801753CC end:0x80175414
 
+dolphin/dsp/dsp.c:
+	.text       start:0x80175414 end:0x801756A4
+	.data       start:0x801FA6C0 end:0x801FA740
+	.sdata      start:0x8040A140 end:0x8040A144
+
 dolphin/dsp/dsp_debug.c:
 	.text       start:0x801756A4 end:0x801756F4
+
+dolphin/dsp/dsp_task.c:
+	.text       start:0x801756F4 end:0x80175F78
+	.data       start:0x801FA740 end:0x801FA880
 
 dolphin/card/CARDBlock.c:
 	.text       start:0x801773A0 end:0x801777A4
@@ -164,6 +200,21 @@ dolphin/card/CARDCheck.c:
 
 dolphin/card/CARDFormat.c:
 	.text       start:0x80179400 end:0x80179BE4
+
+dolphin/card/CARDOpen.c:
+	.text       start:0x80179BE4 end:0x8017A1D0
+
+dolphin/card/CARDCreate.c:
+	.text       start:0x8017A1D0 end:0x8017A520
+
+dolphin/card/CARDRead.c:
+	.text       start:0x8017A520 end:0x8017A94C
+
+dolphin/card/CARDWrite.c:
+	.text       start:0x8017A94C end:0x8017AC80
+
+dolphin/card/CARDDelete.c:
+	.text       start:0x8017AC80 end:0x8017AE34
 
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
