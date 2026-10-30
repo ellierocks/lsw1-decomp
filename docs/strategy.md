@@ -104,8 +104,11 @@ For each queued function:
    when every function matches, and batch several matched functions per PR.
 
 Order the queue by size, callee count, type coverage and donor similarity.
-Small leaf functions come first. Build shared `nu2` struct headers once, from
-donor layouts confirmed against LSW1 field accesses.
+Small leaf functions come first. The
+[OpenSaga lane](symbol_donors/opensaga_matching.md) queues parser/helpers
+before AI and animation and requires strict matches before expansion. Build
+shared `nu2` struct headers once, from donor layouts confirmed against LSW1
+field accesses.
 
 ## Rules that do not change
 
