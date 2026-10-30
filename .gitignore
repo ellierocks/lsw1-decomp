@@ -41,7 +41,7 @@ compile_commands.json
 *.log
 dtk-split.log
 
-# RAM dumps (24 MiB MEM1 images) — keep snapshots local, see docs/ramdump_workflow.md
+# RAM dumps (24 MiB MEM1 images) — keep snapshots local, see docs/research.md#ram-dumps
 /dumps/*.raw
 /dumps/*.bin
 

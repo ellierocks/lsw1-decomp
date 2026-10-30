@@ -10,7 +10,8 @@ SRC_DIR="${1:-${DTK_SOURCE_DIR:-/tmp/decomp-toolkit}}"
 # Pin to the exact decomp-toolkit commit the patch was authored against. LSW1
 # needs a patched dtk that tolerates this ProDG binary's exception tables and
 # its symbol map; see patches/dtk-skip-invalid-extab.patch and
-# docs/ci_and_decomp_dev.md. (This is the commit baked into the working binary;
+# docs/development_workflow.md, "Reports and splitter maintenance".
+# (This is the commit baked into the working binary;
 # the v1.8.3 *tag* has a different source layout the patch does not fit.)
 DTK_COMMIT="${DTK_COMMIT:-e4219e7644fb7b96d920d5bc3d1d950f5569dcaf}"
 DTK_REPO="${DTK_REPO:-https://github.com/encounter/decomp-toolkit}"

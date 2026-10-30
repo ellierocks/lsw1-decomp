@@ -1,150 +1,53 @@
-# LSW1 Decomp Agent Guide
+# LSW1 decomp agent guide
 
-Matching decompilation of LEGO Star Wars: The Video Game (2005) for GameCube.
-Retail target: `GL5E4F`. Compiler: **SN Systems ProDG (GCC)**, driven by
-`tools/prodg_cc.py` — *not* Metrowerks CodeWarrior. See
-[docs/code_matching_workflow.md](docs/code_matching_workflow.md). (Donor decomps
-like CrashWOC are MWCC, so their source patterns transfer but their codegen does
-not.)
+Matching decompilation of LEGO Star Wars: The Video Game (2005), GameCube
+`GL5E4F`. The compiler is **SN Systems ProDG (GCC)**, driven by
+`tools/prodg_cc.py`. CrashWOC uses CodeWarrior; its code generation does not
+transfer to this target.
 
-## Default agent task: C matching
+## Default task
 
-Run the bounded [AI hillclimb](docs/ai_hillclimb.md). Select one function,
-establish a compiled baseline, change one source hypothesis, rebuild and record
-strict verifier evidence. Keep the best candidate; park a plateau with a concrete
-next hypothesis. Naming and donor mining are supporting work when needed by the
-selected target. Do not report renamed symbols as matching progress.
+Run the bounded loop in [C matching](docs/code_matching_workflow.md). Choose
+one function, establish a compiled baseline, change one source hypothesis,
+rebuild and record strict verification evidence with `tools/hillclimb.py`.
+Keep the best source. Park a plateau with its remaining mismatch and one concrete
+next hypothesis. Naming and donor mining support the selected C target.
 
-```sh
-bash build.sh
-python3 tools/matching_progress.py
-python3 tools/ls1_task_pack.py NuVecScale --out-dir work
-# Configure a NonMatching ProDG comparison unit before recording attempts.
-python3 tools/hillclimb.py try NuVecScale --unit numath/nuvec \
-  --source src/numath/nuvec.c --hypothesis 'baseline'
-python3 tools/hillclimb.py status NuVecScale --unit numath/nuvec
-```
+A strict function match is **VERIFIED**, not **PROMOTED**. Promotion also needs
+unit sections, relocations and linked retail ranges to match without regression.
+Never weaken the oracle, change pins or split boundaries to improve a score.
+Do not report renamed symbols as matching progress.
 
-A strict function match is VERIFIED, not PROMOTED. Promotion also requires unit
-sections/relocations and linked retail ranges to match, with no regressions.
-Never weaken the oracle, pin changes, or split boundaries to improve a score.
+## Sources
 
-Portable checks are listed under [Repository workflow](#repository-workflow).
+- [Research](docs/research.md): lookup/rename tools, donor mining and provenance,
+  Ghidra and runtime evidence. Check rejected renames before naming a target.
+- [Nu2 reference](docs/nu2_engine_reference.md): donor layout sketches and target
+  evidence. Confirm types against LSW1 accesses before using them in C.
+- [Build configuration](docs/build_config.md): symbols, splits and DTK constraints.
+- [Menus](docs/menu_system.md) and [scripts](docs/scripts.md): subsystem evidence.
 
-## Symbol sources (priority order)
-
-1. **CrashWOC decomp** (same Nu2 engine) — `docs/nu2_engine_reference.md`,
-   `docs/symbol_donors/crashwoc_nu2_comparison.md`
-2. **LSW1 Mac Demo** (closest lineage) — `docs/symbol_donors/mac_lsw1_demo_symbols.tsv`
-3. **LSW2 Mac** (shared Nu2 engine) — `docs/symbol_donors/mac_lsw2_symbols.tsv`
-4. **Struct offset analysis** — match struct field access patterns against
-   known Nu2 structs in `src/` headers
-
-## Tooling
-
-| Command | What it does |
-|---------|-------------|
-| `ls1_match_plan.py <module>` | Shows remaining unnamed functions with struct evidence, Mac hints. Use `--show-all` or `--top N` |
-| `ls1_lookup_symbol.py <name-or-addr>` | Cross-references a symbol across GC symbols.txt, Mac TSVs (with demangled signatures), call graph, and neighbor functions |
-| `ls1_rename.py <old> <new>` | Applies a rename and verifies with build. Use `--check` to preview, `--suggest <fn>` to search Mac for matching names |
-| `ls1_task_pack.py <name-or-addr>` | Generates `tasks/<Function>/` with `prompt.md`, `context.md`, `asm.s`, `related_symbols.md`, `verify.sh` for LLM-based decomp. Use `--out-dir` to set output root. Batch: `ls1_task_pack.py nuanim --top 3` |
-| `matching_progress.py [--report] [--json]` | Shows objdiff code matching progress only, without symbol naming stats |
-| `binary_mining_pipeline.py [stage...]` | Refreshes donor-binary extraction artifacts; see `docs/binary_mining_workflow.md` |
-| `sdk_symbol_source_import.py <source...>` | Normalizes CrashWOC/Dolphin map files or symbol dumps into ordered SDK TSVs |
-| `mac_anchor_rename_queue.py` | Uses Mac debug symbol order plus GC named anchors to emit rename candidates |
-| `sdk_island_analysis.py` | Maps likely Dolphin SDK/MSL/runtime islands for known-library matching |
-| `sdk_anchor_rename_queue.py` | Uses local SDK symbol-order sources plus GC named anchors to emit SDK rename candidates |
-
-## Code matching workflow
-
-Use [docs/code_matching_workflow.md](docs/code_matching_workflow.md) as the
-source of truth for C matching.
-
-Tool roles:
-
-| Tool | Role |
-|------|------|
-| `crashwoc_code_queue.py` | Generates donor-guided candidate rows from a local CrashWOC checkout. It does not change build wiring. |
-| `verify_fn.py` | Strictly compares a built candidate's instruction words and relocations (and referenced constants) with the retail target; exit 0 only when code and relocations match exactly (add `--strict-symbols` to also reject unverified name mappings). This is the primary scoring loop. |
-| `asm_function_slice.py` | Plans the before/C/after split for a verified function. `--write` only emits generated slices; it does not automatically wire them into the build. |
-| `symbols_to_map.py --all` | Produces the Dolphin `.map` file with `zz_<address>_` placeholders. This is separate from code matching. |
-| `matching_progress.py` | Reads objdiff progress only. It does not validate a candidate function. |
-
-## Matching workflow (symbol recovery)
-
-1. `python tools/binary_mining_pipeline.py` — refresh donor evidence and rename queues
-2. Review `docs/symbol_donors/mac_anchor_rename_queue.md` for high-confidence candidates
-3. `python tools/ls1_match_plan.py <module>` — see remaining module candidates
-4. `python tools/ls1_lookup_symbol.py <fn_addr>` — verify struct types in Mac
-5. `python tools/ls1_rename.py --suggest <fn_name>` — check Mac for name hints
-6. `python tools/ls1_rename.py <old> <new>` — apply and build-verify
-7. `bash build.sh` — final check
-8. Commit each module phase on the topic branch; see [development workflow](docs/development_workflow.md)
-
-## C matching workflow
-
-The default iteration, budgets and handoff contract are in
-[AI hillclimb](docs/ai_hillclimb.md).
-
-1. `python tools/crashwoc_code_queue.py /tmp/crashwoc-decomp` — refresh exact donor-guided candidates
-2. `python tools/ls1_task_pack.py <fn_name> --out-dir work` — generate task pack
-3. Write matching C in `work/<Fn>/source.c` (or inline into `src/<module>/<file>.c`)
-4. `python3 configure.py && ninja build/GL5E4F/src/<unit>.o` — compile the candidate object
-5. `python3 tools/verify_fn.py <fn_name> --unit <unit> --build --strict-symbols [--compiled-symbol <symbol>]` — strict compare against the target (use `--strict-symbols`: 0 = verified, 1 = mismatch, 2 = error, 3 = unverified references)
-6. When the candidate is proven, add the split and object wiring, then re-run `python3 configure.py && ninja`
-
-## Module address ranges
-
-| Module | Start | End | Est. size |
-|--------|-------|-----|-----------|
-| nucore/file | 0x800034A0 | 0x80006000 | ~11 KB |
-| nucore/numem | 0x80006F74 | 0x80007468 | ~1.2 KB |
-| nucore/error | 0x80007468 | 0x80008000 | ~3 KB |
-| numath | 0x80008000 | 0x80012000 | ~40 KB |
-| nu3dx/anim | 0x80016A00 | 0x80024000 | ~55 KB |
-| nu3dx/render | 0x80024000 | 0x8005C000 | ~224 KB |
-| nu3dx/scene | 0x8005C000 | 0x80090000 | ~208 KB |
-| nusound | 0x80090000 | 0x800B0000 | ~128 KB |
-| gamelib | 0x800B0000 | 0x80100000 | ~320 KB |
-| gamecode | 0x80100000 | 0x8018CB00 | ~570 KB |
-
-## Struct evidence quick reference
-
-| Pattern | Struct | Offset layout |
-|---------|--------|--------------|
-| `KEY(r3)` | `nuanimkey_s` (0x10) | f32@0(time),4(dtime),8(c),12(d) |
-| `CURVE(r9)` | `nuanimcurve_s` (0x10) | ptr/word@0(mask),4(keys),8(numkeys),12(flags) |
-| `DAT2(r3)` | `nuanimdata2_s` (0x18) | u16@4(nnodes),6(ncurves), ptr@C(curves),10(flags),14 |
-| `VEC3` | `nuvec_s` (0xC) | f32@0(x),4(y),8(z) |
-| `PTR(rX:0x0-0x30)` | `nudathdr_s` (0x30) | s32@0(ver),4(nfiles),8(finfo*),C(treecnt),10(filetree*)... |
+Current source, headers, `config/GL5E4F/symbols.txt` and target assembly take
+precedence over names in generated reports or historical task packs.
 
 ## Conventions
 
-- Function names: `Nu{Subsystem}{Verb}` (engine), `Action_*`/`Condition_*` (dispatch)
-- Struct tags: `nu{name}_s` (engine), `NU{NAME}_s` (game)
-- Fields: `camelCase`
-- Error strings: `str_FunctionName_Description`
-- No comments in decomp source unless explaining a subtle match constraint
+- Function names: `Nu{Subsystem}{Verb}` (engine), `Action_*`/`Condition_*` (dispatch).
+- Struct tags: `nu{name}_s` (engine), `NU{NAME}_s` (game).
+- Fields: `camelCase`; error strings: `str_FunctionName_Description`.
+- Four-space C indentation; follow surrounding code.
+- No comments in decomp source unless explaining a subtle match constraint.
 
-## Repository workflow
+## Completion
 
-The process lives in [docs/development_workflow.md](docs/development_workflow.md): remotes,
-branches, PRs, CI jobs and merge rules. Summary for agents:
+Follow [development workflow](docs/development_workflow.md) for topic branches,
+Forgejo PRs, portable checks and CI. Push only to Forgejo; GitHub and Codeberg
+are mirrors. Required CI must pass on the current head before merge.
 
-- Forgejo is primary; GitHub and Codeberg are mirrors. Do not push to the mirrors.
-- Never commit directly to `main`. Work on a topic branch and open a PR.
-- Stage explicit paths. Use Conventional Commits with a lowercase imperative description.
-- Before pushing, run the portable checks:
-  `python3 -m compileall -q configure.py tools tests`,
-  `python3 -m unittest discover -s tests`, `python3 configure.py`,
-  `python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map` (create `artifacts/`
-  first), and `bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh`.
-- Run `bash build.sh` when a change touches splitting, configuration, compiler wiring,
-  candidate sources or the report, then check `python3 tools/matching_progress.py`.
-- A PR is ready only when required CI passes on its current head.
+Run `bash build.sh` when changing splits, configuration, compiler wiring,
+candidate sources or reports, then inspect `tools/matching_progress.py`.
+Retain baseline/best attempt, target addresses, strict verification commands,
+promoted bytes and remaining limits in matching PRs. Keep raw experiment logs
+and proprietary artifacts local.
 
-Layout: `src/`, `include/` hold candidate code and types; `config/` holds symbols and splits;
-`tools/` holds build adapters and research utilities; `docs/` holds retained evidence;
-`tests/` holds portable tooling regressions; `orig/` holds local retail input and ciphertext.
-
-`CLAUDE.md` imports this file.
+`CLAUDE.md` imports this file. Setup and the documentation index are in [README.md](README.md).

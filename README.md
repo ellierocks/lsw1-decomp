@@ -12,34 +12,18 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 | Compiler | SN Systems ProDG (GCC), see [code matching workflow](docs/code_matching_workflow.md) |
 | DOL SHA-1 | `95cca08a19224775d1a8d6cc64601fb7d0080981` |
 
-## Project Status
-
-Two separate measures. Symbol naming is not matching.
-
-**Matched code** (objdiff report with strict relocation comparison, as of 2026-10-29;
-`numath/nurand.c` is the first unit linked from source, see
-[nurand matching](docs/nurand_matching.md)):
-
-| Measure | Matched | Total | Progress |
-|---------|---------|-------|----------|
-| Code bytes | 1,920 | 1,569,532 | 0.12% |
-| Functions | 22 | 4,147 | 0.53% |
-
-**Symbol naming** (`config/GL5E4F/symbols.txt`, as of 2026-10-29):
-
-| Section | Named | Total | Progress |
-|---------|-------|-------|----------|
-| `.text` (functions) | 1,463 | 4,201 | 34.8% |
-| `.rodata` | 774 | 8,383 | 9.2% |
-| `.bss` | 38 | 733 | 5.2% |
-
-Naming is driven by donor evidence (CrashWOC, the LSW1 and LSW2 Mac builds). Matching
-work targets the Nu2 engine's animation and math code first. Live figures:
+## Progress
 
 ```sh
-python3 tools/progress.py             # naming and matching
-python3 tools/matching_progress.py    # matching only, from the objdiff report
+python3 tools/matching_progress.py    # matched code from the local objdiff report
+python3 tools/progress.py             # symbol naming and matching
 ```
+
+Symbol naming and matched code are separate measures. Comparison candidates
+are compiled without replacing retail code; promoted units are linked from C
+and checked against retail ranges. The whole relinked DOL still differs from
+retail. [C matching](docs/code_matching_workflow.md) explains the evidence and
+remaining link differences.
 
 ## Prerequisites
 
@@ -63,12 +47,14 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
    Option A, from your disc image. Build the patched DTK first, then extract:
    ```sh
    bash tools/build_patched_dtk.sh
+   mkdir -p orig/GL5E4F/sys
    build/tools/dtk_patched vfs cp '/path/to/game.rvz:sys/main.dol' orig/GL5E4F/sys/main.dol
    ```
 
-   Option B, for project maintainers with the key. The encrypted copy is committed:
+   Option B, for maintainers with `ORIG_KEY` supplied securely in the environment.
+   The encrypted copy is committed:
    ```sh
-   ORIG_KEY='<passphrase>' bash tools/orig_crypt.sh decrypt
+   bash tools/orig_crypt.sh decrypt
    ```
 
    `build.sh` checks the SHA-1 before building anything, so a wrong file fails early.
@@ -82,163 +68,58 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
    retail. It does not produce a fully matched, relinked game.
 
 Development happens on Forgejo, and the GitHub repository is a public mirror. See
-[workflow status](docs/workflow_status.md) for what is verified and what is not.
+[development workflow](docs/development_workflow.md) for checks and PRs.
 
-## Contributing
+## Working on the decomp
 
-Read [development workflow](docs/development_workflow.md) first. It covers branches,
-pull requests, the checks to run, CI jobs and merge requirements.
+1. Follow [C matching](docs/code_matching_workflow.md): choose one function,
+   compile a ProDG baseline, test one source hypothesis at a time, and verify
+   object and linked ranges before promotion.
+2. Use [research](docs/research.md) when types, callees or boundaries are unclear.
+   Generated task packs and donor queues are leads; current assembly and symbols
+   are the authority.
+3. Submit a topic-branch PR with verification evidence and the checks in
+   [development workflow](docs/development_workflow.md).
 
-### AI driven C matching
-
-Follow the [AI hillclimb](docs/ai_hillclimb.md): select a function, compile a
-baseline with ProDG, record one hypothesis per experiment, retain the best source,
-and promote only after strict object and linked-range verification. The local
-`tools/hillclimb.py` ledger records attempts and enforces search budgets; the
-active agent supplies the source changes.
-
-### Naming Symbols
-
-Supporting evidence for C matching. Update `config/GL5E4F/symbols.txt` with descriptive names
-in `PascalCase`, for example `NuAnimLoad` instead of `fn_8001A234`.
-
-```sh
-python3 tools/ls1_match_plan.py nuanim                 # candidates in a module
-python3 tools/ls1_lookup_symbol.py 0x8001E76C          # cross-reference a function
-python3 tools/ls1_rename.py --suggest fn_8001E76C      # donor name hints
-python3 tools/ls1_rename.py fn_8001E76C NuAnimKeyLerp  # apply and build-verify
-```
-
-Refresh donor evidence first if the queues look stale:
-
-```sh
-python3 tools/binary_mining_pipeline.py
-```
-
-[AGENTS.md](AGENTS.md) has the full symbol recovery loop used in agent sessions.
-
-### Decompiling Functions
-
-C matching is a candidate loop, not a drop-in. A candidate stays out of the build until
-it matches.
-
-1. Generate a task pack for a function from `build/GL5E4F/asm/`:
-   ```sh
-   python3 tools/ls1_task_pack.py fn_8001E76C --out-dir work
-   ```
-2. Write the candidate in `work/<Fn>/source.c`, or directly in `src/<module>/<file>.c`.
-3. Compile it and compare its instructions with the target:
-   ```sh
-   python3 configure.py && ninja build/GL5E4F/src/<unit>.o
-   python3 tools/verify_fn.py <fn_name> --unit <unit>
-   ```
-4. Once it matches, add the split and object wiring, then rebuild.
-
-The loop, its tool roles and their limits are in
-[code matching workflow](docs/code_matching_workflow.md). Open C tasks are in
-[`tasks/`](tasks/index.md).
-
-### Code Style
-
-- C/C++: 4-space indent, follow the surrounding code
-- Function names: `Nu{Subsystem}{Verb}` (engine), `Action_*` / `Condition_*` (AI dispatch)
-- Struct tags: `nu{name}_s` (engine), `NU{NAME}_s` (game)
-- Fields: `camelCase`
-- No comments in decomp source unless they explain a subtle match constraint
-
-### Before Submitting
-
-The checks run in CI on every PR. Run them locally first:
-
-```sh
-python3 -m compileall -q configure.py tools tests
-python3 -m unittest discover -s tests
-python3 configure.py
-bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh
-```
-
-With a retail DOL present, also run `bash build.sh` and confirm matched code has not
-regressed. Full list and CI details: [development workflow](docs/development_workflow.md).
-
-### No Copyrighted Code
-
-Never commit original game code or assets. Source is written from analysis of the
-binary. Donor projects are evidence, not sources to copy.
-
-## Dolphin Symbol Map
-
-`config/GL5E4F/GL5E4F.map` is generated from `symbols.txt` and is not tracked. Unnamed
-functions appear as `zz_<address>_` placeholders, so recovered names stay grouped in
-Dolphin's symbol views.
-
-- **From CI:** download the `GL5E4F-dolphin-map` artifact from the latest successful
-  **Build Dolphin symbol map** run on GitHub `main`.
-- **Locally:**
-  ```sh
-  python3 tools/symbols_to_map.py --all -o GL5E4F.map
-  ```
-
-Load it in Dolphin with **Symbols → Load Symbol Map**.
+Never commit original game code or assets. Source is written from analysis of
+the binary; donor projects supply evidence.
 
 ## Documentation
 
-### Process
-- [Development Workflow](docs/development_workflow.md): remotes, branches, PRs, checks, CI and merging
-- [CI and Progress Reporting](docs/ci_and_decomp_dev.md): CI jobs, decomp.dev, `ORIG_KEY`
-- [Workflow Status](docs/workflow_status.md): verified baseline and known limits
+| Guide | Use |
+|---|---|
+| [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
+| [Research](docs/research.md) | Symbol recovery, donor mining, Ghidra, RAM dumps and evidence provenance |
+| [Build configuration](docs/build_config.md) | Symbols, splits, compiler wiring and target-specific DTK constraints |
+| [Development workflow](docs/development_workflow.md) | Checks, PRs, CI, progress artifacts and secrets maintenance |
+| [Nu2 reference](docs/nu2_engine_reference.md) | Layout sketches, SDK evidence, file calls and camera state |
+| [Menus and shop](docs/menu_system.md) | Callback/descriptor layouts, runtime fields and shop transitions |
+| [Script dispatch](docs/scripts.md) | AI parser anchors and AI/level command tables |
 
-### Build System
-- [Build Configuration](docs/build_config.md): `symbols.txt` and `splits.txt` formats, BSS, `.comment` section
+Generated evidence remains in [symbol_donors](docs/symbol_donors/README.md),
+[static call exports](docs/recomp_exports/call_graph_summary.md),
+[task packs](tasks/index.md) and
+[cross-version research](research/revisions/revision_graph.md).
+Their names can be stale; use addresses to resolve current symbols.
 
-### Game Research
-- [Engine Analysis](docs/engine_analysis.md): Nu2 engine subsystems, string xrefs, library boundaries
-- [External Sources](docs/external_sources.md): PAL GC, PS2/Xbox lineage, PC version analysis
-- [Menu System](docs/menu_system.md): debug menu, memory watches, callback tables
-- [Game AI](docs/game_ai.md): AI action and condition dispatch tables (`Action_*`, `Condition_*`)
-- [Level Scripts](docs/level_script_commands.md): in-world script command grammar
-- [Nu2 Engine Reference](docs/nu2_engine_reference.md): Nu2 structs and subsystem layout (from CrashWOC)
+## Dolphin map
 
-### Matching
-- [Code Matching Workflow](docs/code_matching_workflow.md): the candidate loop and its tools
-- [Matching Notes](docs/matching_notes.md): compiler quirks, register allocation, diff-fixing techniques
-- [Struct Typing Analysis](docs/struct_typing_analysis.md): field-offset patterns and inferred struct layouts
-- [Module Split Plan](docs/splits_plan.md): proposed `.c` source file boundaries
-
-### Cross-Version Research
-- [`research/revisions/`](research/revisions/revision_graph.md): build archaeology, revision graph, string similarity, and leads across GC/PS2/Xbox/PC builds
-- [`docs/symbol_donors/`](docs/symbol_donors/): Mac demo symbols, CrashWOC matches, Nu2 body confirmations, rename queues
-
-## Project Structure
-
-```
-.
-├── build.sh                    # Full build helper: verify, bootstrap DTK, compile, report
-├── configure.py                # Project configuration and ninja build generator
-├── config/GL5E4F/
-│   ├── config.yml              # dtk split configuration
-│   ├── symbols.txt             # Symbol definitions (~16,750 entries)
-│   ├── splits.txt              # Section split definitions
-│   └── build.sha1              # Expected DOL checksum
-├── src/                        # Decompiled C/C++ source files (candidates until linked)
-├── include/                    # C/C++ header files
-├── tasks/                      # Per-function task packs for C decompilation
-├── tests/                      # Portable tooling regression tests
-├── tools/                      # Build adapters, verification and analysis utilities
-├── docs/                       # Research notes, reference documentation and donor evidence
-├── research/revisions/         # Build revision archaeology and graph
-├── .github/workflows/          # CI definitions (Forgejo runs the same files)
-├── orig/                       # Original game files (DOL is gitignored; encrypted copy is tracked)
-└── build/                      # Build artifacts (gitignored)
+```sh
+mkdir -p artifacts
+python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map
 ```
 
-## Resources
+Load the map through Dolphin's **Symbols → Load
+Symbol Map**. Unnamed functions use `zz_<address>_` placeholders. The GitHub
+map workflow also publishes the `GL5E4F-dolphin-map` artifact.
 
-- **[Discord: GC/Wii Decompilation](https://discord.gg/hKx3FJJgrV)**: join `#dtk` for help
-- **[objdiff](https://github.com/encounter/objdiff)**: local diffing tool for matching
-- **[decomp.me](https://decomp.me)**: collaborate on function matches
-- **[decomp.dev](https://decomp.dev)**: decompilation progress hub and API
+## Layout
+
+`src/` and `include/` hold candidate C and types; `config/GL5E4F/` owns symbols
+and splits; `tools/` and `tests/` own tooling and regressions. `orig/` holds local
+retail/donor inputs (plaintext is ignored), `build/` holds generated objects and
+reports, and ignored `work/` holds matching experiments.
 
 ## License
 
-Released under CC0 1.0 Universal (see [LICENSE](LICENSE)). The repository contains no game
-assets or copyrighted code.
+Released under CC0 1.0 Universal; see [LICENSE](LICENSE).

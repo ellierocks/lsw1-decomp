@@ -86,7 +86,7 @@ jobs:
 
       # LSW1 needs a patched dtk that tolerates this ProDG binary's exception
       # tables (stock dtk panics, producing empty target objects). Built from a
-      # pinned source ref + tools/patches/. See docs/ci_and_decomp_dev.md.
+      # pinned source ref + tools/patches/. See docs/development_workflow.md.
       - name: Build patched dtk
         if: steps.haskey.outputs.available == 'true'
         run: bash tools/build_patched_dtk.sh

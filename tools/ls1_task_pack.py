@@ -368,7 +368,7 @@ Write a matching C function for `{name}` in the LEGO Star Wars: The Video Game
 
 ## Experiment loop
 
-Read `docs/ai_hillclimb.md`. Establish a compiled baseline, then change one
+Read `docs/code_matching_workflow.md`. Establish a compiled baseline, then change one
 source-level hypothesis per attempt. Record each with `tools/hillclimb.py try`
 using `--unit`, `--source` and `--hypothesis`. Keep the best source, inspect the
 first differing instructions, and park the target at the experiment budget.
@@ -619,7 +619,7 @@ def gen_object_verify(name, addr, cluster):
         for _, symbol, _, _ in cluster)
     return f"""#!/usr/bin/env bash
 # Verify every function in the configured NonMatching ProDG cluster.
-# Read docs/ai_hillclimb.md before promotion.
+# Read docs/code_matching_workflow.md before promotion.
 set -euo pipefail
 unit=${{1:?Pass the configured comparison unit}}
 {commands}
