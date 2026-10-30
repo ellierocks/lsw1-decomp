@@ -73,6 +73,9 @@ dolphin/os/OSTime.c:
 dolphin/os/OSMutex.c:
 	.text       start:0x80163914 end:0x80163984
 
+dolphin/exi/EXIUart.c:
+	.text       start:0x80165360 end:0x80165918
+
 dolphin/si/SISamplingRate.c:
 	.text       start:0x80167178 end:0x80167280
 	.data       start:0x801F5B40 end:0x801F5BD8

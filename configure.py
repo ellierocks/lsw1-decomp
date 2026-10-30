@@ -381,6 +381,7 @@ config.libs = [
         SDKObject("os/OSInterrupt", Matching),
         SDKObject("os/OSMemory", Matching),
     ]),
+    DolphinLib("exi", [SDKObject("exi/EXIUart", Matching)]),
     DolphinLib("si", [SDKObject("si/SISamplingRate", Matching)]),
     DolphinLib("db", [SDKObject("db/db", Matching)]),
     DolphinLib("pad", [SDKObject("pad/Padclamp", Matching)]),
