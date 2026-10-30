@@ -46,6 +46,10 @@ dolphin/os/OSCache.c:
 	.text       start:0x8015D8C0 end:0x8015DCF8
 	.data       start:0x801E2B40 end:0x801E2D70
 
+dolphin/os/OSContext.c:
+	.text       start:0x8015DCF8 end:0x8015E598
+	.data       start:0x801E2D70 end:0x801E2F48
+
 dolphin/os/OSError.c:
 	.text       start:0x8015E598 end:0x8015EC44
 	.data       start:0x801E2F48 end:0x801E3264
@@ -76,6 +80,11 @@ dolphin/os/OSMutex.c:
 dolphin/exi/EXIUart.c:
 	.text       start:0x80165360 end:0x80165918
 
+dolphin/si/SIBios.c:
+	.text       start:0x80165918 end:0x80167178
+	.data       start:0x801F5A28 end:0x801F5B40
+	.sdata      start:0x8040A040 end:0x8040A054
+
 dolphin/si/SISamplingRate.c:
 	.text       start:0x80167178 end:0x80167280
 	.data       start:0x801F5B40 end:0x801F5BD8
@@ -105,6 +114,10 @@ dolphin/dvd/fstload.c:
 	.text       start:0x8016AE04 end:0x8016B044
 	.data       start:0x801F66D8 end:0x801F6748
 	.sdata      start:0x8040A0D0 end:0x8040A0DC
+
+dolphin/dvd/dvdlow.c:
+	.text       start:0x8016B044 end:0x8016BE88
+	.sdata      start:0x8040A0E0 end:0x8040A0E4
 
 dolphin/pad/Padclamp.c:
 	.text       start:0x8016E058 end:0x8016E29C
@@ -139,6 +152,9 @@ dolphin/card/CARDDir.c:
 
 dolphin/card/CARDCheck.c:
 	.text       start:0x80177A08 end:0x80178944
+
+dolphin/card/CARDFormat.c:
+	.text       start:0x80179400 end:0x80179BE4
 
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
