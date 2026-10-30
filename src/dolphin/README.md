@@ -39,5 +39,13 @@ repository. The strip tool reads the DTK target object's retained names instead
 of RE4's `sym_map.tsv`, and normalizes `.sdata2`'s write flag to the SN/DTK
 read-only convention. It never supplies replacement instructions or retail bytes.
 
+Batch 3 adds `os/OSContext.c` unchanged from the donor, plus
+`si/SIBios.c`, `dvd/dvdlow.c` and `card/CARDFormat.c`. SIBios hoists local
+statics, gives the alarm callback a unique name and externalizes its small BSS;
+its larger BSS definitions are externalized after compilation. dvdlow uses the
+retail `__OSInitAlarm` name, a unique `DVDAlarmHandler` name and the same BSS
+handling. CARDFormat uses the shared card control block name and drops the two
+dead-stripped synchronous wrappers. All BSS storage stays in assembly fallback.
+
 See [SDK import evidence](../../docs/sdk_import.md) for ranges, verification,
 progress and remaining work.

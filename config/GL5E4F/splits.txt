@@ -115,6 +115,10 @@ dolphin/dvd/fstload.c:
 	.data       start:0x801F66D8 end:0x801F6748
 	.sdata      start:0x8040A0D0 end:0x8040A0DC
 
+dolphin/dvd/dvdlow.c:
+	.text       start:0x8016B044 end:0x8016BE88
+	.sdata      start:0x8040A0E0 end:0x8040A0E4
+
 dolphin/pad/Padclamp.c:
 	.text       start:0x8016E058 end:0x8016E29C
 	.rodata     start:0x801B05F8 end:0x801B0604

@@ -965,3 +965,73 @@ python3 tools/verify_fn.py AIInit --unit dolphin/ai/ai --build --strict-symbols
 python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
 python3 tools/matching_progress.py
 ```
+
+
+## Batch 3: SI, OS context, CARD format and DVD low level
+
+Four more SDK units are promoted from baseline `e8139f4`: 46 SDK units total.
+The batch adds **14,120 code bytes and 61 functions**, taking measured matching
+progress from 64,752 / 326 to **78,872 code bytes / 387 functions** (5.024936%
+code). The report records 6,108 matched data bytes. The new unit sections own
+776 initialized data bytes; objdiff's named-data count is separate from the
+complete-section proof (SIBios reports 20 of 300 data bytes as named matches,
+while all 300 pass that proof).
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `os/OSContext` | `8015DCF8..8015E598` | 14 | 2,208 | 472 |
+| `si/SIBios` | `80165918..80167178` | 24 | 6,240 | 300 |
+| `card/CARDFormat` | `80179400..80179BE4` | 3 | 2,020 | 0 |
+| `dvd/dvdlow` | `8016B044..8016BE88` | 20 | 3,652 | 4 |
+
+The final clean rebuild has **zero differing bytes**, including the DOL header,
+and SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`. Each retained function
+passes the strict symbol gate, and all four units pass the complete-section
+proof. No BSS is promoted. The portable suite passes 107 tests (2 skipped).
+
+Integration details:
+
+- **OSContext:** the donor source needs no edits. The restartable interrupt
+  sequence uses labels `__RAS_OSDisableInterrupts_begin` at `80160130` and
+  `__RAS_OSDisableInterrupts_end` at `8016013C`. Both are aliases inside the
+  existing interrupt function, not new functions or moved boundaries.
+- **SIBios:** the alarm callback at `80166878` is named `SIAlarmHandler` to
+  avoid the other SDK callbacks. Function-local statics are hoisted so BSS can
+  be externalized. The two `cmdTypeAndStatus` slots retain distinct names and
+  addresses. The version string, `Si` and `Type` reside in `.data`; the version
+  pointer and short strings occupy `.sdata` `8040A040..8040A054`.
+- **CARDFormat:** the shared control block uses `lbl_8030E320`, as CARDDir does.
+  Retail dropped `__CARDFormatRegion` and `CARDFormat`; the retained async
+  functions and callback match without instruction changes.
+- **dvdlow:** `AlarmForWA` is at `802F4A28`; the other alarms and command/buffer
+  objects are mapped to fallback BSS. Small BSS statics are externs, including
+  the 8-byte time values. `FirstRead` owns only `8040A0E0..8040A0E4`; alignment
+  padding stays fallback. An explicit byte symbol at `8040A0DB` bounds the
+  preceding fstload tail without changing its split. The donor call to
+  `OSInitAlarm` resolves to retail `__OSInitAlarm`. The alarm callback is named
+  `DVDAlarmHandler` to keep strict symbol lookup unambiguous. The old
+  `DVDLowSeek` label at `801681A4` was misassigned; the verified implementation
+  is `8016B880`.
+
+The remaining Phase 1 candidates from batch 2 still need individual import
+work: dvdfs, dvd, EXIBios, AX families, Pad, mtx, vi and remaining CARD/OS
+units. This batch makes no promotion claims for those probes. For EXIBios the
+next step remains identifying ownership of the shared `.sdata` block; for dvd
+it is mapping the BSS references before the strict gate.
+
+Reproduce the four complete-unit proofs with:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/os/OSContext --build
+python3 tools/verify_unit.py dolphin/si/SIBios --build
+python3 tools/verify_unit.py dolphin/card/CARDFormat --build
+python3 tools/verify_unit.py dolphin/dvd/dvdlow --build
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+python3 -m unittest discover -s tests
+```
+
+For each function symbol in each split target object, run
+`python3 tools/verify_fn.py NAME --unit dolphin/LIB/UNIT --build --strict-symbols`.
+The function counts above enumerate the expected strict checks (61 total).
