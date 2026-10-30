@@ -298,6 +298,77 @@ The complete rebuilt image has zero differing bytes and retains SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. There is no remaining GXPixel
 mismatch.
 
+## GXFrameBuf follow-up
+
+Starting from merged GXPixel PR #22 (`e453914`), unchanged donor
+`gx/GXFrameBuf.c` promotes **14 functions and 2,728 code bytes**, with all
+**424 owned data bytes** proved by the complete-unit gate. Total matching is
+**24,972 code bytes / 147 functions / 2,324 matched data bytes**. Thirteen SDK
+units contribute 22,928 code bytes / 124 functions / 2,696 complete data bytes.
+Baseline GXFrameBuf promotion was zero bytes; no compiler or source changes
+were needed.
+
+| Section | Retail range, end exclusive | Bytes |
+|---|---|---:|
+| `.text` | `80180144..80180BEC` | 2,728 |
+| `.data` | `801FAF90..801FB128` | 408 |
+| `.sdata2` | `8040B800..8040B810` | 16 |
+
+Six shifted names caused the apparent version drift. Strict comparison against
+the donor establishes `GXSetDispCopyYScale` at `80180560`,
+`GXSetCopyClear` at `8018062C`, `GXSetCopyFilter` at `801806A4`,
+`GXSetDispCopyGamma` at `801808AC`, `GXCopyDisp` at `801808C0` and
+`GXCopyTex` at `80180A28`. The stale `GXCopyTex` binding at `8017C89C`
+is removed without assigning an unproved replacement identity. Its body and
+the six shifted bindings are recorded in the rejected-renames ledger.
+
+The retained text is contiguous from `GXAdjustForOverscan` through
+`GXClearBoundingBox`, bounded by the already promoted GXGeometry and GXLight
+units. The standalone `__GXGetNumXfbLines`, `GXGetNumXfbLines`,
+`GXGetYScaleFactor` and `GXReadBoundingBox` copies are stripped. This does
+not rest on NO_ANCHOR: there is no gap for them in the retained unit, and a
+four-byte-aligned whole-image search masking only donor relocation fields
+finds no complete instruction identity for any of those four bodies.
+`GXSetDispCopyYScale` strictly reproduces all 51 instructions, including the
+inlined line-count calculation; its conversion call resolves to the previously
+identified `__cvt_fp2unsigned` at `80153184`. `GXSetTexCopyDst` retains its
+verified `__GetImageTileCount` call at `801812AC`.
+
+Five complete 60-byte render modes match retail byte for byte:
+`GXNtsc480IntDf` at `801FAFA0`, `GXMpal480IntDf` at `801FB000`,
+`GXPal264Int` at `801FB04C`, `GXPal528IntDf` at `801FB08C` and
+`GXEurgb60Hz480IntDf` at `801FB0E0`. The other 27 donor modes each leave
+four bytes under the existing eight-byte stripping rule: 300 retained mode
+bytes plus 108 remnant bytes establish the complete 408-byte block. The
+complete-unit gate proves every byte, including those remnants. The 16-byte
+constant pool contains 256.0f, alignment and the unsigned-conversion double
+used by stripped functions.
+
+Objdiff reports 100% complete data but credits only the 16-byte constant pool
+as matched data. Its `.data` comparison is 98.50746% despite exact raw bytes
+and no data relocations; the target labels the remnant regions, while the
+stripped donor has no symbols there. Thus this import adds 424 complete data
+bytes but only 16 reported matched data bytes. No artificial source symbols or oracle changes are introduced to improve that
+metric; the splits follow complete donor section ownership.
+
+All 14 retained functions pass `verify_fn.py NAME --build --strict-symbols`;
+the complete-unit gate passes three sections and the stripped probe reports
+`MATCH=14`. Reproduction uses the function enumeration above:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/gx/GXFrameBuf --build
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported gx/GXFrameBuf
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+sha1sum build/GL5E4F/main.dol
+```
+
+The complete image has zero differing bytes and retains retail SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. There is no remaining
+GXFrameBuf code, section or relocation mismatch. Raw investigation and
+verification logs remain under ignored `work/`.
+
 ## CARDStat follow-up
 
 Starting from merged GXPixel PR #22 (`e453914`), unchanged donor `card/CARDStat.c`
@@ -334,14 +405,19 @@ The unit has no data sections in the donor object, so no data ownership is neede
 
 ## Remaining Phase 1 work
 
-These thirteen promoted units do not complete every SDK archive. Remaining
+With both imports, total matching is **25,848 code bytes / 149 functions /
+2,324 matched data bytes**. Fourteen SDK units contribute 23,804 code bytes /
+126 functions / 2,696 complete data bytes. The combined build retains the retail
+SHA-1 and all complete-unit proofs.
+
+These fourteen promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
-| GXFrameBuf / GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
+| GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
 | OSCache / OSMemory | Pooled data, reset records and additional call names need proof | Establish complete sections and independently resolve their relocations; OS was rebuilt in May 2004 |
 
 Continue library by library with the same full-unit and linked-range gates.
