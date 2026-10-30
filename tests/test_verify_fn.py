@@ -362,6 +362,20 @@ class SyntheticDataTests(Env):
         self.assertIn("retail SHA-1", err)
 
 
+class UnitProofCoverageTests(unittest.TestCase):
+    def comparer(self, proof):
+        return vf.Comparer(None, None, proof)
+
+    def test_only_proved_locations_are_covered(self):
+        section = mock.Mock(size=8)
+        comparer = self.comparer({".sdata2": 0x1000})
+        self.assertTrue(comparer.unit_proof_covers((".sdata2", 4), section, 4, 0x1004))
+        self.assertFalse(comparer.unit_proof_covers((".sdata2", 4), section, 4, 0x1008))
+        self.assertFalse(comparer.unit_proof_covers((".sdata2", 6), section, 4, 0x1006))
+        self.assertFalse(comparer.unit_proof_covers((".sdata", 0), section, 4, 0x1000))
+        self.assertFalse(self.comparer(None).unit_proof_covers((".sdata2", 0), section, 4, 0x1000))
+
+
 class ErrorHandlingTests(Env):
     def test_truncated_object_is_error_not_mismatch(self):
         self.target()

@@ -8,6 +8,7 @@ pooled data and the reference implementation's eight-byte data granularity.
 Abort if surviving code references anything removed. Run after dtk elf fixup.
 """
 import argparse
+import re
 import struct
 import sys
 from pathlib import Path
@@ -18,6 +19,7 @@ STT_OBJECT = 1
 STT_FUNC = 2
 STT_SECTION = 3
 STB_LOCAL = 0
+STB_GLOBAL = 1
 DATA_GRANULE = 8
 
 class Elf:
@@ -68,9 +70,131 @@ class Elf:
         with open(path, 'wb') as f:
             f.write(out)
 
+BSS_LINE = re.compile(r'^(\S+)\s*=\s*\.bss:0x([0-9A-Fa-f]+);\s*//(.*)$')
+
+
+def load_bss_symbols(path):
+    """Map DTK link names to (address, size) for the .bss entries of symbols.txt."""
+    table = {}
+    for line in Path(path).read_text().splitlines():
+        m = BSS_LINE.match(line)
+        if not m:
+            continue
+        name, addr, attrs = m.group(1), int(m.group(2), 16), m.group(3)
+        size = re.search(r'size:0x([0-9A-Fa-f]+)', attrs)
+        if not size:
+            continue
+        if 'scope:local' in attrs:
+            name = f'{name}_{addr:08X}'
+        table[name] = (addr, int(size.group(1), 16))
+    return table
+
+
+def externalize_bss(elf, table):
+    """Turn BSS definitions into references to the fallback objects they were compiled at.
+
+    The compiled layout must agree with symbols.txt: every defined object needs
+    a DTK link name there, a size that fits, a single constant address bias
+    across the section and no gap that could hide another object. The section
+    is then emptied, so only the retail BSS ranges remain in the link.
+    """
+    bss = [i for i, name in enumerate(elf.names) if name == '.bss']
+    if not bss:
+        return
+    bss = bss[0]
+    symtab = elf.index('.symtab')
+    strtab = elf.sections[symtab][6]
+    strs = elf.contents[strtab]
+    syms = [list(struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16]))
+            for o in range(0, len(elf.contents[symtab]), 16)]
+
+    def sym_name(s):
+        return strs[s[0]:strs.index(b'\x00', s[0])].decode()
+    objects = sorted((s[1], s[2], sym_name(s), i) for i, s in enumerate(syms)
+                     if s[5] == bss and s[3] & 15 == STT_OBJECT)
+    if not objects:
+        return
+    base = None
+    end = 0
+    for off, size, name, _ in objects:
+        if name not in table:
+            sys.exit(f'strip_unused: .bss object {name} has no .bss symbol in symbols.txt')
+        addr, table_size = table[name]
+        if size > table_size:
+            sys.exit(f'strip_unused: .bss object {name} is {size:#x} bytes; symbols.txt allows {table_size:#x}')
+        if base is None:
+            base = addr - off
+            if base % max(elf.sections[bss][8], 1):
+                sys.exit(f'strip_unused: .bss base {base:#x} violates section alignment')
+        elif addr - off != base:
+            sys.exit(f'strip_unused: .bss object {name} sits at {off:#x} but symbols.txt places it at {addr:#x}')
+        if off < end:
+            sys.exit(f'strip_unused: .bss object {name} overlaps the previous object')
+        if off - end >= DATA_GRANULE:
+            sys.exit(f'strip_unused: gap before .bss object {name} could hide an undefined object')
+        end = off + size
+    if len(elf.contents[bss]) - end >= DATA_GRANULE:
+        sys.exit('strip_unused: trailing .bss space is not covered by a symbols.txt object')
+
+    def owner(offset):
+        for off, size, name, index in objects:
+            if off <= offset < off + size:
+                return off, name
+        sys.exit(f'strip_unused: .bss offset {offset:#x} is outside every object')
+    object_index = {i for _, _, _, i in objects}
+    section_like = {i for i, s in enumerate(syms) if s[5] == bss and i not in object_index}
+    names = bytearray(strs)
+    new_index = {}
+    new_syms = []
+    appended = {}
+    for i, s in enumerate(syms):
+        if i in object_index or (i in section_like and s[3] & 15 != STT_SECTION):
+            continue
+        new_index[i] = len(new_syms)
+        new_syms.append(s)
+    for _, _, name, i in objects:
+        appended[name] = len(new_syms)
+        new_syms.append([len(names), 0, 0, STB_GLOBAL << 4, 0, 0])
+        names += name.encode() + b'\x00'
+    for i, sh in enumerate(elf.sections):
+        if sh[1] != SHT_RELA:
+            continue
+        out = bytearray()
+        for o in range(0, len(elf.contents[i]), 12):
+            r_off, r_info, r_add = struct.unpack('>IIi', elf.contents[i][o:o + 12])
+            sym, rtype = r_info >> 8, r_info & 255
+            if sym in object_index:
+                name = sym_name(syms[sym])
+                r_add -= next(off for off, _, n, _ in objects if n == name) - syms[sym][1]
+                sym = appended[name]
+            elif syms[sym][5] == bss:
+                off, name = owner(syms[sym][1] + r_add)
+                r_add = syms[sym][1] + r_add - off
+                sym = appended[name]
+            else:
+                sym = new_index[sym]
+            out += struct.pack('>IIi', r_off, sym << 8 | rtype, r_add)
+        elf.contents[i] = out
+    if '.comment' in elf.names:
+        ci = elf.index('.comment')
+        body = elf.contents[ci]
+        hdr = len(body) - 8 * len(syms)
+        if hdr >= 0:
+            recs = [body[hdr + 8 * k:hdr + 8 * k + 8] for k in range(len(syms))]
+            undefined = next((r for r, s in zip(recs, syms) if s[5] == 0 and s[3] >> 4 == STB_GLOBAL), bytes(8))
+            kept = [recs[k] for k in range(len(syms)) if k in new_index]
+            elf.contents[ci] = bytearray(body[:hdr]) + bytearray().join(kept + [undefined] * len(objects))
+    elf.contents[strtab] = names
+    elf.contents[symtab] = bytearray().join((struct.pack('>IIIBBH', *s) for s in new_syms))
+    elf.sections[symtab][7] = next((k for k, s in enumerate(new_syms) if s[3] >> 4 != 0), len(new_syms))
+    elf.contents[bss] = bytearray()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--target', required=True, type=Path)
+    ap.add_argument('--external-bss', type=Path, metavar='SYMBOLS',
+                    help='replace .bss definitions with references to the symbols.txt fallback objects')
     ap.add_argument('object', type=Path)
     args = ap.parse_args()
     args.unit = str(args.target)
@@ -87,6 +211,8 @@ def main():
     if not keep:
         sys.exit('strip_unused: target has no defined symbols')
     elf = Elf(open(args.object, 'rb').read())
+    if args.external_bss:
+        externalize_bss(elf, load_bss_symbols(args.external_bss))
     symtab = elf.index('.symtab')
     strtab = elf.sections[symtab][6]
     syms = [list(struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]

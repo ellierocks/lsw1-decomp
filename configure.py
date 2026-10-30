@@ -305,16 +305,18 @@ def sdk_cflags(unit: str) -> List[str]:
     return [overrides.get(flag, flag) for flag in cflags_mw_sdk]
 
 
-def SDKObject(unit: str, matching: bool) -> Object:
+def SDKObject(unit: str, matching: bool, external_bss: bool = False) -> Object:
     name = f"dolphin/{unit}.c"
     target = config.out_path() / "obj" / f"dolphin/{unit}.o"
+    symbols = Path("config/GL5E4F/symbols.txt")
+    flag = f" --external-bss {symbols}" if external_bss else ""
     return Object(
         matching, name, cflags=sdk_cflags(unit),
         post_build=[
             "{dtk} elf fixup {out} {out}",
-            f"$python tools/strip_unused.py --target {target} {{out}}",
+            f"$python tools/strip_unused.py --target {target}{flag} {{out}}",
         ],
-        post_build_implicit=[Path("tools/strip_unused.py"), target],
+        post_build_implicit=[Path("tools/strip_unused.py"), target] + ([symbols] if external_bss else []),
     )
 
 
@@ -379,6 +381,7 @@ config.libs = [
     DolphinLib("card", [SDKObject("card/CARDDir", Matching), SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
+        SDKObject("gx/GXInit", Matching, external_bss=True),
         SDKObject("gx/GXFifo", Matching),
         SDKObject("gx/GXMisc", Matching),
         SDKObject("gx/GXGeometry", Matching),
