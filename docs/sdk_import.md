@@ -513,28 +513,59 @@ Two tooling faults made Phase 1 look further away than it was.
 
 A full re-probe with both fixes moved discovery rows from 145 to 42 `CODE_SAME`,
 from 146 to 294 `UNVERIFIED` and from 267 to 298 `MATCH` functions. Raw TSVs
-stay under ignored `work/`. Four units now contain only `MATCH`, `UNVERIFIED` or
-`CODE_SAME` functions and are the cheapest next promotions: `si/SISamplingRate`,
-`dvd/fstload`, `os/OSAudioSystem` and `card/CARDDir`.
+stay under ignored `work/`. At that point four units contained only `MATCH`,
+`UNVERIFIED` or `CODE_SAME` functions and were the cheapest next promotions.
+
+## SISamplingRate follow-up
+
+`si/SISamplingRate` now promotes two functions (264 code bytes) and its complete
+initialized-data section (152 bytes). `SISetSamplingRate` and
+`SIRefreshSamplingRate` both pass strict verification; `verify_unit.py` proves
+the complete `.text` and `.data` sections, including relocations. The splits are
+`.text` `80167178..80167280` and `.data` `801F5B40..801F5BD8`. `XYPAL` and the
+`SISetSamplingRate` diagnostic string are named at their donor-proved addresses.
+
+The four-byte `SamplingRate` at `.sbss` `8040A920..8040A924` remains an
+assembly fallback: the complete-unit verifier deliberately does not accept BSS
+as proved data. The vendored source therefore references DTK's exact split-local
+name, `SamplingRate_8040A920`, rather than defining storage in the C unit. This
+keeps the BSS unchanged and out of the promoted unit; no BSS proof is claimed.
+The full image remains byte-identical to retail (SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`).
+
+Reproduction:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/si/SISamplingRate --build
+python3 tools/verify_fn.py SISetSamplingRate --build --strict-symbols
+python3 tools/verify_fn.py SIRefreshSamplingRate --build --strict-symbols
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
 
 ## Remaining Phase 1 work
 
 With the OSMemory import, total matching was **26,576 code bytes / 155 functions /
-2,340 matched data bytes**. Fifteen SDK units contribute 24,532 code bytes /
-132 functions / 2,712 complete data bytes. The combined build retains the retail
+2,340 matched data bytes**. Fifteen SDK units contributed 24,532 code bytes /
+132 functions / 2,712 complete data bytes. The combined build retained the retail
 SHA-1 and all complete-unit proofs.
 
 OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
 bytes / 167 functions because its functions were already credited, and complete
-files rise from 16 to 17. These sixteen promoted units do not complete every SDK archive. Remaining
-SDK ranges retain assembly fallback. No other probe row is promoted by name
-or layout alone, and no unverified BSS or unsupported relocation is accepted.
+files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit. Current
+matching is **27,920 code bytes / 169 functions / 2,492 matched data bytes**;
+the 17 SDK units contribute 24,796 code bytes / 134 functions / 2,864 complete
+data bytes. There are 18 complete source-backed files including the non-SDK
+`nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
+is promoted by name or layout alone, and no unverified BSS or unsupported
+relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| SISamplingRate, fstload, OSAudioSystem, CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor the donor, add the split and statics, then run the unit and strict function gates |
+| fstload, OSAudioSystem, CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor each donor, add its split and statics, then run the unit and strict function gates |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version
