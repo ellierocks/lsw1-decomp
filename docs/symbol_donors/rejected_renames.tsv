@@ -64,3 +64,4 @@
 0x8017FC64	__GXDrawSyncCallback	GXTokenInterruptHandler	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
 0x8017FCEC	GXSetBreakPtCallback	GXSetDrawDoneCallback	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
 0x8017FD30	__GXBreakPtCallback	GXFinishInterruptHandler	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017DFC4	GXGetGPStatus	GXSetBreakPtCallback	GXFifo import: retained instructions and BSS relocation identify callback setter; see sdk_import.md
