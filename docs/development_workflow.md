@@ -59,7 +59,7 @@ into the build until it matches.
 |-----|---------------|---------|-------|---------|
 | `tooling` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo and GitHub | Portable checks above |
 | `retail` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo only | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` and the verifier tests against genuine ProDG objects (`VERIFY_FN_REQUIRE_RETAIL=1`) |
-| `readme` | `.github/workflows/build.yml` | successful main push or dispatched update branch | Forgejo only | Publishes verified README-only progress PRs and fast-forwards them into `main` |
+| `readme` | `.github/workflows/build.yml` | successful main push or dispatched update branch | Forgejo only | Publishes README progress to a check branch and fast-forwards `main` after it passes |
 | `build` | `.github/workflows/build.yml` | push to `main`, PRs | GitHub only | Builds the report and uploads `GL5E4F_report` for decomp.dev |
 | `build-map` | `.github/workflows/generate-map.yml` | changes to symbols or map tooling | GitHub only | Uploads the Dolphin map |
 
@@ -140,23 +140,28 @@ After the Forgejo `tooling` and `retail` checks succeed on `main`, the `readme`
 job publishes the README rendered by `python3 tools/update_readme.py` in the
 retail job. It renders the marked README status block from that build's
 `report.json` and `symbols.txt`, without changing surrounding prose. Missing reports fail rather than publishing zeros.
-Identical figures produce no commit, PR or date-only churn.
+Identical figures produce no commit, branch or date-only churn.
 
-Changed figures push a README commit to a `ci/readme-progress-<source SHA>` branch
-and open a README-only PR using the job's Forgejo token, then explicitly dispatches `build.yml` on
-that branch to run tooling and retail checks again. Explicit dispatch is needed
+Changed figures push one README commit on the source SHA to a
+`ci/readme-progress-<source SHA>` branch, then explicitly dispatch `build.yml`
+on that branch to run tooling and retail checks again. Explicit dispatch is needed
 because [Forgejo automatic tokens](https://forgejo.org/docs/latest/user/actions/basic-concepts/)
-suppress workflows triggered indirectly by their commits and PRs.
-The dependent `readme` job merges only when the PR changes README alone and its entire
-contents reproduce the generated block applied to the current base README. It
-merges by fast-forwarding `main` to the checked head SHA, which fails if `main`
-moved, then closes the PR and deletes its branch. Branch and `main` updates use
-`git push` rather than the branch-creation or merge API: Forgejo's internal API
-pushes do not carry the Actions token's permission, so the pre-receive hook
-rejects them. `check_api_call` refuses those API writes, and the publish tests
-apply it to every call. GitHub only consumes the mirrored result. Older main runs skip publication after main
-advances. Failed checks leave the update PR unmerged.
+suppress workflows triggered indirectly by their pushes. The dispatched `readme`
+job fast-forwards `main` to the checked commit and deletes the branch only when
+the commit's parent is still `main`, it changes README alone, and its entire
+contents reproduce the generated block applied to the parent README.
+
+The flow uses no pull requests. On this private repository, Forgejo 17 rejects the
+Actions token for these API writes:
+- branch creation, file writes and merges, which push internally without the
+  token's permission;
+- pull-request creation, which rechecks access as a plain user.
+
+Git over HTTP and workflow dispatch honour the token. `check_api_call` allows only
+reads and that dispatch. `tests/test_update_readme.py` runs the whole cycle against
+a real git origin. GitHub only consumes the mirrored result. Older main runs skip
+publication after main advances. Failed checks leave the progress branch unmerged.
 
 To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.
-Only the CI publication step needs repository contents and pull-request write
+Only the CI publication step needs repository contents and actions write
 permissions; it uses the existing job token, with no additional stored secret.
