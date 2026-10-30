@@ -73,6 +73,7 @@ def split_ranges(text, unit):
 
 
 MAX_ALIGN_TAIL = 32
+LOCAL_BRANCH_OPCODES = {10: 18, 11: 16}
 
 
 def prove_unit(target, mine, ranges, symbols, dol):
@@ -164,7 +165,24 @@ def prove_unit(target, mine, ranges, symbols, dol):
             return result
 
         tc, mc = canonical(target, tr), canonical(mine, mr)
-        if tc is None or mc is None or tc != mc:
+        if tc is None or mc is None:
+            return None
+        if code:
+            # DTK emits a relocation for a branch back to its own function
+            # entry; the assembler resolves it. Accept it only when the
+            # branch assembled in the source object lands on the same address.
+            for offset, (kind, addend, address, mask) in tc.items():
+                if offset in mc or kind not in LOCAL_BRANCH_OPCODES:
+                    continue
+                word = int.from_bytes(mb[offset:offset + 4], 'big')
+                if word >> 26 != LOCAL_BRANCH_OPCODES[kind] or word & 3:
+                    continue
+                bits = 26 if kind == 10 else 16
+                disp = word & mask
+                disp -= (disp & (1 << (bits - 1))) << 1
+                if (start + offset + disp) & 0xffffffff == address:
+                    mc[offset] = (kind, addend, address, mask)
+        if tc != mc:
             return None
         clean_retail = bytearray(rb)
         for offset, (kind, _, address, mask) in tc.items():

@@ -587,12 +587,47 @@ class Comparer:
                                           f"({mine_bytes.hex()})")
 
 
-def _row_diff(t: Insn, m: Insn, cmp: Comparer, mine: Func) -> tuple[str, str]:
+def _self_entry_branch(t: Insn, m: Insn, index: int, mine: Func) -> bool:
+    """DTK relocates a branch back to its own function entry; the assembler
+    resolves it. Accept only when mine's assembled branch lands on offset 0."""
+    ref = t.ref
+    if ref is None or m.ref is not None or ref.is_section or ref.name != mine.name or ref.addend:
+        return False
+    opcode = {10: 18, 11: 16}.get(ref.rtype)
+    if opcode is None or m.word >> 26 != opcode or m.word & 3:
+        return False
+    bits, mask = (26, 0x03FFFFFC) if ref.rtype == 10 else (16, 0xFFFC)
+    disp = m.word & mask
+    disp -= (disp & (1 << (bits - 1))) << 1
+    return index * 4 + disp == 0
+
+
+def _align_key(insn: Insn, index: int, func: Func, is_target: bool):
+    ref = insn.ref
+    if is_target:
+        entry = (ref is not None and not ref.is_section and ref.name == func.name
+                 and not ref.addend and ref.rtype in (10, 11))
+        rtype = ref.rtype if entry else None
+    else:
+        rtype = {18: 10, 16: 11}.get(insn.word >> 26) if ref is None and not insn.word & 3 else None
+        if rtype is not None:
+            bits, mask = (26, 0x03FFFFFC) if rtype == 10 else (16, 0xFFFC)
+            disp = insn.word & mask
+            disp -= (disp & (1 << (bits - 1))) << 1
+            rtype = rtype if index * 4 + disp == 0 else None
+    if rtype is None:
+        return (insn.cmp, ref and ref.rtype)
+    return (insn.word & ~RELOC_TYPES[rtype][1] & 0xFFFFFFFF, "entry-branch", rtype)
+
+
+def _row_diff(t: Insn, m: Insn, cmp: Comparer, mine: Func, mi: Optional[int] = None) -> tuple[str, str]:
     """Classify one aligned pair: ('ok'|'mapped'|diff-kind, detail)."""
     union = t.mask | m.mask
     if (t.word & ~union) & 0xFFFFFFFF != (m.word & ~union) & 0xFFFFFFFF:
         kind = "operand" if _same_opcode(t.word, m.word) else "opcode"
         return kind, f"{t.word:08X} vs {m.word:08X}"
+    if mi is not None and _self_entry_branch(t, m, mi, mine):
+        return "ok", ""
     if (t.ref is None) != (m.ref is None):
         side = "target" if t.ref else "mine"
         return "reloc", f"only {side} has a relocation"
@@ -610,14 +645,14 @@ def compare_functions(target: Func, mine: Func, symbols: SymbolTable,
     cmp = Comparer(symbols, dol, unit_proof)
     # Alignment keys use each side's own mask; differing reloc types still show
     # up as 'reloc' diffs because aligned pairs are re-checked with a union mask.
-    tk = [(i.cmp, i.ref and i.ref.rtype) for i in target.insns]
-    mk = [(i.cmp, i.ref and i.ref.rtype) for i in mine.insns]
+    tk = [_align_key(i, k, target, True) for k, i in enumerate(target.insns)]
+    mk = [_align_key(i, k, mine, False) for k, i in enumerate(mine.insns)]
     sm = difflib.SequenceMatcher(a=tk, b=mk, autojunk=False)
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "equal":
             for k in range(i2 - i1):
                 ti, mi = i1 + k, j1 + k
-                kind, detail = _row_diff(target.insns[ti], mine.insns[mi], cmp, mine)
+                kind, detail = _row_diff(target.insns[ti], mine.insns[mi], cmp, mine, mi)
                 _record(rep, kind, detail, ti, mi)
             continue
         span = max(i2 - i1, j2 - j1)
@@ -627,7 +662,7 @@ def compare_functions(target: Func, mine: Func, symbols: SymbolTable,
             if ti is None or mi is None:
                 kind, detail = "length", "instruction only in " + ("target" if mi is None else "mine")
             else:
-                kind, detail = _row_diff(target.insns[ti], mine.insns[mi], cmp, mine)
+                kind, detail = _row_diff(target.insns[ti], mine.insns[mi], cmp, mine, mi)
                 if kind in ("ok", "mapped"):
                     kind, detail = "operand", "differs from the aligned neighbours"
             _record(rep, kind, detail, ti, mi)

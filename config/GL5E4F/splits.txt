@@ -45,6 +45,10 @@ dolphin/os/OSMemory.c:
 dolphin/os/OSSync.c:
 	.text       start:0x80162334 end:0x801623B8
 
+dolphin/os/OSTime.c:
+	.text       start:0x801637C4 end:0x801638A0
+	.data       start:0x801E4678 end:0x801E46D8
+
 dolphin/os/OSMutex.c:
 	.text       start:0x80163914 end:0x80163984
 
