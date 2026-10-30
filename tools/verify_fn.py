@@ -539,13 +539,16 @@ class Comparer:
             self.pending_data[(key, mloc, tkey[1])] = 0
         return "mapped", ""
 
+    def unit_proof_covers(self, mloc, sec, width: int, taddr: int) -> bool:
+        return bool(self.unit_proof and 0 <= mloc[1] and mloc[1] + width <= sec.size
+                    and self.unit_proof.get(mloc[0], -1) + mloc[1] == taddr)
+
     def verify_data(self, mine: Func, report: Report) -> None:
         for (key, mloc, taddr), _ in list(self.pending_data.items()):
             width = mine.data_widths.get(mloc, 0)
             sec = next(s for s in mine.elf.sections if s.name == mloc[0])
             if not width:
-                if (self.unit_proof and 0 <= mloc[1] < sec.size
-                        and self.unit_proof.get(mloc[0], -1) + mloc[1] == taddr):
+                if self.unit_proof_covers(mloc, sec, 1, taddr):
                     self.mappings[key] = "verified: full unit sections and relocations match retail"
                     continue
                 self.mappings[key] = "unverified: address-taken or unsized, contents not compared"
@@ -565,6 +568,10 @@ class Comparer:
                 else:
                     self.mappings[key] = ("unverified: retail address 0x%08X is not file-backed "
                                           "(bss) but mine is initialised" % taddr)
+            elif mine_bytes != target_bytes and self.unit_proof_covers(mloc, sec, width, taddr):
+                # Pointer words are zero in the object; the complete-unit proof
+                # resolves their relocations against retail.
+                self.mappings[key] = "verified: full unit sections and relocations match retail"
             elif mine_bytes != target_bytes:
                 report.diffs.append(Diff(
                     "data", None, None,

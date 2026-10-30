@@ -704,18 +704,13 @@ OSCache is now promoted as the sixteenth unit; the report still shows 27,656 cod
 bytes / 167 functions because its functions were already credited, and complete
 files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit.
 OSAudioSystem is the eighteenth, fstload the nineteenth, CARDDir the twentieth,
-GXMisc the twenty-first and GXFifo the twenty-second. Current matching is
-**33,712 code bytes / 213
-functions / 2,744 matched data bytes**; the 22 SDK units contribute 30,588 code
-bytes / 178 functions / 3,116 complete data bytes. There are 23 complete
-source-backed files including the non-SDK
-`nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
+GXMisc the twenty-first, GXFifo the twenty-second and GXInit the twenty-third.
+Current matching is **38,716 code bytes / 219 functions / 3,360 matched data
+bytes**; the 23 SDK units contribute 35,592 code bytes / 184 functions / 3,732
+complete data bytes. There are 24 complete source-backed files including the
+non-SDK `nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
 is promoted by name or layout alone, and no unverified BSS or unsupported
 relocation is accepted.
-
-| Candidate | Current limit | Next concrete check |
-|---|---|---|
-| GXInit | Externalizing FIFO BSS adds one instruction; initialized-pointer and complete-unit proofs still fail | Preserve donor BSS definitions during compilation, then investigate externalizing only their object definitions while proving every fallback address |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version
@@ -752,38 +747,66 @@ python3 tools/matching_progress.py
 ```
 
 
-## GXInit plateau (not promoted)
+## GXInit import
 
-On baseline `3f3e0a2`, GXInit contributes zero promoted bytes. The retail GX
-release string is `Apr  5 2004 04:14:28`; the donor release time differs by two
-bytes. Instruction comparisons place the texture callback at `8017C77C`, the
-TLUT callback at `8017C878` and shutdown at `8017C89C`. The proposed retained
-text spans `8017C77C..8017DB08`, but no split or symbol change is accepted.
+On baseline `157922f` GXInit adds 5,004 code bytes, six functions and 616 data
+bytes. The retail GX release string is `Apr  5 2004 04:14:28`; the donor's
+release time differs by two bytes. The unit owns `.text` `8017C77C..8017DB08`,
+`.data` `801FAA80..801FACBC`, `.sdata` `8040A160..8040A164` and `.sdata2`
+`8040B7D8..8040B800`. It holds `__GXDefaultTexRegionCallback` (`8017C77C`),
+`__GXDefaultTlutRegionCallback` (`8017C878`), `__GXShutdown` (`8017C89C`),
+`__GXInitRevisionBits`, `GXInit` and `__GXInitGX`. The earlier
+`__GXDefaultTlutRegionCallback` name at `8017C754` belonged to a four-byte
+neighbour and is now `fn_8017C754`.
 
-A candidate with the retail version string and externalized BSS compiles.
-`GXInit` has 385 instructions against retail's 384: taking the external FIFO
-address emits an extra `mr` after the address calculation and changes the
-selected register. Explicit local, register and const-pointer variants retain
-that mismatch. The other five retained functions reproduce their instruction
-sequences (63, 9, 100, 105 and 590 instructions), but none is claimed as a strict
-match. The first reported initialized-data failure is `__GXData`: the object
-contains an unresolved pointer relocation rather than the retail `8030E5E0`
-value. Matching relocation targets alone have not established the complete-unit
-proof.
+Three causes blocked the earlier plateau, and none was a version difference:
 
-The candidate proposes `.data` `801FAA80..801FACBC`, `.sdata`
-`8040A160..8040A164` and `.sdata2` `8040B7D8..8040B800`. These ownership ranges
-remain hypotheses. The linked experiment exits 99 without a diagnostic beyond
-the failed link; a mismatched reset fallback name (`lbl_8040AC6C` versus DTK's
-`resetFuncRegistered$145_8040AC6C`) also remains unresolved. No candidate
-linked-range, full-image or portable gate passed, and provisional candidate
-report totals are not matching progress.
+- **Codegen.** Compiling the `FifoObj` and `gxData` externs gave 385
+  instructions. MWCC hoists the address of a statically defined object into a
+  callee-saved register at function entry and emits `addi r31,r4,...` directly.
+  With an `extern` it emits `addi r0,...; mr r30,r0` instead. Explicit local,
+  register and const-pointer variants of the extern cannot reproduce this. The
+  donor-literal source (`static GXFifoObj FifoObj; static GXData gxData;` with
+  `&FifoObj` at each use) matches all 384 instructions.
+- **BSS ownership.** The retail BSS stays in fallback objects, but the compiled
+  object defined the statics. `tools/strip_unused.py --external-bss` now turns
+  those `.bss` definitions into undefined references to the fallback symbols
+  and empties the section. It accepts an object only when each name exists as a
+  `.bss` entry in `symbols.txt`, its size fits, the whole section shares one
+  address bias, no gap of eight bytes or more could hide another object and
+  every relocation lands inside a named object. Otherwise it aborts. Only GXInit
+  opts in (`SDKObject(..., external_bss=True)`), and BSS contents stay
+  unpromoted. `FifoObj` became global (`FifoObj` instead of local
+  `FifoObj_8030E560`) because a local symbol cannot be linked from another
+  object; `lbl_8030E5E0` became `gxData`, both with unchanged address and size.
+- **Link failure.** The linker exited 99 without a message because the source
+  referenced `lbl_8040AC6C`, which is the local `resetFuncRegistered$145` that
+  DTK emits as `resetFuncRegistered$145_8040AC6C`. Renaming it
+  `GXResetFuncRegistered` (same address, size and scope) gives the C-compatible
+  name `GXResetFuncRegistered_8040AC6C`, as for fstload.
 
-The tested source, configuration patch, commands and status remain local under
-`work/gxinit-candidate/` in the investigation checkout. The next code-generation
-hypothesis is to preserve the donor's BSS definitions during compilation, then
-externalize their object definitions to independently established fallback
-symbols without changing instructions. This needs a real implementation and the
-unchanged strict function, complete-unit, relocation and whole-image gates;
-BSS itself must remain unpromoted. Do not infer absent functions from
-`NO_ANCHOR`, or bypass the pointer proof by accepting zero-filled data.
+`time` is a 64-bit `OSTime` read as two words in `__GXShutdown`. The retail
+symbols split it into `lbl_8040AC60` and `lbl_8040AC64`, so a relocation to the
+low word differed in addend (`+4`) from the target even though the address was
+identical. Both symbols are now one eight-byte `lbl_8040AC60`; no address moved.
+
+`verify_fn.py` compared the raw object bytes of sized pointer objects
+(`__GXData` in `.sdata2`, `__GXVersion` in `.sdata`) with retail, where the
+object holds zero plus a relocation. A complete-unit proof resolves each of those
+relocations against the retail encoding, so a location it covers is now accepted
+when the raw bytes disagree. Objects without a unit proof still fail on raw bytes.
+
+The linked unit is identical to retail across all four ranges, the full image
+has zero differences and the SHA-1 is `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+The six functions pass strict verification with no unverified references.
+
+```sh
+bash build.sh
+for fn in __GXDefaultTexRegionCallback __GXDefaultTlutRegionCallback __GXShutdown \
+    __GXInitRevisionBits GXInit __GXInitGX; do
+  python3 tools/verify_fn.py $fn --unit dolphin/gx/GXInit --build --strict-symbols
+done
+python3 tools/verify_unit.py dolphin/gx/GXInit --build
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```

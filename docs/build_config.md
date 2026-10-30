@@ -65,6 +65,14 @@ relocations and MWCC comment records, and rejects dangling references. Local
 pooled data is retained; unused global data follows the reference's eight-byte
 granularity. `.sdata2` is normalized to SN/DTK read-only ELF metadata.
 
+An object that opts in with `external_bss=True` (only GXInit so far) also passes
+`--external-bss config/GL5E4F/symbols.txt`. MWCC generates different code for
+extern and statically defined objects, so the source keeps the donor's static
+BSS definitions. The stripper then replaces them with undefined references to
+the fallback `.bss` symbols and empties the section. It aborts unless every
+name, size and relative offset agrees with `symbols.txt`. Those fallback symbols
+must be global, and BSS contents stay unpromoted.
+
 The DOL uses the existing `ProDG/3.9.3/ngcld.exe` through
 `tools/run_prodg_link.py`, with `config/GL5E4F/ldscript.ld`. This fixes MWLD's
 SDA register selection and startup symbol differences without changing compiler
