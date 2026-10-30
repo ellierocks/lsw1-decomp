@@ -582,10 +582,10 @@ SHA-1 and all complete-unit proofs.
 OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
 bytes / 167 functions because its functions were already credited, and complete
 files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit.
-OSAudioSystem is the eighteenth. Current matching is **28,580 code bytes / 171
-functions / 2,620 matched data bytes**; the 18 SDK units contribute 25,456 code
-bytes / 136 functions / 2,992 complete data bytes. There are 19 complete
-source-backed files including the non-SDK
+OSAudioSystem is the eighteenth and fstload the nineteenth. Current matching is
+**29,156 code bytes / 173 functions / 2,744 matched data bytes**; the 19 SDK
+units contribute 26,032 code bytes / 138 functions / 3,116 complete data bytes.
+There are 20 complete source-backed files including the non-SDK
 `nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
 is promoted by name or layout alone, and no unverified BSS or unsupported
 relocation is accepted.
@@ -594,8 +594,38 @@ relocation is accepted.
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| fstload, CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor each donor, add its split and statics, then run the unit and strict function gates |
+| CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor the donor, add its split and statics, then run the unit and strict function gates |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version
 drift: stale names and dead stripping produced both kinds of misleading row.
+
+## fstload import
+
+On merged baseline `e0e82fc`, fstload contributed no promoted bytes. The donor
+retains `cb` at `8016AE04` (216 bytes) and `__fstLoad` at `8016AEDC`
+(360 bytes). Its compiled data and retail references establish `.data`
+`801F66D8..801F6748` (112 bytes) and `.sdata` `8040A0D0..8040A0DC`
+(12 bytes, including padding); the complete-unit check proves both sections.
+The buffer, command block and three pointers remain in fallback BSS and are
+not promoted. External references replace their donor definitions.
+
+The existing local `block$16` symbol was renamed `fstloadBlock` without changing
+its `802F49B8` address, `0x30` size or scope. DTK generates
+`fstloadBlock_802F49B8`; both target and compiled objects use its matching
+`R_PPC_ADDR16_HA` and `R_PPC_ADDR16_LO` relocations. Retail instructions at
+`8016AF24` and `8016AF30` encode `lis r3,0x802f` and `addi r3,r3,0x49b8`,
+forming that same address. Both functions pass strict verification, and the
+complete unit passes all three sections. The linked unit contributes 576 code
+bytes and 124 data bytes; the full image has zero differences and SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Progress is 29,156 code bytes,
+173 functions and 2,744 data bytes (baseline 28,580 / 171 / 2,620).
+
+```sh
+bash build.sh
+python3 tools/verify_fn.py cb --unit dolphin/dvd/fstload --build --strict-symbols
+python3 tools/verify_fn.py __fstLoad --unit dolphin/dvd/fstload --build --strict-symbols
+python3 tools/verify_unit.py dolphin/dvd/fstload --build
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
