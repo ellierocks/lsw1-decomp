@@ -13,7 +13,10 @@ The upstream libc shim headers, `cmath.h` and `fake_tgmath.h` live under
 without changing the game's headers. Promoted translation units are vendored
 under `src/dolphin/`. Their C and private headers are unchanged except for
 `si/SISamplingRate.c`, `dvd/fstload.c`, `card/CARDDir.c`, `gx/GXMisc.c` and
-`gx/GXFifo.c` and `gx/GXInit.c`:
+`gx/GXFifo.c` and `gx/GXInit.c`, plus `os/OSAlarm.c`, `os/OSArena.c`,
+`os/OSInterrupt.c`, `os/OSError.c`, `os/OSReset.c`, `card/CARDBlock.c`,
+`card/CARDCheck.c`, `db/db.c` and `pad/Padclamp.c`, which also drop donor
+definitions that retail dead-stripped:
 their unverified BSS references are externalized to DTK fallback names so storage
 remains in assembly fallback. CARDDir uses `lbl_8030E320` for the shared card
 control block. GXMisc also references a retail call label directly and omits

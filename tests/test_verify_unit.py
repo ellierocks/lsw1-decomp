@@ -122,6 +122,28 @@ class VerifyUnitTests(unittest.TestCase):
         mine.relocs[1][1].rtype = 255
         self.assertIsNone(prove_unit(target, mine, ranges, Symbols(), retail))
 
+    def test_self_branch_relocation_requires_assembled_destination(self):
+        ranges = {'.text': (0x1000, 0x1008)}
+        sections = [NS(index=0, name='', flags=0, size=0, sh_type=0),
+                    NS(index=1, name='.text', flags=6, size=8, sh_type=1)]
+        syms = [NS(shndx=1, name='entry', value=0)]
+
+        def elf(code, relocs):
+            obj = NS(sections=sections, symbols=syms, relocs={1: relocs})
+            obj.section_bytes = lambda section: code
+            return obj
+        rel = NS(offset=4, rtype=11, sym=0, addend=0)
+        target = elf(bytes.fromhex('7c0000004082' '0000'), [rel])
+        retail = NS(read=lambda address, size: bytes.fromhex('7c0000004082fffc')
+                    if address == 0x1000 else None)
+        class Symbols1:
+            def addr(self, name):
+                return None
+        good = elf(bytes.fromhex('7c0000004082fffc'), [])
+        self.assertEqual(prove_unit(target, good, ranges, Symbols1(), retail), {'.text': 0x1000})
+        bad = elf(bytes.fromhex('7c0000004082fff8'), [])
+        self.assertIsNone(prove_unit(target, bad, ranges, Symbols1(), retail))
+
     def test_short_zero_alignment_tail_is_accepted_but_not_other_gaps(self):
         data = b'ABCD'
         ranges = {'.data': (0x1000, 0x1008)}

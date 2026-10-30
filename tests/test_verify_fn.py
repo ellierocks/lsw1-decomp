@@ -261,6 +261,19 @@ class SyntheticVerdictTests(Env):
         code, out, _ = self.run_tool()
         self.assertEqual(code, 0, out)
 
+    def test_branch_back_to_own_entry_matches_dtk_relocation(self):
+        # bne Foo at Foo+4: DTK relocates it, the assembler resolves it.
+        t = [("Foo", [ADDI, 0x40820000, BLR, BLR]), ("Bar", [BLR, BLR])]
+        m = [("Foo", [ADDI, 0x4082FFFC, BLR, BLR]), ("Bar", [BLR, BLR])]
+        self.put("target", build_elf(t, relocs=[(4, 11, "Foo", 0)]))
+        self.put("mine", build_elf(m, relocs=[]))
+        code, out, _ = self.run_tool()
+        self.assertEqual(code, 0, out)
+        m = [("Foo", [ADDI, 0x4082FFF8, BLR, BLR]), ("Bar", [BLR, BLR])]
+        self.put("mine", build_elf(m, relocs=[]))
+        code, out, _ = self.run_tool()
+        self.assertEqual(code, 1, out)
+
     def test_mwcc_halfword_sda21_offset_matches_word_offset(self):
         """MWCC places EMB_SDA21 at insn+2; DTK and GNU as place it at insn+0."""
         funcs = [("Foo", [SDA_LWZ, ADDI, BLR, BLR]), ("Bar", [BLR, BLR])]

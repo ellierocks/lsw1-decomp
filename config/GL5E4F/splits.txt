@@ -30,6 +30,14 @@ numath/nu_asm.c:
 nu3dx/nuanim.c:
 	.text       start:0x80016A98 end:0x8001752C
 
+dolphin/os/OSAlarm.c:
+	.text       start:0x8015CAD4 end:0x8015D2AC
+	.data       start:0x801E2530 end:0x801E2540
+
+dolphin/os/OSArena.c:
+	.text       start:0x8015D5E0 end:0x8015D62C
+	.sdata      start:0x80409FE0 end:0x80409FE4
+
 dolphin/os/OSAudioSystem.c:
 	.text       start:0x8015D62C end:0x8015D8C0
 	.data       start:0x801E2AC0 end:0x801E2B40
@@ -38,12 +46,29 @@ dolphin/os/OSCache.c:
 	.text       start:0x8015D8C0 end:0x8015DCF8
 	.data       start:0x801E2B40 end:0x801E2D70
 
+dolphin/os/OSError.c:
+	.text       start:0x8015E598 end:0x8015EC44
+	.data       start:0x801E2F48 end:0x801E3264
+	.sdata      start:0x80409FE8 end:0x80409FF0
+
+dolphin/os/OSInterrupt.c:
+	.text       start:0x80160130 end:0x8016099C
+	.data       start:0x801E3D88 end:0x801E3DB4
+
 dolphin/os/OSMemory.c:
 	.text       start:0x80160BB8 end:0x80160E90
 	.data       start:0x801E3E08 end:0x801E3E18
 
+dolphin/os/OSReset.c:
+	.text       start:0x80160F14 end:0x80161398
+	.data       start:0x801E3E18 end:0x801E3E68
+
 dolphin/os/OSSync.c:
 	.text       start:0x80162334 end:0x801623B8
+
+dolphin/os/OSTime.c:
+	.text       start:0x801637C4 end:0x801638A0
+	.data       start:0x801E4678 end:0x801E46D8
 
 dolphin/os/OSMutex.c:
 	.text       start:0x80163914 end:0x80163984
@@ -52,16 +77,30 @@ dolphin/si/SISamplingRate.c:
 	.text       start:0x80167178 end:0x80167280
 	.data       start:0x801F5B40 end:0x801F5BD8
 
+dolphin/db/db.c:
+	.text       start:0x80167280 end:0x8016736C
+	.data       start:0x801F5BD8 end:0x801F5BF0
+
 dolphin/dvd/fstload.c:
 	.text       start:0x8016AE04 end:0x8016B044
 	.data       start:0x801F66D8 end:0x801F6748
 	.sdata      start:0x8040A0D0 end:0x8040A0DC
 
+dolphin/pad/Padclamp.c:
+	.text       start:0x8016E058 end:0x8016E29C
+	.rodata     start:0x801B05F8 end:0x801B0604
+
 dolphin/dsp/dsp_debug.c:
 	.text       start:0x801756A4 end:0x801756F4
 
+dolphin/card/CARDBlock.c:
+	.text       start:0x801773A0 end:0x801777A4
+
 dolphin/card/CARDDir.c:
 	.text       start:0x801777A4 end:0x80177A08
+
+dolphin/card/CARDCheck.c:
+	.text       start:0x80177A08 end:0x80178944
 
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
