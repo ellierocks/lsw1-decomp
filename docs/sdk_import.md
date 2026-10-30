@@ -120,15 +120,65 @@ remainders, rejection of dangling references, MWCC comment records, complete
 unit/table proofs, SDA21 normalization, and corrupted table contents/targets.
 Raw probe output and verification logs remain ignored under `work/`.
 
+## GXAttr follow-up
+
+Starting from PR #18's merged `11663e1fa085611cdad55d99fb85de21cc0ea93e`,
+unchanged donor `gx/GXAttr.c` promotes another **14 functions, 5,044 code bytes
+and 640 data bytes**. Total matching is now **19,372 code bytes / 112 functions
+and 2,084 data bytes**; ten SDK units contribute 17,328 code bytes, 2,048 data
+bytes and 89 functions. The complete rebuilt DOL retains retail SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`, with zero differing bytes.
+
+| Section | Retail range, end exclusive | Bytes |
+|---|---|---:|
+| `.text` | `8017E240..8017F5F4` | 5,044 |
+| `.data` | `801FACC0..801FAF34` | 628 |
+| `.sdata` | `8040A168..8040A174` | 12 |
+
+The initial helper hypothesis was wrong: there is no standalone
+`__GXXfVtxSpecs` body preceding `GXSetVtxDesc`. The helper is inlined into
+`__GXSetVCD` at `8017E734`, whose 47 instructions strictly match the donor.
+The SN linker removed its unused out-of-line copy, along with `GXGetVtxDescv`
+and `GXGetVtxAttrFmtv`. No source or compiler-flag change is needed.
+
+Strict code identity establishes `GXSetVtxDesc` at `8017E240`, `GXSetVtxDescv`
+at `8017E4AC`, `GXSetTexCoordGen2` at `8017F338` and `GXSetNumTexGens` at
+`8017F5B8`. False helper/vertex-desc bindings at `8017C764`, `8017C76C` and
+`8018432C` are removed and recorded in the rejected-renames ledger.
+
+All eight jump tables occupy the complete 628-byte `.data` block. Three
+four-byte lookup arrays used by `__GXCalculateVLim` occupy `.sdata`. The
+former eight-byte placeholder at `8040A170` is split into its four-byte array
+and four bytes of following alignment padding, which remain fallback data.
+The donor's section extent, array contents and retail references establish
+this boundary; the complete-unit gate proves all bytes and table relocations.
+The report's total-data denominator falls by four because DTK excludes that
+separate padding range; no retail bytes are removed or changed.
+
+The baseline promoted zero GXAttr bytes; the final unchanged donor promotes
+the complete unit without a remaining mismatch. Reproduction after building:
+
+```sh
+python3 tools/verify_unit.py dolphin/gx/GXAttr --build
+# Run verify_fn.py NAME --build --strict-symbols for all 14 retained functions
+# using the function enumeration in the reproduction script above.
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported gx/GXAttr
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+sha1sum build/GL5E4F/main.dol
+```
+
+All 14 retained functions pass the strict function gate, all three sections
+pass the complete-unit gate, and the retained donor probe reports `MATCH=14`.
+Raw objects, baseline/build logs and probe output stay local under `work/`.
+
 ## Remaining Phase 1 work
 
-This is the first promoted set, not completion of every SDK archive. Remaining
+These ten promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
-| GXAttr | Some initial helper/name anchors differ; table users require complete ownership | Establish `__GXXfVtxSpecs` at the actual body preceding the verified vertex-desc functions, then compare the full unit |
 | GXLight | `GXInitLightSpot` has identical code but an unresolved `cosf` reference | Verify the math implementation at `8018ACC8` independently before assigning that name |
 | GXPixel | `GXSetFog` has an unresolved `__cvt_fp2unsigned` reference | Verify the MW runtime helper at `80153184`, then prove constants and the full unit |
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |

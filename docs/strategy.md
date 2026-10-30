@@ -64,8 +64,12 @@ The [first import](sdk_import.md) promotes nine units (six GX, two OS and one
 DSP): 12,284 code bytes and 75 functions. Matching progress rises from 2,044
 bytes / 23 functions to 14,328 bytes / 98 functions. The existing ProDG linker
 now produces a whole image identical to retail, eliminating the baseline's
-1,192 differing bytes. The MWCC flags, dead stripping and complete-section
-verification are wired; remaining archives and version drift still need work.
+1,192 differing bytes. The subsequent complete GXAttr import adds 5,044 code
+bytes, 640 data bytes and 14 functions: ten SDK units now contribute 17,328
+code bytes / 89 functions, and total matching is 19,372 code bytes / 112
+functions with 2,084 data bytes. The whole-image SHA-1 remains identical to
+retail. The MWCC flags, dead stripping and complete-section verification are
+wired; remaining archives and version drift still need work.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
