@@ -10,8 +10,11 @@ approved by the repository owner; no license grant is inferred here.
 The public Dolphin header tree is retained for subsequent library imports.
 The upstream libc shim headers, `cmath.h` and `fake_tgmath.h` live under
 `include/dolphin/` so SDK compilation can use their original include paths
-without changing the game's headers. Only promoted translation units are
-vendored under `src/dolphin/`; their C and private headers are unchanged.
+without changing the game's headers. Promoted translation units are vendored
+under `src/dolphin/`. Their C and private headers are unchanged except for
+`si/SISamplingRate.c`: its `SamplingRate` reference is externalized to DTK's
+`SamplingRate_8040A920` split-local name so the unverified `.sbss` storage can
+remain in assembly fallback.
 
 These units use Nintendo's CodeWarrior GC/1.2.5n release flags and the retail
 ProDG 3.9.3 linker. Compiler flags, per-file overrides and dead stripping follow

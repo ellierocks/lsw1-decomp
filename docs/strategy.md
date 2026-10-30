@@ -60,9 +60,13 @@ Naming only counts when it unblocks a matching target.
 
 ### Phase 1: SDK import (in progress)
 
-Sixteen SDK units are promoted so far, and the whole image still matches retail. The per-import
+Seventeen SDK units are promoted so far, and the whole image still matches retail. The per-import
 figures are archived in [strategy progress](history/strategy_progress.md); the current totals are
 in the README status block and [SDK import](sdk_import.md).
+
+SISamplingRate promotes its two functions and initialized data; its four-byte
+`SamplingRate` BSS remains assembly fallback because the complete-unit gate does
+not verify BSS.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
