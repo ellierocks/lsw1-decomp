@@ -42,3 +42,8 @@
 0x80177544	__CARDGetDirBlock	fn_80177544	CARDStat import: masked identity places __CARDGetDirBlock at 0x801777A4 (size 8); see sdk_import.md
 0x8017765C	__CARDUpdateDir	fn_8017765C	CARDStat import: masked identity places __CARDUpdateDir at 0x80177944; see sdk_import.md
 0x80179CE0	__CARDIsPublic	__CARDIsWritable	CARDStat import: CARDSetStatusAsync's call to this address matches the whole retail image; see sdk_import.md
+0x80006C78	NuVpInit	NuFParCreate	OpenSaga-file-parser lane: calls NuFileExists-like helper, NuFileOpen, pool allocator fn_80006B14, BOM readers and NuStrCpy(parser+8, filename); file-parser open, not viewport init; see opensaga_file_parser_evidence.md
+0x80006B14	NuWaterReset	fn_80006B14	OpenSaga-file-parser lane: nufpar.c assert strings (lines 923, 928, 951) and fpars pool init; parser allocator, not water reset; see opensaga_file_parser_evidence.md
+0x800081CC	NuGetChar	NuGetChar	OpenSaga-file-parser lane: nustring.c UTF-8 decoder (assert 'UTF8 character out of unicode range'), not a parser byte reader; see opensaga_file_parser_evidence.md
+0x800D8038	NuFileGetEndianSwap	NuFileGetEndianSwap	OpenSaga-file-parser lane: 0x62C game-side routine calling NuAngDiff and game helpers; not a trivial endian getter; see opensaga_file_parser_evidence.md
+0x802025AC	nufile_blkinfo	lbl_802025AC	OpenSaga-file-parser lane: 0x3000 bss is three 0x1000 parser file buffers (fparbuffers) used by fn_80006B14; see opensaga_file_parser_evidence.md
