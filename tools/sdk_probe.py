@@ -24,6 +24,10 @@ Classes per function:
     NO_ANCHOR    no retail address could be established
     ERROR        compiler or verifier error
 
+With --strip-imported, already imported units are stripped against their DTK
+objects first, so their complete sections can prove address-taken data. This
+mode reports retained functions only; the default remains donor discovery.
+
 The probe writes nothing under src/ or config/; it is discovery evidence for
 importing SDK units, not promotion.
 """
@@ -133,11 +137,22 @@ def classify(rep: dict) -> str:
     return "MISMATCH"
 
 
-def probe(sdk: Path, unit: str, tmp: Path, symbols: vf.SymbolTable) -> list[dict]:
+def probe(sdk: Path, unit: str, tmp: Path, symbols: vf.SymbolTable,
+          strip_imported: bool = False) -> list[dict]:
     obj = tmp / (unit.replace("/", "__") + ".o")
     err = compile_unit(sdk, unit, obj)
     if err:
         return [{"unit": unit, "function": "-", "retail": "-", "class": "ERROR", "detail": err}]
+    if strip_imported:
+        target = BUILD / "GL5E4F" / "obj" / "dolphin" / f"{unit}.o"
+        if not target.is_file() or not (ROOT / "src" / "dolphin" / f"{unit}.c").is_file():
+            return [{"unit": unit, "function": "-", "retail": "-", "class": "ERROR",
+                     "detail": "--strip-imported requires an imported unit; run bash build.sh first"}]
+        result = subprocess.run([sys.executable, str(ROOT / "tools" / "strip_unused.py"),
+                                 "--target", str(target), str(obj)], capture_output=True, text=True)
+        if result.returncode:
+            return [{"unit": unit, "function": "-", "retail": "-", "class": "ERROR",
+                     "detail": result.stderr.strip()[-800:]}]
     elf = vf.Elf(obj)
     funcs = [f for f in elf.function_symbols() if f.size]
     anchors = anchor(funcs, symbols)
@@ -159,6 +174,8 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("units", nargs="*", help="SDK source units relative to src/, e.g. os/OSAlarm")
     ap.add_argument("--sdk", required=True, type=Path, help="dolsdk2004 checkout")
+    ap.add_argument("--strip-imported", action="store_true",
+                    help="strip imported units against their built DTK targets before verifying retained functions")
     ap.add_argument("--all", action="store_true", help="probe every .c under the SDK src/ tree")
     ap.add_argument("--tsv", type=Path, help="write per-function rows here")
     args = ap.parse_args(argv)
@@ -176,7 +193,7 @@ def main(argv=None) -> int:
     rows: list[dict] = []
     with tempfile.TemporaryDirectory(prefix="sdk_probe_") as d:
         for unit in units:
-            unit_rows = probe(args.sdk.resolve(), unit, Path(d), symbols)
+            unit_rows = probe(args.sdk.resolve(), unit, Path(d), symbols, args.strip_imported)
             rows += unit_rows
             counts: dict[str, int] = {}
             for r in unit_rows:

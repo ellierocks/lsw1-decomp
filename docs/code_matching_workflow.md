@@ -197,6 +197,23 @@ Do not weaken the verifier, toolchain pins or split boundaries to improve a scor
 The whole DOL remains the final goal; an existing link difference does not excuse
 new differences in a promoted range.
 
+### SDK complete-section gate
+
+For a Dolphin unit, run `python3 tools/verify_unit.py dolphin/gx/GXTexture --build`
+in addition to strict verification of every retained function. The gate compares
+all allocated section extents, nonrelocated bytes and canonical relocations with
+the DTK target, resolving local targets through the declared split bases and
+external targets through unique symbols. It also checks retail bytes and encoded relocation destinations,
+including branches, SDA references and initialized data pointers. SDA21 word/halfword offsets are normalized; unsupported
+data relocation kinds, incomplete ownership and BSS fail closed.
+
+`verify_fn.py` uses this same complete-unit proof to verify an address-taken
+local table only when its section-relative address agrees with the reference.
+An identical instruction sequence or consistent reference mapping alone still
+cannot verify a table. This does not promote a unit automatically; the final
+linked-range gate remains required. See [SDK import evidence](sdk_import.md)
+for every promoted unit and repeatable verification commands.
+
 ### Object and linked-range checks
 
 For the already promoted `numath/nurand` unit, after `bash build.sh`:
@@ -271,6 +288,11 @@ a top-level `asm` exporting `lbl_80407B40` and `lbl_80407B48` as aliases of
 `symbols.txt` names those two symbols.
 
 ## Remaining link differences
+
+The [SDK import](sdk_import.md) resolves the historical differences below by
+using the existing retail ProDG linker with explicit section addresses and SDA
+bases. The current linked image has **zero differing bytes**. These observations
+are retained to explain why MWLD must not silently replace the SN linker.
 
 The initial nurand promotion left the same 1,192 differing bytes as an all-target
 object relink. This is historical evidence, not a substitute for measuring the

@@ -26,3 +26,37 @@ numath/nu_asm.c:
 
 nu3dx/nuanim.c:
 	.text       start:0x80016A98 end:0x8001752C
+
+dolphin/os/OSSync.c:
+	.text       start:0x80162334 end:0x801623B8
+
+dolphin/os/OSMutex.c:
+	.text       start:0x80163914 end:0x80163984
+
+dolphin/dsp/dsp_debug.c:
+	.text       start:0x801756A4 end:0x801756F4
+
+dolphin/gx/GXGeometry.c:
+	.text       start:0x8017FE24 end:0x80180144
+
+dolphin/gx/GXTexture.c:
+	.text       start:0x801810EC end:0x80182140
+	.data       start:0x801FB148 end:0x801FB460
+	.sdata      start:0x8040A178 end:0x8040A1C0
+	.sdata2     start:0x8040B858 end:0x8040B890
+
+dolphin/gx/GXBump.c:
+	.text       start:0x80182140 end:0x8018267C
+	.sdata2     start:0x8040B890 end:0x8040B8A8
+
+dolphin/gx/GXTev.c:
+	.text       start:0x8018267C end:0x80182D38
+	.data       start:0x801FB460 end:0x801FB4D4
+
+dolphin/gx/GXTransform.c:
+	.text       start:0x801833E0 end:0x8018392C
+	.sdata2     start:0x8040B908 end:0x8040B91C
+
+dolphin/gx/GXPerf.c:
+	.text       start:0x8018392C end:0x8018432C
+	.data       start:0x801FB4F8 end:0x801FB640
