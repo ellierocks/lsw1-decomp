@@ -292,7 +292,7 @@ cflags_mw_sdk = [
     "-enum int", "-warn pragmas", "-requireprotos", '-pragma "cats off"',
     "-O4,p", "-inline auto", "-D__GEKKO__", "-DSDK_REVISION=1", "-DRELEASE",
     "-char unsigned", "-I-", "-i include", "-i include/dolphin", "-i include/dolphin/libc",
-    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/card",
+    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/ax", "-i src/dolphin/card",
 ]
 
 
@@ -368,7 +368,9 @@ config.libs = [
             # native split produces their asm and objects, so they are not listed here.
         ],
     },
-    DolphinLib("os", [
+    DolphinLib("mtx", [SDKObject("mtx/mtx44", NonMatching, external_bss=True), SDKObject("mtx/mtxvec", NonMatching, external_bss=True), SDKObject("mtx/mtx", NonMatching, external_bss=True)]),
+    DolphinLib("vi", [SDKObject("vi/vi", NonMatching, external_bss=True)]),
+    DolphinLib("os", [SDKObject("os/OSThread", NonMatching, external_bss=True), SDKObject("os/OSRtc", NonMatching, external_bss=True), SDKObject("os/OSReboot", NonMatching, external_bss=True), SDKObject("os/OSLink", NonMatching, external_bss=True), SDKObject("os/OSAlloc", NonMatching, external_bss=True), 
         SDKObject("os/OSAlarm", Matching),
         SDKObject("os/OSContext", Matching),
         SDKObject("os/OSArena", Matching),
@@ -382,16 +384,16 @@ config.libs = [
         SDKObject("os/OSInterrupt", Matching),
         SDKObject("os/OSMemory", Matching),
     ]),
-    DolphinLib("exi", [SDKObject("exi/EXIUart", Matching)]),
+    DolphinLib("exi", [SDKObject("exi/EXIBios", NonMatching, external_bss=True), SDKObject("exi/EXIUart", Matching)]),
     DolphinLib("si", [SDKObject("si/SIBios", Matching, external_bss=True), SDKObject("si/SISamplingRate", Matching)]),
     DolphinLib("db", [SDKObject("db/db", Matching)]),
-    DolphinLib("pad", [SDKObject("pad/Padclamp", Matching)]),
-    DolphinLib("dvd", [SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching, external_bss=True)]),
+    DolphinLib("pad", [SDKObject("pad/Pad", NonMatching, external_bss=True), SDKObject("pad/Padclamp", Matching)]),
+    DolphinLib("dvd", [SDKObject("dvd/dvd", NonMatching, external_bss=True), SDKObject("dvd/dvdfs", NonMatching, external_bss=True), SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching, external_bss=True)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
-    DolphinLib("ax", [SDKObject("ax/AXProf", Matching)]),
-    DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
-    DolphinLib("card", [SDKObject("card/CARDBlock", Matching), SDKObject("card/CARDDir", Matching), SDKObject("card/CARDCheck", Matching), SDKObject("card/CARDStat", Matching), SDKObject("card/CARDFormat", Matching)]),
+    DolphinLib("ax", [SDKObject("ax/AXVPB", NonMatching, external_bss=True), SDKObject("ax/AXSPB", NonMatching, external_bss=True), SDKObject("ax/AXOut", NonMatching, external_bss=True), SDKObject("ax/AXCL", NonMatching, external_bss=True), SDKObject("ax/AXAux", NonMatching, external_bss=True), SDKObject("ax/AXAlloc", NonMatching, external_bss=True), SDKObject("ax/AX", NonMatching, external_bss=True), SDKObject("ax/AXProf", Matching)]),
+    DolphinLib("dsp", [SDKObject("dsp/dsp_task", NonMatching, external_bss=True), SDKObject("dsp/dsp", NonMatching, external_bss=True), SDKObject("dsp/dsp_debug", Matching)]),
+    DolphinLib("card", [SDKObject("card/CARDMount", NonMatching, external_bss=True), SDKObject("card/CARDCreate", NonMatching, external_bss=True), SDKObject("card/CARDOpen", NonMatching, external_bss=True), SDKObject("card/CARDDelete", NonMatching, external_bss=True), SDKObject("card/CARDWrite", NonMatching, external_bss=True), SDKObject("card/CARDRead", NonMatching, external_bss=True), SDKObject("card/CARDBlock", Matching), SDKObject("card/CARDDir", Matching), SDKObject("card/CARDCheck", Matching), SDKObject("card/CARDStat", Matching), SDKObject("card/CARDFormat", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXInit", Matching, external_bss=True),
