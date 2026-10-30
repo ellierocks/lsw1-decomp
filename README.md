@@ -108,7 +108,9 @@ the binary; donor projects supply evidence.
 | Guide | Use |
 |---|---|
 | [Strategy](docs/strategy.md) | Phases and lanes: SDK import, whole-binary splits, agent draft-and-climb |
+| [Matching quickstart](docs/matching_quickstart.md) | Bootstrap, pick a target, score, record and verify in six steps |
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
+| [Compiler evaluation](docs/compiler_evaluation.md) | ProDG audit, RTL diagnostics and SN GCC v1.79 results |
 | [Research](docs/research.md) | Symbol recovery, donor mining, Ghidra, RAM dumps and evidence provenance |
 | [Build configuration](docs/build_config.md) | Symbols, splits, compiler wiring and target-specific DTK constraints |
 | [Development workflow](docs/development_workflow.md) | Checks, PRs, CI, progress artifacts and secrets maintenance |
@@ -118,7 +120,7 @@ the binary; donor projects supply evidence.
 
 Generated evidence remains in [symbol_donors](docs/symbol_donors/README.md),
 [static call exports](docs/recomp_exports/call_graph_summary.md),
-[task packs](tasks/index.md) and
+[archived task packs](docs/history/task_packs/index.md) and
 [cross-version research](research/revisions/revision_graph.md).
 Their names can be stale; use addresses to resolve current symbols.
 

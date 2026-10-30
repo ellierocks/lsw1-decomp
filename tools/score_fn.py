@@ -47,6 +47,15 @@ SDK_FLAGS = ["-nodefaults", "-proc", "gekko", "-fp", "hard", "-Cpp_exceptions", 
              "-DSDK_REVISION=1", "-DRELEASE"]
 
 
+def missing_toolchain(compiler: str) -> list[Path]:
+    needed = [BUILD / "tools" / "wibo", BUILD / "tools" / "dtk_patched"]
+    if compiler == "prodg":
+        needed += [BUILD / "compilers" / PRODG_VERSION / "cc1.exe", BUILD / "binutils" / "powerpc-eabi-as"]
+    else:
+        needed += [BUILD / "compilers" / "GC" / "1.2.5n" / "mwcceppc.exe"]
+    return [p for p in needed if not p.exists()]
+
+
 def run(cmd: list[str]) -> str:
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
     return "" if r.returncode == 0 else (r.stdout + r.stderr).strip()[-1500:] or "failed"
@@ -95,6 +104,12 @@ def main(argv=None) -> int:
         ap.error("--compile-only needs -o")
     if (args.diagnostics_dir or args.cc1_native) and args.compiler != "prodg":
         ap.error("--diagnostics-dir and --cc1-native require --compiler prodg")
+    missing = missing_toolchain(args.compiler)
+    if missing:
+        names = ", ".join(str(p) for p in missing)
+        print(f"error: toolchain not bootstrapped (missing {names}).\n"
+              "Run: bash tools/bootstrap.sh", file=sys.stderr)
+        return vf.EXIT_ERROR
     with tempfile.TemporaryDirectory(prefix="score_fn_") as tmp:
         obj = args.o.resolve() if args.o else Path(tmp) / "candidate.o"
         err = compile_source(args.source.resolve(), obj, args.compiler, extra,

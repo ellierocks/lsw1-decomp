@@ -15,5 +15,5 @@ SN_GCC_SRC=<extracted NGC_GNU_SRC/NGC> tools/sn-gcc/build.sh OUT_DIR [alloc-diag
   **not adopted** for LSW1.
 
 Use a fresh `OUT_DIR` per patch list. Source provenance, results and limits are in
-[docs/code_matching_workflow.md](../../docs/code_matching_workflow.md#native-sn-gcc-v179-evaluation).
+[docs/compiler_evaluation.md](../../docs/compiler_evaluation.md#native-sn-gcc-v179-evaluation).
 Adapted from adonis-singh/re4 `tools/sn-gcc` (CC0).

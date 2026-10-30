@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate a self-contained task folder for decompiling one function.
 
-Output (tasks/<FunctionName>/):
+Output (work/<FunctionName>/ by default; ignored by git):
   prompt.md          — LLM task description
   context.md         — Struct definitions, signatures, types
   asm.s              — Extracted assembly for the function
@@ -12,7 +12,7 @@ Output (tasks/<FunctionName>/):
 In batch mode, functions are sorted by priority score so the easiest
 wins (small + named + Nu2 + struct hints + few callees) appear first.
 
-Generates tasks/index.md with a scored table of all tasks.
+Generates work/index.md with a scored table of all tasks.
 
 Usage:
     python tools/ls1_task_pack.py NuAnimKeyLerp
@@ -783,8 +783,8 @@ def main():
         description="Generate decomp task pack for a function (or batch for a module)."
     )
     parser.add_argument("target", nargs="?", default="", help="Function name, fn_ADDR, hex address, or module name")
-    parser.add_argument("--out-dir", default="tasks",
-                        help="Output directory (default: tasks/)")
+    parser.add_argument("--out-dir", default="work",
+                        help="Output directory (default: work/; ignored by git)")
     parser.add_argument("--top", type=int, default=0,
                         help="For module targets, generate top N highest-scored (default: all)")
     parser.add_argument("--all", action="store_true",
