@@ -103,3 +103,10 @@ measure. Report both, and state which one a change affects.
 Donor projects (CrashWOC, the LSW1 and LSW2 Mac builds) are evidence, not sources to copy.
 Project code is written from analysis of this binary, and no original game code or assets
 are committed.
+
+## Automatic README progress
+
+The Forgejo `readme` job publishes generated status figures after tooling and
+retail checks pass. It opens and automatically merges checked README-only PRs;
+see [automatic README progress](ci_and_decomp_dev.md#automatic-readme-progress)
+for validation and local refresh instructions.

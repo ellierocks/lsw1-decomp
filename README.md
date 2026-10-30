@@ -16,22 +16,24 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 Two separate measures. Symbol naming is not matching.
 
-**Matched code** (objdiff report with strict relocation comparison, as of 2026-10-29;
-`numath/nurand.c` is the first unit linked from source, see
-[nurand matching](docs/nurand_matching.md)):
+<!-- progress:start -->
+**Matched code** (objdiff report with strict relocation comparison):
 
 | Measure | Matched | Total | Progress |
 |---------|---------|-------|----------|
-| Code bytes | 1,920 | 1,569,532 | 0.12% |
-| Functions | 22 | 4,147 | 0.53% |
+| Code bytes | 2,044 | 1,569,532 | 0.13% |
+| Functions | 23 | 4,147 | 0.55% |
 
-**Symbol naming** (`config/GL5E4F/symbols.txt`, as of 2026-10-29):
+**Symbol naming** (`config/GL5E4F/symbols.txt`):
 
 | Section | Named | Total | Progress |
 |---------|-------|-------|----------|
-| `.text` (functions) | 1,463 | 4,201 | 34.8% |
+| `.text` (functions) | 1,475 | 4,201 | 35.1% |
 | `.rodata` | 774 | 8,383 | 9.2% |
 | `.bss` | 38 | 733 | 5.2% |
+<!-- progress:end -->
+
+CI refreshes these figures after successful Forgejo builds on `main`.
 
 Naming is driven by donor evidence (CrashWOC, the LSW1 and LSW2 Mac builds). Matching
 work targets the Nu2 engine's animation and math code first. Live figures:

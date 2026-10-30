@@ -10,6 +10,7 @@ the jobs that feed the public decomp.dev progress hub. The branch and PR process
 |-----|-------|---------|------------------|--------|
 | `tooling` (`build.yml`) | Forgejo, GitHub | push to `main`, PRs | no | Unit tests, configure check, map check, shell syntax |
 | `retail` (`build.yml`) | Forgejo | push to `main`, PRs | yes | Decrypts and hash-checks the DOL, runs `bash build.sh` |
+| `readme` (`build.yml`) | Forgejo | successful main push or dispatched update branch | no | Publishes and merges verified README progress PRs |
 | `build` (`build.yml`) | GitHub | push to `main`, PRs | yes | Builds the patched DTK and report, uploads `GL5E4F_report` |
 | `build-map` (`generate-map.yml`) | GitHub | changes to symbols or map tooling | no | Uploads `GL5E4F-dolphin-map` |
 
@@ -72,3 +73,26 @@ ORIG_KEY='<new-passphrase>' bash tools/orig_crypt.sh encrypt
 `tools/orig_crypt.sh` verifies the DOL SHA-1 (`95cca08a…`) before encrypting and after
 decrypting, so a wrong key or wrong DOL fails loudly. Keep the passphrase in a password
 manager; never print it in logs or commit it.
+
+## Automatic README progress
+
+After the Forgejo `tooling` and `retail` checks succeed on `main`, the `readme`
+job publishes the README rendered by `python3 tools/update_readme.py` in the
+retail job. It renders the marked README status block from that build's
+`report.json` and `symbols.txt`, without changing surrounding prose. Missing reports fail rather than publishing zeros.
+Identical figures produce no commit, PR or date-only churn.
+
+Changed figures create a `ci/readme-progress-<source SHA>` branch and README-only
+PR using the job's Forgejo token, then explicitly dispatches `build.yml` on
+that branch to run tooling and retail checks again. Explicit dispatch is needed
+because [Forgejo automatic tokens](https://forgejo.org/docs/latest/user/actions/basic-concepts/)
+suppress workflows triggered indirectly by their commits and PRs.
+The dependent `readme` job merges only when the PR changes README alone and its entire
+contents reproduce the generated block applied to the current base README. The
+merge is guarded by the checked head SHA; branch protections still apply. GitHub
+only consumes the mirrored result. Older main runs skip publication after main
+advances. Failed checks leave the update PR unmerged.
+
+To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.
+Only the CI publication step needs repository contents and pull-request write
+permissions; it uses the existing job token, with no additional stored secret.

@@ -24,6 +24,9 @@ jobs:
       - name: Check shell syntax
         run: bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh
   retail:
+    needs: tooling
+    outputs:
+      readme: ${{ steps.readme.outputs.content }}
     name: Retail comparison (Forgejo)
     if: github.server_url != 'https://github.com'
     runs-on: ubuntu-latest
@@ -41,6 +44,32 @@ jobs:
         env:
           VERIFY_FN_REQUIRE_RETAIL: "1"
         run: python3 -m unittest -v tests.test_verify_fn
+      - name: Render current README progress
+        id: readme
+        run: |
+          python3 tools/update_readme.py
+          echo "content=$(base64 -w0 README.md)" >> "$GITHUB_OUTPUT"
+  readme:
+    name: Update README progress (Forgejo)
+    needs: [tooling, retail]
+    if: github.server_url != 'https://github.com' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish or merge checked README progress
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+          README_CONTENT: ${{ needs.retail.outputs.readme }}
+        run: |
+          python3 - <<'PYCODE'
+          import base64, os, sys
+          sys.path.insert(0, 'tools')
+          from update_readme import publish
+          publish(base64.b64decode(os.environ['README_CONTENT']).decode())
+          PYCODE
   build:
     if: github.server_url == 'https://github.com'
     name: Build and report progress
