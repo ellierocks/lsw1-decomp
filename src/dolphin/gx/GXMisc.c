@@ -44,7 +44,7 @@ void GXFlush(void) {
     if (__GXData->dirtyState) {
         __GXSetDirtyState();
     }
-    
+
     GX_WRITE_U32(0);
     GX_WRITE_U32(0);
     GX_WRITE_U32(0);
