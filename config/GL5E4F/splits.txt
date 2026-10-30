@@ -77,6 +77,10 @@ dolphin/si/SISamplingRate.c:
 	.text       start:0x80167178 end:0x80167280
 	.data       start:0x801F5B40 end:0x801F5BD8
 
+dolphin/db/db.c:
+	.text       start:0x80167280 end:0x8016736C
+	.data       start:0x801F5BD8 end:0x801F5BF0
+
 dolphin/dvd/fstload.c:
 	.text       start:0x8016AE04 end:0x8016B044
 	.data       start:0x801F66D8 end:0x801F6748
