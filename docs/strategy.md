@@ -58,7 +58,14 @@ Naming only counts when it unblocks a matching target.
 - `verify_fn.py` accepts MWCC's halfword-placed `EMB_SDA21` relocations.
 - Wrong SDK names in game code were removed. See `rejected_renames.tsv`.
 
-### Phase 1: SDK import
+### Phase 1: SDK import (in progress)
+
+The [first import](sdk_import.md) promotes nine units (six GX, two OS and one
+DSP): 12,284 code bytes and 75 functions. Matching progress rises from 2,044
+bytes / 23 functions to 14,328 bytes / 98 functions. The existing ProDG linker
+now produces a whole image identical to retail, eliminating the baseline's
+1,192 differing bytes. The MWCC flags, dead stripping and complete-section
+verification are wired; remaining archives and version drift still need work.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.

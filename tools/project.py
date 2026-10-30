@@ -61,8 +61,11 @@ class Object:
             "extra_asflags": [],
             "extra_cflags": [],
             "extra_clang_flags": [],
+            "post_build": [],
+            "post_build_implicit": [],
             "lib": None,
             "mw_version": None,
+            "mwcc_depflag": None,
             "compiler": None,
             "compiler_version": None,
             "progress_category": None,
@@ -102,6 +105,7 @@ class Object:
         if obj.options["compiler"] not in ("mwcc", "prodg"):
             raise ValueError(f"Unknown compiler backend: {obj.options['compiler']}")
         set_default("scratch_preset_id", config.scratch_preset_id)
+        set_default("mwcc_depflag", "-MMD")
         set_default("shift_jis", config.shift_jis)
         set_default("src_dir", config.src_dir)
 
@@ -178,7 +182,9 @@ class ProjectConfig:
         self.precompiled_headers: Optional[List[PrecompiledHeader]] = (
             None  # List of precompiled headers
         )
-        self.linker_version: Optional[str] = None  # mwld version
+        self.linker_version: Optional[str] = None  # MWLD fallback version
+        self.prodg_linker_version: Optional[str] = None
+        self.prodg_ldscript: Optional[Path] = None
         self.version: Optional[str] = None  # Version name
         self.warn_missing_config: bool = False  # Warn on missing unit configuration
         self.warn_missing_source: bool = False  # Warn on missing source file
@@ -674,11 +680,11 @@ def generate_build_ninja(
 
     # MWCC
     mwcc = compiler_path / "mwcceppc.exe"
-    mwcc_cmd = f"{wrapper_cmd}{mwcc} $cflags -MMD -c $in -o $basedir"
+    mwcc_cmd = f"{wrapper_cmd}{mwcc} $cflags $mwcc_depflag -c $in -o $basedir"
     mwcc_implicit: List[Optional[Path]] = [compilers_implicit or mwcc, wrapper_implicit]
 
     # MWCC with UTF-8 to Shift JIS wrapper
-    mwcc_sjis_cmd = f"{wrapper_cmd}{sjiswrap} {mwcc} $cflags -MMD -c $in -o $basedir"
+    mwcc_sjis_cmd = f"{wrapper_cmd}{sjiswrap} {mwcc} $cflags $mwcc_depflag -c $in -o $basedir"
     mwcc_sjis_implicit: List[Optional[Path]] = [*mwcc_implicit, sjiswrap]
 
     # MWCC for precompiled headers
@@ -701,6 +707,16 @@ def generate_build_ninja(
     mwld = compiler_path / "mwldeppc.exe"
     mwld_cmd = f"{wrapper_cmd}{mwld} $ldflags -o $out @$out.rsp"
     mwld_implicit: List[Optional[Path]] = [compilers_implicit or mwld, wrapper_implicit]
+
+    if config.prodg_linker_version:
+        prodg_link = config.tools_dir / "run_prodg_link.py"
+        sn_path = compilers / config.prodg_linker_version
+        sn_linker = sn_path / "ngcld.exe"
+        sn_link_cmd = (
+            f'$python {prodg_link} "{sn_linker}" "{wrapper or ""}" '
+            f'"{sn_path}" "$out" "$out.rsp" "$ldflags"'
+        )
+        sn_link_implicit = [compilers_implicit or sn_linker, wrapper_implicit, prodg_link]
 
     # GNU as
     gnu_as = binutils / f"powerpc-eabi-as{EXE}"
@@ -750,6 +766,16 @@ def generate_build_ninja(
     )
     n.newline()
 
+    if config.prodg_linker_version:
+        n.rule(
+            name="link_prodg",
+            command=sn_link_cmd,
+            description="LINK $out",
+            rspfile="$out.rsp",
+            rspfile_content="$in_newline",
+        )
+        n.newline()
+
     n.comment("Generate DOL")
     n.rule(
         name="elf2dol",
@@ -761,7 +787,7 @@ def generate_build_ninja(
     n.comment("MWCC build")
     n.rule(
         name="mwcc",
-        command=mwcc_cmd,
+        command=mwcc_cmd + " $post_build",
         description="MWCC $out",
         depfile="$basefile.d",
         deps="gcc",
@@ -781,7 +807,7 @@ def generate_build_ninja(
     n.comment("MWCC build (with UTF-8 to Shift JIS wrapper)")
     n.rule(
         name="mwcc_sjis",
-        command=mwcc_sjis_cmd,
+        command=mwcc_sjis_cmd + " $post_build",
         description="MWCC $out",
         depfile="$basefile.d",
         deps="gcc",
@@ -791,7 +817,7 @@ def generate_build_ninja(
     n.comment("MWCC build (with extab post-processing)")
     n.rule(
         name="mwcc_extab",
-        command=mwcc_extab_cmd,
+        command=mwcc_extab_cmd + " $post_build",
         description="MWCC $out",
         depfile="$basefile.d",
         deps="gcc",
@@ -801,7 +827,7 @@ def generate_build_ninja(
     n.comment("MWCC build (with UTF-8 to Shift JIS wrapper and extab post-processing)")
     n.rule(
         name="mwcc_sjis_extab",
-        command=mwcc_sjis_extab_cmd,
+        command=mwcc_sjis_extab_cmd + " $post_build",
         description="MWCC $out",
         depfile="$basefile.d",
         deps="gcc",
@@ -933,19 +959,23 @@ def generate_build_ninja(
             n.comment(f"Link {self.name}")
             if self.module_id == 0:
                 elf_path = build_path / f"{self.name}.elf"
-                elf_ldflags = f"$ldflags -lcf {serialize_path(self.ldscript)}"
+                if config.prodg_linker_version:
+                    self.ldscript = config.prodg_ldscript
+                    elf_ldflags = f"$ldflags -T {serialize_path(self.ldscript)} -e {self.entry}"
+                else:
+                    elf_ldflags = f"$ldflags -lcf {serialize_path(self.ldscript)}"
                 if config.generate_map:
                     elf_map = map_path(elf_path)
-                    elf_ldflags += f" -map {serialize_path(elf_map)}"
+                    elf_ldflags += (f" -Map {serialize_path(elf_map)}" if config.prodg_linker_version else f" -map {serialize_path(elf_map)}")
                 else:
                     elf_map = None
                 n.build(
                     outputs=elf_path,
-                    rule="link",
+                    rule="link_prodg" if config.prodg_linker_version else "link",
                     inputs=self.inputs,
                     implicit=[
                         self.ldscript,
-                        *mwld_implicit,
+                        *(sn_link_implicit if config.prodg_linker_version else mwld_implicit),
                     ],
                     implicit_outputs=elf_map,
                     variables={"ldflags": elf_ldflags},
@@ -1063,6 +1093,7 @@ def generate_build_ninja(
                 "mw_version": Path(obj.options["compiler_version"]),
                 "compiler_version": Path(obj.options["compiler_version"]),
                 "cflags": cflags_str,
+                "mwcc_depflag": obj.options["mwcc_depflag"],
                 "basedir": os.path.dirname(obj.src_obj_path),
                 "basefile": obj.src_obj_path.with_suffix(""),
             }
@@ -1085,6 +1116,12 @@ def generate_build_ninja(
                 variables["extab_padding"] = "".join(
                     f"{i:02x}" for i in obj.options["extab_padding"]
                 )
+            if obj.options["post_build"]:
+                variables["post_build"] = "".join(
+                    " && " + command.replace("{out}", str(obj.src_obj_path)).replace("{dtk}", str(dtk))
+                    for command in obj.options["post_build"]
+                )
+                build_implcit = [*build_implcit, dtk, *obj.options["post_build_implicit"]]
             n.comment(f"{obj.name}: {lib_name} (linked {obj.completed})")
             n.build(
                 outputs=obj.src_obj_path,

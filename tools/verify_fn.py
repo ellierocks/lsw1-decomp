@@ -477,7 +477,8 @@ class Report:
 
 
 class Comparer:
-    def __init__(self, symbols: SymbolTable, dol: Optional[Dol]):
+    def __init__(self, symbols: SymbolTable, dol: Optional[Dol], unit_proof=None):
+        self.unit_proof = unit_proof
         self.symbols = symbols
         self.dol = dol
         self.name_map: dict = {}       # mine key -> target key
@@ -528,6 +529,10 @@ class Comparer:
             width = mine.data_widths.get(mloc, 0)
             sec = next(s for s in mine.elf.sections if s.name == mloc[0])
             if not width:
+                if (self.unit_proof and 0 <= mloc[1] < sec.size
+                        and self.unit_proof.get(mloc[0], -1) + mloc[1] == taddr):
+                    self.mappings[key] = "verified: full unit sections and relocations match retail"
+                    continue
                 self.mappings[key] = "unverified: address-taken or unsized, contents not compared"
                 continue
             if self.dol is None:
@@ -578,9 +583,9 @@ def _row_diff(t: Insn, m: Insn, cmp: Comparer, mine: Func) -> tuple[str, str]:
 
 
 def compare_functions(target: Func, mine: Func, symbols: SymbolTable,
-                      dol: Optional[Dol]) -> Report:
+                      dol: Optional[Dol], unit_proof=None) -> Report:
     rep = Report(target.name, target_insns=len(target.insns), mine_insns=len(mine.insns))
-    cmp = Comparer(symbols, dol)
+    cmp = Comparer(symbols, dol, unit_proof)
     # Alignment keys use each side's own mask; differing reloc types still show
     # up as 'reloc' diffs because aligned pairs are re-checked with a union mask.
     tk = [(i.cmp, i.ref and i.ref.rtype) for i in target.insns]
@@ -869,7 +874,16 @@ def verify(args) -> tuple[Report, Func, Func, Optional[list], Optional[list], Pa
                             "split objects are stale, rerun `bash build.sh`")
         dol_checked = True
 
-    rep = compare_functions(target, mine, symbols, dol)
+    unit_proof = None
+    actual_unit = lookup_unit(entry.addr)
+    if dol is not None and actual_unit and unit == actual_unit and tpath.resolve() == (TARGET_OBJ_DIR / f"{actual_unit}.o").resolve():
+        try:
+            from tools.verify_unit import prove_unit, split_ranges
+        except ModuleNotFoundError:
+            from verify_unit import prove_unit, split_ranges
+        ranges = split_ranges(SPLITS.read_text(), actual_unit)
+        unit_proof = prove_unit(telf, melf, ranges, symbols, dol)
+    rep = compare_functions(target, mine, symbols, dol, unit_proof)
     rep.notes = notes
     tdis = disassemble(tpath, target, rep.notes, "target") if not args.quiet else None
     mdis = disassemble(mine_path, mine, rep.notes, "mine") if not args.quiet else None

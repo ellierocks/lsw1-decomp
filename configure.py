@@ -181,15 +181,9 @@ config.asflags = [
     f"-I build/{config.version}/include",
     f"--defsym BUILD_VERSION={version_num}",
 ]
-config.ldflags = [
-    "-fp hardware",
-    "-nodefaults",
-]
+config.ldflags = []
 if args.debug:
     config.ldflags.append("-g")  # Or -gdwarf-2 for Wii linkers
-if args.map:
-    config.ldflags.append("-mapunused")
-    # config.ldflags.append("-listclosure") # For Wii linkers
 
 # Use for any additional files that should cause a re-configure when modified
 config.reconfig_deps = []
@@ -271,16 +265,48 @@ cflags_prodg = [
 ]
 
 config.linker_version = "GC/1.3.2"
+# Use the retail SN linker; MWLD remains the fallback for template REL support.
+config.prodg_linker_version = PRODG_VERSION
+config.prodg_ldscript = Path("config") / config.version / "ldscript.ld"
 
 
-# Helper function for Dolphin libraries
+# Nintendo's April 2004 release flags, as reconstructed by dolsdk2004/RE4.
+cflags_mw_sdk = [
+    "-nodefaults", "-proc gekko", "-fp hard", "-Cpp_exceptions off",
+    "-enum int", "-warn pragmas", "-requireprotos", '-pragma "cats off"',
+    "-O4,p", "-inline auto", "-D__GEKKO__", "-DSDK_REVISION=1", "-DRELEASE",
+    "-char unsigned", "-I-", "-i include", "-i include/dolphin", "-i include/dolphin/libc",
+    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp",
+]
+
+
+def sdk_cflags(unit: str) -> List[str]:
+    overrides = {}
+    if unit.startswith("dvd/") or unit in {"mtx/mtx", "mtx/mtx44", "card/CARDOpen"}:
+        overrides["-char unsigned"] = "-char signed"
+    if unit == "exi/EXIBios":
+        overrides["-O4,p"] = "-O3,p"
+    return [overrides.get(flag, flag) for flag in cflags_mw_sdk]
+
+
+def SDKObject(unit: str, matching: bool) -> Object:
+    name = f"dolphin/{unit}.c"
+    target = config.out_path() / "obj" / f"dolphin/{unit}.o"
+    return Object(
+        matching, name, cflags=sdk_cflags(unit),
+        post_build=[
+            "{dtk} elf fixup {out} {out}",
+            f"$python tools/strip_unused.py --target {target} {{out}}",
+        ],
+        post_build_implicit=[Path("tools/strip_unused.py"), target],
+    )
+
+
 def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
     return {
-        "lib": lib_name,
-        "mw_version": "GC/1.2.5n",
-        "cflags": cflags_base,
-        "progress_category": "sdk",
-        "objects": objects,
+        "lib": lib_name, "mw_version": "GC/1.2.5n", "cflags": cflags_mw_sdk,
+        "progress_category": "sdk", "objects": objects,
+        "mwcc_depflag": "-MD", "shift_jis": False,
     }
 
 
@@ -324,6 +350,16 @@ config.libs = [
             # native split produces their asm and objects, so they are not listed here.
         ],
     },
+    DolphinLib("os", [SDKObject("os/OSSync", Matching), SDKObject("os/OSMutex", Matching)]),
+    DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
+    DolphinLib("gx", [
+        SDKObject("gx/GXGeometry", Matching),
+        SDKObject("gx/GXTexture", Matching),
+        SDKObject("gx/GXBump", Matching),
+        SDKObject("gx/GXTev", Matching),
+        SDKObject("gx/GXTransform", Matching),
+        SDKObject("gx/GXPerf", Matching),
+    ]),
     {
         "lib": "Runtime.PPCEABI.H",
         "mw_version": config.linker_version,

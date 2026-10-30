@@ -49,6 +49,29 @@ for an object; it is linker compatibility, not a ProDG compiler setting.
 Do not apply common-BSS or CodeWarrior `.comment` recipes from other games
 without evidence that the target needs them.
 
+## Dolphin SDK and retail linker
+
+`DolphinLib` uses MWCC `GC/1.2.5n` with dolsdk2004's release flags:
+`-O4,p -inline auto`, unsigned char by default, and `SDK_REVISION=1` / `RELEASE`.
+`sdk_cflags` replaces flags for signed-char DVD, MTX/MTX44 and CARDOpen units,
+and `-O3,p` EXIBios; it does not append a competing optimization level.
+SDK-only include paths select the vendored libc shims. `-MD` records header
+dependencies even with `-I-`.
+
+SDK objects run `dtk elf fixup`, then `tools/strip_unused.py --target ...`.
+The retained names come from the independently split target object. The
+RE4-derived stripper removes unused functions/data while shifting symbols,
+relocations and MWCC comment records, and rejects dangling references. Local
+pooled data is retained; unused global data follows the reference's eight-byte
+granularity. `.sdata2` is normalized to SN/DTK read-only ELF metadata.
+
+The DOL uses the existing `ProDG/3.9.3/ngcld.exe` through
+`tools/run_prodg_link.py`, with `config/GL5E4F/ldscript.ld`. This fixes MWLD's
+SDA register selection and startup symbol differences without changing compiler
+pins or patching the linked image. MWLD support remains available in the build
+generator for its original configurations. The current whole image matches
+retail. See [SDK import evidence](sdk_import.md) for ranges and limits.
+
 ## Splitter and startup constraints
 
 `tools/build_patched_dtk.sh` pins DTK and applies
