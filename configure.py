@@ -382,7 +382,7 @@ config.libs = [
     DolphinLib("si", [SDKObject("si/SISamplingRate", Matching)]),
     DolphinLib("dvd", [SDKObject("dvd/fstload", Matching)]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
-    DolphinLib("card", [SDKObject("card/CARDBlock", Matching), SDKObject("card/CARDDir", Matching), SDKObject("card/CARDStat", Matching)]),
+    DolphinLib("card", [SDKObject("card/CARDBlock", Matching), SDKObject("card/CARDDir", Matching), SDKObject("card/CARDCheck", Matching), SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXInit", Matching, external_bss=True),

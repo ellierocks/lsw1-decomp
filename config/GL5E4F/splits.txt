@@ -82,6 +82,9 @@ dolphin/card/CARDBlock.c:
 dolphin/card/CARDDir.c:
 	.text       start:0x801777A4 end:0x80177A08
 
+dolphin/card/CARDCheck.c:
+	.text       start:0x80177A08 end:0x80178944
+
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
 
