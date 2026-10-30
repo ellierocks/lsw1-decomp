@@ -109,6 +109,16 @@ dolphin/ai/ai.c:
 	.data       start:0x801F6B88 end:0x801F6BCC
 	.sdata      start:0x8040A118 end:0x8040A11C
 
+dolphin/ar/ar.c:
+	.text       start:0x801704C8 end:0x80171F3C
+	.data       start:0x801F6BD0 end:0x801F6C14
+	.sdata      start:0x8040A120 end:0x8040A124
+
+dolphin/ar/arq.c:
+	.text       start:0x80171F3C end:0x801722D8
+	.data       start:0x801F6C18 end:0x801F6C60
+	.sdata      start:0x8040A128 end:0x8040A12C
+
 dolphin/dsp/dsp_debug.c:
 	.text       start:0x801756A4 end:0x801756F4
 
