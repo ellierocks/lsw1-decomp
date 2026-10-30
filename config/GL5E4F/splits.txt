@@ -59,6 +59,10 @@ dolphin/os/OSMemory.c:
 	.text       start:0x80160BB8 end:0x80160E90
 	.data       start:0x801E3E08 end:0x801E3E18
 
+dolphin/os/OSReset.c:
+	.text       start:0x80160F14 end:0x80161398
+	.data       start:0x801E3E18 end:0x801E3E68
+
 dolphin/os/OSSync.c:
 	.text       start:0x80162334 end:0x801623B8
 
