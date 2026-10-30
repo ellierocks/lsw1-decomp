@@ -387,6 +387,7 @@ config.libs = [
     DolphinLib("dvd", [SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
+    DolphinLib("ax", [SDKObject("ax/AXProf", Matching)]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
     DolphinLib("card", [SDKObject("card/CARDBlock", Matching), SDKObject("card/CARDDir", Matching), SDKObject("card/CARDCheck", Matching), SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
