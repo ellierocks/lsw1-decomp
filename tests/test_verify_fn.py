@@ -261,6 +261,18 @@ class SyntheticVerdictTests(Env):
         code, out, _ = self.run_tool()
         self.assertEqual(code, 0, out)
 
+    def test_mwcc_halfword_sda21_offset_matches_word_offset(self):
+        """MWCC places EMB_SDA21 at insn+2; DTK and GNU as place it at insn+0."""
+        funcs = [("Foo", [SDA_LWZ, ADDI, BLR, BLR]), ("Bar", [BLR, BLR])]
+        self.target(funcs, undefined=["ext_a"], relocs=[(0, R_SDA21, "ext_a", 0)])
+        self.mine(funcs, undefined=["ext_a"], relocs=[(2, R_SDA21, "ext_a", 0)])
+        code, out, _ = self.run_tool()
+        self.assertEqual(code, 0, out)
+        self.mine(funcs, undefined=["ext_a"], relocs=[(1, R_SDA21, "ext_a", 0)])
+        code, out, err = self.run_tool()
+        self.assertEqual(code, 2, out)
+        self.assertIn("misaligned", err)
+
 
 class SyntheticDataTests(Env):
     def install_dol(self, dol):
