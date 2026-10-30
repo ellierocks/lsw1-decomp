@@ -55,6 +55,9 @@ dolphin/si/SISamplingRate.c:
 dolphin/dsp/dsp_debug.c:
 	.text       start:0x801756A4 end:0x801756F4
 
+dolphin/card/CARDDir.c:
+	.text       start:0x801777A4 end:0x80177A08
+
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
 

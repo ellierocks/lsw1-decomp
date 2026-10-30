@@ -375,7 +375,7 @@ config.libs = [
     ]),
     DolphinLib("si", [SDKObject("si/SISamplingRate", Matching)]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
-    DolphinLib("card", [SDKObject("card/CARDStat", Matching)]),
+    DolphinLib("card", [SDKObject("card/CARDDir", Matching), SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXGeometry", Matching),
