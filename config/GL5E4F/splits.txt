@@ -81,6 +81,13 @@ dolphin/db/db.c:
 	.text       start:0x80167280 end:0x8016736C
 	.data       start:0x801F5BD8 end:0x801F5BF0
 
+dolphin/dvd/dvderror.c:
+	.text       start:0x8016AA48 end:0x8016ABE0
+	.data       start:0x801F62E0 end:0x801F6328
+
+dolphin/dvd/dvdidutils.c:
+	.text       start:0x8016ABE0 end:0x8016ACD8
+
 dolphin/dvd/fstload.c:
 	.text       start:0x8016AE04 end:0x8016B044
 	.data       start:0x801F66D8 end:0x801F6748
