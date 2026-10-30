@@ -38,3 +38,7 @@
 0x801808AC	GXSetCopyFilter	GXSetDispCopyGamma	GXFrameBuf strict instruction and relocation identity; stale shifted donor anchor
 0x801808C0	GXSetDispCopyGamma	GXCopyDisp	GXFrameBuf strict instruction and relocation identity; stale shifted donor anchor
 0x80180A28	GXCopyDisp	GXCopyTex	GXFrameBuf strict instruction and relocation identity; stale shifted donor anchor
+0x80176ECC	__CARDGetControlBlock	fn_80176ECC	CARDStat import: masked identity places __CARDGetControlBlock at 0x801770C8; 0x80176ECC is __CARDEraseSector (CARDBios, out of scope); see sdk_import.md
+0x80177544	__CARDGetDirBlock	fn_80177544	CARDStat import: masked identity places __CARDGetDirBlock at 0x801777A4 (size 8); see sdk_import.md
+0x8017765C	__CARDUpdateDir	fn_8017765C	CARDStat import: masked identity places __CARDUpdateDir at 0x80177944; see sdk_import.md
+0x80179CE0	__CARDIsPublic	__CARDIsWritable	CARDStat import: CARDSetStatusAsync's call to this address matches the whole retail image; see sdk_import.md

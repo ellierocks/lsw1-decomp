@@ -292,7 +292,7 @@ cflags_mw_sdk = [
     "-enum int", "-warn pragmas", "-requireprotos", '-pragma "cats off"',
     "-O4,p", "-inline auto", "-D__GEKKO__", "-DSDK_REVISION=1", "-DRELEASE",
     "-char unsigned", "-I-", "-i include", "-i include/dolphin", "-i include/dolphin/libc",
-    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp",
+    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/card",
 ]
 
 
@@ -368,6 +368,7 @@ config.libs = [
     },
     DolphinLib("os", [SDKObject("os/OSSync", Matching), SDKObject("os/OSMutex", Matching)]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
+    DolphinLib("card", [SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXGeometry", Matching),

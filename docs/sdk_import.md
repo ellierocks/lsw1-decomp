@@ -369,9 +369,48 @@ The complete image has zero differing bytes and retains retail SHA-1
 GXFrameBuf code, section or relocation mismatch. Raw investigation and
 verification logs remain under ignored `work/`.
 
+## CARDStat follow-up
+
+Starting from merged GXPixel PR #22 (`e453914`), unchanged donor `card/CARDStat.c`
+promotes **two retained functions, 876 code bytes and no data**. Total matching is
+**23,120 code bytes / 135 functions / 2,308 data bytes**. Thirteen SDK units
+contribute 21,076 code bytes / 112 functions / 2,272 data bytes. The retained
+functions are `UpdateIconOffsets` (static) and `CARDSetStatusAsync`.
+
+| Section | Retail range, end exclusive | Bytes |
+|---|---|---:|
+| `.text` | `8017AE34..8017B1A0` | 876 |
+
+The unit has no data sections in the donor object, so no data ownership is needed.
+
+- `CARDGetStatus` and `CARDSetStatus` are absent from the retail image. A whole-`.text`
+  masked search with a positive control found no match, so `strip_unused.py`
+  removes them. The retained neighbours are adjacent in retail, which agrees.
+- The callees are established by masked byte identity against the donor card
+  objects, not by name: `__CARDGetControlBlock` at `801770C8`, `__CARDGetDirBlock`
+  at `801777A4`, `__CARDUpdateDir` at `80177944`, and `__CARDIsWritable` at
+  `80179CE0`. The stale names at `80176ECC`, `80177544` and `8017765C` moved out of
+  their positions, so they are recorded in `rejected_renames.tsv`. `80176ECC` is
+  `__CARDEraseSector`, which belongs to the wider CARDBios block and remains
+  unrenamed here.
+- The runtime divide helper at `801531D0` is 4 bytes and tail-calls `__divdi3` at
+  `8015AA80`. Its body matches RE4's `_divdi3.c` with the pinned ProDG compiler
+  and zero masked mismatches. `OSGetTime` is an `s64`, which needs this helper.
+- Verification: `verify_fn.py UpdateIconOffsets --build --strict-symbols` and
+  `verify_fn.py CARDSetStatusAsync --build --strict-symbols` both report MATCH.
+  `verify_unit.py dolphin/card/CARDStat --build` passes its complete section.
+  `sdk_probe.py --strip-imported card/CARDStat` reports two MATCH functions. The
+  whole image has 0 differing bytes and retains SHA-1
+  `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
 ## Remaining Phase 1 work
 
-These thirteen promoted units do not complete every SDK archive. Remaining
+With both imports, total matching is **25,848 code bytes / 149 functions /
+2,324 matched data bytes**. Fourteen SDK units contribute 23,804 code bytes /
+126 functions / 2,696 complete data bytes. The combined build retains the retail
+SHA-1 and all complete-unit proofs.
+
+These fourteen promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
@@ -380,7 +419,6 @@ or layout alone, and no unverified BSS or unsupported relocation is accepted.
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
 | OSCache / OSMemory | Pooled data, reset records and additional call names need proof | Establish complete sections and independently resolve their relocations; OS was rebuilt in May 2004 |
-| CARDStat | `CARDSetStatusAsync` is code-identical except call bindings | Verify `__CARDGetControlBlock`, `__CARDGetDirBlock`, `__CARDUpdateDir` and the runtime divide helper independently |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version
