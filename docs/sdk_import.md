@@ -544,6 +544,34 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 python3 tools/matching_progress.py
 ```
 
+## OSAudioSystem follow-up
+
+The unchanged donor promotes both functions, 660 code bytes and 128 initialized
+data bytes. The retail ranges are `.text` `8015D62C..8015D8C0` and `.data`
+`801E2AC0..801E2B40`. The unstripped donor contains exactly these two functions;
+neither requires removal. Both pass strict verification, and the complete unit
+proof covers the DSP initialization block and every relocation.
+
+The baseline was 27,920 matched code bytes, 169 functions and 2,492 matched
+data bytes. The original probe found one MATCH and one CODE_SAME; the latter
+exposed stale arena names. Retail getters and setters access the same respective
+storage, and the following allocator uses the low arena, establishing the corrected
+`OSGetArenaHi`, `OSGetArenaLo`, `OSSetArenaHi`, `OSSetArenaLo` and
+`OSAllocFromArenaLo` identities at `8015D5E0..8015D62C`. Renaming contributes no
+matching bytes. After promotion the report shows 28,580 code bytes, 171 functions
+and 2,620 data bytes. All linked ranges and the whole image match retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. No BSS is promoted.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/os/OSAudioSystem --build
+python3 tools/verify_fn.py __OSInitAudioSystem --build --strict-symbols
+python3 tools/verify_fn.py __OSStopAudioSystem --build --strict-symbols
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported os/OSAudioSystem
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
 ## Remaining Phase 1 work
 
 With the OSMemory import, total matching was **26,576 code bytes / 155 functions /
@@ -553,10 +581,11 @@ SHA-1 and all complete-unit proofs.
 
 OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
 bytes / 167 functions because its functions were already credited, and complete
-files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit. Current
-matching is **27,920 code bytes / 169 functions / 2,492 matched data bytes**;
-the 17 SDK units contribute 24,796 code bytes / 134 functions / 2,864 complete
-data bytes. There are 18 complete source-backed files including the non-SDK
+files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit.
+OSAudioSystem is the eighteenth. Current matching is **28,580 code bytes / 171
+functions / 2,620 matched data bytes**; the 18 SDK units contribute 25,456 code
+bytes / 136 functions / 2,992 complete data bytes. There are 19 complete
+source-backed files including the non-SDK
 `nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
 is promoted by name or layout alone, and no unverified BSS or unsupported
 relocation is accepted.
@@ -565,7 +594,7 @@ relocation is accepted.
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| fstload, OSAudioSystem, CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor each donor, add its split and statics, then run the unit and strict function gates |
+| fstload, CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor each donor, add its split and statics, then run the unit and strict function gates |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version

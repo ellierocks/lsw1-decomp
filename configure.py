@@ -367,6 +367,7 @@ config.libs = [
         ],
     },
     DolphinLib("os", [
+        SDKObject("os/OSAudioSystem", Matching),
         SDKObject("os/OSSync", Matching),
         SDKObject("os/OSMutex", Matching),
         SDKObject("os/OSCache", Matching),
