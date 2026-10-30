@@ -29,3 +29,4 @@
 0x8017C764	__GXXfVtxSpecs	fn_8017C764	GXAttr import: donor helper is inlined in __GXSetVCD; verified retained code identity places vertex-desc functions elsewhere; see sdk_import.md
 0x8017C76C	GXSetVtxDescv	fn_8017C76C	GXAttr import: donor helper is inlined in __GXSetVCD; verified retained code identity places vertex-desc functions elsewhere; see sdk_import.md
 0x8018432C	GXSetVtxDesc	fn_8018432C	GXAttr import: donor helper is inlined in __GXSetVCD; verified retained code identity places vertex-desc functions elsewhere; see sdk_import.md
+0x80180C08	GXInitLightDistAttn	GXInitLightSpot	GXLight import: unchanged donor strict code identity and complete-unit proof; see sdk_import.md
