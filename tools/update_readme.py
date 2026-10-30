@@ -6,8 +6,8 @@ import base64
 import json
 import os
 from pathlib import Path
+import subprocess
 import urllib.request
-import urllib.error
 import urllib.parse
 
 import progress
@@ -15,6 +15,10 @@ import progress
 START = '<!-- progress:start -->'
 END = '<!-- progress:end -->'
 BRANCH_PREFIX = 'ci/readme-progress-'
+MESSAGE = 'docs: update generated progress figures'
+# Forgejo performs these writes as internal git pushes without the Actions token's
+# permission, so its pre-receive hook rejects them; update refs with git() instead.
+API_PUSHES = ('/branches', '/contents/', '/merge', '/update')
 
 
 def render(symbols, measures):
@@ -47,18 +51,28 @@ def update(text, block):
     return text[:start] + block + text[end + len(END):]
 
 
+def check_api_call(method, path):
+    if method != 'GET' and any(marker in path.split('?')[0] for marker in API_PUSHES):
+        raise ValueError(f'{method} {path} pushes without the Actions token permission; use git push')
+
+
 class Forgejo:
     def __init__(self):
         self.url = os.environ['GITHUB_SERVER_URL'].rstrip('/') + '/api/v1/repos/' + os.environ['GITHUB_REPOSITORY']
         self.token = os.environ['FORGEJO_TOKEN']
 
     def request(self, method, path, data=None):
+        check_api_call(method, path)
         req = urllib.request.Request(self.url + path,
             data=json.dumps(data).encode() if data is not None else None,
             headers={'Authorization': 'token ' + self.token, 'Content-Type': 'application/json'}, method=method)
         with urllib.request.urlopen(req, timeout=30) as response:
             body = response.read()
             return json.loads(body) if body else None
+
+
+def git(*args):
+    return subprocess.run(['git', *args], check=True, capture_output=True, text=True).stdout.strip()
 
 
 def publish(text):
@@ -92,9 +106,10 @@ def publish(text):
         expected = update(base64.b64decode(base['content']).decode(), text[text.index(START):text.index(END) + len(END)])
         if text != expected or Path('README.md').read_text() != text:
             raise ValueError('Progress PR differs from freshly generated README')
-        api.request('POST', f"/pulls/{pr['number']}/merge", {
-            'Do': 'merge', 'head_commit_id': current['head']['sha'],
-            'delete_branch_after_merge': True})
+        git('push', 'origin', current['head']['sha'] + ':refs/heads/main')
+        if not api.request('GET', f"/pulls/{pr['number']}")['merged']:
+            api.request('PATCH', f"/pulls/{pr['number']}", {'state': 'closed'})
+        git('push', 'origin', '--delete', 'refs/heads/' + branch)
         print('Merged checked README progress PR:', current['html_url'])
         return
     if os.environ['GITHUB_EVENT_NAME'] != 'push' or os.environ['GITHUB_REF'] != 'refs/heads/main':
@@ -114,22 +129,19 @@ def publish(text):
         api.request('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch})
         print('Dispatched verification for existing progress PR')
         return
-    try:
+    if git('ls-remote', '--heads', 'origin', 'refs/heads/' + branch):
         branch_file = api.request('GET', '/contents/README.md?ref=' + urllib.parse.quote(branch, safe=''))
-    except urllib.error.HTTPError as exc:
-        if exc.code != 404:
-            raise
-        api.request('POST', '/branches', {'new_branch_name': branch, 'old_ref_name': sha})
-        branch_file = existing
-    if base64.b64decode(branch_file['content']).decode() != text:
-        if branch_file['sha'] != existing['sha']:
+        if base64.b64decode(branch_file['content']).decode() != text:
             raise ValueError('Progress branch contains unexpected README edits')
-        api.request('PUT', '/contents/README.md', {
-            'branch': branch, 'sha': branch_file['sha'],
-            'content': base64.b64encode(text.encode()).decode(),
-            'message': 'docs: update generated progress figures'})
+    else:
+        if git('rev-parse', 'HEAD') != sha:
+            raise ValueError('Checkout does not match the published main commit')
+        Path('README.md').write_text(text)
+        git('-c', 'user.name=forgejo-actions', '-c', 'user.email=forgejo-actions@noreply.localhost',
+            'commit', '-q', '-m', MESSAGE, '--', 'README.md')
+        git('push', 'origin', 'HEAD:refs/heads/' + branch)
     pr = api.request('POST', '/pulls', {'base': 'main', 'head': branch,
-        'title': 'docs: update generated progress figures',
+        'title': MESSAGE,
         'body': f'Update README progress from the verified retail report and symbols at {sha}. Automatically merged only after tooling and retail checks reproduce this README-only change.'})
     print('Created README progress PR:', pr['html_url'])
     api.request('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch})

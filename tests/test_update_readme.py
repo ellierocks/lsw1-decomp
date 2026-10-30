@@ -9,6 +9,10 @@ import update_readme as readme
 
 
 class ReadmeTests(unittest.TestCase):
+    def assert_no_internal_pushes(self, forge):
+        for call in forge.return_value.request.call_args_list:
+            readme.check_api_call(*call.args[:2])
+
     def test_render_uses_counts_and_keeps_naming_separate(self):
         symbols = {'sections': {s: {'named': 1, 'total': 4} for s in ('text', 'rodata', 'bss')}}
         block = readme.render(symbols, {'matched_code': '1920', 'total_code': '1569532',
@@ -46,26 +50,44 @@ class ReadmeTests(unittest.TestCase):
             readme.publish('README')
             forge.return_value.request.assert_called_once_with('GET', '/branches/main')
 
+    def test_api_refuses_writes_that_push_internally(self):
+        with patch.dict(readme.os.environ, {'GITHUB_SERVER_URL': 'http://forge', 'GITHUB_REPOSITORY': 'o/r',
+                                            'FORGEJO_TOKEN': 't'}), patch.object(readme.urllib.request, 'urlopen') as urlopen:
+            api = readme.Forgejo()
+            for method, path in [('POST', '/branches'), ('DELETE', '/branches/x'), ('PUT', '/contents/README.md'),
+                                 ('POST', '/pulls/9/merge'), ('POST', '/pulls/9/update')]:
+                with self.assertRaises(ValueError):
+                    api.request(method, path, {})
+            urlopen.assert_not_called()
+            urlopen.return_value.__enter__.return_value.read.return_value = b''
+            for method, path in [('GET', '/contents/README.md?ref=x'), ('POST', '/pulls'),
+                                 ('PATCH', '/pulls/9'), ('POST', '/actions/workflows/build.yml/dispatches')]:
+                api.request(method, path, {})
+            self.assertEqual(urlopen.call_count, 4)
+
     def merge_fixture(self, files=None, actual=None):
         block = readme.START + '\ncurrent\n' + readme.END
         text = 'intro\n' + block + '\noutro'
         base = 'intro\n' + readme.START + '\nstale\n' + readme.END + '\noutro'
         pr = {'number': 9, 'head': {'ref': readme.BRANCH_PREFIX + 'source', 'sha': 'checked', 'repo': {'id': 1}},
               'base': {'ref': 'main', 'sha': 'source', 'repo': {'id': 1}}, 'html_url': 'http://forge/pr/9'}
-        with patch.object(readme, 'Forgejo') as forge, patch.object(readme.Path, 'read_text', return_value=actual or text), patch.dict(readme.os.environ, {
+        with patch.object(readme, 'Forgejo') as forge, patch.object(readme, 'git') as git, patch.object(readme.Path, 'read_text', return_value=actual or text), patch.dict(readme.os.environ, {
             'GITHUB_EVENT_NAME': 'workflow_dispatch', 'GITHUB_REF': 'refs/heads/' + pr['head']['ref'], 'GITHUB_SHA': 'checked'}):
             forge.return_value.request.side_effect = [[pr], pr, files or [{'filename': 'README.md'}],
-                {'content': base64.b64encode(base.encode()).decode()}, None]
+                {'content': base64.b64encode(base.encode()).decode()}, {'merged': False}, None]
             if actual or files:
                 with self.assertRaises(ValueError):
                     readme.publish(text)
                 self.assertTrue(all(c.args[0] == 'GET' for c in forge.return_value.request.call_args_list))
+                git.assert_not_called()
             else:
                 readme.publish(text)
-                call = forge.return_value.request.call_args_list[-1]
-                self.assertEqual(call.args[:2], ('POST', '/pulls/9/merge'))
-                self.assertEqual(call.args[2]['head_commit_id'], 'checked')
-                self.assertNotIn('force_merge', call.args[2])
+                self.assert_no_internal_pushes(forge)
+                self.assertEqual(git.call_args_list[0].args, ('push', 'origin', 'checked:refs/heads/main'))
+                self.assertEqual(forge.return_value.request.call_args_list[-1].args,
+                                 ('PATCH', '/pulls/9', {'state': 'closed'}))
+                self.assertEqual(git.call_args_list[-1].args,
+                                 ('push', 'origin', '--delete', 'refs/heads/' + pr['head']['ref']))
 
     def test_merge_guards_checked_head(self):
         self.merge_fixture()
@@ -77,18 +99,31 @@ class ReadmeTests(unittest.TestCase):
         self.merge_fixture(actual='unreviewed README edits')
 
     def test_publish_pins_source_and_explicitly_dispatches_checks(self):
-        from urllib.error import HTTPError
         encoded = base64.b64encode(b'old README').decode()
-        with patch.object(readme, 'Forgejo') as forge, patch.dict(readme.os.environ, {
+        branch = readme.BRANCH_PREFIX + 'source'
+        with patch.object(readme, 'Forgejo') as forge, patch.object(readme, 'git') as git, \
+                patch.object(readme.Path, 'write_text') as write, patch.dict(readme.os.environ, {
             'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'source'}):
             forge.return_value.request.side_effect = [
                 {'commit': {'id': 'source'}}, {'content': encoded, 'sha': 'blob'}, [],
-                HTTPError('http://forge', 404, 'not found', {}, None), {}, {},
                 {'html_url': 'http://forge/pr/9'}, None]
+            git.side_effect = lambda *args: 'source' if args[0] == 'rev-parse' else ''
             readme.publish('new README')
+            self.assert_no_internal_pushes(forge)
+            write.assert_called_once_with('new README')
+            self.assertEqual(git.call_args_list[-1].args, ('push', 'origin', 'HEAD:refs/heads/' + branch))
             calls = forge.return_value.request.call_args_list
-            self.assertEqual(calls[4].args, ('POST', '/branches', {
-                'new_branch_name': readme.BRANCH_PREFIX + 'source', 'old_ref_name': 'source'}))
-            self.assertEqual(calls[5].args[2]['branch'], readme.BRANCH_PREFIX + 'source')
-            self.assertEqual(calls[-1].args, ('POST', '/actions/workflows/build.yml/dispatches',
-                                            {'ref': readme.BRANCH_PREFIX + 'source'}))
+            self.assertEqual(calls[3].args[:2], ('POST', '/pulls'))
+            self.assertEqual(calls[3].args[2]['head'], branch)
+            self.assertEqual(calls[-1].args, ('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch}))
+
+    def test_publish_refuses_checkout_other_than_source(self):
+        with patch.object(readme, 'Forgejo') as forge, patch.object(readme, 'git') as git, \
+                patch.object(readme.Path, 'write_text') as write, patch.dict(readme.os.environ, {
+            'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'source'}):
+            forge.return_value.request.side_effect = [
+                {'commit': {'id': 'source'}}, {'content': base64.b64encode(b'old').decode()}, []]
+            git.side_effect = lambda *args: 'other' if args[0] == 'rev-parse' else ''
+            with self.assertRaises(ValueError):
+                readme.publish('new README')
+            write.assert_not_called()
