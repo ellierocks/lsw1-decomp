@@ -653,6 +653,46 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 
 ```
 
+## GXFifo
+
+The retained `.text` range `0x8017DB08..0x8017E240` contains 16 functions,
+1,848 bytes. The donor's `GXSetBreakPtCallback` is the 68-byte function at
+`0x8017DFC4`: its callback load/store and interrupt calls identify it; the
+previous `GXGetGPStatus` name was incorrect. Other donor functions outside the
+retained range are stripped, including the donor's separate interrupt handlers,
+which are inlined into `GXCPInterruptHandler` here.
+
+The donor declarations for CPU and GP FIFO pointers, current thread, link flag,
+overflow state, breakpoint callback and overflow count are externalized to the
+existing DTK symbols `lbl_8040AC70`, `74`, `78`, `7C`, `80`, `84` and `88`
+(full names carry the `lbl_8040AC` prefix). Their storage remains in fallback;
+no BSS layout is inferred from zeroes. The unused `__GXCurrentBP` definition is
+also externalized. `PPCSync` calls use the existing retail `lbl_8015BF2C` label.
+The adapted source retains the donor compiler and strip step. All 111 retained
+text relocations, including the BSS addresses, match their target offsets, kinds,
+addends and resolved addresses under the complete-unit gate. The unadapted
+`--strip-imported` probe fails because its retained code references donor-owned
+BSS stripped from the target. Probing the adapted source instead reports all 16
+retained functions MATCH; an unadapted discovery probe is not a promotion gate.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/gx/GXFifo --build
+for fn in GXCPInterruptHandler GXInitFifoBase GXInitFifoPtrs GXInitFifoLimits \
+    GXSetCPUFifo GXSetGPFifo GXSetBreakPtCallback __GXFifoInit \
+    __GXFifoReadEnable __GXFifoReadDisable __GXFifoLink \
+    __GXWriteFifoIntEnable __GXWriteFifoIntReset __GXCleanGPFifo \
+    GXGetCPUFifo GXGetGPFifo; do
+    python3 tools/verify_fn.py "$fn" --build --strict-symbols
+done
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+```
+
+The linked unit and full image match retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Relative to GXMisc baseline,
+matching rises from 31,864 to 33,712 code bytes and 197 to 213 functions;
+complete source-backed units rise from 22 to 23. No data bytes are promoted.
+
 ## Remaining Phase 1 work
 
 With the OSMemory import, total matching was **26,576 code bytes / 155 functions /
@@ -663,10 +703,11 @@ SHA-1 and all complete-unit proofs.
 OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
 bytes / 167 functions because its functions were already credited, and complete
 files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit.
-OSAudioSystem is the eighteenth, fstload the nineteenth, CARDDir the twentieth
-and GXMisc the twenty-first. Current matching is **31,864 code bytes / 197
-functions / 2,744 matched data bytes**; the 21 SDK units contribute 28,740 code
-bytes / 162 functions / 3,116 complete data bytes. There are 22 complete
+OSAudioSystem is the eighteenth, fstload the nineteenth, CARDDir the twentieth,
+GXMisc the twenty-first and GXFifo the twenty-second. Current matching is
+**33,712 code bytes / 213
+functions / 2,744 matched data bytes**; the 22 SDK units contribute 30,588 code
+bytes / 178 functions / 3,116 complete data bytes. There are 23 complete
 source-backed files including the non-SDK
 `nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
 is promoted by name or layout alone, and no unverified BSS or unsupported
@@ -674,7 +715,6 @@ relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
-| GXFifo | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
 
 Continue library by library with the same full-unit and linked-range gates.
