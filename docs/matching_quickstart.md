@@ -28,6 +28,10 @@ then size, with their unit and whether a source file exists. Choose a `ready`
 row that is not `claimed`. An empty list does not mean the work is finished:
 most game code lies outside split units (Phase 2 in [strategy](strategy.md)).
 
+For Nu2 candidates, consult the [OpenSaga lane](symbol_donors/opensaga_matching.md)
+alongside the normal target queue. Its ordered parser/helper leads need current
+unit and ownership checks; AI and animation expansion waits for strict matches.
+
 ## 3. Read the target
 
 ```sh

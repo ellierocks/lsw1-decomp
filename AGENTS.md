@@ -17,7 +17,10 @@ library, TU or function per worktree branch. Search with `tools/score_fn.py`
 and accept only with `verify_fn.py --build --strict-symbols`
 ([C matching](docs/code_matching_workflow.md)). Park a plateau with its best
 score, its remaining mismatch and one concrete next hypothesis. Naming and
-donor mining serve a selected matching target.
+donor mining serve a selected matching target. Consult the
+[OpenSaga lane](docs/symbol_donors/opensaga_matching.md) routinely for Nu2
+evidence: start with small parser/helpers, reuse confirmed GC header layouts,
+and expand only after strict matches.
 
 A strict function match is **VERIFIED**, not **PROMOTED**. Promotion also needs
 unit sections, relocations and linked retail ranges to match without regression.
