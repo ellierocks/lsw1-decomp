@@ -47,3 +47,4 @@
 0x800081CC	NuGetChar	NuGetChar	OpenSaga-file-parser lane: nustring.c UTF-8 decoder (assert 'UTF8 character out of unicode range'), not a parser byte reader; see opensaga_file_parser_evidence.md
 0x800D8038	NuFileGetEndianSwap	NuFileGetEndianSwap	OpenSaga-file-parser lane: 0x62C game-side routine calling NuAngDiff and game helpers; not a trivial endian getter; see opensaga_file_parser_evidence.md
 0x802025AC	nufile_blkinfo	lbl_802025AC	OpenSaga-file-parser lane: 0x3000 bss is three 0x1000 parser file buffers (fparbuffers) used by fn_80006B14; see opensaga_file_parser_evidence.md
+0x8016731C	PSMTXIdentity	DBPrintf	OSCache import: retail body is a 0x50-byte varargs prologue; donor db.c defines DBPrintf(char*, ...) and OSCache calls it; see sdk_import.md

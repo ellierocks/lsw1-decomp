@@ -467,6 +467,37 @@ The complete rebuilt image has zero differing bytes and retains SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. The matching-progress report counts
 16 of 50 complete files. Raw probe and verification logs remain under ignored `work/`.
 
+## OSCache evidence (not promoted)
+
+Donor `os/OSCache.c` is vendored unchanged. Its retail `.text` is
+`8015D8C0..8015DCF8` (1,080 bytes, twelve functions). The other donor
+functions are dead stripped. All twelve retained functions pass
+`verify_fn.py NAME --build --strict-symbols`: nine resolve every reference
+exactly, and `L2GlobalInvalidate`, `DMAErrorHandler` and `__OSCacheInit` pass
+with consistency-bound references. Their retail names are already present.
+
+Retail `0x8016731C` was named `PSMTXIdentity` in `symbols.txt`. Its bytes are
+a 0x50-byte varargs prologue ending in `blr`, which matches the donor's
+`void DBPrintf(char* str, ...) {}` in `db.c`. OSCache's debug calls in
+`L2GlobalInvalidate`, `DMAErrorHandler` and `__OSCacheInit` branch there. The
+name is changed to `DBPrintf`; the old
+name is recorded in `docs/symbol_donors/rejected_renames.tsv`.
+
+The retained `.data` is 554 bytes at `801E2B40..801E2D6A`, which matches retail
+byte for byte. DTK does not accept an unaligned auto-split at `801E2D6A`, so the
+split extends to the existing label boundary `801E2D70`. The six zero bytes
+before that label are linker alignment that the donor object does not contain.
+With this split, the complete-unit gate (`verify_unit.py`) rejects the 554-byte
+object against the 560-byte range. Promotion is therefore blocked on the
+`.data` representation.
+
+The unit is wired as `NonMatching`, so the default DOL uses the retail target
+object and remains identical (SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`).
+The donor object is also linked under the all-`Matching` experiment, and the
+whole image remained identical in that build. Next hypothesis: teach the
+importer to represent a zero alignment tail that belongs to the preceding
+donor unit, or add an aligned split boundary, and then rerun `verify_unit.py`.
+
 ## Remaining Phase 1 work
 
 With the OSMemory import, total matching is **26,576 code bytes / 155 functions /
@@ -482,7 +513,7 @@ or layout alone, and no unverified BSS or unsupported relocation is accepted.
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| OSCache | Pooled data, reset records and additional call names need proof | Establish complete sections and independently resolve their relocations; OS was rebuilt in May 2004 |
+| OSCache | Twelve functions strictly match; `.data` alignment tail blocks `verify_unit.py` | Represent the six-byte zero tail before `lbl_801E2D70` in the proof, then promote |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version

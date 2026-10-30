@@ -27,6 +27,10 @@ numath/nu_asm.c:
 nu3dx/nuanim.c:
 	.text       start:0x80016A98 end:0x8001752C
 
+dolphin/os/OSCache.c:
+	.text       start:0x8015D8C0 end:0x8015DCF8
+	.data       start:0x801E2B40 end:0x801E2D70
+
 dolphin/os/OSMemory.c:
 	.text       start:0x80160BB8 end:0x80160E90
 	.data       start:0x801E3E08 end:0x801E3E18
