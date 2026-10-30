@@ -370,6 +370,7 @@ config.libs = [
     },
     DolphinLib("os", [
         SDKObject("os/OSAlarm", Matching),
+        SDKObject("os/OSContext", Matching),
         SDKObject("os/OSArena", Matching),
         SDKObject("os/OSAudioSystem", Matching),
         SDKObject("os/OSError", Matching, external_bss=True),
