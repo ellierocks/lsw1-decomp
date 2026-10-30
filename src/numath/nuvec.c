@@ -28,9 +28,9 @@ void NuVecInvMtxTransform(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_
     f32 dy = a->y - b->_31;
     f32 dx = a->x - b->_30;
     f32 dz = a->z - b->_32;
-    dest->x = b->_01 * dy + b->_00 * dx + b->_02 * dz;
-    dest->y = b->_11 * dy + b->_10 * dx + b->_12 * dz;
-    dest->z = b->_21 * dy + b->_20 * dx + b->_22 * dz;
+    dest->x = b->_00 * dx + b->_01 * dy + b->_02 * dz;
+    dest->y = b->_10 * dx + b->_11 * dy + b->_12 * dz;
+    dest->z = b->_20 * dx + b->_21 * dy + b->_22 * dz;
 }
 
 void NuVecInvMtxRotate(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* b)
