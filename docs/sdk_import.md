@@ -171,15 +171,75 @@ All 14 retained functions pass the strict function gate, all three sections
 pass the complete-unit gate, and the retained donor probe reports `MATCH=14`.
 Raw objects, baseline/build logs and probe output stay local under `work/`.
 
+## GXLight follow-up
+
+Starting from merged GXAttr PR #20 (`a92c397`), unchanged donor `gx/GXLight.c`
+promotes **nine functions, 1,280 code bytes and 96 data bytes**. Total matching
+is **20,652 code bytes / 121 functions / 2,180 data bytes**. Eleven SDK units
+contribute 18,608 code bytes / 98 functions / 2,144 data bytes. Baseline GXLight
+promotion was zero bytes; no source or compiler changes were needed.
+
+| Section | Retail range, end exclusive | Bytes |
+|---|---|---:|
+| `.text` | `80180BEC..801810EC` | 1,280 |
+| `.data` | `801FB128..801FB144` | 28 |
+| `.sdata2` | `8040B810..8040B854` | 68 |
+
+`GXInitLightSpot` at `80180C08` was incorrectly named `GXInitLightDistAttn`.
+The latter and eleven other donor functions are dead stripped. The retained
+functions are `GXInitLightAttn`, `GXInitLightSpot`, `GXInitLightPos`,
+`GXInitLightColor`, `GXLoadLightObjImm`, `GXSetChanAmbColor`,
+`GXSetChanMatColor`, `GXSetNumChans` and `GXSetChanCtrl`.
+
+The unresolved call at `8018ACC8` is independently identified as newlib 1.8.2
+fdlibm `cosf`, using RE4 commit `9b76ff003081d6ece8b838453fb8310743a972c7`'s
+`src/lib/fdlibm/sf_cos.c`, rather than inferring a name from GXLight's call.
+Pinned ProDG 3.9.3 with `-O2 -msafe-sda -G 1024 -fno-builtin -mstrict-align`
+reproduces all 55 instructions and its zero constant. Independently compiled
+`kf_cos.c` and `kf_sin.c` reproduce all 59 and 43 instructions at `8018ADA4`
+and `8018AE90`, including all nine and seven referenced constants. The
+argument reducer `ef_rem_pio2.c` reproduces all 212 instructions at `8018AF3C`
+when compiled with `cc1plus.exe`, consistent with RE4's C++ libm wrappers;
+compiling it as C gives only 200/212 exact instructions. Its table references
+remain unverified, so no math unit or math bytes are promoted. Only the
+independently established `cosf` name is assigned for this import. Raw source
+objects and comparison logs remain under ignored `work/`.
+
+The seven-entry jump table is proved completely, including each destination.
+The constant block retains pooled literals used only by stripped functions;
+the unused weak sqrt inline constants are stripped by the existing importer.
+The donor's final float ends at `8040B854`; four following alignment bytes
+remain fallback data. The old 32-byte placeholder at `8040B838` is split into
+its actual float/double objects and that padding. DTK's reported data
+denominator falls by eight after separating padding ranges; no retail bytes
+are changed or omitted from the whole-image comparison.
+
+All nine retained functions pass `verify_fn.py NAME --build --strict-symbols`.
+The complete-unit gate passes all three sections, and the stripped donor
+probe reports `MATCH=9`. Reproduction:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/gx/GXLight --build
+# Run the strict function gate for the nine names listed above.
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported gx/GXLight
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+sha1sum build/GL5E4F/main.dol
+```
+
+The complete rebuilt image has zero differing bytes and retains SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. There is no remaining GXLight
+mismatch.
+
 ## Remaining Phase 1 work
 
-These ten promoted units do not complete every SDK archive. Remaining
+These eleven promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
-| GXLight | `GXInitLightSpot` has identical code but an unresolved `cosf` reference | Verify the math implementation at `8018ACC8` independently before assigning that name |
 | GXPixel | `GXSetFog` has an unresolved `__cvt_fp2unsigned` reference | Verify the MW runtime helper at `80153184`, then prove constants and the full unit |
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXFrameBuf / GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |

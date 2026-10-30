@@ -69,7 +69,11 @@ bytes, 640 data bytes and 14 functions: ten SDK units now contribute 17,328
 code bytes / 89 functions, and total matching is 19,372 code bytes / 112
 functions with 2,084 data bytes. The whole-image SHA-1 remains identical to
 retail. The MWCC flags, dead stripping and complete-section verification are
-wired; remaining archives and version drift still need work.
+wired. Complete GXLight adds 1,280 code bytes / nine functions and 96 data
+bytes: eleven SDK units contribute 18,608 code bytes / 98 functions / 2,144
+data bytes, and total matching reaches 20,652 code bytes / 121 functions /
+2,180 data bytes. The whole image remains identical to retail; remaining
+archives and version drift still need work.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
