@@ -122,6 +122,24 @@ class VerifyUnitTests(unittest.TestCase):
         mine.relocs[1][1].rtype = 255
         self.assertIsNone(prove_unit(target, mine, ranges, Symbols(), retail))
 
+    def test_short_zero_alignment_tail_is_accepted_but_not_other_gaps(self):
+        data = b'ABCD'
+        ranges = {'.data': (0x1000, 0x1008)}
+        target = FakeElf(data + bytes(4), size=8)
+        mine = FakeElf(data, size=4)
+        retail = Retail(data + bytes(4))
+        self.assertEqual(prove_unit(target, mine, ranges, Symbols(), retail), {'.data': 0x1000})
+        self.assertIsNone(prove_unit(target, mine, ranges, Symbols(), Retail(data + b'\0\0\0\1')))
+        target = FakeElf(data + b'\0\0\0\1', size=8)
+        self.assertIsNone(prove_unit(target, mine, ranges, Symbols(), Retail(data + b'\0\0\0\1')))
+        target = FakeElf(data + bytes(4), size=8)
+        mine = FakeElf(b'ABCE', size=4)
+        self.assertIsNone(prove_unit(target, mine, ranges, Symbols(), retail))
+        big = {'.data': (0x1000, 0x1000 + 4 + 32)}
+        target = FakeElf(data + bytes(32), size=36)
+        self.assertIsNone(prove_unit(target, FakeElf(data, size=4), big, Symbols(),
+                                     Retail(data + bytes(32))))
+
     def test_split_parser_requires_unambiguous_ranges(self):
         text = 'unit.c:\n  .text start:0x1000 end:0x1004\n  .data start:0x2000 end:0x2008\nother.c:\n  .text start:0x3000 end:0x3004\n'
         self.assertEqual(split_ranges(text, 'unit'), {'.text': (0x1000, 0x1004), '.data': (0x2000, 0x2008)})

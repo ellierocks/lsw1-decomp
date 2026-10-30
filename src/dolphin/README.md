@@ -12,8 +12,6 @@ The upstream libc shim headers, `cmath.h` and `fake_tgmath.h` live under
 `include/dolphin/` so SDK compilation can use their original include paths
 without changing the game's headers. Only promoted translation units are
 vendored under `src/dolphin/`; their C and private headers are unchanged.
-`os/OSCache.c` is the one exception so far: it is vendored unchanged as a
-`NonMatching` unit with retained-function evidence, pending the `.data` proof.
 
 These units use Nintendo's CodeWarrior GC/1.2.5n release flags and the retail
 ProDG 3.9.3 linker. Compiler flags, per-file overrides and dead stripping follow

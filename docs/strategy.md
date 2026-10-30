@@ -84,7 +84,10 @@ matched data bytes. Complete OSMemory adds 728 code bytes / six functions and
 16 data bytes: fifteen SDK units contribute 24,532 code bytes / 132 functions /
 2,712 data bytes, and total matching reaches 26,576 code bytes / 155 functions /
 2,340 matched data bytes. The whole image remains identical to retail; remaining
-archives and version drift still need work.
+archives and version drift still need work. OSCache is now
+promoted as the sixteenth unit (`verify_unit.py` accepts a short all-zero
+alignment tail), and the probe's include-path and DTK local-name faults are
+fixed; see [SDK import](sdk_import.md).
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
