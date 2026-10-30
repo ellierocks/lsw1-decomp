@@ -366,7 +366,11 @@ config.libs = [
             # native split produces their asm and objects, so they are not listed here.
         ],
     },
-    DolphinLib("os", [SDKObject("os/OSSync", Matching), SDKObject("os/OSMutex", Matching)]),
+    DolphinLib("os", [
+        SDKObject("os/OSSync", Matching),
+        SDKObject("os/OSMutex", Matching),
+        SDKObject("os/OSMemory", Matching),
+    ]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
     DolphinLib("card", [SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
