@@ -108,7 +108,9 @@ Small leaf functions come first. The
 [OpenSaga lane](symbol_donors/opensaga_matching.md) queues parser/helpers
 before AI and animation and requires strict matches before expansion. Build
 shared `nu2` struct headers once, from donor layouts confirmed against LSW1
-field accesses.
+field accesses. The initial OpenSaga parser/helper lane has promoted 1,460 bytes
+(12 functions, 10 newly matched); [results](symbol_donors/opensaga_matching_results.md)
+record the corrected parser layout and the next small-target queue.
 
 ## Rules that do not change
 

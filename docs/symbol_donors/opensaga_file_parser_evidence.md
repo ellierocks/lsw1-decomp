@@ -6,7 +6,11 @@ Android x86 TCS with reconstructed headers and no DWARF. Its identities,
 types and percentages are leads only; every claim below rests on GC bytes or
 GC rodata.
 
-## Outcome
+Current implementation and verification supersede the initial run below: see
+[matching results](opensaga_matching_results.md). Consumer analysis corrects two
+original field labels: buffer end is `+1308`; command-stack position is `+1344`.
+
+## Outcome (initial research run)
 
 - **Renamed** `0x80006C78` from `NuVpInit` to `NuFParCreate` (size `0x15C`).
   The GC body is the file-parser open path, not a viewport initializer.
@@ -46,7 +50,7 @@ Body, in order:
 3. `fn_80006B14()` allocates the parser slot (see below). NULL → close the
    handle and return NULL (`fn_80005764` is the file close path).
 4. Stores `file_handle` at `+4`, and `-1` at `+1292`, `+1308`, `+1344`
-   (donor `line_num`, `command_pos`, `buf_end` initialization).
+   (donor `line_num`, `buf_end`, `command_pos` initialization).
 5. Reads a 16-bit BOM with `fn_8000596C` (`NuFileRead` size 2, returns u16,
    matching donor `NuFileReadWChar`). `0xFFFE` → `is_utf16 = 2`; `0xFEFF` →
    `is_utf16 = 1`; `0xBBEF` then byte `0xBF` (read via `fn_80005934`, a
