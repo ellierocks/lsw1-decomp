@@ -68,6 +68,9 @@ dolphin/gx/GXAttr.c:
 	.data       start:0x801FACC0 end:0x801FAF34
 	.sdata      start:0x8040A168 end:0x8040A174
 
+dolphin/gx/GXMisc.c:
+	.text       start:0x8017F5F4 end:0x8017FE24
+
 dolphin/gx/GXGeometry.c:
 	.text       start:0x8017FE24 end:0x80180144
 

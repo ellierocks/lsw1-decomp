@@ -379,6 +379,7 @@ config.libs = [
     DolphinLib("card", [SDKObject("card/CARDStat", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
+        SDKObject("gx/GXMisc", Matching),
         SDKObject("gx/GXGeometry", Matching),
         SDKObject("gx/GXFrameBuf", Matching),
         SDKObject("gx/GXLight", Matching),
