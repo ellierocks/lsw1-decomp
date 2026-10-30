@@ -75,7 +75,10 @@ data bytes, and total matching reaches 20,652 code bytes / 121 functions /
 2,180 data bytes. Complete GXPixel adds 1,592 code bytes / 12 functions and 128
 data bytes: twelve SDK units contribute 20,200 code bytes / 110 functions / 2,272
 data bytes, and total matching reaches 22,244 code bytes / 133 functions / 2,308
-data bytes. The whole image remains identical to retail; remaining archives and
+data bytes. Complete CARDStat adds 876 code bytes / two functions and no data:
+thirteen SDK units contribute 21,076 code bytes / 112 functions / 2,272 data bytes,
+and total matching reaches 23,120 code bytes / 135 functions / 2,308 data bytes.
+The whole image remains identical to retail; remaining archives and
 version drift still need work.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
