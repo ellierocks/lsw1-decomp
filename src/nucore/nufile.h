@@ -40,11 +40,18 @@ struct nudatfile_s {
     s32 used;
 };
 
+struct nufileslot_s {
+    u8 unknown00[0xC];
+    s32 size;
+    u8 unknown10[0x18];
+};
+
 struct numemfile_s {
     char* start;
     char* end;
     char* curr;
     s32 used;
+    u8 unknown10[4];
 };
 
 struct fileinfo_s {
@@ -73,6 +80,13 @@ enum nufilemode_e {
 };
 
 s32 NuFileOpen(char* path, enum nufilemode_e mode);
+s32 NuFileExists(char* name);
+s32 NuFileOpenSize(s32 handle);
+s32 NuFileRead(s32 handle, void* data, s32 size);
+s32 NuFileReadInt(s32 handle);
+s16 NuFileReadShort(s32 handle);
+s8 NuFileReadChar(s32 handle);
+u16 NuFileReadWChar(s32 handle);
 void NuFileClose(s32 handle);
 s32 NuFilePos(s32 handle);
 s32 NuFileLoadBuffer(s32 handle, void* buffer, s32 offset, s32 size, s32 blockalign);

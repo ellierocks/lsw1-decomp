@@ -576,6 +576,25 @@ class GenuineProdgTests(unittest.TestCase):
                 self.assertIn("retail DOL byte check: yes", r.stdout)
                 self.assertIn("RESULT: MATCH", r.stdout)
 
+    def test_opensaga_parser_and_file_helpers_match_strictly(self):
+        units = {
+            "nucore/nufile": ("NuFileReadInt", "NuFileReadShort", "NuFileReadChar", "NuFileReadWChar"),
+            "nucore/nufile_size": ("NuFileOpenSize",),
+            "nucore/nufile_exists": ("NuFileExists",),
+            "nucore/nufpar": ("NuAllocFPar", "NuFParCreate", "NuFParPushCom",
+                               "NuFParPopCom", "NuFParGetInt", "NuFParGetFloat"),
+        }
+        for unit, functions in units.items():
+            for function in functions:
+                with self.subTest(function=function):
+                    result = run_real(function, "--unit", unit, "--build", "--strict-symbols", "--json")
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertEqual(json.loads(result.stdout)["verdict"], "MATCH")
+            with self.subTest(unit=unit):
+                result = subprocess.run([sys.executable, str(ROOT / "tools/verify_unit.py"), unit, "--build"],
+                                        cwd=ROOT, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_global_reference_is_verified_against_retail_data(self):
         r = run_real("NuRandInt", "--quiet", "--strict-symbols")
         self.assertEqual(r.returncode, 0, r.stdout)
