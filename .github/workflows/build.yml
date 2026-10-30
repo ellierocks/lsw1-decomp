@@ -56,10 +56,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
-      - name: Publish or merge checked README progress
+        with:
+          fetch-depth: 2
+      - name: Publish or fast-forward checked README progress
         env:
           FORGEJO_TOKEN: ${{ github.token }}
           README_CONTENT: ${{ needs.retail.outputs.readme }}

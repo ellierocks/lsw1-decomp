@@ -1,18 +1,16 @@
 import sys
 import unittest
 from pathlib import Path
+import os
+import subprocess
+import tempfile
 from unittest.mock import patch
-import base64
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import update_readme as readme
 
 
 class ReadmeTests(unittest.TestCase):
-    def assert_no_internal_pushes(self, forge):
-        for call in forge.return_value.request.call_args_list:
-            readme.check_api_call(*call.args[:2])
-
     def test_render_uses_counts_and_keeps_naming_separate(self):
         symbols = {'sections': {s: {'named': 1, 'total': 4} for s in ('text', 'rodata', 'bss')}}
         block = readme.render(symbols, {'matched_code': '1920', 'total_code': '1569532',
@@ -32,98 +30,135 @@ class ReadmeTests(unittest.TestCase):
             with self.assertRaises((KeyError, ValueError)):
                 readme.render({}, measures)
 
-    def test_no_change_does_not_write_to_forge(self):
-        text = 'current README'
-        with patch.object(readme, 'Forgejo') as forge, patch.object(readme.Path, 'read_text', return_value='{}'), patch.dict(readme.os.environ, {
-            'GITHUB_EVENT_PATH': '/event.json', 'GITHUB_EVENT_NAME': 'push',
-            'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'abc'}):
-            forge.return_value.request.side_effect = [
-                {'commit': {'id': 'abc'}}, {'content': base64.b64encode(text.encode()).decode()}]
-            readme.publish(text)
-            self.assertTrue(all(call.args[0] == 'GET' for call in forge.return_value.request.call_args_list))
-
-    def test_stale_main_does_not_publish(self):
-        with patch.object(readme, 'Forgejo') as forge, patch.object(readme.Path, 'read_text', return_value='{}'), patch.dict(readme.os.environ, {
-            'GITHUB_EVENT_PATH': '/event.json', 'GITHUB_EVENT_NAME': 'push',
-            'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'abc'}):
-            forge.return_value.request.return_value = {'commit': {'id': 'newer'}}
-            readme.publish('README')
-            forge.return_value.request.assert_called_once_with('GET', '/branches/main')
-
-    def test_api_refuses_writes_that_push_internally(self):
-        with patch.dict(readme.os.environ, {'GITHUB_SERVER_URL': 'http://forge', 'GITHUB_REPOSITORY': 'o/r',
-                                            'FORGEJO_TOKEN': 't'}), patch.object(readme.urllib.request, 'urlopen') as urlopen:
-            api = readme.Forgejo()
-            for method, path in [('POST', '/branches'), ('DELETE', '/branches/x'), ('PUT', '/contents/README.md'),
-                                 ('POST', '/pulls/9/merge'), ('POST', '/pulls/9/update')]:
-                with self.assertRaises(ValueError):
-                    api.request(method, path, {})
-            urlopen.assert_not_called()
-            urlopen.return_value.__enter__.return_value.read.return_value = b''
-            for method, path in [('GET', '/contents/README.md?ref=x'), ('POST', '/pulls'),
-                                 ('PATCH', '/pulls/9'), ('POST', '/actions/workflows/build.yml/dispatches')]:
-                api.request(method, path, {})
-            self.assertEqual(urlopen.call_count, 4)
-
-    def merge_fixture(self, files=None, actual=None):
-        block = readme.START + '\ncurrent\n' + readme.END
-        text = 'intro\n' + block + '\noutro'
-        base = 'intro\n' + readme.START + '\nstale\n' + readme.END + '\noutro'
-        pr = {'number': 9, 'head': {'ref': readme.BRANCH_PREFIX + 'source', 'sha': 'checked', 'repo': {'id': 1}},
-              'base': {'ref': 'main', 'sha': 'source', 'repo': {'id': 1}}, 'html_url': 'http://forge/pr/9'}
-        with patch.object(readme, 'Forgejo') as forge, patch.object(readme, 'git') as git, patch.object(readme.Path, 'read_text', return_value=actual or text), patch.dict(readme.os.environ, {
-            'GITHUB_EVENT_NAME': 'workflow_dispatch', 'GITHUB_REF': 'refs/heads/' + pr['head']['ref'], 'GITHUB_SHA': 'checked'}):
-            forge.return_value.request.side_effect = [[pr], pr, files or [{'filename': 'README.md'}],
-                {'content': base64.b64encode(base.encode()).decode()}, {'merged': False}, None]
-            if actual or files:
-                with self.assertRaises(ValueError):
-                    readme.publish(text)
-                self.assertTrue(all(c.args[0] == 'GET' for c in forge.return_value.request.call_args_list))
-                git.assert_not_called()
-            else:
-                readme.publish(text)
-                self.assert_no_internal_pushes(forge)
-                self.assertEqual(git.call_args_list[0].args, ('push', 'origin', 'checked:refs/heads/main'))
-                self.assertEqual(forge.return_value.request.call_args_list[-1].args,
-                                 ('PATCH', '/pulls/9', {'state': 'closed'}))
-                self.assertEqual(git.call_args_list[-1].args,
-                                 ('push', 'origin', '--delete', 'refs/heads/' + pr['head']['ref']))
-
-    def test_merge_guards_checked_head(self):
-        self.merge_fixture()
-
-    def test_reject_other_files(self):
-        self.merge_fixture(files=[{'filename': 'README.md'}, {'filename': 'configure.py'}])
-
-    def test_reject_extra_readme_edits(self):
-        self.merge_fixture(actual='unreviewed README edits')
-
-    def test_publish_pins_source_and_explicitly_dispatches_checks(self):
-        encoded = base64.b64encode(b'old README').decode()
-        branch = readme.BRANCH_PREFIX + 'source'
-        with patch.object(readme, 'Forgejo') as forge, patch.object(readme, 'git') as git, \
-                patch.object(readme.Path, 'write_text') as write, patch.dict(readme.os.environ, {
-            'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'source'}):
-            forge.return_value.request.side_effect = [
-                {'commit': {'id': 'source'}}, {'content': encoded, 'sha': 'blob'}, [],
-                {'html_url': 'http://forge/pr/9'}, None]
-            git.side_effect = lambda *args: 'source' if args[0] == 'rev-parse' else ''
-            readme.publish('new README')
-            self.assert_no_internal_pushes(forge)
-            write.assert_called_once_with('new README')
-            self.assertEqual(git.call_args_list[-1].args, ('push', 'origin', 'HEAD:refs/heads/' + branch))
-            calls = forge.return_value.request.call_args_list
-            self.assertEqual(calls[3].args[:2], ('POST', '/pulls'))
-            self.assertEqual(calls[3].args[2]['head'], branch)
-            self.assertEqual(calls[-1].args, ('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch}))
-
-    def test_publish_refuses_checkout_other_than_source(self):
-        with patch.object(readme, 'Forgejo') as forge, patch.object(readme, 'git') as git, \
-                patch.object(readme.Path, 'write_text') as write, patch.dict(readme.os.environ, {
-            'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'source'}):
-            forge.return_value.request.side_effect = [
-                {'commit': {'id': 'source'}}, {'content': base64.b64encode(b'old').decode()}, []]
-            git.side_effect = lambda *args: 'other' if args[0] == 'rev-parse' else ''
+    def test_api_allows_only_reads_and_dispatch(self):
+        for method, path in [('POST', '/branches'), ('PUT', '/contents/README.md'), ('POST', '/pulls'),
+                             ('POST', '/pulls/9/merge'), ('PATCH', '/pulls/9')]:
             with self.assertRaises(ValueError):
-                readme.publish('new README')
-            write.assert_not_called()
+                readme.check_api_call(method, path)
+        readme.check_api_call('GET', '/branches/main?x=1')
+        readme.check_api_call('POST', '/actions/workflows/build.yml/dispatches')
+
+
+class FakeForgejo:
+    """Forgejo API double that only knows what the Actions token can really do."""
+
+    def __init__(self, origin):
+        self.origin, self.calls = origin, []
+
+    def request(self, method, path, data=None):
+        readme.check_api_call(method, path)
+        self.calls.append((method, path, data))
+        if (method, path) == ('GET', '/branches/main'):
+            return {'commit': {'id': git(self.origin, 'rev-parse', 'main')}}
+        if method == 'POST':
+            return None
+        raise AssertionError(f'unexpected API call {method} {path}')
+
+
+def git(cwd, *args):
+    return subprocess.run(['git', *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+
+
+class PublishFlowTests(unittest.TestCase):
+    """Run publish against a real git origin, as the Forgejo job does."""
+
+    STALE = 'intro\n' + readme.START + '\nstale\n' + readme.END + '\noutro\n'
+    FRESH = 'intro\n' + readme.START + '\nfresh\n' + readme.END + '\noutro\n'
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        env = patch.dict(os.environ, {
+            'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_CONFIG_NOSYSTEM': '1',
+            'GIT_AUTHOR_NAME': 't', 'GIT_AUTHOR_EMAIL': 't@t', 'GIT_COMMITTER_NAME': 't', 'GIT_COMMITTER_EMAIL': 't@t'})
+        env.start()
+        self.addCleanup(env.stop)
+        self.origin = self.root / 'origin.git'
+        git(self.root, 'init', '-q', '--bare', '-b', 'main', str(self.origin))
+        seed = self.root / 'seed'
+        git(self.root, 'clone', '-q', str(self.origin), str(seed))
+        (seed / 'README.md').write_text(self.STALE)
+        git(seed, 'add', 'README.md')
+        git(seed, 'commit', '-q', '-m', 'seed')
+        git(seed, 'push', '-q', 'origin', 'HEAD:main')
+        self.source = git(seed, 'rev-parse', 'HEAD')
+        self.branch = readme.BRANCH_PREFIX + self.source
+        self.forge = FakeForgejo(self.origin)
+
+    def checkout(self, name, ref):
+        work = self.root / name
+        git(self.root, 'clone', '-q', '--depth=2', '--branch', ref, 'file://' + str(self.origin), str(work))
+        return work
+
+    def run_job(self, work, event, ref, text):
+        cwd = os.getcwd()
+        os.chdir(work)
+        try:
+            with patch.object(readme, 'Forgejo', return_value=self.forge), patch.dict(os.environ, {
+                    'GITHUB_EVENT_NAME': event, 'GITHUB_REF': ref, 'GITHUB_SHA': git(work, 'rev-parse', 'HEAD')}):
+                readme.publish(text)
+        finally:
+            os.chdir(cwd)
+
+    def publish_branch(self):
+        self.run_job(self.checkout('main-run', 'main'), 'push', 'refs/heads/main', self.FRESH)
+        return self.checkout('dispatch-run', self.branch)
+
+    def test_push_publishes_branch_then_dispatch_fast_forwards_main(self):
+        work = self.publish_branch()
+        self.assertEqual(self.forge.calls[-1], ('POST', '/actions/workflows/build.yml/dispatches', {'ref': self.branch}))
+        self.assertEqual(git(self.origin, 'rev-parse', 'main'), self.source)
+        head = git(work, 'rev-parse', 'HEAD')
+        self.run_job(work, 'workflow_dispatch', 'refs/heads/' + self.branch, self.FRESH)
+        self.assertEqual(git(self.origin, 'rev-parse', 'main'), head)
+        self.assertEqual(git(self.origin, 'show', 'main:README.md') + '\n', self.FRESH)
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')
+
+    def test_retry_reuses_existing_branch(self):
+        self.publish_branch()
+        self.run_job(self.checkout('retry-run', 'main'), 'push', 'refs/heads/main', self.FRESH)
+        dispatches = [c for c in self.forge.calls if c[0] == 'POST']
+        self.assertEqual(len(dispatches), 2)
+
+    def test_current_readme_does_nothing(self):
+        self.run_job(self.checkout('main-run', 'main'), 'push', 'refs/heads/main', self.STALE)
+        self.assertEqual([c[0] for c in self.forge.calls], ['GET'])
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')
+
+    def test_dispatch_rejects_other_files(self):
+        work = self.publish_branch()
+        (work / 'configure.py').write_text('x')
+        git(work, 'add', 'configure.py')
+        git(work, 'commit', '-q', '--amend', '--no-edit')
+        with self.assertRaises(ValueError):
+            self.run_job(work, 'workflow_dispatch', 'refs/heads/' + self.branch, self.FRESH)
+        self.assertEqual(git(self.origin, 'rev-parse', 'main'), self.source)
+
+    def test_dispatch_rejects_figures_that_do_not_reproduce(self):
+        work = self.publish_branch()
+        other = self.FRESH.replace('fresh', 'different')
+        with self.assertRaises(ValueError):
+            self.run_job(work, 'workflow_dispatch', 'refs/heads/' + self.branch, other)
+        self.assertEqual(git(self.origin, 'rev-parse', 'main'), self.source)
+
+    def test_dispatch_skips_when_main_advanced(self):
+        work = self.publish_branch()
+        other = self.checkout('other', 'main')
+        (other / 'x').write_text('x')
+        git(other, 'add', 'x')
+        git(other, 'commit', '-q', '-m', 'advance')
+        git(other, 'push', '-q', 'origin', 'HEAD:main')
+        advanced = git(other, 'rev-parse', 'HEAD')
+        self.run_job(work, 'workflow_dispatch', 'refs/heads/' + self.branch, self.FRESH)
+        self.assertEqual(git(self.origin, 'rev-parse', 'main'), advanced)
+
+    def test_stale_push_run_does_not_publish(self):
+        work = self.checkout('main-run', 'main')
+        other = self.checkout('other', 'main')
+        (other / 'x').write_text('x')
+        git(other, 'add', 'x')
+        git(other, 'commit', '-q', '-m', 'advance')
+        git(other, 'push', '-q', 'origin', 'HEAD:main')
+        self.run_job(work, 'push', 'refs/heads/main', self.FRESH)
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')

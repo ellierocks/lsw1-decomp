@@ -2,13 +2,11 @@
 """Render README progress and publish checked README-only updates on Forgejo."""
 
 import argparse
-import base64
 import json
 import os
 from pathlib import Path
 import subprocess
 import urllib.request
-import urllib.parse
 
 import progress
 
@@ -16,9 +14,10 @@ START = '<!-- progress:start -->'
 END = '<!-- progress:end -->'
 BRANCH_PREFIX = 'ci/readme-progress-'
 MESSAGE = 'docs: update generated progress figures'
-# Forgejo performs these writes as internal git pushes without the Actions token's
-# permission, so its pre-receive hook rejects them; update refs with git() instead.
-API_PUSHES = ('/branches', '/contents/', '/merge', '/update')
+# On this private repository Forgejo 17 rejects the Actions token for API writes that
+# push internally (branches, contents, merges) or recheck user access (pull requests).
+# Git over HTTP and workflow dispatch honour the token, so all ref updates use git().
+API_WRITES = {('POST', '/actions/workflows/build.yml/dispatches')}
 
 
 def render(symbols, measures):
@@ -52,8 +51,8 @@ def update(text, block):
 
 
 def check_api_call(method, path):
-    if method != 'GET' and any(marker in path.split('?')[0] for marker in API_PUSHES):
-        raise ValueError(f'{method} {path} pushes without the Actions token permission; use git push')
+    if method != 'GET' and (method, path.split('?')[0]) not in API_WRITES:
+        raise ValueError(f'{method} {path} is unavailable to the Actions token; use git push')
 
 
 class Forgejo:
@@ -75,63 +74,43 @@ def git(*args):
     return subprocess.run(['git', *args], check=True, capture_output=True, text=True).stdout.strip()
 
 
+def git_file(revision):
+    return subprocess.run(['git', 'show', revision + ':README.md'], check=True, capture_output=True, text=True).stdout
+
+
 def publish(text):
+    """Push generated README figures to a check branch; fast-forward main once it passes."""
     api = Forgejo()
-    ref = os.environ.get('GITHUB_REF', '')
-    if os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch' and ref.startswith('refs/heads/' + BRANCH_PREFIX):
+    event, ref, sha = os.environ['GITHUB_EVENT_NAME'], os.environ.get('GITHUB_REF', ''), os.environ['GITHUB_SHA']
+    if event == 'workflow_dispatch' and ref.startswith('refs/heads/' + BRANCH_PREFIX):
         branch = ref.removeprefix('refs/heads/')
-        pulls = api.request('GET', '/pulls?state=open&limit=50')
-        candidates = [p for p in pulls if p['head']['ref'] == branch]
-        if not candidates:
-            print('No progress PR yet; waiting for the README commit run')
+        source = branch.removeprefix(BRANCH_PREFIX)
+        if git('rev-parse', 'HEAD') != sha or git('rev-parse', 'HEAD^') != source:
+            raise ValueError('Progress branch must be one commit on its source SHA')
+        if api.request('GET', '/branches/main')['commit']['id'] != source:
+            print('Main advanced since this progress branch; leaving it for the newer run')
             return
-        if len(candidates) != 1:
-            raise ValueError('Expected one open progress PR for this branch')
-        pr = candidates[0]
-        # Only merge our own README-only branch, with freshly reproduced figures.
-        if not pr['head']['ref'].startswith(BRANCH_PREFIX):
-            return
-        current = api.request('GET', f"/pulls/{pr['number']}")
-        if current['head']['sha'] != os.environ['GITHUB_SHA'] or current['base']['ref'] != 'main':
-            return
-        if current['base']['sha'] != branch.removeprefix(BRANCH_PREFIX):
-            print('Main advanced since this progress branch; skipping stale update')
-            return
-        if current['head']['repo']['id'] != current['base']['repo']['id']:
-            return
-        files = api.request('GET', f"/pulls/{pr['number']}/files")
-        if [f['filename'] for f in files] != ['README.md']:
-            raise ValueError('Automatic progress PR must change only README.md')
-        base = api.request('GET', '/contents/README.md?ref=' + current['base']['sha'])
-        expected = update(base64.b64decode(base['content']).decode(), text[text.index(START):text.index(END) + len(END)])
+        if git('diff', '--name-only', source, sha).splitlines() != ['README.md']:
+            raise ValueError('Progress branch must change only README.md')
+        expected = update(git_file(source), text[text.index(START):text.index(END) + len(END)])
         if text != expected or Path('README.md').read_text() != text:
-            raise ValueError('Progress PR differs from freshly generated README')
-        git('push', 'origin', current['head']['sha'] + ':refs/heads/main')
-        if not api.request('GET', f"/pulls/{pr['number']}")['merged']:
-            api.request('PATCH', f"/pulls/{pr['number']}", {'state': 'closed'})
+            raise ValueError('Progress branch differs from freshly generated README')
+        git('push', 'origin', sha + ':refs/heads/main')
         git('push', 'origin', '--delete', 'refs/heads/' + branch)
-        print('Merged checked README progress PR:', current['html_url'])
+        print('Fast-forwarded main to checked README progress', sha)
         return
-    if os.environ['GITHUB_EVENT_NAME'] != 'push' or os.environ['GITHUB_REF'] != 'refs/heads/main':
+    if event != 'push' or ref != 'refs/heads/main':
         return
-    sha = os.environ['GITHUB_SHA']
     if api.request('GET', '/branches/main')['commit']['id'] != sha:
         print('Main advanced; leaving publication to its newer run')
         return
-    existing = api.request('GET', '/contents/README.md?ref=' + sha)
-    if base64.b64decode(existing['content']).decode() == text:
+    if git_file(sha) == text:
         print('README progress is current')
         return
     branch = BRANCH_PREFIX + sha
-    # Retry a run without rewriting history or opening duplicate PRs.
-    pulls = api.request('GET', '/pulls?state=open&limit=50')
-    if any(p['head']['ref'] == branch for p in pulls):
-        api.request('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch})
-        print('Dispatched verification for existing progress PR')
-        return
     if git('ls-remote', '--heads', 'origin', 'refs/heads/' + branch):
-        branch_file = api.request('GET', '/contents/README.md?ref=' + urllib.parse.quote(branch, safe=''))
-        if base64.b64decode(branch_file['content']).decode() != text:
+        git('fetch', '-q', '--depth=1', 'origin', 'refs/heads/' + branch)
+        if git_file('FETCH_HEAD') != text:
             raise ValueError('Progress branch contains unexpected README edits')
     else:
         if git('rev-parse', 'HEAD') != sha:
@@ -140,11 +119,8 @@ def publish(text):
         git('-c', 'user.name=forgejo-actions', '-c', 'user.email=forgejo-actions@noreply.localhost',
             'commit', '-q', '-m', MESSAGE, '--', 'README.md')
         git('push', 'origin', 'HEAD:refs/heads/' + branch)
-    pr = api.request('POST', '/pulls', {'base': 'main', 'head': branch,
-        'title': MESSAGE,
-        'body': f'Update README progress from the verified retail report and symbols at {sha}. Automatically merged only after tooling and retail checks reproduce this README-only change.'})
-    print('Created README progress PR:', pr['html_url'])
     api.request('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch})
+    print('Dispatched checks for README progress branch', branch)
 
 
 def main():
