@@ -72,27 +72,32 @@ common:;
     }
 }
 
-f32 fn_80016C84(struct nuanimcurve_s* curve, struct nuanimtime_s* time)
+f32 NuAnimCurveCalcVal2(struct nuanimcurve_s* curve, struct nuanimtime_s* time)
 {
-    u32 type = time->time_byte;
     s32 idx = 0;
-    u8* objanim = ObjectAnim;
     u8* mask_bytes = (u8*)&curve->mask;
 
-    if (type == 1) {
-        idx = objanim[mask_bytes[2] & time->time_mask] + objanim[mask_bytes[3]];
-    } else if (type == 0) {
-        idx = objanim[mask_bytes[3] & time->time_mask];
-    } else if (type == 2) {
-        idx = objanim[mask_bytes[3]] + objanim[mask_bytes[2]] + objanim[mask_bytes[1] & time->time_mask];
-    } else if (type == 3) {
-        idx = objanim[mask_bytes[3]] + objanim[mask_bytes[2]] + objanim[mask_bytes[1]] + objanim[mask_bytes[0] & time->time_mask];
+    switch (time->time_byte) {
+    case 0:
+        idx = ObjectAnim[mask_bytes[3] & time->time_mask];
+        break;
+    case 1:
+        idx = ObjectAnim[mask_bytes[3]];
+        idx += ObjectAnim[mask_bytes[2] & time->time_mask];
+        break;
+    case 2:
+        idx = ObjectAnim[mask_bytes[3]] + ObjectAnim[mask_bytes[2]];
+        idx += ObjectAnim[mask_bytes[1] & time->time_mask];
+        break;
+    case 3:
+        idx = ObjectAnim[mask_bytes[3]] + ObjectAnim[mask_bytes[2]] + ObjectAnim[mask_bytes[1]];
+        idx += ObjectAnim[mask_bytes[0] & time->time_mask];
+        break;
     }
 
     {
-        struct nuanimkey_s* keys = curve->animkeys;
-        struct nuanimkey_s* prev = &keys[idx - 1];
-        struct nuanimkey_s* curr = &keys[idx];
+        struct nuanimkey_s* prev = curve->animkeys + (idx - 1);
+        struct nuanimkey_s* curr = curve->animkeys + idx;
         u32 flags = curve->flags;
 
         if (flags & 1) {
@@ -104,14 +109,13 @@ f32 fn_80016C84(struct nuanimcurve_s* curve, struct nuanimtime_s* time)
             return prev->d;
         }
 
-        // Hermite interpolation
         {
             f32 t1 = curr->time - prev->time;
             f32 t2 = prev->d - curr->d;
-            f32 t3 = time->time - prev->time;
             f32 t4 = prev->c;
             f32 t5 = curr->c;
             f32 t6 = prev->dtime;
+            f32 t3 = time->time - prev->time;
 
             f32 t7 = t4 * t1;
             f32 t8 = t2 * 2.0f;

@@ -361,7 +361,7 @@ config.libs = [
             Object(NonMatching, "numath/nuvec.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/numtx.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/nu_asm.c"),
-            Object(NonMatching, "nu3dx/nuanim.c"),
+            Object(NonMatching, "nu3dx/nuanim.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             # Auto-generated fallback units (auto_NN_*) come from dtk's config.json;
             # native split produces their asm and objects, so they are not listed here.
         ],
