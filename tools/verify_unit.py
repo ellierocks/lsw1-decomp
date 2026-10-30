@@ -182,7 +182,9 @@ def prove_unit(target, mine, ranges, symbols, dol):
                 disp -= (disp & (1 << (bits - 1))) << 1
                 if (start + offset + disp) & 0xffffffff == address:
                     mc[offset] = (kind, addend, address, mask)
-        if tc != mc:
+        # The resolved address is the proof: a section symbol plus offset and a
+        # named symbol with a zero addend are the same relocation target.
+        if {o: (k, a, m) for o, (k, _, a, m) in tc.items()} != {o: (k, a, m) for o, (k, _, a, m) in mc.items()}:
             return None
         clean_retail = bytearray(rb)
         for offset, (kind, _, address, mask) in tc.items():

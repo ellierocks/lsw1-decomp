@@ -47,6 +47,13 @@ class VerifyUnitTests(unittest.TestCase):
     def test_identical_complete_unit_with_resolved_relocation(self):
         self.assertEqual(self.proof(), {'.data': 0x1000})
 
+    def test_section_symbol_addend_resolving_to_same_address_is_accepted(self):
+        self.mine.symbols = [NS(shndx=1, name='.data', value=0)]
+        self.mine.relocs[1] = [NS(offset=0, rtype=1, sym=0, addend=0x24)]
+        self.assertEqual(self.proof(), {'.data': 0x1000})
+        self.mine.relocs[1] = [NS(offset=0, rtype=1, sym=0, addend=0x28)]
+        self.assertIsNone(self.proof())
+
     def test_changed_bytes_and_relocation_are_rejected(self):
         self.mine.data = bytes(4) + b'ABCE'
         self.assertIsNone(self.proof())
