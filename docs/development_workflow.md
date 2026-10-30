@@ -7,11 +7,10 @@ live in [C matching](code_matching_workflow.md).
 
 | Remote | Role |
 |--------|------|
-| Forgejo `ellie/lsw1-decomp` | Primary. All pushes go here. |
-| [GitHub `ellierocks/lsw1-decomp`](https://github.com/ellierocks/lsw1-decomp) | Public mirror. Its GitHub-only CI jobs produce the decomp.dev report and Dolphin map. |
-| Codeberg | Mirror. |
+| [GitHub `ellierocks/lsw1-decomp`](https://github.com/ellierocks/lsw1-decomp) | Primary. All pushes go here; CI runs here. |
+| Codeberg | Read-only mirror, updated from GitHub by the `mirror` workflow. |
 
-Mirrors receive changes from Forgejo. Do not push to them directly.
+Codeberg receives changes from GitHub. Do not push to it directly.
 
 ## Branches and pull requests
 
@@ -19,7 +18,7 @@ Mirrors receive changes from Forgejo. Do not push to them directly.
 - Work on a topic branch named for its kind of change: `feat/`, `fix/`, `docs/`,
   `chore/` or `ci/`. Use one branch per concern.
 - Commit messages use Conventional Commits with a lowercase imperative description,
-  for example `fix(ci): install ninja for forgejo retail builds`.
+  for example `fix(ci): install ninja for retail builds`.
 - Stage explicit paths. Check `git status` and `git diff --cached` before committing.
 - Open a pull request into `main`. Keep its title and description accurate as the
   change evolves: what changed, why, and what was verified.
@@ -55,16 +54,16 @@ into the build until it matches.
 
 ## Continuous integration
 
-| Job | Workflow file | Runs on | Forge | Purpose |
-|-----|---------------|---------|-------|---------|
-| `tooling` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo and GitHub | Portable checks above |
-| `retail` | `.github/workflows/build.yml` | push to `main`, PRs | Forgejo only | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` and the verifier tests against genuine ProDG objects (`VERIFY_FN_REQUIRE_RETAIL=1`) |
-| `readme` | `.github/workflows/build.yml` | successful main push or dispatched update branch | Forgejo only | Publishes README progress to a check branch and fast-forwards `main` after it passes |
-| `build` | `.github/workflows/build.yml` | push to `main`, PRs | GitHub only | Builds the report and uploads `GL5E4F_report` for decomp.dev |
-| `build-map` | `.github/workflows/generate-map.yml` | changes to symbols or map tooling | GitHub only | Uploads the Dolphin map |
+| Job | Workflow file | Runs on | Purpose |
+|-----|---------------|---------|---------|
+| `tooling` | `.github/workflows/build.yml` | push to `main`, PRs | Portable checks above |
+| `retail` | `.github/workflows/build.yml` | push to `main`, same-repo PRs, dispatch | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` and the verifier tests against genuine ProDG objects (`VERIFY_FN_REQUIRE_RETAIL=1`) |
+| `readme` | `.github/workflows/build.yml` | successful main push or dispatched update branch | Publishes README progress to a check branch and fast-forwards `main` after it passes |
+| `build` | `.github/workflows/build.yml` | push to `main`, PRs | Builds the report and uploads `GL5E4F_report` for decomp.dev |
+| `build-map` | `.github/workflows/generate-map.yml` | changes to symbols or map tooling | Uploads the Dolphin map |
 
-On GitHub, fork PRs have no `ORIG_KEY` and skip the `build` job without failing. The
-Forgejo `retail` job fails when `ORIG_KEY` is missing.
+Fork PRs have no `ORIG_KEY`, so `retail` is skipped there and `build` skips its
+build steps without failing.
 
 A PR is ready when its required checks succeed on its current head. Pending, missing,
 skipped or cancelled required checks are not success. Push a new head and the checks
@@ -85,7 +84,7 @@ Delete the topic branch once it is merged.
 ## Secrets
 
 `ORIG_KEY` is the passphrase for `orig/GL5E4F/sys/main.dol.enc`. It is set as an
-Actions secret on each forge that runs the retail job. Never commit the decrypted DOL,
+Actions secret on GitHub, the only forge that runs the retail job. Never commit the decrypted DOL,
 and never print the key in logs. Rotation steps are in
 [key rotation](#key-rotation).
 
@@ -117,7 +116,7 @@ whole-DOL checksum.
 symbol map. Do not substitute a release tag or unpatched splitter; see
 [build configuration](build_config.md#splitter-and-startup-constraints).
 
-Maintainers configure `ORIG_KEY` as an Actions secret on both forges. Public
+Maintainers configure `ORIG_KEY` as an Actions secret on GitHub. Public
 reporting additionally requires repository registration at decomp.dev and its
 GitHub App for workflow-completion webhooks. The `GL5E4F-dolphin-map` artifact
 comes from the separate GitHub map workflow.
@@ -131,12 +130,12 @@ bash tools/orig_crypt.sh encrypt
 ```
 
 Commit the new `orig/GL5E4F/sys/main.dol.enc`, then update the Actions secret on
-both forges. `orig_crypt.sh` checks the retail SHA-1 before encrypting and after
+GitHub. `orig_crypt.sh` checks the retail SHA-1 before encrypting and after
 decrypting. Keep plaintext retail input and passphrases out of commits and logs.
 
 ## Automatic README progress
 
-After the Forgejo `tooling` and `retail` checks succeed on `main`, the `readme`
+After the GitHub `tooling` and `retail` checks succeed on `main`, the `readme`
 job publishes the README rendered by `python3 tools/update_readme.py` in the
 retail job. It renders the marked README status block from that build's
 `report.json` and `symbols.txt`, without changing surrounding prose. Missing reports fail rather than publishing zeros.
@@ -145,23 +144,18 @@ Identical figures produce no commit, branch or date-only churn.
 Changed figures push one README commit on the source SHA to a
 `ci/readme-progress-<source SHA>` branch, then explicitly dispatch `build.yml`
 on that branch to run tooling and retail checks again. Explicit dispatch is needed
-because [Forgejo automatic tokens](https://forgejo.org/docs/latest/user/actions/basic-concepts/)
-suppress workflows triggered indirectly by their pushes. The dispatched `readme`
-job fast-forwards `main` to the checked commit and deletes the branch only when
-the commit's parent is still `main`, it changes README alone, and its entire
-contents reproduce the generated block applied to the parent README.
+because a push made with the automatic `GITHUB_TOKEN` does not trigger another
+workflow run. The dispatched `readme` job fast-forwards `main` to the checked
+commit and deletes the branch only when the commit's parent is still `main`, it
+changes README alone, and its entire contents reproduce the generated block
+applied to the parent README.
 
-The flow uses no pull requests. On this private repository, Forgejo 17 rejects the
-Actions token for these API writes:
-- branch creation, file writes and merges, which push internally without the
-  token's permission;
-- pull-request creation, which rechecks access as a plain user.
-
-Git over HTTP and workflow dispatch honour the token. `check_api_call` allows only
-reads and that dispatch. `tests/test_update_readme.py` runs the whole cycle against
-a real git origin. GitHub only consumes the mirrored result. Older main runs skip
-publication after main advances. Failed checks leave the progress branch unmerged.
+The flow uses no pull requests. `tools/update_readme.py` reads the branch head and
+dispatches the workflow through the GitHub API; all ref updates go through git.
+`tests/test_update_readme.py` runs the whole cycle against a real git origin. Older
+main runs skip publication after main advances. Failed checks leave the progress
+branch unmerged.
 
 To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.
 Only the CI publication step needs repository contents and actions write
-permissions; it uses the existing job token, with no additional stored secret.
+permissions; it uses the workflow token, with no additional stored secret.

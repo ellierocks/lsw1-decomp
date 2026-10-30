@@ -31,7 +31,7 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 | `.bss` | 51 | 741 | 6.9% |
 <!-- progress:end -->
 
-CI refreshes these figures after successful Forgejo builds on `main`.
+CI refreshes these figures after successful GitHub builds on `main`.
 
 ```sh
 python3 tools/matching_progress.py    # matched code from the local objdiff report
@@ -86,7 +86,7 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
    generates the objdiff report, links `main.dol` and checks promoted units against
    retail. It does not produce a fully matched, relinked game.
 
-Development happens on Forgejo, and the GitHub repository is a public mirror. See
+Development happens on GitHub, and Codeberg is a read-only mirror. See
 [development workflow](docs/development_workflow.md) for checks and PRs.
 
 ## Working on the decomp

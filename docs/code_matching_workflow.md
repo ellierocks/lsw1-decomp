@@ -180,7 +180,7 @@ Limitations (what a `MATCH` does not prove):
 
 Regression tests: `tests/test_verify_fn.py` (synthetic objects everywhere; the
 genuine ProDG/retail cases run after `bash build.sh` and are required in the
-Forgejo retail CI job).
+GitHub retail CI job).
 
 ## Promotion
 
