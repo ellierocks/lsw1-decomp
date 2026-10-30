@@ -60,7 +60,7 @@ Naming only counts when it unblocks a matching target.
 
 ### Phase 1: SDK import (in progress)
 
-Twenty SDK units are promoted so far, and the whole image still matches retail. The per-import
+Twenty-one SDK units are promoted so far, and the whole image still matches retail. The per-import
 figures are archived in [strategy progress](history/strategy_progress.md); the current totals are
 in the README status block and [SDK import](sdk_import.md).
 

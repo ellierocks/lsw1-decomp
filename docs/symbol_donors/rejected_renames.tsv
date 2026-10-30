@@ -57,3 +57,10 @@
 0x80176A38	__CARDEraseSector	fn_80176A38	CARDDir import: donor __CARDEraseSector matches 0x80176ECC outside relocations; its call targets 0x80176A38; see sdk_import.md
 0x8017C604	__CARDWrite	fn_8017C604	CARDDir import: donor __CARDWrite matches 0x8017C6EC outside relocations and loads callback at 0x8017C604; see sdk_import.md
 0x8017C6EC	__GXDefaultTexRegionCallback	__CARDWrite	CARDDir import: donor __CARDWrite matches this 104-byte function outside relocations; see sdk_import.md
+0x8017C778	GXDrawDone	fn_8017C778	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017C77C	GXTokenInterruptHandler	fn_8017C77C	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017C878	GXFinishInterruptHandler	fn_8017C878	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017F6E4	GXAbortFrame	__GXAbort	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017FC64	__GXDrawSyncCallback	GXTokenInterruptHandler	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017FCEC	GXSetBreakPtCallback	GXSetDrawDoneCallback	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md
+0x8017FD30	__GXBreakPtCallback	GXFinishInterruptHandler	GXMisc import: retained donor instruction and relocation identity correct stale anchors; see sdk_import.md

@@ -572,6 +572,47 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 python3 tools/matching_progress.py
 ```
 
+## GXMisc follow-up
+
+`gx/GXMisc` promotes 20 retained functions, 2,096 code bytes at
+`.text` `8017F5F4..8017FE24`, with no initialized data. The baseline after
+fstload was 29,156 matched code bytes, 173 functions and 2,744 data bytes;
+the isolated result is 31,252 code bytes, 193 functions and 2,744 data bytes.
+After integrating CARDDir, the combined result is 31,864 code bytes, 197
+functions and 2,744 data bytes.
+All retained functions pass strict verification and the complete text section,
+including all relocations, passes the unit gate. The linked ranges and whole
+image match retail, SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+The stripped donor probe retains exactly 20 functions: 12 MATCH and eight
+UNVERIFIED, the latter requiring resolved fallback references. The source uses
+`lbl_8040AC90`, `lbl_8040AC94`, `lbl_8040AC98` and `lbl_8040AC9C` for
+callback and queue storage; their BSS remains assembly fallback. The donor's
+`PPCSync` calls target `lbl_8015BF2C`, whose retail instructions are `sc; blr`;
+the source references that exact label rather than asserting an unsupported
+identity. `GXCompressZ16` and `GXDecompressZ16` are disabled in this unit:
+their bodies and diagnostic strings are outside the retained retail unit.
+The complete-unit proof and whole-image identity validate the retained unit;
+`NO_ANCHOR` alone is not evidence of whole-binary absence. Other unretained
+donor functions are removed by the existing strip step.
+
+Instruction and relocation identity establish `__GXAbort`, `GXAbortFrame`,
+`GXTokenInterruptHandler`, `GXSetDrawDoneCallback` and
+`GXFinishInterruptHandler` at their corrected addresses. The earlier unrelated
+anchors are replaced by address names. `OSInitThreadQueue` is the two-word
+queue zeroing function at `80162514`; the retained initialization call and
+its instructions support that identity. These renames claim no matching bytes.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/gx/GXMisc --build
+# Run verify_fn.py --unit dolphin/gx/GXMisc --build --strict-symbols
+# for each of the 20 functions reported by the stripped probe.
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported gx/GXMisc
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
 ## CARDDir follow-up
 
 Starting from `e0e82fc` (OSAudioSystem), CARDDir promotes four functions and
@@ -609,6 +650,7 @@ for fn in __CARDGetDirBlock WriteCallback EraseCallback __CARDUpdateDir; do
 done
 python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported card/CARDDir
 python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+
 ```
 
 ## Remaining Phase 1 work
@@ -621,18 +663,18 @@ SHA-1 and all complete-unit proofs.
 OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
 bytes / 167 functions because its functions were already credited, and complete
 files rise from 16 to 17. SISamplingRate is the seventeenth SDK unit.
-OSAudioSystem is the eighteenth, fstload the nineteenth and CARDDir the twentieth.
-Current matching is **29,768 code bytes / 177 functions / 2,744 matched data bytes**;
-the 20 SDK units contribute 26,644 code bytes / 142 functions / 3,116 complete
-data bytes.
-There are 21 complete source-backed files including the non-SDK
+OSAudioSystem is the eighteenth, fstload the nineteenth, CARDDir the twentieth
+and GXMisc the twenty-first. Current matching is **31,864 code bytes / 197
+functions / 2,744 matched data bytes**; the 21 SDK units contribute 28,740 code
+bytes / 162 functions / 3,116 complete data bytes. There are 22 complete
+source-backed files including the non-SDK
 `nurand` unit. Remaining SDK ranges retain assembly fallback. No other probe row
 is promoted by name or layout alone, and no unverified BSS or unsupported
 relocation is accepted.
 
 | Candidate | Current limit | Next concrete check |
 |---|---|---|
-| GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
+| GXFifo | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
 
 Continue library by library with the same full-unit and linked-range gates.
