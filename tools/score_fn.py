@@ -62,7 +62,7 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str]) -> 
                     *PRODG_FLAGS, *extra, "-c", str(source), "-o", str(out)])
     raw = out.with_suffix(".raw.o")
     inc = []
-    for i, f in enumerate(extra):
+    for f in extra:
         inc.append("-i" if f == "-I" else f.replace("-I", "-i", 1) if f.startswith("-I") else f)
     err = run([str(BUILD / "tools" / "wibo"), str(BUILD / "compilers" / "GC" / "1.2.5n" / "mwcceppc.exe"),
                *SDK_FLAGS, "-I-", *inc, "-c", str(source), "-o", str(raw)])

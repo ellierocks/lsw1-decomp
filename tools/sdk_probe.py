@@ -87,7 +87,7 @@ def anchor(funcs: list[vf.Symbol], symbols: vf.SymbolTable) -> dict[str, tuple[s
     index = {n: i for i, (_, n, _) in enumerate(retail)}
     funcs = sorted(funcs, key=lambda f: f.value)
     out: dict[str, tuple[str, str]] = {}
-    for i, f in enumerate(funcs):
+    for f in funcs:
         if f.name in index:
             out[f.name] = (f.name, "name")
     for i, f in enumerate(funcs):
