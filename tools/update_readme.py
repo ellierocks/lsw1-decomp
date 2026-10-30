@@ -16,6 +16,9 @@ START = '<!-- progress:start -->'
 END = '<!-- progress:end -->'
 BRANCH_PREFIX = 'ci/readme-progress-'
 MESSAGE = 'docs: update generated progress figures'
+# Forgejo performs these writes as internal git pushes without the Actions token's
+# permission, so its pre-receive hook rejects them; update refs with git() instead.
+API_PUSHES = ('/branches', '/contents/', '/merge', '/update')
 
 
 def render(symbols, measures):
@@ -48,12 +51,18 @@ def update(text, block):
     return text[:start] + block + text[end + len(END):]
 
 
+def check_api_call(method, path):
+    if method != 'GET' and any(marker in path.split('?')[0] for marker in API_PUSHES):
+        raise ValueError(f'{method} {path} pushes without the Actions token permission; use git push')
+
+
 class Forgejo:
     def __init__(self):
         self.url = os.environ['GITHUB_SERVER_URL'].rstrip('/') + '/api/v1/repos/' + os.environ['GITHUB_REPOSITORY']
         self.token = os.environ['FORGEJO_TOKEN']
 
     def request(self, method, path, data=None):
+        check_api_call(method, path)
         req = urllib.request.Request(self.url + path,
             data=json.dumps(data).encode() if data is not None else None,
             headers={'Authorization': 'token ' + self.token, 'Content-Type': 'application/json'}, method=method)
@@ -63,7 +72,6 @@ class Forgejo:
 
 
 def git(*args):
-    # Forgejo API pushes drop the Actions token's repository permission; git over HTTP keeps it.
     return subprocess.run(['git', *args], check=True, capture_output=True, text=True).stdout.strip()
 
 

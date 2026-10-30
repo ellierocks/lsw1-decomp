@@ -153,8 +153,8 @@ merges by fast-forwarding `main` to the checked head SHA, which fails if `main`
 moved, then closes the PR and deletes its branch. Branch and `main` updates use
 `git push` rather than the branch-creation or merge API: Forgejo's internal API
 pushes do not carry the Actions token's permission, so the pre-receive hook
-rejects them. GitHub
-only consumes the mirrored result. Older main runs skip publication after main
+rejects them. `check_api_call` refuses those API writes, and the publish tests
+apply it to every call. GitHub only consumes the mirrored result. Older main runs skip publication after main
 advances. Failed checks leave the update PR unmerged.
 
 To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.

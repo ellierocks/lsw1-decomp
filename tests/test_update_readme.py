@@ -9,6 +9,10 @@ import update_readme as readme
 
 
 class ReadmeTests(unittest.TestCase):
+    def assert_no_internal_pushes(self, forge):
+        for call in forge.return_value.request.call_args_list:
+            readme.check_api_call(*call.args[:2])
+
     def test_render_uses_counts_and_keeps_naming_separate(self):
         symbols = {'sections': {s: {'named': 1, 'total': 4} for s in ('text', 'rodata', 'bss')}}
         block = readme.render(symbols, {'matched_code': '1920', 'total_code': '1569532',
@@ -46,6 +50,21 @@ class ReadmeTests(unittest.TestCase):
             readme.publish('README')
             forge.return_value.request.assert_called_once_with('GET', '/branches/main')
 
+    def test_api_refuses_writes_that_push_internally(self):
+        with patch.dict(readme.os.environ, {'GITHUB_SERVER_URL': 'http://forge', 'GITHUB_REPOSITORY': 'o/r',
+                                            'FORGEJO_TOKEN': 't'}), patch.object(readme.urllib.request, 'urlopen') as urlopen:
+            api = readme.Forgejo()
+            for method, path in [('POST', '/branches'), ('DELETE', '/branches/x'), ('PUT', '/contents/README.md'),
+                                 ('POST', '/pulls/9/merge'), ('POST', '/pulls/9/update')]:
+                with self.assertRaises(ValueError):
+                    api.request(method, path, {})
+            urlopen.assert_not_called()
+            urlopen.return_value.__enter__.return_value.read.return_value = b''
+            for method, path in [('GET', '/contents/README.md?ref=x'), ('POST', '/pulls'),
+                                 ('PATCH', '/pulls/9'), ('POST', '/actions/workflows/build.yml/dispatches')]:
+                api.request(method, path, {})
+            self.assertEqual(urlopen.call_count, 4)
+
     def merge_fixture(self, files=None, actual=None):
         block = readme.START + '\ncurrent\n' + readme.END
         text = 'intro\n' + block + '\noutro'
@@ -63,6 +82,7 @@ class ReadmeTests(unittest.TestCase):
                 git.assert_not_called()
             else:
                 readme.publish(text)
+                self.assert_no_internal_pushes(forge)
                 self.assertEqual(git.call_args_list[0].args, ('push', 'origin', 'checked:refs/heads/main'))
                 self.assertEqual(forge.return_value.request.call_args_list[-1].args,
                                  ('PATCH', '/pulls/9', {'state': 'closed'}))
@@ -89,6 +109,7 @@ class ReadmeTests(unittest.TestCase):
                 {'html_url': 'http://forge/pr/9'}, None]
             git.side_effect = lambda *args: 'source' if args[0] == 'rev-parse' else ''
             readme.publish('new README')
+            self.assert_no_internal_pushes(forge)
             write.assert_called_once_with('new README')
             self.assertEqual(git.call_args_list[-1].args, ('push', 'origin', 'HEAD:refs/heads/' + branch))
             calls = forge.return_value.request.call_args_list
