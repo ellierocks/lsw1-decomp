@@ -369,6 +369,7 @@ config.libs = [
     DolphinLib("os", [SDKObject("os/OSSync", Matching), SDKObject("os/OSMutex", Matching)]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
     DolphinLib("gx", [
+        SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXGeometry", Matching),
         SDKObject("gx/GXTexture", Matching),
         SDKObject("gx/GXBump", Matching),

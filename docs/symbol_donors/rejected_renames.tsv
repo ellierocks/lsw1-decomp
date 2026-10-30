@@ -26,3 +26,6 @@
 0x801828C0	GXSetTevColorS10	GXSetTevKColor	SDK import: strict dolsdk2004 code identity; see sdk_import.md
 0x80182B74	GXSetTexCoordGen2	GXSetTevOrder	SDK import: strict dolsdk2004 code identity; see sdk_import.md
 0x80182D10	GXSetNumTexGens	GXSetNumTevStages	SDK import: strict dolsdk2004 code identity; see sdk_import.md
+0x8017C764	__GXXfVtxSpecs	fn_8017C764	GXAttr import: donor helper is inlined in __GXSetVCD; verified retained code identity places vertex-desc functions elsewhere; see sdk_import.md
+0x8017C76C	GXSetVtxDescv	fn_8017C76C	GXAttr import: donor helper is inlined in __GXSetVCD; verified retained code identity places vertex-desc functions elsewhere; see sdk_import.md
+0x8018432C	GXSetVtxDesc	fn_8018432C	GXAttr import: donor helper is inlined in __GXSetVCD; verified retained code identity places vertex-desc functions elsewhere; see sdk_import.md
