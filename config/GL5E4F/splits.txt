@@ -73,6 +73,9 @@ dolphin/os/OSTime.c:
 dolphin/os/OSMutex.c:
 	.text       start:0x80163914 end:0x80163984
 
+dolphin/exi/EXIUart.c:
+	.text       start:0x80165360 end:0x80165918
+
 dolphin/si/SISamplingRate.c:
 	.text       start:0x80167178 end:0x80167280
 	.data       start:0x801F5B40 end:0x801F5BD8
@@ -80,6 +83,23 @@ dolphin/si/SISamplingRate.c:
 dolphin/db/db.c:
 	.text       start:0x80167280 end:0x8016736C
 	.data       start:0x801F5BD8 end:0x801F5BF0
+
+dolphin/dvd/dvdqueue.c:
+	.text       start:0x8016A850 end:0x8016AA48
+
+dolphin/dvd/dvderror.c:
+	.text       start:0x8016AA48 end:0x8016ABE0
+	.data       start:0x801F62E0 end:0x801F6328
+
+dolphin/dvd/dvdidutils.c:
+	.text       start:0x8016ABE0 end:0x8016ACD8
+
+dolphin/dvd/dvdFatal.c:
+	.text       start:0x8016ACD8 end:0x8016AE04
+	.rodata     start:0x801B05E0 end:0x801B05F8
+	.data       start:0x801F6328 end:0x801F66D8
+	.sdata      start:0x8040A0C8 end:0x8040A0D0
+	.sdata2     start:0x8040B778 end:0x8040B780
 
 dolphin/dvd/fstload.c:
 	.text       start:0x8016AE04 end:0x8016B044
@@ -89,6 +109,24 @@ dolphin/dvd/fstload.c:
 dolphin/pad/Padclamp.c:
 	.text       start:0x8016E058 end:0x8016E29C
 	.rodata     start:0x801B05F8 end:0x801B0604
+
+dolphin/ai/ai.c:
+	.text       start:0x8016FBE4 end:0x801704C8
+	.data       start:0x801F6B88 end:0x801F6BCC
+	.sdata      start:0x8040A118 end:0x8040A11C
+
+dolphin/ar/ar.c:
+	.text       start:0x801704C8 end:0x80171F3C
+	.data       start:0x801F6BD0 end:0x801F6C14
+	.sdata      start:0x8040A120 end:0x8040A124
+
+dolphin/ar/arq.c:
+	.text       start:0x80171F3C end:0x801722D8
+	.data       start:0x801F6C18 end:0x801F6C60
+	.sdata      start:0x8040A128 end:0x8040A12C
+
+dolphin/ax/AXProf.c:
+	.text       start:0x801753CC end:0x80175414
 
 dolphin/dsp/dsp_debug.c:
 	.text       start:0x801756A4 end:0x801756F4

@@ -1,6 +1,8 @@
 /* Retail DOL section addresses and startup SDA bases.
  * RE4's ProDG link-script pattern; no input bytes or replacement code.
  * _stack_end names the retail .sbss clear end used by __start.
+ * ai.o carries an empty 8-aligned .sbss (extern OSTime statics); it is placed
+ * first so that its alignment cannot pad the end of .sbss and the DOL bss size.
  */
 SECTIONS
 {
@@ -10,7 +12,7 @@ SECTIONS
  .data 0x801B0640 : { *(.data) }
  .bss 0x801FD080 : { *(.bss) *(COMMON) }
  .sdata 0x80407A40 : { *(.sdata) }
- .sbss 0x8040A2C0 : { *(.sbss) }
+ .sbss 0x8040A2C0 : { *ai.o(.sbss) *(.sbss) }
  .sdata2 0x8040B300 : { *(.sdata2) }
  _SDA_BASE_ = 0x8040FA40;
  _SDA2_BASE_ = 0x8041FA40;

@@ -16,7 +16,10 @@ under `src/dolphin/`. Their C and private headers are unchanged except for
 `gx/GXFifo.c` and `gx/GXInit.c`, plus `os/OSAlarm.c`, `os/OSArena.c`,
 `os/OSInterrupt.c`, `os/OSError.c`, `os/OSReset.c`, `card/CARDBlock.c`,
 `card/CARDCheck.c`, `db/db.c` and `pad/Padclamp.c`, which also drop donor
-definitions that retail dead-stripped:
+definitions that retail dead-stripped, plus `dvd/dvderror.c`, `dvd/dvdidutils.c`,
+`dvd/dvdFatal.c`, `dvd/dvdqueue.c`, `ai/ai.c`, `ar/ar.c`, `ar/arq.c`,
+`ax/AXProf.c` and `exi/EXIUart.c`, which declare their retail `.sbss` statics
+`extern` (and drop dead-stripped donor functions where retail has none):
 their unverified BSS references are externalized to DTK fallback names so storage
 remains in assembly fallback. CARDDir uses `lbl_8030E320` for the shared card
 control block. GXMisc also references a retail call label directly and omits
