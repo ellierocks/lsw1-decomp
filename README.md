@@ -14,6 +14,25 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 ## Progress
 
+<!-- progress:start -->
+**Matched code** (objdiff report with strict relocation comparison):
+
+| Measure | Matched | Total | Progress |
+|---------|---------|-------|----------|
+| Code bytes | 2,044 | 1,569,532 | 0.13% |
+| Functions | 23 | 4,147 | 0.55% |
+
+**Symbol naming** (`config/GL5E4F/symbols.txt`):
+
+| Section | Named | Total | Progress |
+|---------|-------|-------|----------|
+| `.text` (functions) | 1,475 | 4,201 | 35.1% |
+| `.rodata` | 774 | 8,383 | 9.2% |
+| `.bss` | 38 | 733 | 5.2% |
+<!-- progress:end -->
+
+CI refreshes these figures after successful Forgejo builds on `main`.
+
 ```sh
 python3 tools/matching_progress.py    # matched code from the local objdiff report
 python3 tools/progress.py             # symbol naming and matching
