@@ -52,14 +52,16 @@ def run(cmd: list[str]) -> str:
     return "" if r.returncode == 0 else (r.stdout + r.stderr).strip()[-1500:] or "failed"
 
 
-def compile_source(source: Path, out: Path, compiler: str, extra: list[str]) -> str:
+def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
+                   diagnostics: Path | None = None) -> str:
     if compiler == "prodg":
+        diagnostic_args = ["--diagnostics-dir", str(diagnostics)] if diagnostics else []
         return run([sys.executable, "tools/prodg_cc.py",
                     "--compiler", str(BUILD / "compilers" / PRODG_VERSION),
                     "--as-bin", str(BUILD / "binutils" / "powerpc-eabi-as"),
                     "--dtk", str(BUILD / "tools" / "dtk_patched"),
                     "--wibo", str(BUILD / "tools" / "wibo"),
-                    *PRODG_FLAGS, *extra, "-c", str(source), "-o", str(out)])
+                    *diagnostic_args, *PRODG_FLAGS, *extra, "-c", str(source), "-o", str(out)])
     raw = out.with_suffix(".raw.o")
     inc = []
     for f in extra:
@@ -81,13 +83,17 @@ def main(argv=None) -> int:
     ap.add_argument("--compile-only", action="store_true", help="only compile (needs -o)")
     ap.add_argument("-o", type=Path, help="keep the object here")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--diagnostics-dir", type=Path, help="new directory for ProDG RTL dumps and logs")
     args = ap.parse_args(argv)
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]
     if args.compile_only and not args.o:
         ap.error("--compile-only needs -o")
+    if args.diagnostics_dir and args.compiler != "prodg":
+        ap.error("--diagnostics-dir requires --compiler prodg")
     with tempfile.TemporaryDirectory(prefix="score_fn_") as tmp:
         obj = args.o.resolve() if args.o else Path(tmp) / "candidate.o"
-        err = compile_source(args.source.resolve(), obj, args.compiler, extra)
+        err = compile_source(args.source.resolve(), obj, args.compiler, extra,
+                             args.diagnostics_dir.resolve() if args.diagnostics_dir else None)
         if err:
             print(f"error: compile failed\n{err}", file=sys.stderr)
             return vf.EXIT_ERROR

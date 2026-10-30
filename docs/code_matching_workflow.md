@@ -27,6 +27,47 @@ object remains linked. A source file under `work/` is not compiled automatically
 `Matching` selects the compiled object for the final link. DTK's inherited
 Metrowerks linker settings do not identify the game's compiler.
 
+### Compiler audit and RTL diagnostics
+
+The pinned `ProDG/3.9.3/cc1.exe` reports GCC 2.95.3 **SN BUILD v1.76**,
+not v1.79 (SHA-256 `f72f09daad839440d8bed38b766e0207fcb8c9eacf0be1ca04e91dc60a91bdba`).
+The installed CPP reports SN BUILD v2.16. Confirm a local installation with
+`build/tools/wibo build/compilers/ProDG/3.9.3/cc1.exe -version`.
+
+An audit of `ngccc.exe -v -O2 -c` found that its preprocessing command adds
+`__OPTIMIZE__`, GCC version, PowerPC, big-endian, unsigned-char, EABI and SN
+target defines, plus C language defines. Our wrapper currently forwards only
+the configured preprocessing flags; it also drops `-G` options. These are known
+differences to investigate with a selected retail target, not established fixes.
+The current default remains unchanged: the full build and strict `NuRandInt`
+baseline pass with it.
+
+For a plateau, retain compiler-pass evidence without running ninja:
+
+```sh
+python3 tools/score_fn.py NuRandInt src/numath/nurand.c --diagnostics-dir /tmp/nurand-rtl -o /tmp/nurand.o
+```
+
+Use a new output directory per attempt. It contains `candidate.i`,
+`candidate.prodg.s`, compiler version/options and output in `compiler.log`,
+and exact stage arguments/exit codes in `commands.jsonl`. RTL dumps include
+`.cse`, `.gcse`, `.loop`, `.lreg`, `.greg`, `.sched` and `.sched2` after
+`candidate.i`. Look at local/global allocation for register differences and
+the two scheduling dumps for instruction ordering. The wrapper accepts the
+same `--diagnostics-dir` option. SDK mode rejects it. Diagnostic flags preserve
+the complete `nurand.c` object byte for byte in the real-toolchain regression.
+Compiler failure logs and intermediates remain available; dumps may be incomplete.
+Keep these artifacts local.
+
+[RE4's matching catalogue](https://github.com/adonis-singh/re4/blob/9b76ff003081d6ece8b838453fb8310743a972c7/docs/matching.md)
+maps symptoms to source levers. Its native v1.79 build separates fast-cast and
+classic conversion scratch-address representations; our packaged v1.76 does
+not. Its additional aliasing patch reconstructs inferred RE4 compiler behavior
+and has a C-global exception. Neither a compiler replacement, that patch nor
+RE4's `-mfast-cast` flag is validated for LSW1 by this audit. Their instrumented
+allocation hooks require a separate source-built compiler; these diagnostics
+use the existing binary's RTL dumps and do not install those hooks.
+
 ## Select and prepare
 
 1. Read current symbol evidence and rejected renames. Prefer a small function with
