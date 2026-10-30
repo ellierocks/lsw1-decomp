@@ -72,16 +72,15 @@ script object layout; keep unproven fields out of shared definitions.
 
 ## Expansion gate
 
+The gate is to demonstrate strict matches in the parser/helper queue with the
+pinned ProDG toolchain and resolved references, record the commands and results,
+and only then widen the lane to AI keyword handlers, legacy animation or
+archive/DAT routines. The existing AI `69/78` and animation `43/105` drafts are
+parked hypotheses.
+
 **Passed for parser/helpers:** the [recorded strict matches and promotion](opensaga_matching_results.md)
-permit selecting the next small target. This does not validate other donor layouts
-or turn the parked AI/animation drafts into matches.
-
-
-First demonstrate strict matches in this parser/helper queue with the pinned
-ProDG toolchain and resolved references. Record the successful commands and
-results here before widening the lane to AI keyword handlers, legacy animation
-or archive/DAT routines. The existing AI `69/78` and animation `43/105` drafts
-are parked hypotheses, not evidence that this gate has passed. Do not split a
+select the next small target. This does not validate other donor layouts or turn
+the parked AI/animation drafts into matches. Do not split a
 branch out of a larger retail function to claim a match. A strict function
 match is VERIFIED; promotion still requires the whole-unit section,
 relocation and linked-range checks in [C matching](../code_matching_workflow.md#promotion).
