@@ -15,6 +15,7 @@ import json
 import math
 import os
 import platform
+import shlex
 import sys
 from pathlib import Path
 from typing import (
@@ -161,6 +162,9 @@ class ProjectConfig:
         self.compilers_tag: Optional[str] = None  # 1
         self.compilers_path: Optional[Path] = None  # If None, download
         self.wibo_tag: Optional[str] = None  # Git tag
+        # Opt-in tools/prodg_cc.py arguments (compiler evaluation); empty keeps the pinned default.
+        self.prodg_extra_args: List[str] = []
+        self.prodg_extra_inputs: List[Path] = []  # files those arguments make the rule depend on
         self.wrapper: Optional[Path] = None  # If None, download wibo on Linux
         self.sjiswrap_tag: Optional[str] = None  # Git tag
         self.sjiswrap_path: Optional[Path] = None  # If None, download
@@ -735,10 +739,13 @@ def generate_build_ninja(
     prodg_wibo = f"--wibo {wrapper} " if wrapper is not None else ""
     prodg_cmd = (
         f"$python {prodg_cc} --compiler {compilers / '$compiler_version'} --as-bin {gnu_as} "
-        f"--dtk {dtk} {prodg_wibo}--dep $basefile.d $cflags -c $in -o $out"
+        f"--dtk {dtk} {prodg_wibo}--dep $basefile.d "
+        + "".join(f"{shlex.quote(a)} " for a in config.prodg_extra_args)
+        + "$cflags -c $in -o $out"
     )
     prodg_implicit: List[Optional[Path]] = [
-        prodg_cc, compilers_implicit, wrapper_implicit, binutils_implicit or gnu_as, dtk
+        prodg_cc, compilers_implicit, wrapper_implicit, binutils_implicit or gnu_as, dtk,
+        *config.prodg_extra_inputs,
     ]
 
     if os.name != "nt":

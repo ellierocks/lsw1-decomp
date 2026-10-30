@@ -53,9 +53,11 @@ def run(cmd: list[str]) -> str:
 
 
 def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
-                   diagnostics: Path | None = None) -> str:
+                   diagnostics: Path | None = None, cc1_native: Path | None = None) -> str:
     if compiler == "prodg":
         diagnostic_args = ["--diagnostics-dir", str(diagnostics)] if diagnostics else []
+        if cc1_native:
+            diagnostic_args += ["--cc1-native", str(cc1_native)]
         return run([sys.executable, "tools/prodg_cc.py",
                     "--compiler", str(BUILD / "compilers" / PRODG_VERSION),
                     "--as-bin", str(BUILD / "binutils" / "powerpc-eabi-as"),
@@ -84,16 +86,20 @@ def main(argv=None) -> int:
     ap.add_argument("-o", type=Path, help="keep the object here")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--diagnostics-dir", type=Path, help="new directory for ProDG RTL dumps and logs")
+    ap.add_argument("--cc1-native", type=Path,
+                    help="evaluate a source-built cc1 (tools/sn-gcc/build.sh); with GDBG=1/LADBG=1 and "
+                         "a diagnostics build its allocation trace lands in compiler.log")
     args = ap.parse_args(argv)
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]
     if args.compile_only and not args.o:
         ap.error("--compile-only needs -o")
-    if args.diagnostics_dir and args.compiler != "prodg":
-        ap.error("--diagnostics-dir requires --compiler prodg")
+    if (args.diagnostics_dir or args.cc1_native) and args.compiler != "prodg":
+        ap.error("--diagnostics-dir and --cc1-native require --compiler prodg")
     with tempfile.TemporaryDirectory(prefix="score_fn_") as tmp:
         obj = args.o.resolve() if args.o else Path(tmp) / "candidate.o"
         err = compile_source(args.source.resolve(), obj, args.compiler, extra,
-                             args.diagnostics_dir.resolve() if args.diagnostics_dir else None)
+                             args.diagnostics_dir.resolve() if args.diagnostics_dir else None,
+                             args.cc1_native.resolve() if args.cc1_native else None)
         if err:
             print(f"error: compile failed\n{err}", file=sys.stderr)
             return vf.EXIT_ERROR

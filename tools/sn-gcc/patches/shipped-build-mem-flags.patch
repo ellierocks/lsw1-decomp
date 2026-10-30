@@ -1,0 +1,61 @@
+LSW1 NOTE: EXPERIMENTAL, NOT ADOPTED.  Copied unchanged from adonis-singh/re4
+(tools/sn-gcc/patches, CC0 build tooling) at 9b76ff003081d6ece8b838453fb8310743a972c7 to test the
+alias hypothesis in isolation.  The evidence below is RE4's (PS2 debug info, Capcom's shipped
+compiler); vendor provenance is unproven and nothing here was observed for LSW1.  Never apply it to
+the production compiler without an LSW1 test result that cites docs/code_matching_workflow.md.
+
+shipped-build-mem-flags.patch -- reconstruction of one behaviour of the compiler build Capcom shipped
+RE4 with, which differs from SN's v1.79 source drop (2003-06): a MEM never carries MEM_SCALAR_P.
+Applied by build.sh after linux-host.patch.  It replaces the earlier, narrower
+shipped-build-temp-flags.patch (assign_temp and five assign_parms sites in function.c) and
+additionally covers every other place that marks a non-aggregate MEM, for example the frame slot of a variable whose address is
+taken (put_reg_into_stack, put_addressof_into_stack).
+
+What it changes: `MEM_SET_IN_STRUCT_P (mem, aggregate)` in rtl.h sets MEM_SCALAR_P on a MEM whose
+type is not an aggregate.  alias.c `fixed_scalar_and_varying_struct_p` then declares such a MEM
+disjoint from every MEM_IN_STRUCT_P access through a varying pointer (`p->field`), so the scheduler
+moves a scalar load above a member store and cse keeps a cached value across it.  The shipped
+compiler does not do that: a global pointer (pG, pPL, a module's work pointer), a compiler temp, a
+parameter slot and the slot of an address-taken local are ordered against member stores like any
+other MEM.  The macro no longer sets the flag, so all its users follow the one rule.
+
+The exception is C: varasm.c make_decl_rtl keeps the stock flag for non-aggregate globals when the
+front end is not C++.  newlib's printf (game/printf.c) reads _impure_ptr once and reuses it after a
+store through the FILE it points to, which needs the load to stay a scalar.  That library code is
+most likely an object from an earlier build of the vendor's libc, not compiled with the rule above.
+
+Evidence (2026-09-22): the PS2 debug info declares `GLOBAL_WK *pG`, `cEm *pPL`, `cLog *pLog` as
+plain pointers, yet the GC binary reloads them after member stores at hundreds of unrelated sites;
+the polymorphic copy `*p = *src` of a class with a vptr reloads the vptr after the block move's tail
+stores (esp0a, esp0e); SndCall's address-taken parameters blk / no (PS2 ps2snd.cpp takes their
+address with `emSeCheck(&blk, &no, id)` too) are reloaded from their frame slots after each store
+through pSnd.  With the rule as one macro change the whole-tree harness (every prodg_cc unit of
+build.ninja) differs from the two-patch build in exactly two units: game/printf (needs the C
+exception above) and game/item (cItemMgr::combine, which matches once `a->id = newId` is written
+before `a->num = 1`).
+
+diff -ruN a/gcc/rtl.h b/gcc/rtl.h
+--- a/gcc/rtl.h
++++ b/gcc/rtl.h
+@@ -618,7 +618,7 @@
+    scalar.  VAL is evaluated only once.  */
+ #define MEM_SET_IN_STRUCT_P(RTX, VAL) 				\
+   ((VAL) ? (MEM_IN_STRUCT_P (RTX) = 1, MEM_SCALAR_P (RTX) = 0)	\
+-   : (MEM_IN_STRUCT_P (RTX) = 0, MEM_SCALAR_P (RTX) = 1))
++   : (MEM_IN_STRUCT_P (RTX) = 0, MEM_SCALAR_P (RTX) = 0))
+ 
+ /* For a MEM rtx, the alias set.  If 0, this MEM is not in any alias
+    set, and may alias anything.  Otherwise, the MEM can only alias
+diff -ruN a/gcc/varasm.c b/gcc/varasm.c
+--- a/gcc/varasm.c
++++ b/gcc/varasm.c
+@@ -905,6 +905,9 @@
+ 	    RTX_UNCHANGING_P (DECL_RTL (decl)) = 1;
+ 	  MEM_SET_IN_STRUCT_P (DECL_RTL (decl),
+ 			       AGGREGATE_TYPE_P (TREE_TYPE (decl)));
++	  if (! AGGREGATE_TYPE_P (TREE_TYPE (decl))
++	      && strcmp (lang_identify (), "cplusplus") != 0)
++	    MEM_SCALAR_P (DECL_RTL (decl)) = 1;
+ 
+ 	  /* Optionally set flags or add text to the name to record information
+ 	     such as that it is a function name.

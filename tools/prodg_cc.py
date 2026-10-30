@@ -29,6 +29,17 @@ CPP_FLAG_PREFIXES = ("-I", "-D", "-U", "-include", "-nostdinc", "-i")
 CC1_FLAG_PREFIXES = ("-O", "-f", "-m", "-g", "-W", "-w", "-std", "-ansi", "-pedantic")
 RTL_FLAGS = ["-dj", "-ds", "-dS", "-dR", "-dg", "-dl", "-dG", "-dL", "-fsched-verbose-9"]
 
+# Preprocessing flags `ngccc.exe -v -O2 -c x.c` passes to CPP for C input after the user's
+# -I/-D/-U (docs/code_matching_workflow.md, "Native SN GCC v1.79 evaluation"). Opt-in only
+# through --ngccc-defines; the default wrapper behavior is unchanged.
+NGCCC_TARGET_DEFS = [
+    "-D__GNUC__=2", "-D__GNUC_MINOR__=95", "-D__NOASMPP__", "-lang-c",
+    "-DPPC", "-D__PPC__", "-D__PPC", "-Acpu(powerpc)", "-Amachine(powerpc)",
+    "-D__CHAR_UNSIGNED__", "-D_BIG_ENDIAN", "-D__BIG_ENDIAN__", "-Amachine(bigendian)",
+    "-D__PTRDIFF_TYPE__=int", "-D__SIZE_TYPE__=unsigned", "-D_CALL_SYSV",
+    "-DSN_TARGET_NGC", "-D__SN__", "-D_LANGUAGE_C", "-D__LANGUAGE_C", "-DLANGUAGE_C",
+]
+
 
 def split_flags(flags: list[str]) -> tuple[list[str], list[str], str, str]:
     """Walk the compiler args, routing to (cpp, cc1) and extracting source/-o.
@@ -52,6 +63,10 @@ def split_flags(flags: list[str]) -> tuple[list[str], list[str], str, str]:
             continue
         if f in ("-I", "-D", "-U", "-include") and i + 1 < len(flags):
             cpp += [f, flags[i + 1]]
+            i += 2
+            continue
+        if f == "-G" and i + 1 < len(flags):
+            cc1.append("-G" + flags[i + 1])  # ngccc joins `-G 1024` into `-G1024` for cc1
             i += 2
             continue
         if f.startswith(CPP_FLAG_PREFIXES):
@@ -88,6 +103,10 @@ def main() -> None:
     ap.add_argument("--wibo", type=Path, help="wibo/wine wrapper for the .exe stages")
     ap.add_argument("--asflags", default="-mgekko")
     ap.add_argument("--dep", type=Path, help="depfile to write (Make format)")
+    ap.add_argument("--cc1-native", type=Path,
+                    help="native Linux cc1 (tools/sn-gcc/build.sh) used instead of cc1.exe; for evaluation")
+    ap.add_argument("--ngccc-defines", action="store_true",
+                    help="add the ngccc.exe driver's target/language defines (and __OPTIMIZE__ for -O>0)")
     ap.add_argument("--diagnostics-dir", type=Path,
                     help="new directory for retained intermediates, RTL dumps and compiler log")
     args, passthrough = ap.parse_known_args()
@@ -101,7 +120,10 @@ def main() -> None:
     out = Path(output_str)
     wrap = [str(args.wibo)] if args.wibo else []
     cpp = wrap + [str(args.compiler / "CPP.exe")]
-    cc1 = wrap + [str(args.compiler / "cc1.exe")]
+    cc1 = [str(args.cc1_native)] if args.cc1_native else wrap + [str(args.compiler / "cc1.exe")]
+    if args.ngccc_defines:
+        optimize = any(f.startswith("-O") and f != "-O0" for f in cc1_flags)
+        cpp_flags = [*(["-D__OPTIMIZE__"] if optimize else []), *cpp_flags, *NGCCC_TARGET_DEFS]
     out.parent.mkdir(parents=True, exist_ok=True)
     base = out.with_suffix("")
     diagnostics = args.diagnostics_dir

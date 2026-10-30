@@ -132,6 +132,18 @@ parser.add_argument(
     action="store_false",
     help="disable progress calculation",
 )
+parser.add_argument(
+    "--prodg-cc1-native",
+    type=Path,
+    help="evaluate a native cc1 (tools/sn-gcc/build.sh) instead of the pinned cc1.exe",
+)
+parser.add_argument(
+    "--prodg-arg",
+    action="append",
+    default=[],
+    metavar="ARG",
+    help="extra tools/prodg_cc.py argument for ProDG units (repeatable; evaluation only)",
+)
 args = parser.parse_args()
 
 config = ProjectConfig()
@@ -147,6 +159,10 @@ config.objdiff_path = args.objdiff
 config.binutils_path = args.binutils
 config.compilers_path = args.compilers
 config.generate_map = args.map
+if args.prodg_cc1_native:
+    config.prodg_extra_args += ["--cc1-native", str(args.prodg_cc1_native)]
+    config.prodg_extra_inputs.append(args.prodg_cc1_native)
+config.prodg_extra_args += args.prodg_arg
 config.non_matching = args.non_matching
 config.sjiswrap_path = args.sjiswrap
 config.ninja_path = args.ninja
