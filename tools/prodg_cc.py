@@ -19,6 +19,7 @@ be passed harmlessly.
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,7 @@ from pathlib import Path
 # Routing prefixes
 CPP_FLAG_PREFIXES = ("-I", "-D", "-U", "-include", "-nostdinc", "-i")
 CC1_FLAG_PREFIXES = ("-O", "-f", "-m", "-g", "-W", "-w", "-std", "-ansi", "-pedantic")
+RTL_FLAGS = ["-dj", "-ds", "-dS", "-dR", "-dg", "-dl", "-dG", "-dL", "-fsched-verbose-9"]
 
 
 def split_flags(flags: list[str]) -> tuple[list[str], list[str], str, str]:
@@ -63,8 +65,13 @@ def split_flags(flags: list[str]) -> tuple[list[str], list[str], str, str]:
     return cpp, cc1, source, output
 
 
-def run(cmd: list[str], what: str) -> None:
+def run(cmd: list[str], what: str, diagnostics: Path | None = None) -> None:
     proc = subprocess.run(cmd, capture_output=True, text=True)
+    if diagnostics:
+        with (diagnostics / "commands.jsonl").open("a") as log:
+            log.write(json.dumps({"stage": what, "argv": cmd, "returncode": proc.returncode}) + "\n")
+        with (diagnostics / "compiler.log").open("a") as log:
+            log.write(f"{what}\n{proc.stdout}{proc.stderr}\n")
     if proc.returncode != 0 or (proc.stderr and "rror" in proc.stderr):
         sys.stderr.write(f"prodg_cc: {what} failed\n")
         sys.stderr.write(" ".join(str(c) for c in cmd) + "\n")
@@ -81,6 +88,8 @@ def main() -> None:
     ap.add_argument("--wibo", type=Path, help="wibo/wine wrapper for the .exe stages")
     ap.add_argument("--asflags", default="-mgekko")
     ap.add_argument("--dep", type=Path, help="depfile to write (Make format)")
+    ap.add_argument("--diagnostics-dir", type=Path,
+                    help="new directory for retained intermediates, RTL dumps and compiler log")
     args, passthrough = ap.parse_known_args()
 
     cpp_flags, cc1_flags, source_str, output_str = split_flags(passthrough)
@@ -95,6 +104,12 @@ def main() -> None:
     cc1 = wrap + [str(args.compiler / "cc1.exe")]
     out.parent.mkdir(parents=True, exist_ok=True)
     base = out.with_suffix("")
+    diagnostics = args.diagnostics_dir
+    if diagnostics:
+        diagnostics = diagnostics.resolve()
+        diagnostics.mkdir(parents=True, exist_ok=False)
+        base = diagnostics / "candidate"
+        cc1_flags = [*cc1_flags, *RTL_FLAGS, "-version"]
     pre = base.with_suffix(".i")
     asm = base.with_suffix(".prodg.s")
 
@@ -108,13 +123,13 @@ def main() -> None:
         args.dep.write_text(f"{out}:{body}")
 
     # 2. Preprocess -> .i
-    run(cpp + cpp_flags + [str(args.source), str(pre)], "preprocess (CPP)")
+    run(cpp + cpp_flags + [str(args.source), str(pre)], "preprocess (CPP)", diagnostics)
     # 3. Compile -> GNU .s
-    run(cc1 + ["-quiet"] + cc1_flags + [str(pre), "-o", str(asm)], "compile (cc1)")
+    run(cc1 + ["-quiet"] + cc1_flags + [str(pre), "-o", str(asm)], "compile (cc1)", diagnostics)
     # 4. Assemble -> .o
-    run([str(args.as_bin)] + args.asflags.split() + ["-o", str(out), str(asm)], "assemble")
+    run([str(args.as_bin)] + args.asflags.split() + ["-o", str(out), str(asm)], "assemble", diagnostics)
     # 5. dtk fixup (normalize ELF for the dtk link/diff flow)
-    run([str(args.dtk), "elf", "fixup", str(out), str(out)], "elf fixup")
+    run([str(args.dtk), "elf", "fixup", str(out), str(out)], "elf fixup", diagnostics)
 
 
 if __name__ == "__main__":
