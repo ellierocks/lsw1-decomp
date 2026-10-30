@@ -26,7 +26,7 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 | Section | Named | Total | Progress |
 |---------|-------|-------|----------|
-| `.text` (functions) | 1,479 | 4,202 | 35.2% |
+| `.text` (functions) | 1,477 | 4,202 | 35.1% |
 | `.rodata` | 774 | 8,383 | 9.2% |
 | `.bss` | 38 | 733 | 5.2% |
 <!-- progress:end -->
