@@ -384,7 +384,7 @@ config.libs = [
     DolphinLib("si", [SDKObject("si/SISamplingRate", Matching)]),
     DolphinLib("db", [SDKObject("db/db", Matching)]),
     DolphinLib("pad", [SDKObject("pad/Padclamp", Matching)]),
-    DolphinLib("dvd", [SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching)]),
+    DolphinLib("dvd", [SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
     DolphinLib("ax", [SDKObject("ax/AXProf", Matching)]),
