@@ -204,6 +204,7 @@ class Elf:
 # ------------------------------------------------------------ project inputs
 
 _SYMBOL_LINE = re.compile(r"^(\S+)\s*=\s*(\.\w+):0x([0-9A-Fa-f]+);(.*)$")
+_DTK_LOCAL = re.compile(r"^(.+)_([0-9A-F]{8})$")
 _SIZE = re.compile(r"size:0x([0-9A-Fa-f]+)")
 CODE_SECTIONS = (".text", ".init")
 
@@ -251,7 +252,21 @@ class SymbolTable:
 
     def addr(self, name: str) -> Optional[int]:
         e = self.entries.get(name)
+        if e is None:
+            e = self._dtk_local(name)
         return e.addr if e and name not in self.duplicates else None
+
+    def _dtk_local(self, name: str) -> Optional[SymEntry]:
+        """DTK renames a local symbol to NAME_<address> in split objects.
+
+        Accept the suffixed name only when the unsuffixed symbol is in
+        symbols.txt at exactly that address.
+        """
+        m = _DTK_LOCAL.match(name)
+        if not m or m.group(1) in self.duplicates:
+            return None
+        e = self.entries.get(m.group(1))
+        return e if e and e.addr == int(m.group(2), 16) else None
 
 
 class Dol:

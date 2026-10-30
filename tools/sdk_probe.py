@@ -65,6 +65,7 @@ def compile_unit(sdk: Path, unit: str, out: Path) -> str:
     signed = unit.startswith("dvd/") or unit in SIGNED_CHAR
     flags += ["-char", "signed" if signed else "unsigned", "-I-",
               "-i", str(sdk / "include"), "-i", str(sdk / "include" / "libc")]
+    flags += ["-i", str(sdk / "src")]
     for d in sorted((sdk / "src").iterdir()):
         if d.is_dir():
             flags += ["-i", str(d)]

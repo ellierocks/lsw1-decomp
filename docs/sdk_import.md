@@ -467,11 +467,11 @@ The complete rebuilt image has zero differing bytes and retains SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. The matching-progress report counts
 16 of 50 complete files. Raw probe and verification logs remain under ignored `work/`.
 
-## OSCache evidence (not promoted)
+## OSCache follow-up
 
-Donor `os/OSCache.c` is vendored unchanged. Its retail `.text` is
-`8015D8C0..8015DCF8` (1,080 bytes, twelve functions). The other donor
-functions are dead stripped. All twelve retained functions pass
+Donor `os/OSCache.c` is vendored unchanged and promoted. Its retail `.text` is
+`8015D8C0..8015DCF8` (1,080 bytes, twelve functions); the other donor functions
+are dead stripped. All twelve retained functions pass
 `verify_fn.py NAME --build --strict-symbols`: nine resolve every reference
 exactly, and `L2GlobalInvalidate`, `DMAErrorHandler` and `__OSCacheInit` pass
 with consistency-bound references. Their retail names are already present.
@@ -487,25 +487,46 @@ The retained `.data` is 554 bytes at `801E2B40..801E2D6A`, which matches retail
 byte for byte. DTK does not accept an unaligned auto-split at `801E2D6A`, so the
 split extends to the existing label boundary `801E2D70`. The six zero bytes
 before that label are linker alignment that the donor object does not contain.
-With this split, the complete-unit gate (`verify_unit.py`) rejects the 554-byte
-object against the 560-byte range. Promotion is therefore blocked on the
-`.data` representation.
+`verify_unit.py` previously rejected the 554-byte object against the 560-byte
+range. It now accepts a donor data section that is shorter than its range only
+when the missing tail is under 32 bytes and is all zero in both the target
+object and the retail DOL; code, BSS, longer gaps and non-zero tails are still
+rejected. With that rule `verify_unit.py dolphin/os/OSCache --build` proves both
+complete sections, the unit is `Matching`, and the whole image remains identical
+(SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`). The report counts 17 of 53
+complete files.
 
-The unit is wired as `NonMatching`, so the default DOL uses the retail target
-object and remains identical (SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`).
-The donor object is also linked under the all-`Matching` experiment, and the
-whole image remained identical in that build. Next hypothesis: teach the
-importer to represent a zero alignment tail that belongs to the preceding
-donor unit, or add an aligned split boundary, and then rerun `verify_unit.py`.
+## Probe and verifier unblockers
+
+Two tooling faults made Phase 1 look further away than it was.
+
+- `sdk_probe.py` omitted the SDK `src/` directory from the include path, so
+  `#include "os/__os.h"` failed and six units (`card/CARDCheck`, `CARDFormat`,
+  `CARDMount`, `CARDNet`, `dvd/dvd`, `dvd/dvderror`) reported `ERROR` with no
+  evidence. They now compile.
+- DTK renames a local symbol in a split object to `NAME_<address>`
+  (for example `XYNTSC_801F5B40`). `SymbolTable.addr` did not resolve that form,
+  so any function that touched a named static was reported as a relocation
+  mismatch (`CODE_SAME`) even though `symbols.txt` held the name at that address.
+  `addr` now resolves the suffixed form only when the unsuffixed name is in
+  `symbols.txt` at exactly the suffixed address.
+
+A full re-probe with both fixes moved discovery rows from 145 to 42 `CODE_SAME`,
+from 146 to 294 `UNVERIFIED` and from 267 to 298 `MATCH` functions. Raw TSVs
+stay under ignored `work/`. Four units now contain only `MATCH`, `UNVERIFIED` or
+`CODE_SAME` functions and are the cheapest next promotions: `si/SISamplingRate`,
+`dvd/fstload`, `os/OSAudioSystem` and `card/CARDDir`.
 
 ## Remaining Phase 1 work
 
-With the OSMemory import, total matching is **26,576 code bytes / 155 functions /
+With the OSMemory import, total matching was **26,576 code bytes / 155 functions /
 2,340 matched data bytes**. Fifteen SDK units contribute 24,532 code bytes /
 132 functions / 2,712 complete data bytes. The combined build retains the retail
 SHA-1 and all complete-unit proofs.
 
-These fifteen promoted units do not complete every SDK archive. Remaining
+OSCache is now promoted as the sixteenth unit; the report still shows 27,656 code
+bytes / 167 functions because its functions were already credited, and complete
+files rise from 16 to 17. These sixteen promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
@@ -513,7 +534,7 @@ or layout alone, and no unverified BSS or unsupported relocation is accepted.
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| OSCache | Twelve functions strictly match; `.data` alignment tail blocks `verify_unit.py` | Represent the six-byte zero tail before `lbl_801E2D70` in the proof, then promote |
+| SISamplingRate, fstload, OSAudioSystem, CARDDir | Probe shows no MISMATCH or NO_ANCHOR rows; needs vendoring, splits and named data | Vendor the donor, add the split and statics, then run the unit and strict function gates |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version

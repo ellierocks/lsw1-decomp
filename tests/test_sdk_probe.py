@@ -35,6 +35,23 @@ class AnchorTests(unittest.TestCase):
         self.assertEqual(sdk_probe.anchor([sym("Foo", 0, 8)], table), {})
 
 
+class DtkLocalNameTests(unittest.TestCase):
+    def table(self):
+        t = vf.SymbolTable.__new__(vf.SymbolTable)
+        t.entries = {"XYNTSC": vf.SymEntry(".data", 0x801F5B40, 0x30, False)}
+        t.duplicates = set()
+        return t
+
+    def test_suffixed_local_resolves_only_at_its_own_address(self):
+        t = self.table()
+        self.assertEqual(t.addr("XYNTSC"), 0x801F5B40)
+        self.assertEqual(t.addr("XYNTSC_801F5B40"), 0x801F5B40)
+        self.assertIsNone(t.addr("XYNTSC_801F5B44"))
+        self.assertIsNone(t.addr("OTHER_801F5B40"))
+        t.duplicates.add("XYNTSC")
+        self.assertIsNone(t.addr("XYNTSC_801F5B40"))
+
+
 class ClassifyTests(unittest.TestCase):
     def test_reloc_only_differences_are_code_same(self):
         rep = {"verdict": "MISMATCH", "target_insns": 4, "mine_insns": 4,

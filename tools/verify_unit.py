@@ -72,6 +72,9 @@ def split_ranges(text, unit):
     return ranges or None
 
 
+MAX_ALIGN_TAIL = 32
+
+
 def prove_unit(target, mine, ranges, symbols, dol):
     """Return proved section bases, or None. No name-only relocation matches."""
     if not ranges or dol is None:
@@ -115,14 +118,23 @@ def prove_unit(target, mine, ranges, symbols, dol):
 
     for name, (start, end) in ranges.items():
         t, m = ts[name], ms[name]
-        if t.size != end - start or m.size != t.size or t.sh_type != m.sh_type or t.flags != m.flags:
+        if t.size != end - start or t.sh_type != m.sh_type or t.flags != m.flags:
+            return None
+        # The linker aligns the next object, so a donor data section may end
+        # before its retail range. Only a short all-zero tail is accepted.
+        pad = t.size - m.size
+        if pad and not (0 < pad < MAX_ALIGN_TAIL and not t.flags & 4 and t.sh_type != 8):
             return None
         # BSS has no retail bytes: do not infer uninitialised layout from zeroes.
         if t.sh_type == 8:
             return None
         tb, mb, rb = bytearray(target.section_bytes(t)), bytearray(mine.section_bytes(m)), dol.read(start, t.size)
-        if rb is None or len(tb) != t.size or len(mb) != t.size or len(rb) != t.size:
+        if rb is None or len(tb) != t.size or len(mb) != m.size or len(rb) != t.size:
             return None
+        if pad:
+            if any(tb[m.size:]) or any(rb[m.size:]):
+                return None
+            mb += bytes(pad)
         tr, mr = target.relocs.get(t.index, []), mine.relocs.get(m.index, [])
         code = bool(t.flags & 4)
 
