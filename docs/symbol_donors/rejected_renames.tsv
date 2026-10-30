@@ -15,3 +15,6 @@
 0x80023628	NuCameraLookAt	fn_80023628	PR #5 rejected candidate: body is not camera code; see animation_restart_evidence.md
 0x8001610C	pftaOn	fn_8001610C	PR #5 rejected candidate: cross-module, body shape unrelated; see animation_restart_evidence.md
 0x80016154	pftaOff	fn_80016154	PR #5 rejected candidate: cross-module, body shape unrelated; see animation_restart_evidence.md
+0x80140ACC	PADRead	fn_80140ACC	SDK probe: float-heavy game prologue (stmw r25, lfs from game rodata) inside game code; size 0x3AC vs dolsdk2004 PADRead 0x300
+0x80144D64	GXInitTexObj	fn_80144D64	SDK probe: game prologue (stfd f31, stmw r23); size 0x274 vs 0x24C; dolsdk2004 GXInitTexObj is code-identical to 0x80181374
+0x8014E9B8	OSTicksToCalendarTime	fn_8014E9B8	SDK probe: Podrace-region code loading game float constants; not code-identical to dolsdk2004 OSTicksToCalendarTime

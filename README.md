@@ -9,7 +9,7 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 | Game ID | `GL5E4F` |
 | Platform | Nintendo GameCube |
 | Region | USA / NTSC |
-| Compiler | SN Systems ProDG (GCC), see [code matching workflow](docs/code_matching_workflow.md) |
+| Compiler | SN Systems ProDG (GCC) for game code; CodeWarrior GC/1.2.5n for the Dolphin SDK. See [code matching workflow](docs/code_matching_workflow.md) |
 | DOL SHA-1 | `95cca08a19224775d1a8d6cc64601fb7d0080981` |
 
 ## Progress
@@ -107,6 +107,7 @@ the binary; donor projects supply evidence.
 
 | Guide | Use |
 |---|---|
+| [Strategy](docs/strategy.md) | Phases and lanes: SDK import, whole-binary splits, agent draft-and-climb |
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
 | [Research](docs/research.md) | Symbol recovery, donor mining, Ghidra, RAM dumps and evidence provenance |
 | [Build configuration](docs/build_config.md) | Symbols, splits, compiler wiring and target-specific DTK constraints |

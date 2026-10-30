@@ -1,17 +1,21 @@
 # LSW1 decomp agent guide
 
 Matching decompilation of LEGO Star Wars: The Video Game (2005), GameCube
-`GL5E4F`. The compiler is **SN Systems ProDG (GCC)**, driven by
-`tools/prodg_cc.py`. CrashWOC uses CodeWarrior; its code generation does not
-transfer to this target.
+`GL5E4F`. Game and Nu2 code use **SN Systems ProDG 3.9.3 (GCC)**, driven by
+`tools/prodg_cc.py`. The linked Dolphin SDK is Nintendo's CodeWarrior
+**GC/1.2.5n** build, matched from doldecomp/dolsdk2004. CrashWOC uses
+CodeWarrior too; its game code generation does not transfer.
 
 ## Default task
 
-Run the bounded loop in [C matching](docs/code_matching_workflow.md). Choose
-one function, establish a compiled baseline, change one source hypothesis,
-rebuild and record strict verification evidence with `tools/hillclimb.py`.
-Keep the best source. Park a plateau with its remaining mismatch and one concrete
-next hypothesis. Naming and donor mining support the selected C target.
+Follow the current phase in [strategy](docs/strategy.md): SDK import first,
+then whole-binary splits, then agent draft-and-climb for game code. Claim one
+library, TU or function per worktree branch. Search with `tools/score_fn.py`
+(fast, no ninja). Record candidates worth keeping with `tools/hillclimb.py try`,
+and accept only with `verify_fn.py --build --strict-symbols`
+([C matching](docs/code_matching_workflow.md)). Park a plateau with its best
+score, its remaining mismatch and one concrete next hypothesis. Naming and
+donor mining serve a selected matching target.
 
 A strict function match is **VERIFIED**, not **PROMOTED**. Promotion also needs
 unit sections, relocations and linked retail ranges to match without regression.
@@ -20,6 +24,8 @@ Do not report renamed symbols as matching progress.
 
 ## Sources
 
+- [Strategy](docs/strategy.md): phases, lanes and task choice. Update it when a
+  phase step lands.
 - [Research](docs/research.md): lookup/rename tools, donor mining and provenance,
   Ghidra and runtime evidence. Check rejected renames before naming a target.
 - [Nu2 reference](docs/nu2_engine_reference.md): donor layout sketches and target

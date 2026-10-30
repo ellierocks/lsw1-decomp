@@ -7,9 +7,12 @@ partial instruction scores do not measure promoted code.
 
 ## Toolchain
 
-LSW1 GC uses **SN Systems ProDG (GCC)**. CrashWOC uses CodeWarrior;
-its algorithms and types are donor evidence, but its compiler flags and
-register-allocation behavior do not transfer.
+LSW1 GC game and Nu2 code use **SN Systems ProDG (GCC)**. The linked Dolphin
+SDK libraries are Nintendo's CodeWarrior **GC/1.2.5n** builds; compile them
+with the dolsdk2004 release flags (`tools/sdk_probe.py`, `score_fn.py --compiler
+sdk`). CrashWOC uses CodeWarrior; its algorithms and types are donor evidence,
+but its compiler flags and register-allocation behavior do not transfer.
+[Strategy](strategy.md) decides which lane a task belongs to.
 
 `tools/prodg_cc.py` drives preprocessing, ProDG `cc1`, `powerpc-eabi-as`
 and DTK ELF fixup. Use the pinned `PRODG_VERSION` and `cflags_prodg` from
@@ -52,6 +55,18 @@ python3 tools/hillclimb.py try NuVecScale --unit numath/nuvec \
 python3 tools/hillclimb.py status NuVecScale --unit numath/nuvec
 python3 tools/verify_fn.py NuVecScale --unit numath/nuvec --build --strict-symbols --full
 ```
+
+For the search itself, use the fast scorer. It compiles one file straight to a
+temporary object, without ninja or a ledger, in well under a second:
+
+```sh
+python3 tools/score_fn.py NuVecScale src/numath/nuvec.c
+python3 tools/score_fn.py NuVecScale scratch.c --compile-only -o out.o   # permuter compile step
+```
+
+Its score has the same order as `hillclimb.py`. Record a candidate with
+`hillclimb.py try` when it improves the incumbent or settles a hypothesis;
+exploratory attempts do not need ledger entries.
 
 The agent proposes changes; the local compiler and verifier judge them. This
 workflow uses the active agent session and does not invoke a model API or purchase
@@ -287,6 +302,12 @@ owner of the `.sdata` tail are separate evidence tasks before extending this uni
 - `crashwoc_code_queue.py /path/to/crashwoc-decomp --include-norm`: donor
   candidates from `symbol_donors/nu2_fn_matches.tsv`. The default exact queue
   is mostly trivial stubs; normalized candidates need full verification.
+- `sdk_probe.py --sdk /path/to/dolsdk2004 --all --tsv work/sdk_probe.tsv`:
+  compiles donor SDK units with MWCC 1.2.5n, anchors functions to retail by
+  name or layout (skipping linker-stripped functions) and classifies each one
+  as `MATCH`, `UNVERIFIED`, `CODE_SAME` (code identical, names missing),
+  `MISMATCH`, `NO_ANCHOR` or `ERROR`. Layout anchors can coincide by size; the
+  verifier rejects those.
 - `matching_progress.py`: objdiff report, configured with
   `functionRelocDiffs=all`. Lenient relocation mode previously produced a
   false `NuVecRotateAxis` match against the wrong float constant.

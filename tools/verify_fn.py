@@ -86,6 +86,7 @@ RELOC_TYPES = {
 }
 LO_TYPES = {4, 32, 106, 107, 108, 109}  # relocs on the memory-access instruction
 HALFWORD_TYPES = {3, 4, 5, 6, 32, 106, 107, 108}  # patch the low half: offset is word+2
+WORD_OR_HALF_TYPES = {109}  # EMB_SDA21: either convention, normalized to the word offset
 
 
 @dataclass
@@ -376,6 +377,8 @@ def extract_function(elf: Elf, name: str, sym: Optional[Symbol] = None) -> Func:
             if r.rtype not in RELOC_TYPES:
                 raise ToolError(f"{elf.path}: unsupported relocation type {r.rtype} in '{name}'")
             lowhalf = 2 if r.rtype in HALFWORD_TYPES else 0
+            if r.rtype in WORD_OR_HALF_TYPES and (r.offset - sym.value) % 4 == 2:
+                lowhalf = 2  # MWCC places SDA21 on the halfword; GNU as and DTK on the word
             if (r.offset - sym.value) % 4 != lowhalf:
                 raise ToolError(f"{elf.path}: misaligned {RELOC_TYPES[r.rtype][0]} relocation "
                                 f"at +0x{r.offset - sym.value:X} in '{name}'")
