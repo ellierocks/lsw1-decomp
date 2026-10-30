@@ -1,0 +1,39 @@
+name: mirror
+
+# GitHub is the source of truth; Codeberg is a read-only copy with no CI.
+# Mirrors every branch and tag, and prunes branches/tags deleted on GitHub.
+on:
+  push:
+    branches: ["**"]
+    tags: ["**"]
+  delete:
+  workflow_dispatch:
+
+concurrency:
+  group: mirror-codeberg
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  codeberg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push branches and tags to Codeberg
+        env:
+          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          repo="${GITHUB_REPOSITORY#*/}"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          cd "$work"
+          git init --bare mirror.git
+          cd mirror.git
+          git remote add github "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add codeberg "https://ellierocks:${CODEBERG_TOKEN}@codeberg.org/ellierocks/${repo}.git"
+          git fetch --prune --quiet github '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
+          git push --prune --force --quiet codeberg 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+          echo "mirrored ${repo} to Codeberg"

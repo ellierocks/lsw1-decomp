@@ -30,27 +30,17 @@ class ReadmeTests(unittest.TestCase):
             with self.assertRaises((KeyError, ValueError)):
                 readme.render({}, measures)
 
-    def test_api_allows_only_reads_and_dispatch(self):
-        for method, path in [('POST', '/branches'), ('PUT', '/contents/README.md'), ('POST', '/pulls'),
-                             ('POST', '/pulls/9/merge'), ('PATCH', '/pulls/9')]:
-            with self.assertRaises(ValueError):
-                readme.check_api_call(method, path)
-        readme.check_api_call('GET', '/branches/main?x=1')
-        readme.check_api_call('POST', '/actions/workflows/build.yml/dispatches')
-
-
-class FakeForgejo:
-    """Forgejo API double that only knows what the Actions token can really do."""
+class FakeGitHub:
+    """GitHub API double for the branch head and workflow dispatch."""
 
     def __init__(self, origin):
         self.origin, self.calls = origin, []
 
     def request(self, method, path, data=None):
-        readme.check_api_call(method, path)
         self.calls.append((method, path, data))
         if (method, path) == ('GET', '/branches/main'):
-            return {'commit': {'id': git(self.origin, 'rev-parse', 'main')}}
-        if method == 'POST':
+            return {'commit': {'sha': git(self.origin, 'rev-parse', 'main')}}
+        if method == 'POST' and path == '/actions/workflows/build.yml/dispatches':
             return None
         raise AssertionError(f'unexpected API call {method} {path}')
 
@@ -60,7 +50,7 @@ def git(cwd, *args):
 
 
 class PublishFlowTests(unittest.TestCase):
-    """Run publish against a real git origin, as the Forgejo job does."""
+    """Run publish against a real git origin, as the GitHub job does."""
 
     STALE = 'intro\n' + readme.START + '\nstale\n' + readme.END + '\noutro\n'
     FRESH = 'intro\n' + readme.START + '\nfresh\n' + readme.END + '\noutro\n'
@@ -84,7 +74,7 @@ class PublishFlowTests(unittest.TestCase):
         git(seed, 'push', '-q', 'origin', 'HEAD:main')
         self.source = git(seed, 'rev-parse', 'HEAD')
         self.branch = readme.BRANCH_PREFIX + self.source
-        self.forge = FakeForgejo(self.origin)
+        self.forge = FakeGitHub(self.origin)
 
     def checkout(self, name, ref):
         work = self.root / name
@@ -95,7 +85,7 @@ class PublishFlowTests(unittest.TestCase):
         cwd = os.getcwd()
         os.chdir(work)
         try:
-            with patch.object(readme, 'Forgejo', return_value=self.forge), patch.dict(os.environ, {
+            with patch.object(readme, 'GitHub', return_value=self.forge), patch.dict(os.environ, {
                     'GITHUB_EVENT_NAME': event, 'GITHUB_REF': ref, 'GITHUB_SHA': git(work, 'rev-parse', 'HEAD')}):
                 readme.publish(text)
         finally:

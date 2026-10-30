@@ -23,17 +23,19 @@ jobs:
           python3 tools/symbols_to_map.py --all --output artifacts/GL5E4F.map
       - name: Check shell syntax
         run: bash -n build.sh tools/build_patched_dtk.sh tools/orig_crypt.sh
+
   retail:
     needs: tooling
+    name: Retail comparison
+    # Fork PRs cannot read the secret; same-repo PRs, pushes and dispatches can.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
     outputs:
       readme: ${{ steps.readme.outputs.content }}
-    name: Retail comparison (Forgejo)
-    if: github.server_url != 'https://github.com'
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Ninja
-        run: apt-get update && apt-get install -y --no-install-recommends ninja-build
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ninja-build
       - name: Decrypt and verify retail DOL
         env:
           ORIG_KEY: ${{ secrets.ORIG_KEY }}
@@ -49,10 +51,11 @@ jobs:
         run: |
           python3 tools/update_readme.py
           echo "content=$(base64 -w0 README.md)" >> "$GITHUB_OUTPUT"
+
   readme:
-    name: Update README progress (Forgejo)
+    name: Update README progress
     needs: [tooling, retail]
-    if: github.server_url != 'https://github.com' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,7 +66,7 @@ jobs:
           fetch-depth: 2
       - name: Publish or fast-forward checked README progress
         env:
-          FORGEJO_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           README_CONTENT: ${{ needs.retail.outputs.readme }}
         run: |
           python3 - <<'PYCODE'
@@ -72,9 +75,10 @@ jobs:
           from update_readme import publish
           publish(base64.b64decode(os.environ['README_CONTENT']).decode())
           PYCODE
+
   build:
-    if: github.server_url == 'https://github.com'
     name: Build and report progress
+    needs: tooling
     runs-on: ubuntu-latest
     env:
       ORIG_KEY: ${{ secrets.ORIG_KEY }}
