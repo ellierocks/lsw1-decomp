@@ -80,7 +80,10 @@ Complete GXFrameBuf adds 2,728 code bytes / 14 functions and proves 424 data
 bytes (objdiff credits 16 matched data bytes; see the evidence). Together,
 fourteen SDK units contribute 23,804 code bytes / 126 functions / 2,696 complete
 data bytes; total matching reaches 25,848 code bytes / 149 functions / 2,324
-matched data bytes. The whole image remains identical to retail; remaining
+matched data bytes. Complete OSMemory adds 728 code bytes / six functions and
+16 data bytes: fifteen SDK units contribute 24,532 code bytes / 132 functions /
+2,712 data bytes, and total matching reaches 26,576 code bytes / 155 functions /
+2,340 matched data bytes. The whole image remains identical to retail; remaining
 archives and version drift still need work.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and

@@ -403,14 +403,78 @@ The unit has no data sections in the donor object, so no data ownership is neede
   whole image has 0 differing bytes and retains SHA-1
   `95cca08a19224775d1a8d6cc64601fb7d0080981`.
 
+## OSMemory follow-up
+
+Starting from merged CARDStat (`main` at `a24d18b`), unchanged donor
+`os/OSMemory.c` promotes **six retained functions, 728 code bytes and 16 data
+bytes**. Total matching is **26,576 code bytes / 155 functions / 2,340 matched
+data bytes**. Fifteen SDK units contribute 24,532 code bytes / 132 functions /
+2,712 complete data bytes. Before this import, OSMemory contributed no matched
+bytes. The source is the donor file copied verbatim and compiled with the
+existing pinned flags.
+
+| Section | Retail range, end exclusive | Bytes |
+|---|---|---:|
+| `.text` | `80160BB8..80160E90` | 728 |
+| `.data` | `801E3E08..801E3E18` | 16 |
+
+- The retained functions are, in retail order, `OnReset` (60 bytes, static),
+  `MEMIntrruptHandler` (108, static), `Config24MB` (128, static asm),
+  `Config48MB` (128, static asm), `RealMode` (24, static asm) and
+  `__OSInitMemoryProtection` (280). They are contiguous: `fn_80160ADC` ends at
+  `80160BB8` and `__OSReboot` starts at `80160E90`. The former `fn_80160BB8`
+  is `OnReset`, confirmed by strict body identity rather than by layout.
+- `ResetFunctionInfo` at `801E3E08` is the 16-byte reset record: the `OnReset`
+  pointer, priority `0x7F` and two null links. It is owned by this unit. While
+  the record sat outside the unit, `strip_unused` rejected `OnReset` as a
+  removed reference from `.data`, so the record's `.data` range is included
+  here and `OnReset` stays local.
+- Strict call bindings resolve `__OSErrorTable` (`.bss` `802F3B50`),
+  `__OSUnhandledException` (`8015E95C`), `OSDisableInterrupts` (`80160130`),
+  `OSRestoreInterrupts` (`80160158`), `__OSSetInterruptHandler` (`8016017C`),
+  `__OSMaskInterrupts` (`801604F8`), `__OSUnmaskInterrupts` (`80160580`),
+  `OSRegisterResetFunction` (`80160F14`) and `DCInvalidateRange` (`8015D8D4`).
+  The MMU and memory-controller accesses are absolute hardware addresses, so they
+  need no symbol.
+- `OSGetPhysicalMemSize`, `OSGetConsoleSimulatedMemSize` and `OSProtectRange`
+  have no standalone body in retail. This is not inferred from `NO_ANCHOR`. The
+  unstripped donor, compiled with the pinned flags, was searched word by word
+  across the retail text sections, with relocation fields masked (including
+  halfword `@ha`/`@lo` fields). The same search positively hit `OnReset`,
+  `MEMIntrruptHandler` and `RealMode` at their retail addresses, which serves as
+  the positive control. It found no match for the three absent functions.
+  Absence therefore holds for code identical to the donor compile; a drifted
+  standalone copy would need separate evidence. The three stay unnamed.
+- The rejected-renames ledger has no entries for these addresses, so no
+  candidate name was rejected. No May 2004 version drift was observed: all six
+  retained bodies match strictly.
+
+All six retained functions pass `verify_fn.py NAME --build --strict-symbols`.
+`verify_unit.py dolphin/os/OSMemory --build` proves both complete sections, and
+the stripped donor probe reports `MATCH=6`. Reproduction:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/os/OSMemory --build
+# Run the strict function gate for the six names listed above.
+python3 tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported os/OSMemory
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+sha1sum build/GL5E4F/main.dol
+```
+
+The complete rebuilt image has zero differing bytes and retains SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. The matching-progress report counts
+16 of 50 complete files. Raw probe and verification logs remain under ignored `work/`.
+
 ## Remaining Phase 1 work
 
-With both imports, total matching is **25,848 code bytes / 149 functions /
-2,324 matched data bytes**. Fourteen SDK units contribute 23,804 code bytes /
-126 functions / 2,696 complete data bytes. The combined build retains the retail
+With the OSMemory import, total matching is **26,576 code bytes / 155 functions /
+2,340 matched data bytes**. Fifteen SDK units contribute 24,532 code bytes /
+132 functions / 2,712 complete data bytes. The combined build retains the retail
 SHA-1 and all complete-unit proofs.
 
-These fourteen promoted units do not complete every SDK archive. Remaining
+These fifteen promoted units do not complete every SDK archive. Remaining
 SDK ranges retain assembly fallback. No other probe row is promoted by name
 or layout alone, and no unverified BSS or unsupported relocation is accepted.
 
@@ -418,7 +482,7 @@ or layout alone, and no unverified BSS or unsupported relocation is accepted.
 |---|---|---|
 | GXFifo / GXMisc | Retained callbacks reference BSS; some name anchors are wrong | Establish complete BSS ownership and layout without accepting zero-filled data as proof |
 | GXInit | Probe mismatches include stale names and possible version drift | Re-anchor by instruction identity and compare retained functions before choosing any source edits |
-| OSCache / OSMemory | Pooled data, reset records and additional call names need proof | Establish complete sections and independently resolve their relocations; OS was rebuilt in May 2004 |
+| OSCache | Pooled data, reset records and additional call names need proof | Establish complete sections and independently resolve their relocations; OS was rebuilt in May 2004 |
 
 Continue library by library with the same full-unit and linked-range gates.
 Do not infer that `NO_ANCHOR` proves absence, or that `MISMATCH` proves version
