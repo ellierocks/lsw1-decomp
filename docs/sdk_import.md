@@ -1035,3 +1035,61 @@ python3 -m unittest discover -s tests
 For each function symbol in each split target object, run
 `python3 tools/verify_fn.py NAME --unit dolphin/LIB/UNIT --build --strict-symbols`.
 The function counts above enumerate the expected strict checks (61 total).
+
+## Batch 4: matrix, OS allocation, AX, DSP and CARD units
+
+Fourteen units are promoted from baseline `77b25c2`, bringing the SDK total to
+60 units. Measured progress increases from **80,244 bytes / 397 functions** to
+**89,952 bytes / 451 functions**, a gain of **9,708 bytes / 54 functions**.
+These are source matches; symbol renames are not counted as progress.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `mtx/mtx` | `8016736C..80167608` | 6 | 668 | 16 |
+| `mtx/mtxvec` | `80167608..801676E8` | 2 | 224 | 0 |
+| `mtx/mtx44` | `801676E8..80167780` | 1 | 152 | 16 |
+| `os/OSAlloc` | `8015D2AC..8015D5E0` | 7 | 820 | 4 |
+| `os/OSLink` | `8016099C..801609B4` | 1 | 24 | 0 |
+| `os/OSReboot` | `80160E90..80160F14` | 2 | 132 | 0 |
+| `ax/AX` | `801722D8..8017237C` | 3 | 164 | 72 |
+| `dsp/dsp` | `80175414..801756A4` | 9 | 656 | 132 |
+| `dsp/dsp_task` | `801756F4..80175F78` | 5 | 2,180 | 320 |
+| `card/CARDRead` | `8017A520..8017A94C` | 3 | 1,068 | 0 |
+| `card/CARDWrite` | `8017A94C..8017AC80` | 3 | 820 | 0 |
+| `card/CARDDelete` | `8017AC80..8017AE34` | 2 | 436 | 0 |
+| `card/CARDOpen` | `80179BE4..8017A1D0` | 8 | 1,516 | 0 |
+| `card/CARDCreate` | `8017A1D0..8017A520` | 2 | 848 | 0 |
+
+Every retained function passes `verify_fn.py --build --strict-symbols`, and all
+14 units pass `verify_unit.py --build`, including complete sections and
+relocations. `bash build.sh` succeeds and the complete linked DOL has zero
+byte differences, including its header: SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. The portable suite passes 107 tests
+(2 skipped); all 43 verifier regression tests pass with
+`VERIFY_FN_REQUIRE_RETAIL=1`.
+
+The pinned dolsdk2004 donor and existing RE4 compiler/strip workflow are unchanged.
+OSAlloc keeps inline list helpers; matrix identity keeps a stripped C helper to
+preserve the constant pool order. DSP task code keeps a stripped helper to retain
+its pooled string. Other dead functions are removed. OS/DSP globals remain
+externs backed by existing assembly storage. CARD shares `lbl_8030E320`, uses
+fallback names for the permission mask and libc references, and gives callbacks
+unique names. No BSS is promoted. Original unit boundaries and the strict oracle
+are preserved; newly owned sections subdivide existing fallback ranges only.
+
+Strict verification corrects earlier misidentifications of OSDestroyHeap,
+OSGetSaveRegion, matrix transforms, AX initialization/quit and CARD open/create
+functions. AX call targets receive the names required by their verified callers;
+their implementations remain fallback.
+
+Reproduce with `bash build.sh`, then for each unit above run
+`python3 tools/verify_unit.py dolphin/LIB/UNIT --build`. For every function in
+its target object run
+`python3 tools/verify_fn.py NAME --unit dolphin/LIB/UNIT --build --strict-symbols`.
+Finally run `python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol`
+and `python3 tools/matching_progress.py`.
+
+Remaining imports include dvdfs, dvd, EXIBios, the other AX units, Pad, vi and
+remaining CARD/OS units. Their unfinished experiments are preserved separately
+at `wip/sdk-family-imports-fb9c5ca`; none are enabled by this batch. EXIBios still
+needs shared small-data ownership resolved, and dvd needs its BSS references mapped.

@@ -60,7 +60,7 @@ Naming only counts when it unblocks a matching target.
 
 ### Phase 1: SDK import (in progress)
 
-Forty-six SDK units are promoted so far, and the whole image still matches retail. The per-import
+Sixty SDK units are promoted so far, and the whole image still matches retail. The per-import
 figures are archived in [strategy progress](history/strategy_progress.md); the current totals are
 in the README status block and [SDK import](sdk_import.md).
 
@@ -104,8 +104,13 @@ For each queued function:
    when every function matches, and batch several matched functions per PR.
 
 Order the queue by size, callee count, type coverage and donor similarity.
-Small leaf functions come first. Build shared `nu2` struct headers once, from
-donor layouts confirmed against LSW1 field accesses.
+Small leaf functions come first. The
+[OpenSaga lane](symbol_donors/opensaga_matching.md) queues parser/helpers
+before AI and animation and requires strict matches before expansion. Build
+shared `nu2` struct headers once, from donor layouts confirmed against LSW1
+field accesses. The initial OpenSaga parser/helper lane has promoted 1,460 bytes
+(12 functions, 10 newly matched); [results](symbol_donors/opensaga_matching_results.md)
+record the corrected parser layout and the next small-target queue.
 
 ## Rules that do not change
 

@@ -96,8 +96,6 @@ s32 __CARDGetFileNo(CARDControl* card, const char* fileName, s32* pfileNo) {
     return CARD_RESULT_NOFILE;
 }
 
-
-
 s32 CARDOpen(s32 chan, const char* fileName, CARDFileInfo* fileInfo) {
     CARDControl* card;
     s32 fileNo;

@@ -2,8 +2,6 @@
 #include <dolphin/mtx.h>
 #include "fake_tgmath.h"
 
-
-
 asm void PSMTXMultVec(const register Mtx m, const register Vec* src, register Vec* dst) {
     nofralloc
     psq_l f0, Vec.x(src), 0, 0
@@ -28,8 +26,6 @@ asm void PSMTXMultVec(const register Mtx m, const register Vec* src, register Ve
     psq_st f6, Vec.z(dst), 1, 0
     blr
 }
-
-
 
 asm void PSMTXMultVecArray(const register Mtx m, const register Vec* srcBase, register Vec* dstBase, register u32 count) {
     nofralloc
@@ -70,11 +66,3 @@ L_000003C4:
     psq_stu f13, 0x8(dstBase), 1, 0
     blr
 }
-
-
-
-
-
-
-
-

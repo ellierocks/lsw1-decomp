@@ -7,6 +7,7 @@ static f32 Unit01[2] = {
     1.0f
 };
 
+// Keep the stripped C helper to emit 1.0f before 0.0f in the constant pool.
 void C_MTXIdentity(Mtx m) {
     ASSERTMSGLINE(189, m, "MtxIdentity():  NULL Mtx 'm' ");
     m[0][0] = 1;
@@ -40,12 +41,6 @@ void PSMTXIdentity(register Mtx m) {
         psq_st c_10, 40(m), 0, 0
     }
 }
-
-
-
-
-
-
 
 asm void PSMTXConcat(const register Mtx a, const register Mtx b, register Mtx ab) {
     nofralloc
@@ -102,8 +97,6 @@ asm void PSMTXConcat(const register Mtx a, const register Mtx b, register Mtx ab
     blr
 }
 
-
-
 #if DEBUG
 #pragma push
 #pragma optimization_level 1
@@ -113,8 +106,6 @@ asm void PSMTXConcat(const register Mtx a, const register Mtx b, register Mtx ab
 #if DEBUG
 #pragma pop
 #endif
-
-
 
 void PSMTXTranspose(const register Mtx src, register Mtx xPose) {
     register f32 c_zero = 0;
@@ -151,8 +142,6 @@ void PSMTXTranspose(const register Mtx src, register Mtx xPose) {
     }
     xPose[2][2] = row0b;
 }
-
-
 
 asm u32 PSMTXInverse(const register Mtx src, register Mtx inv) {
     psq_l f0, 0(src), 1, 0
@@ -219,26 +208,6 @@ skip_return:
     psq_st f7, 44(inv), 1, 0
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void PSMTXTrans(register Mtx m, register f32 xT, register f32 yT, register f32 zT) {
     register f32 c0 = 0.0f;
     register f32 c1 = 1.0f;
@@ -257,12 +226,6 @@ void PSMTXTrans(register Mtx m, register f32 xT, register f32 yT, register f32 z
 	}
 }
 
-
-
-
-
-
-
 void PSMTXScale(register Mtx m, register f32 xS, register f32 yS, register f32 zS) {
     register f32 c0 = 0.0f;
 
@@ -277,23 +240,3 @@ void PSMTXScale(register Mtx m, register f32 xS, register f32 yS, register f32 z
 		stfs c0, 44(m)
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

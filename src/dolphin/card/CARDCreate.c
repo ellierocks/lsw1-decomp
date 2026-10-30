@@ -79,7 +79,7 @@ s32 CARDCreateAsync(s32 chan, const char* fileName, u32 size, CARDFileInfo* file
 
     ASSERTLINE(188, 0 < size && (size % card->sectorSize) == 0);
 
-    if (size <= 0 || (size % card->sectorSize) != 0) {        
+    if (size <= 0 || (size % card->sectorSize) != 0) {
         return CARD_RESULT_FATAL_ERROR;
     }
 
@@ -123,5 +123,3 @@ s32 CARDCreateAsync(s32 chan, const char* fileName, u32 size, CARDFileInfo* file
     }
     return result;
 }
-
-

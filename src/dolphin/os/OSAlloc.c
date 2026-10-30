@@ -71,12 +71,6 @@ static Cell* DLInsert(Cell* list, Cell* cell);
 static int DLOverlap(Cell* list, void* start, void* end);
 static s32 DLSize(Cell* list);
 
-
-
-
-
-
-
 static Cell* DLInsert(Cell* list, Cell* cell) {
     Cell* prev;
     Cell* next;
@@ -113,10 +107,6 @@ static Cell* DLInsert(Cell* list, Cell* cell) {
     }
     return cell;
 }
-
-
-
-
 
 void* OSAllocFromHeap(int heap, u32 size) {
     HeapDesc* hd;
@@ -163,10 +153,10 @@ void* OSAllocFromHeap(int heap, u32 size) {
         newCell->prev = cell->prev;
         newCell->next = cell->next;
         if (newCell->next != NULL) {
-            newCell->next->prev = newCell; 
+            newCell->next->prev = newCell;
         }
         if (newCell->prev != NULL) {
-            newCell->prev->next = newCell; 
+            newCell->prev->next = newCell;
         } else {
             ASSERTMSGLINE(394, hd->free == cell, "OSAllocFromHeap(): heap is broken.");
             hd->free = newCell;
@@ -183,8 +173,6 @@ void* OSAllocFromHeap(int heap, u32 size) {
 #endif
     return (u8*)cell + 0x20;
 }
-
-
 
 void OSFreeToHeap(int heap, void* ptr) {
     HeapDesc* hd;
@@ -313,7 +301,7 @@ void OSDestroyHeap(int heap) {
         OSReport("OSDestroyHeap(%d): Warning - free list size %d, heap size %d\n", heap, size, hd->size);
     }
 #endif
-    
+
     hd->size = -1;
     hd->free = hd->allocated = 0;
 #ifdef ENABLE_HEAPDESC
@@ -324,16 +312,6 @@ void OSDestroyHeap(int heap) {
 #endif
 }
 
- 
-
 // custom macro for OSCheckHeap
 #define ASSERTREPORT(line, cond) \
     if (!(cond)) { OSReport("OSCheckHeap: Failed " #cond " in %d", line); return -1; }
-
-
-
-
-
-
-
-

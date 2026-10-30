@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render README progress and publish checked README-only updates on Forgejo."""
+"""Render README progress and publish checked README-only updates on GitHub."""
 
 import argparse
 import json
@@ -14,10 +14,8 @@ START = '<!-- progress:start -->'
 END = '<!-- progress:end -->'
 BRANCH_PREFIX = 'ci/readme-progress-'
 MESSAGE = 'docs: update generated progress figures'
-# On this private repository Forgejo 17 rejects the Actions token for API writes that
-# push internally (branches, contents, merges) or recheck user access (pull requests).
-# Git over HTTP and workflow dispatch honour the token, so all ref updates use git().
-API_WRITES = {('POST', '/actions/workflows/build.yml/dispatches')}
+# All ref updates use git(); the API is only read for the branch head and written to
+# dispatch the check workflow for a progress branch.
 
 
 def render(symbols, measures):
@@ -50,21 +48,18 @@ def update(text, block):
     return text[:start] + block + text[end + len(END):]
 
 
-def check_api_call(method, path):
-    if method != 'GET' and (method, path.split('?')[0]) not in API_WRITES:
-        raise ValueError(f'{method} {path} is unavailable to the Actions token; use git push')
-
-
-class Forgejo:
+class GitHub:
     def __init__(self):
-        self.url = os.environ['GITHUB_SERVER_URL'].rstrip('/') + '/api/v1/repos/' + os.environ['GITHUB_REPOSITORY']
-        self.token = os.environ['FORGEJO_TOKEN']
+        self.url = os.environ['GITHUB_API_URL'].rstrip('/') + '/repos/' + os.environ['GITHUB_REPOSITORY']
+        self.token = os.environ['GITHUB_TOKEN']
 
     def request(self, method, path, data=None):
-        check_api_call(method, path)
         req = urllib.request.Request(self.url + path,
             data=json.dumps(data).encode() if data is not None else None,
-            headers={'Authorization': 'token ' + self.token, 'Content-Type': 'application/json'}, method=method)
+            headers={'Authorization': 'Bearer ' + self.token,
+                     'Accept': 'application/vnd.github+json',
+                     'X-GitHub-Api-Version': '2022-11-28',
+                     'Content-Type': 'application/json'}, method=method)
         with urllib.request.urlopen(req, timeout=30) as response:
             body = response.read()
             return json.loads(body) if body else None
@@ -80,14 +75,14 @@ def git_file(revision):
 
 def publish(text):
     """Push generated README figures to a check branch; fast-forward main once it passes."""
-    api = Forgejo()
+    api = GitHub()
     event, ref, sha = os.environ['GITHUB_EVENT_NAME'], os.environ.get('GITHUB_REF', ''), os.environ['GITHUB_SHA']
     if event == 'workflow_dispatch' and ref.startswith('refs/heads/' + BRANCH_PREFIX):
         branch = ref.removeprefix('refs/heads/')
         source = branch.removeprefix(BRANCH_PREFIX)
         if git('rev-parse', 'HEAD') != sha or git('rev-parse', 'HEAD^') != source:
             raise ValueError('Progress branch must be one commit on its source SHA')
-        if api.request('GET', '/branches/main')['commit']['id'] != source:
+        if api.request('GET', '/branches/main')['commit']['sha'] != source:
             print('Main advanced since this progress branch; leaving it for the newer run')
             return
         if git('diff', '--name-only', source, sha).splitlines() != ['README.md']:
@@ -101,7 +96,7 @@ def publish(text):
         return
     if event != 'push' or ref != 'refs/heads/main':
         return
-    if api.request('GET', '/branches/main')['commit']['id'] != sha:
+    if api.request('GET', '/branches/main')['commit']['sha'] != sha:
         print('Main advanced; leaving publication to its newer run')
         return
     if git_file(sha) == text:
@@ -116,7 +111,7 @@ def publish(text):
         if git('rev-parse', 'HEAD') != sha:
             raise ValueError('Checkout does not match the published main commit')
         Path('README.md').write_text(text)
-        git('-c', 'user.name=forgejo-actions', '-c', 'user.email=forgejo-actions@noreply.localhost',
+        git('-c', 'user.name=github-actions', '-c', 'user.email=github-actions@users.noreply.github.com',
             'commit', '-q', '-m', MESSAGE, '--', 'README.md')
         git('push', 'origin', 'HEAD:refs/heads/' + branch)
     api.request('POST', '/actions/workflows/build.yml/dispatches', {'ref': branch})

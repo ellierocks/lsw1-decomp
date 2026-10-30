@@ -7,6 +7,11 @@ headers, no DWARF). Donor names, types and matching percentages are leads only;
 they do not establish LSW1 identity. Target evidence is the retail GC DOL
 `GL5E4F` through `tools/score_fn.py`.
 
+Current parser helpers and layout corrections are in
+[matching results](opensaga_matching_results.md). `NuGetFrameAdvance` is now
+`NuFParGetWord`; the numeric readers are promoted. The PARAM measurements below
+remain a historical, unverified draft.
+
 ## Target: `ScriptKeyword_PARAM` at `0x8007CAFC`
 
 | Field | Value |

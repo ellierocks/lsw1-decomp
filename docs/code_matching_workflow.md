@@ -48,6 +48,11 @@ The compiler audit, RTL dump instructions and the SN GCC v1.79 evaluation moved 
    verified types. Treat donor implementations as evidence about algorithms;
    their MWCC code generation is not this game's ProDG code generation.
 
+Use the [OpenSaga lane](symbol_donors/opensaga_matching.md) as a routine Nu2
+donor lookup alongside CrashWOC and Mac evidence. It links GC body evidence,
+orders small parser/helpers first, and identifies shared layouts and rejected
+transfers. Its expansion gate requires strict matches, not partial scores.
+
 ## Measure and iterate
 
 From the repository root (replace the example function, unit and source):
@@ -175,7 +180,7 @@ Limitations (what a `MATCH` does not prove):
 
 Regression tests: `tests/test_verify_fn.py` (synthetic objects everywhere; the
 genuine ProDG/retail cases run after `bash build.sh` and are required in the
-Forgejo retail CI job).
+GitHub retail CI job).
 
 ## Promotion
 

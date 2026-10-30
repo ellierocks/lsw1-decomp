@@ -22,7 +22,6 @@ extern int __DSP_rude_task_pending;
 
 extern BOOL __DSP_init_flag;
 
-
 u32 DSPCheckMailToDSP(void) {
     return (__DSPRegs[0] & (1 << 15)) >> 15;
 }

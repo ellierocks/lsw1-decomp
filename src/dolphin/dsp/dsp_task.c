@@ -27,7 +27,7 @@ void __DSPHandler(__OSInterrupt intr, OSContext* context) {
     OSClearContext(&exceptionContext);
     OSSetCurrentContext(&exceptionContext);
     ASSERTMSGLINE(143, __DSP_curr_task != NULL, "__DSPHandler(): No current task! Someone set us up the bomb!\n");
-    
+
     while (DSPCheckMailFromDSP() == 0)
         ;
 
@@ -315,6 +315,7 @@ void __DSP_insert_task(DSPTaskInfo* task) {
     }
 }
 
+// Keep this stripped function so its string stays in the retail data pool.
 void __DSP_add_task(DSPTaskInfo* task) {
     ASSERTMSGLINE(771, task != NULL, "__DSP_add_task(): Why are you adding a NULL task?\n");
 

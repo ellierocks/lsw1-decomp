@@ -114,5 +114,3 @@ s32 CARDWriteAsync(CARDFileInfo* fileInfo, void* buf, s32 length, s32 offset, CA
         __CARDPutControlBlock(card, result);
     return result;
 }
-
-

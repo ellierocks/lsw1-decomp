@@ -29,10 +29,6 @@ error:
         callback(chan, result);
 }
 
-
-
-
-
 s32 CARDDeleteAsync(s32 chan, const char* fileName, CARDCallback callback) {
     CARDControl* card;
     s32 fileNo;
@@ -60,5 +56,3 @@ s32 CARDDeleteAsync(s32 chan, const char* fileName, CARDCallback callback) {
         __CARDPutControlBlock(card, result);
     return result;
 }
-
-

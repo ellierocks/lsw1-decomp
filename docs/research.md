@@ -27,6 +27,10 @@ staleness and the corrected animation mappings. Check
 `symbol_donors/rejected_renames.tsv` before proposing names. Rejections are per
 address; do not infer identity from a stale name printed in a queue or task pack.
 
+For OpenSaga, start with the [matching lane](symbol_donors/opensaga_matching.md):
+pinned provenance, parser/helper queue, GC layout evidence, and the strict-match
+gate for expansion into AI, animation and archive code.
+
 ## Donor mining
 
 Run only the stage needed for the selected target, or the full pipeline when

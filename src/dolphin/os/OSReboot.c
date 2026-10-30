@@ -19,11 +19,7 @@ void __OSReboot(u32 resetCode, u32 bootDol) {
     __OSBootDol(bootDol, resetCode | 0x80000000, &argvToPass);
 }
 
-
-
 void OSGetSaveRegion(void** start, void** end) {
     *start = SaveStart;
     *end = SaveEnd;
 }
-
-

@@ -11,8 +11,17 @@ Sections:
 dolphin/si/SISamplingRateBSS.c:
 	.sbss       start:0x8040A920 end:0x8040A924
 
+nucore/nufile_size.c:
+	.text       start:0x800056E0 end:0x80005764
+
 nucore/nufile.c:
-	.text       start:0x800058DC end:0x80005934
+	.text       start:0x800058DC end:0x800059A0
+
+nucore/nufpar.c:
+	.text       start:0x80006B14 end:0x80006F44
+
+nucore/nufile_exists.c:
+	.text       start:0x8000A3D0 end:0x8000A40C
 
 numath/nurand.c:
 	.text       start:0x8000C0C0 end:0x8000C1B8
@@ -266,57 +275,3 @@ dolphin/gx/GXTransform.c:
 dolphin/gx/GXPerf.c:
 	.text       start:0x8018392C end:0x8018432C
 	.data       start:0x801FB4F8 end:0x801FB640
-
-dolphin/ax/AXAlloc.c:
-	.text       start:0x8017237C end:0x80172844
-
-dolphin/ax/AXAux.c:
-	.text       start:0x80172844 end:0x80172CCC
-
-dolphin/ax/AXCL.c:
-	.text       start:0x80172CCC end:0x80173404
-
-dolphin/ax/AXOut.c:
-	.text       start:0x80173404 end:0x80173BCC
-
-dolphin/ax/AXSPB.c:
-	.text       start:0x80173BCC end:0x801740D8
-
-dolphin/ax/AXVPB.c:
-	.text       start:0x801740D8 end:0x801753CC
-	.data       start:0x801F6CA8 end:0x801F6D7C
-
-dolphin/exi/EXIBios.c:
-	.text       start:0x80163984 end:0x80165360
-	.sdata      start:0x8040A008 end:0x8040A040
-
-dolphin/dvd/dvdfs.c:
-	.text       start:0x80167780 end:0x801680C8
-	.data       start:0x801F5C00 end:0x801F5FF0
-	.sdata      start:0x8040A068 end:0x8040A070
-
-dolphin/dvd/dvd.c:
-	.text       start:0x801680CC end:0x8016A850
-	.data       start:0x801F5FF0 end:0x801F6174
-	.sdata      start:0x8040A070 end:0x8040A08C
-
-dolphin/pad/Pad.c:
-	.text       start:0x8016E29C end:0x8016FBE4
-	.sdata      start:0x8040A0F8 end:0x8040A118
-	.data       start:0x801F6B30 end:0x801F6B88
-
-dolphin/vi/vi.c:
-	.text       start:0x8016BE88 end:0x8016E058
-	.data       start:0x801F6748 end:0x801F6B2C
-	.sdata      start:0x8040A0E8 end:0x8040A0F1
-
-dolphin/os/OSRtc.c:
-	.text       start:0x80161724 end:0x80162334
-
-dolphin/os/OSThread.c:
-	.text       start:0x801623B8 end:0x801637C4
-	.sdata      start:0x8040A000 end:0x8040A005
-
-dolphin/card/CARDMount.c:
-	.text       start:0x80178944 end:0x80179400
-	.data       start:0x801FA8D8 end:0x801FA918

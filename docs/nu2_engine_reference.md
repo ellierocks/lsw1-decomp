@@ -1,5 +1,9 @@
 # Nu2 Engine Reference — from Crash: Wrath of Cortex Decomp
 
+Confirmed OpenSaga GC parser fields live in
+[`nucore/nufpar.h`](../src/nucore/nufpar.h); see the
+[layout evidence and limits](symbol_donors/opensaga_matching.md#shared-gc-layouts).
+
 ## Source
 
 Crash: Wrath of Cortex GameCube decomp: https://github.com/denzi-gh/crashwoc-decomp
