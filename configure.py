@@ -372,6 +372,7 @@ config.libs = [
         SDKObject("os/OSAlarm", Matching),
         SDKObject("os/OSArena", Matching),
         SDKObject("os/OSAudioSystem", Matching),
+        SDKObject("os/OSError", Matching, external_bss=True),
         SDKObject("os/OSSync", Matching),
         SDKObject("os/OSTime", Matching),
         SDKObject("os/OSMutex", Matching),
