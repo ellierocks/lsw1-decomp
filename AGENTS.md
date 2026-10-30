@@ -8,7 +8,9 @@ CodeWarrior too; its game code generation does not transfer.
 
 ## Default task
 
-Follow the current phase in [strategy](docs/strategy.md): SDK import first,
+Start with the [matching quickstart](docs/matching_quickstart.md): `tools/bootstrap.sh`,
+then `tools/next_target.py` to choose a target. Follow the current phase in
+[strategy](docs/strategy.md): SDK import first,
 then whole-binary splits, then agent draft-and-climb for game code. Claim one
 library, TU or function per worktree branch. Search with `tools/score_fn.py`
 (fast, no ninja). Record candidates worth keeping with `tools/hillclimb.py try`,
@@ -26,6 +28,7 @@ Do not report renamed symbols as matching progress.
 
 - [Strategy](docs/strategy.md): phases, lanes and task choice. Update it when a
   phase step lands.
+- [Quickstart](docs/matching_quickstart.md): commands in order for one matching target.
 - [Research](docs/research.md): lookup/rename tools, donor mining and provenance,
   Ghidra and runtime evidence. Check rejected renames before naming a target.
 - [Nu2 reference](docs/nu2_engine_reference.md): donor layout sketches and target

@@ -1,4 +1,9 @@
-# Task Index
+# Task Index (archived)
+
+> **Archived and superseded.** These packs predate the ProDG workflow: they name the Metrowerks
+> compiler, `objdiff-cli` and screenshot steps. Do not follow them. Start with
+> [matching quickstart](../../matching_quickstart.md) and `python3 tools/next_target.py`.
+
 
 Priority scores: higher = easier to match first.
 
