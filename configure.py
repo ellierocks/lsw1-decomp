@@ -369,6 +369,7 @@ config.libs = [
     DolphinLib("os", [
         SDKObject("os/OSSync", Matching),
         SDKObject("os/OSMutex", Matching),
+        SDKObject("os/OSCache", NonMatching),
         SDKObject("os/OSMemory", Matching),
     ]),
     DolphinLib("dsp", [SDKObject("dsp/dsp_debug", Matching)]),
