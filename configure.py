@@ -371,6 +371,7 @@ config.libs = [
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXGeometry", Matching),
+        SDKObject("gx/GXLight", Matching),
         SDKObject("gx/GXTexture", Matching),
         SDKObject("gx/GXBump", Matching),
         SDKObject("gx/GXTev", Matching),
