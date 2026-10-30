@@ -38,6 +38,10 @@ dolphin/os/OSCache.c:
 	.text       start:0x8015D8C0 end:0x8015DCF8
 	.data       start:0x801E2B40 end:0x801E2D70
 
+dolphin/os/OSInterrupt.c:
+	.text       start:0x80160130 end:0x8016099C
+	.data       start:0x801E3D88 end:0x801E3DB4
+
 dolphin/os/OSMemory.c:
 	.text       start:0x80160BB8 end:0x80160E90
 	.data       start:0x801E3E08 end:0x801E3E18

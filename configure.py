@@ -374,6 +374,7 @@ config.libs = [
         SDKObject("os/OSTime", Matching),
         SDKObject("os/OSMutex", Matching),
         SDKObject("os/OSCache", Matching),
+        SDKObject("os/OSInterrupt", Matching),
         SDKObject("os/OSMemory", Matching),
     ]),
     DolphinLib("si", [SDKObject("si/SISamplingRate", Matching)]),
