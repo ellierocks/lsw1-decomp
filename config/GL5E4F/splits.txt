@@ -86,6 +86,10 @@ dolphin/dvd/fstload.c:
 	.data       start:0x801F66D8 end:0x801F6748
 	.sdata      start:0x8040A0D0 end:0x8040A0DC
 
+dolphin/pad/Padclamp.c:
+	.text       start:0x8016E058 end:0x8016E29C
+	.rodata     start:0x801B05F8 end:0x801B0604
+
 dolphin/dsp/dsp_debug.c:
 	.text       start:0x801756A4 end:0x801756F4
 
