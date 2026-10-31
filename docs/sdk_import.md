@@ -1386,3 +1386,59 @@ address `802FCAE0` aliases `__AXLocalProfile+0x30`, inside the profile buffer.
 A separate overlapping DTK object is rejected, and C member/cast alternatives
 change the code. The local plateau retains this alias issue and the next
 hypothesis of an evidence-backed symbol alias; no oracle changes were made.
+
+## CARD mounting, serial number and unlock batch
+
+From the AX batch (`43e361d`, merged as `f29cfc2`), three unchanged donors
+promote 14 functions and 7,648 code bytes. SDK units total 75. Matching reaches
+111,508 code bytes / 555 functions and 13,412 matched data bytes; the baseline
+was 103,860 / 541 and 12,996 data bytes. No bytes in these units were promoted
+on the baseline.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `card/CARDMount` | `80178944..80179400` | 7 | 2,748 | 64 |
+| `card/CARDNet` | `8017B1A0..8017B264` | 1 | 196 | 4 |
+| `card/CARDUnlock` | `8017B264..8017C4C4` | 6 | 4,704 | 360 |
+
+Manual data ownership follows unique full donor-byte matches for CARDMount's
+sector/latency tables at `801FA8D8..801FA918` and CARDUnlock's 352-byte
+`CardData` at `801FA920..801FAA80`. The eight intervening alignment bytes
+remain fallback. CARDNet owns `.sdata 8040A150..8040A154`: vendor ID, permission
+mask and one zero alignment byte. CARDUnlock owns `.sdata 8040A158..8040A160`: its
+four-byte `next` state plus four zero alignment bytes. Its relocation identifies
+this small-data address independently of the many other retail words containing
+one. All owned ranges pass the complete section and relocation gate; no BSS
+is promoted, no existing unit boundaries move, and compiler pins are unchanged.
+The added `-i src/dolphin` resolves the donor's `os/__os.h` include.
+
+Code-identical CARDBios callees correct the shifted handler names:
+`__CARDExtHandler` at `80175F7C`, `__CARDExiHandler` at `80176054`,
+`__CARDTxHandler` at `8017616C` and `__CARDUnlockedHandler` at `80176214`.
+These are supporting names, not extra matched functions. The donor header's
+existing typed declarations are retained: rewriting its sync callback prototype
+to the external-interrupt handler creates a type conflict. Dead-stripped sync
+wrappers in CARDCheck/CARDStat likewise keep their donor names. CARDOpen and
+CARDCreate now refer directly to `__CARDPermMask`.
+
+The report credits 416 new data bytes: 64 in CARDMount and 352 in CARDUnlock.
+The full-unit gate additionally proves their small data (12 bytes including
+padding), which objdiff does not credit. The data denominator decreases by four
+bytes when the permission-mask placeholder is separated from fallback padding.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/card/CARDMount --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDNet --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDUnlock --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDOpen --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDCreate --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+All 14 imported functions strictly match; all seven owned sections pass. The
+whole DOL remains byte-identical to retail with SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable checks and the 169-test
+suite with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped). CARDBios and
+CARDProgram remain fallback; this batch does not claim their promotion.

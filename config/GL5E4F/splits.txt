@@ -230,6 +230,10 @@ dolphin/card/CARDDir.c:
 dolphin/card/CARDCheck.c:
 	.text       start:0x80177A08 end:0x80178944
 
+dolphin/card/CARDMount.c:
+	.text       start:0x80178944 end:0x80179400
+	.data       start:0x801FA8D8 end:0x801FA918
+
 dolphin/card/CARDFormat.c:
 	.text       start:0x80179400 end:0x80179BE4
 
@@ -250,6 +254,15 @@ dolphin/card/CARDDelete.c:
 
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
+
+dolphin/card/CARDNet.c:
+	.text       start:0x8017B1A0 end:0x8017B264
+	.sdata      start:0x8040A150 end:0x8040A154
+
+dolphin/card/CARDUnlock.c:
+	.text       start:0x8017B264 end:0x8017C4C4
+	.data       start:0x801FA920 end:0x801FAA80
+	.sdata      start:0x8040A158 end:0x8040A160
 
 dolphin/card/CARDRdwr.c:
 	.text       start:0x8017C4C4 end:0x8017C754

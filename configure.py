@@ -292,7 +292,7 @@ cflags_mw_sdk = [
     "-enum int", "-warn pragmas", "-requireprotos", '-pragma "cats off"',
     "-O4,p", "-inline auto", "-D__GEKKO__", "-DSDK_REVISION=1", "-DRELEASE",
     "-char unsigned", "-I-", "-i include", "-i include/dolphin", "-i include/dolphin/libc",
-    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/ax", "-i src/dolphin/card",
+    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/ax", "-i src/dolphin/card", "-i src/dolphin",
 ]
 
 
@@ -424,6 +424,7 @@ config.libs = [
         SDKObject("card/CARDBlock", Matching),
         SDKObject("card/CARDDir", Matching),
         SDKObject("card/CARDCheck", Matching),
+        SDKObject("card/CARDMount", Matching),
         SDKObject("card/CARDFormat", Matching),
         SDKObject("card/CARDOpen", Matching),
         SDKObject("card/CARDCreate", Matching),
@@ -431,6 +432,8 @@ config.libs = [
         SDKObject("card/CARDWrite", Matching),
         SDKObject("card/CARDDelete", Matching),
         SDKObject("card/CARDStat", Matching),
+        SDKObject("card/CARDNet", Matching),
+        SDKObject("card/CARDUnlock", Matching),
         SDKObject("card/CARDRdwr", Matching),
     ]),
     DolphinLib("gx", [
