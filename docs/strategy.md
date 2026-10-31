@@ -204,6 +204,34 @@ The next structs to confirm, by caller count, are the animation and instance-ani
 structs, `numtl_s`, `nugeom_s`, game character and object structs, `nufile`, and the
 rest of `nugscn_s`.
 
+#### Second measured batch
+
+Batch 4 (`t3/phase3-leaf-batch-4`) added 20 provisional `auto/` units and strictly matched
+275 leaf functions (`verify_fn.py --build --strict-symbols`), moving the objdiff report
+from 819 to 1,094 functions (+5,536 code bytes, 170,712 to 176,248). No unit was promoted
+and the relinked DOL is unchanged. Four `auto/game/podrace` functions are parked
+(`fn_801507CC`, `fn_80150D80`, `fn_80150DBC`, `fn_80150418`): several variants do not match,
+and the next hypothesis is that the TU's compile flags or inlining differ from the rest.
+
+Measured rate: the wall clock from first to last acceptance was 5 h 20 min, but the active
+time (gaps over 15 minutes removed) was about 15 minutes, so the rate is 275 functions in
+roughly 15 active minutes. That figure is not comparable to batch 1: nearly all targets were
+callee-less accessors and setters that a template generator drafted from the disassembly,
+with `score_fn.py` as the filter. Plan Phase 3 on the functions that remain, which have calls,
+loops and branches, and expect a much lower rate.
+
+Failure modes, in order of cost:
+
+- **Families with a shared shape.** One template matches many siblings (the 76 guarded
+  setters in `auto/game/cut`). Do the template once, then batch-score; do not hand-draft.
+- **Store order and compare sense.** `fn_8011B378` matched only with stores ordered
+  32, 40, 44. `cror so,eq,lt` + `bnslr` is `if (x <= limit) store`, not `x > limit`.
+- **Pointer-as-integer globals.** cut.c declares `lbl_8040B250` as `s32` and indexes it
+  with integer arithmetic; a struct pointer conflicts with sibling externs in the same unit.
+  A local `volatile s32*` stops GCC merging `|=` and `^=` into one `ori`/`xori`.
+- **TUs with other flags.** The podrace parks show that not every provisional unit
+  compiles with the shared `cflags_prodg`.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
