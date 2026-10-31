@@ -4,6 +4,7 @@
 Output (work/<FunctionName>/ by default; ignored by git):
   prompt.md          — LLM task description
   context.md         — Struct definitions, signatures, types
+  donor_evidence.md  — Pinned OpenSaga leads, limits and review instructions
   asm.s              — Extracted assembly for the function
   related_symbols.md — Callers, callees, Mac hints, data refs
   verify.sh          — Strict rebuild and verification command
@@ -28,6 +29,12 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+try:
+    from . import opensaga
+except ImportError:
+    import opensaga
+
 
 ROOT = Path(__file__).resolve().parent.parent
 ASM_FILE = ROOT / "build/GL5E4F/asm/auto_01_800034A0_text.s"
@@ -374,6 +381,10 @@ using `--unit`, `--source` and `--hypothesis`. Keep the best source, inspect the
 first differing instructions, and park the target at the experiment budget.
 A strict function match is VERIFIED; only linked retail-range checks make it
 PROMOTED. Screenshots and mnemonic similarity are not acceptance evidence.
+Read `donor_evidence.md` before drafting game/Nu2 code. Inspect the listed donor
+source and relevant callees/keywords against GC. Record accepted semantics,
+rejected transfers or the no-hit/unavailable limit with `--donor-note` on the
+first `hillclimb.py try`; retain that review in the PR or plateau handoff.
 Donor names and generated caller labels are hypotheses; check current evidence
 and rejected renames before using them as semantic facts.
 
@@ -756,6 +767,7 @@ def generate_object_pack(name, addr, size, out_root, mac_hits, callee_list, asm,
     if task_dir.exists() and any(task_dir.iterdir()):
         raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "donor_evidence.md").write_text(opensaga.markdown(name))
 
     struct_text, module = extract_struct_defs(name, addr)
     combined_asm = extract_asm_for_cluster(cluster)
@@ -909,6 +921,7 @@ def generate_pack(name, addr, size, out_root, mac_hits=None, callee_list=None, a
     if task_dir.exists() and any(task_dir.iterdir()):
         raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "donor_evidence.md").write_text(opensaga.markdown(name))
 
     if mac_hits is None:
         mac_hits = find_mac_hits(display_name)

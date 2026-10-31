@@ -70,4 +70,7 @@ if [[ -z ${LSW1_NO_SHARE:-} && -z ${LSW1_REFRESH:-} && -n ${primary:-} && $prima
     touch -c build/tools/wibo build/tools/objdiff-cli build/tools/sjiswrap.exe build/compilers build/binutils
 fi
 bash tools/fetch_dolsdk.sh >/dev/null 2>&1 || echo 'note: dolsdk2004 donor not fetched; run tools/fetch_dolsdk.sh when online' >&2
+if [[ -z ${LSW1_NO_OPENSAGA:-} ]]; then
+    python3 tools/opensaga.py fetch || echo 'note: OpenSaga unavailable; record this limit or rerun tools/opensaga.py fetch' >&2
+fi
 echo 'Toolchain ready. Next: python3 tools/next_target.py'

@@ -57,24 +57,30 @@ class HillclimbTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('fixture')
             args = ['try', 'foo', '--unit', 'foo', '--source', 'source.c',
-                    '--hypothesis', 'baseline', '--patience', '1']
+                    '--hypothesis', 'baseline', '--patience', '1',
+                    '--donor-note', 'unavailable in fixture; GC baseline only']
             proc = subprocess.CompletedProcess([], 1, json.dumps(report()), '')
             with mock.patch.object(hc, 'ROOT', root), \
                  mock.patch.object(hc.subprocess, 'run', return_value=proc) as run, \
                  mock.patch.object(hc.subprocess, 'check_output', return_value='head\n'), \
                  mock.patch('builtins.print'):
+                with self.assertRaises(SystemExit):
+                    hc.main(args[:-2])
+                run.assert_not_called()
                 self.assertEqual(hc.main(args), 1)
                 self.assertIn('--strict-symbols', run.call_args.args[0])
                 self.assertIn('--build', run.call_args.args[0])
                 run.return_value = subprocess.CompletedProcess([], 2, '{}', 'compile failed')
-                self.assertEqual(hc.main(args), 2)
+                self.assertEqual(hc.main(args[:-2]), 2)
                 with self.assertRaises(SystemExit):
                     hc.main(args)
             records = sorted((root / 'work/hillclimb').glob('*/*.json'))
             self.assertEqual(len(records), 2)
             first = json.loads(records[0].read_text())
             self.assertEqual(first['sources']['source.c']['text'], (root / 'source.c').read_text())
+            self.assertEqual(first['opensaga']['review_note'], 'unavailable in fixture; GC baseline only')
             second = json.loads(records[1].read_text())
+            self.assertEqual(first['opensaga'], second['opensaga'])
             self.assertIsNone(second['score'])
             self.assertEqual(second['stderr'], 'compile failed')
             (root / 'configure.py').write_text('changed compiler flags')
