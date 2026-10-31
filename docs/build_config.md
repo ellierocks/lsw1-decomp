@@ -49,6 +49,45 @@ for an object; it is linker compatibility, not a ProDG compiler setting.
 Do not apply common-BSS or CodeWarrior `.comment` recipes from other games
 without evidence that the target needs them.
 
+### Proposed game TU boundaries
+
+`python3 tools/tu_boundaries.py --write-splits work/splits_proposed.txt` proposes
+`.text` units for the game and Nu2 code below the first Dolphin split. It writes
+`work/tu_boundaries.tsv` and never edits `config/`. Its evidence:
+
+- **`__FILE__` strings.** Each TU's `.rodata` block holds its own source path,
+  for example `../nu2api.legogc/nucore/ngc_obj/../nufile.c`. The blocks follow
+  `.text` link order. There are 92 `.c`/`.cpp` paths; 188 functions load one.
+  SDK paths are in `.data`/`.sdata` and are not used.
+- **Other `.rodata` loads.** A function's literal loads usually fall between
+  its TU's path string and the next one. These are weak evidence.
+- **Mac demo adjacency.** Base names are taken from the Itanium-mangled Mac
+  symbols. 364 consecutive GC pairs are also adjacent on Mac, and the
+  alignment keeps them together.
+- **Not padding.** Consecutive functions tile exactly, at known unit
+  boundaries as well, so gaps carry no signal.
+
+A monotone DP assigns functions to the path-string TUs, or to an anonymous
+gap before each one. With the current symbols, it assigns 3316 functions to
+70 TUs, and no path load lands in another TU. 5 of the 69 boundaries have no
+slack. The `start_range` column gives the equally good start addresses for each
+TU, and the DP picks the earliest.
+
+Applying the 78 resulting `auto/` units, cut around existing splits and
+appended after them, links a byte-identical DOL (SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`). The report grows from 149 to
+217 units, and an incremental rebuild takes about 9 s.
+
+Limits:
+
+- TUs without a path string are absorbed into neighbours. Examples are
+  `game/levels.c` with 482 functions and `game/obstacle.c`, `game/gameaiscript.c`
+  and `ai/aisys/aisys.c`, each with 168 to 282 functions.
+- The next evidence to use is the 186 per-TU header copies of `VuMath.h`
+  (175) and `nudlist_gen.h` (11). There are 2 to 9 copies between some pairs of
+  consecutive `.c` paths, and each extra copy marks an anonymous TU.
+- The data sections are not proposed yet.
+
 ## Dolphin SDK and retail linker
 
 `DolphinLib` uses MWCC `GC/1.2.5n` with dolsdk2004's release flags:

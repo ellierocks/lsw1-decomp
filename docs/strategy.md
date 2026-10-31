@@ -87,7 +87,10 @@ not verify BSS.
 
 1. Add `tools/tu_boundaries.py`. It combines the `__FILE__` string xrefs,
    alignment padding, Mac demo/lineage neighbours and SDK archive order into a
-   proposed `splits.txt` for `.text` and data.
+   proposed `splits.txt` for `.text` and data. **Started:** the `.text` pass
+   exists and its proposal relinks byte-identically. Alignment padding carries
+   no signal. Anonymous TUs and data sections remain; see
+   [proposed TU boundaries](build_config.md#proposed-game-tu-boundaries).
 2. Add a provisional unit per TU with assembly fallback. A split change must
    not change the relinked DOL. Mark boundaries provisional and revise them on
    evidence, never to raise a score.
