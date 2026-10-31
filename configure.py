@@ -372,7 +372,7 @@ config.libs = [
             Object(NonMatching, "auto/nu3d/nudlist_2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/numath/nutrig.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/nustring.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "auto/nucore/ngc/nuthread.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(Matching, "nucore/ngc/nuthread.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nuqfnt_ngc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/nutimebar.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/NuHGobjEval.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),

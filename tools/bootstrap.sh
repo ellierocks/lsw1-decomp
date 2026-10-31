@@ -4,8 +4,8 @@
 #
 # Worktrees share one toolchain: build/tools, build/compilers and build/binutils are symlinks into
 # $LSW1_CACHE/toolchain (default ~/.cache/lsw1/toolchain), populated by the first checkout that builds
-# them (or the primary checkout's, when it already has them). The retail DOL is linked from the primary checkout, and the pinned dolsdk2004 donor is cloned
-# into the same cache. Existing shared tools are not re-downloaded; LSW1_REFRESH=1 refetches them. Set LSW1_CACHE to relocate it, or LSW1_NO_SHARE=1 for a private toolchain.
+# them (or the primary checkout's, when it already has them). The retail DOL is linked from the primary checkout, and the pinned dolsdk2004 donor and
+# decomp-permuter are cloned into the same cache. Existing shared tools are not re-downloaded; LSW1_REFRESH=1 refetches them. Set LSW1_CACHE to relocate it, or LSW1_NO_SHARE=1 for a private toolchain.
 set -euo pipefail
 cd "$(dirname "$(realpath "$0")")/.."
 cache="${LSW1_CACHE:-$HOME/.cache/lsw1}"
@@ -70,6 +70,7 @@ if [[ -z ${LSW1_NO_SHARE:-} && -z ${LSW1_REFRESH:-} && -n ${primary:-} && $prima
     touch -c build/tools/wibo build/tools/objdiff-cli build/tools/sjiswrap.exe build/compilers build/binutils
 fi
 bash tools/fetch_dolsdk.sh >/dev/null 2>&1 || echo 'note: dolsdk2004 donor not fetched; run tools/fetch_dolsdk.sh when online' >&2
+bash tools/fetch_permuter.sh >/dev/null 2>&1 || echo 'note: decomp-permuter not fetched; run tools/fetch_permuter.sh when online' >&2
 if [[ -z ${LSW1_NO_OPENSAGA:-} ]]; then
     python3 tools/opensaga.py fetch || echo 'note: OpenSaga unavailable; record this limit or rerun tools/opensaga.py fetch' >&2
 fi
