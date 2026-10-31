@@ -132,6 +132,11 @@ dolphin/os/OSTime.c:
 dolphin/os/OSMutex.c:
 	.text       start:0x80163914 end:0x80163984
 
+dolphin/exi/EXIBios.c:
+	.text       start:0x80163984 end:0x80165360
+	.data       start:0x801F5918 end:0x801F5A28
+	.sdata      start:0x8040A008 end:0x8040A040
+
 dolphin/exi/EXIUart.c:
 	.text       start:0x80165360 end:0x80165918
 
@@ -196,9 +201,19 @@ dolphin/dvd/dvdlow.c:
 	.text       start:0x8016B044 end:0x8016BE88
 	.sdata      start:0x8040A0E0 end:0x8040A0E4
 
+dolphin/vi/vi.c:
+	.text       start:0x8016BEC0 end:0x8016E058
+	.data       start:0x801F6748 end:0x801F6B30
+	.sdata      start:0x8040A0E8 end:0x8040A0F8
+
 dolphin/pad/Padclamp.c:
 	.text       start:0x8016E058 end:0x8016E29C
 	.rodata     start:0x801B05F8 end:0x801B0604
+
+dolphin/pad/Pad.c:
+	.text       start:0x8016E29C end:0x8016FBE4
+	.data       start:0x801F6B30 end:0x801F6B88
+	.sdata      start:0x8040A0F8 end:0x8040A118
 
 dolphin/ai/ai.c:
 	.text       start:0x8016FBE4 end:0x801704C8

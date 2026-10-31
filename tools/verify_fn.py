@@ -230,10 +230,15 @@ def linker_symbols() -> dict[str, int]:
 
 
 class SymbolTable:
+    shadowed_locals: dict[str, SymEntry] = {}
+
     def __init__(self, path: Optional[Path] = None):
         path = SYMBOLS if path is None else path
         self.entries: dict[str, SymEntry] = {}
         self.duplicates: set[str] = set()
+        self.shadowed_locals = {}
+        self.local_duplicates: dict[str, list[SymEntry]] = {}
+        local: dict[str, bool] = {}
         try:
             lines = Path(path).read_text(errors="replace").splitlines()
         except OSError as e:
@@ -246,10 +251,29 @@ class SymbolTable:
             sz = _SIZE.search(rest)
             entry = SymEntry(sec, addr, int(sz.group(1), 16) if sz else 0,
                              "type:function" in rest)
+            is_local = "scope:local" in rest
             if name in self.entries:
-                self.duplicates.add(name)
+                # A local and a global of one name stay distinct: split objects name the
+                # local NAME_<address>, and the unsuffixed name is the global.
+                if is_local != local[name] and name not in self.duplicates:
+                    old = self.entries[name]
+                    if local[name]:
+                        self.shadowed_locals[f"{name}_{old.addr:08X}"] = old
+                        self.entries[name], local[name] = entry, False
+                    else:
+                        self.shadowed_locals[f"{name}_{addr:08X}"] = entry
+                    continue
+                if name not in self.duplicates:
+                    self.local_duplicates[name] = [self.entries[name]] if local[name] else []
+                    self.duplicates.add(name)
+                if name in self.local_duplicates:
+                    if is_local:
+                        self.local_duplicates[name].append(entry)
+                    else:
+                        del self.local_duplicates[name]
                 continue
             self.entries[name] = entry
+            local[name] = is_local
 
     def function(self, name: str) -> SymEntry:
         if name in self.duplicates:
@@ -262,10 +286,17 @@ class SymbolTable:
             raise ToolError(f"'{name}' has no size in {SYMBOLS.name}; cannot bound the function")
         return e
 
-    def addr(self, name: str) -> Optional[int]:
+    def addr(self, name: str, within=None) -> Optional[int]:
+        """Address of `name`. A local name defined more than once (compiler `@NN`
+        labels) resolves only when exactly one copy lies in `within`, the unit's
+        `{section: (start, end)}` split ranges."""
+        if within and self.local_duplicates.get(name):
+            hits = [e for e in self.local_duplicates[name]
+                    if any(a <= e.addr < b for a, b in within.values())]
+            return hits[0].addr if len(hits) == 1 else None
         e = self.entries.get(name)
         if e is None:
-            e = self._dtk_local(name)
+            e = self.shadowed_locals.get(name) or self._dtk_local(name)
         if e is None and name not in self.duplicates:
             return linker_symbols().get(name)
         return e.addr if e and name not in self.duplicates else None
@@ -506,8 +537,9 @@ class Report:
 
 
 class Comparer:
-    def __init__(self, symbols: SymbolTable, dol: Optional[Dol], unit_proof=None):
+    def __init__(self, symbols: SymbolTable, dol: Optional[Dol], unit_proof=None, ranges=None):
         self.unit_proof = unit_proof
+        self.ranges = ranges
         self.symbols = symbols
         self.dol = dol
         self.name_map: dict = {}       # mine key -> target key
@@ -522,7 +554,7 @@ class Comparer:
         if (not m.is_section and not t.is_section and m.name == t.name and m.addend == t.addend
                 and (m.loc is None or m.loc_is_code)):
             return "same", ""
-        taddr = None if t.is_section else self.symbols.addr(t.name)
+        taddr = None if t.is_section else self.symbols.addr(t.name, self.ranges)
         if m.loc is not None and not m.loc_is_code:
             if taddr is None:
                 return "diff", (f"target references {t.describe()} which is not in "
@@ -654,9 +686,9 @@ def _row_diff(t: Insn, m: Insn, cmp: Comparer, mine: Func, mi: Optional[int] = N
 
 
 def compare_functions(target: Func, mine: Func, symbols: SymbolTable,
-                      dol: Optional[Dol], unit_proof=None) -> Report:
+                      dol: Optional[Dol], unit_proof=None, ranges=None) -> Report:
     rep = Report(target.name, target_insns=len(target.insns), mine_insns=len(mine.insns))
-    cmp = Comparer(symbols, dol, unit_proof)
+    cmp = Comparer(symbols, dol, unit_proof, ranges)
     # Alignment keys use each side's own mask; differing reloc types still show
     # up as 'reloc' diffs because aligned pairs are re-checked with a union mask.
     tk = [_align_key(i, k, target, True) for k, i in enumerate(target.insns)]
@@ -945,7 +977,7 @@ def verify(args) -> tuple[Report, Func, Func, Optional[list], Optional[list], Pa
                             "split objects are stale, rerun `bash build.sh`")
         dol_checked = True
 
-    unit_proof = None
+    unit_proof = ranges = None
     actual_unit = lookup_unit(entry.addr)
     if dol is not None and actual_unit and unit == actual_unit and tpath.resolve() == (TARGET_OBJ_DIR / f"{actual_unit}.o").resolve():
         try:
@@ -954,7 +986,7 @@ def verify(args) -> tuple[Report, Func, Func, Optional[list], Optional[list], Pa
             from verify_unit import prove_unit, split_ranges
         ranges = split_ranges(SPLITS.read_text(), actual_unit)
         unit_proof = prove_unit(telf, melf, ranges, symbols, dol)
-    rep = compare_functions(target, mine, symbols, dol, unit_proof)
+    rep = compare_functions(target, mine, symbols, dol, unit_proof, ranges)
     rep.notes = notes
     tdis = disassemble(tpath, target, rep.notes, "target") if not args.quiet else None
     mdis = disassemble(mine_path, mine, rep.notes, "mine") if not args.quiet else None

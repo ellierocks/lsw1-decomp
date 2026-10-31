@@ -1,5 +1,6 @@
 import sys
 import tempfile
+import argparse
 import unittest
 from pathlib import Path
 
@@ -52,6 +53,19 @@ class SplitTests(unittest.TestCase):
         self.assertEqual(order.index("dolphin/ax/AXAux.c:"), order.index("dolphin/ax/AX.c:") + 1)
         self.assertLess(order.index("dolphin/ax/AXAux.c:"), order.index("dolphin/ax/AXProf.c:"))
         self.assertIn("\t.text       start:0x80172844 end:0x80172CCC\n\ndolphin/ax/AXProf.c:", text)
+
+    def test_data_ranges_follow_the_text_range_in_section_order(self):
+        text = imp.insert_split_block(SPLITS, "ax/AXAux", 0x80172844, 0x80172CCC,
+                                      {".sdata": (0x8040A0E8, 0x8040A0F8), ".data": (0x801F6748, 0x801F6B30)})
+        self.assertIn("\t.text       start:0x80172844 end:0x80172CCC\n"
+                      "\t.data       start:0x801F6748 end:0x801F6B30\n"
+                      "\t.sdata      start:0x8040A0E8 end:0x8040A0F8\n\ndolphin/ax/AXProf.c:", text)
+
+    def test_data_option_parses_section_and_range(self):
+        self.assertEqual(imp.parse_data_range(".data=0x801F6748..801F6B30"), (".data", (0x801F6748, 0x801F6B30)))
+        for bad in (".bss=0x1..0x2", ".data=0x20..0x10", ".data=1", "data=0x1..0x2"):
+            with self.assertRaises(argparse.ArgumentTypeError):
+                imp.parse_data_range(bad)
 
     def test_existing_block_and_missing_predecessor_are_errors(self):
         with self.assertRaises(imp.ImportError_):
