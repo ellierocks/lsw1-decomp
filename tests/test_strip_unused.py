@@ -122,6 +122,7 @@ class ExternalBssTests(unittest.TestCase):
         "func = .text:0x80000000; // type:function size:0x4\n"
         "first = .bss:0x80300000; // type:object size:0x10\n"
         "second = .bss:0x80300010; // type:object size:0x20 scope:local\n"
+        "small = .sbss:0x80400004; // type:object size:0x4\n"
     )
 
     def setUp(self):
@@ -132,10 +133,10 @@ class ExternalBssTests(unittest.TestCase):
         self.table.write_text(self.SYMBOLS)
         make_elf(self.target, [("func", 0, 4, 2, 1)], text=b"CODE")
 
-    def build(self, bss_symbols, relocations):
+    def build(self, bss_symbols, relocations, data=bytes(0x30), data_name=".bss"):
         symbols = [("func", 0, 4, 2, 1), ("section", 0, 0, 3, 2)] + bss_symbols
-        make_elf(self.obj, symbols, text=b"CODE", data=bytes(0x30), relocations=relocations,
-                 data_name=".bss", data_type=8)
+        make_elf(self.obj, symbols, text=b"CODE", data=data, relocations=relocations,
+                 data_name=data_name, data_type=8)
 
     def run_strip(self):
         return subprocess.run([sys.executable, str(SCRIPT), "--target", str(self.target),
@@ -157,6 +158,16 @@ class ExternalBssTests(unittest.TestCase):
         self.assertEqual(got, [(0, 4 << 8 | 1, 4), (4, 3 << 8 | 1, 0), (8, 4 << 8 | 1, 8)])
         comment = elf.contents[elf.index(".comment")]
         self.assertEqual(len(comment), 8 + 8 * len(table))
+
+    def test_sbss_definitions_are_externalized_without_padding(self):
+        self.build([("small", 0, 4, 1, 2)], [(0, 2, 0)], data=bytes(4), data_name=".sbss")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        index = elf.index(".sbss")
+        self.assertEqual(elf.contents[index], b"")
+        self.assertEqual(elf.sections[index][8], 1)
+        self.assertEqual([(s[0], s[5]) for s in symbols(elf)[3:]], [("small", 0)])
 
     def test_layout_must_match_symbols_txt(self):
         self.build([("first", 0, 0x10, 1, 2), ("second_80300010", 0x20, 0x10, 1, 2)], [])
