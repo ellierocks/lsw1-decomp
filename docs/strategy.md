@@ -166,6 +166,27 @@ Failure modes, in order of cost:
   message; model it as `((void(*)(char*, ...))fn(file, line))(msg)`.
 - **Out of scope for C.** Paired-single (`psq_l`/`ps_*`) functions are hand-written asm.
 
+#### Second measured batch
+
+The second leaf batch (`t3/phase3-leaf-batch-2`, lane `auto/nucore/*` and `auto/numath/*`)
+attempted 65 small functions across 11 `auto/` units and strictly matched 62
+(`verify_fn.py --build --strict-symbols`). Parked: `NuFParGetWord` (71 insns, 13
+attempts) and `fn_8000DC80` (matrix-identity stores, about 2,700 order evaluations;
+`order_search.py` cannot cover 16 free stores). No unit was promoted: every touched
+unit still has unmatched functions. Targets were mostly 4 to 100 byte leaves, so
+bytes per function are low.
+
+New failure modes seen:
+
+- **Signedness of switch values.** `fn_80009408`/`fn_800094C4` need `u32 type` (the
+  retail tree emits `cmplw`) and an explicit `case 0x12345679:` sharing the default.
+- **Float bit tricks.** A pointer cast `*(f32*)&bits` allocates `f0`/`f1` the wrong
+  way round; a `union { s32 i; f32 f; }` reproduces retail (`NuRandIntSeeded`).
+- **Rodata constants.** A guessed float literal passes the instruction compare but
+  fails the data compare; read the real value from `build/GL5E4F/main.elf` (`NuASin`).
+- **Struct-copy size.** A global-to-pointer struct assignment is a 3-stage unrolled
+  loop; size the struct from the tail copy (`fn_8000DBA0`, 0x40 bytes).
+
 decomp-permuter is **not** wired end to end. `score_fn.py --compile-only -o` produces the
 object, but the checkout is not fetched by `bootstrap.sh`, and nothing generates the
 per-function `compile.sh` wrapper (`score_fn.py NAME "$1" --compile-only -o "$3"`),
