@@ -26,3 +26,20 @@ void fn_8000DC80(f32* m, f32* pos)
     m[0x28 / 4] = 1.0f;
     m[0x14 / 4] = 1.0f;
 }
+
+struct nugraph3_blk_s {
+    u8 b[0x40];
+};
+
+extern struct nugraph3_blk_s lbl_801B0F48;
+extern struct nugraph3_blk_s lbl_801B0F08;
+
+void fn_8000DBA0(struct nugraph3_blk_s* dst)
+{
+    *dst = lbl_801B0F48;
+}
+
+void fn_8000DC10(struct nugraph3_blk_s* dst)
+{
+    *dst = lbl_801B0F08;
+}
