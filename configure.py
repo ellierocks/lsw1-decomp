@@ -400,7 +400,7 @@ config.libs = [
     DolphinLib("dvd", [SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching, external_bss=True)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
-    DolphinLib("ax", [SDKObject("ax/AX", Matching), SDKObject("ax/AXAlloc", Matching, external_bss=True), SDKObject("ax/AXAux", Matching, external_bss=True), SDKObject("ax/AXCL", Matching, external_bss=True), SDKObject("ax/AXProf", Matching)]),
+    DolphinLib("ax", [SDKObject("ax/AX", Matching), SDKObject("ax/AXAlloc", Matching, external_bss=True), SDKObject("ax/AXAux", Matching, external_bss=True), SDKObject("ax/AXCL", Matching, external_bss=True), SDKObject("ax/AXOut", Matching, external_bss=True), SDKObject("ax/AXProf", Matching)]),
     DolphinLib("dsp", [
         SDKObject("dsp/dsp", Matching),
         SDKObject("dsp/dsp_debug", Matching),
