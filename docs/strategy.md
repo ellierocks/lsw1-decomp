@@ -112,7 +112,10 @@ before AI and animation and requires strict matches before expansion. Build
 shared `nu2` struct headers once, from donor layouts confirmed against LSW1
 field accesses. The initial OpenSaga parser/helper lane has promoted 1,460 bytes
 (12 functions, 10 newly matched); [results](symbol_donors/opensaga_matching_results.md)
-record the corrected parser layout and the next small-target queue.
+record the corrected parser layout and the next small-target queue. The
+[donor audit](symbol_donors/opensaga_audit.md) extends that queue to small
+string/math helpers, AI conditions, accessors and cutscene helpers, with
+explicit exclusions for changed TCS behavior.
 
 ## Rules that do not change
 
