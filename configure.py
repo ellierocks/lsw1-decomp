@@ -378,7 +378,10 @@ config.libs = [
     ]),
     DolphinLib("base", [SDKObject("base/PPCArch", Matching)]),
     DolphinLib("os", [
+        SDKObject("os/__ppc_eabi_init", Matching),
+        SDKObject("os/OS", Matching, external_bss=True),
         SDKObject("os/OSAlloc", Matching),
+        SDKObject("os/OSExec", Matching, external_bss=True),
         SDKObject("os/OSFont", Matching, external_bss=True),
         SDKObject("os/OSLink", Matching),
         SDKObject("os/OSMessage", Matching),
@@ -393,6 +396,7 @@ config.libs = [
         SDKObject("os/OSRtc", Matching, external_bss=True),
         SDKObject("os/OSSemaphore", Matching),
         SDKObject("os/OSSync", Matching),
+        SDKObject("os/OSThread", Matching, external_bss=True),
         SDKObject("os/OSTime", Matching),
         SDKObject("os/OSMutex", Matching),
         SDKObject("os/OSCache", Matching),

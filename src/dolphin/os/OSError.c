@@ -7,7 +7,7 @@
 OSErrorHandler __OSErrorTable[17];
 
 #define FPSCR_ENABLE (FPSCR_VE | FPSCR_OE | FPSCR_UE | FPSCR_ZE | FPSCR_XE)
-u32 lbl_80409FE8 = FPSCR_ENABLE;
+u32 __OSFpscrEnableBits = FPSCR_ENABLE;
 
 void OSReport(const char* msg, ...) {
     va_list marker;
@@ -71,13 +71,13 @@ OSErrorHandler OSSetErrorHandler(OSError error, OSErrorHandler handler) {
                     }
                     thread->context.fpscr = FPSCR_NI;
                 }
-                thread->context.fpscr |= lbl_80409FE8 & FPSCR_ENABLE;
+                thread->context.fpscr |= __OSFpscrEnableBits & FPSCR_ENABLE;
                 thread->context.fpscr &=
                     ~(FPSCR_VXVC | FPSCR_VXIMZ | FPSCR_VXZDZ | FPSCR_VXIDI | FPSCR_VXISI |
                       FPSCR_VXSNAN | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI | FPSCR_XX |
                       FPSCR_ZX | FPSCR_UX | FPSCR_OX | FPSCR_FX | FPSCR_FI);
             }
-            fpscr |= lbl_80409FE8 & FPSCR_ENABLE;
+            fpscr |= __OSFpscrEnableBits & FPSCR_ENABLE;
             msr |= MSR_FE0 | MSR_FE1;
         } else {
             for (thread = __OSActiveThreadQueue.head; thread;

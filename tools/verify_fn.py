@@ -39,6 +39,7 @@ from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
+LDSCRIPT = ROOT / "config/GL5E4F/ldscript.ld"
 SPLITS = ROOT / "config/GL5E4F/splits.txt"
 TARGET_OBJ_DIR = ROOT / "build/GL5E4F/obj"
 SRC_OBJ_DIR = ROOT / "build/GL5E4F/src"
@@ -217,6 +218,17 @@ class SymEntry:
     is_function: bool
 
 
+_LD_ASSIGN = re.compile(r"^\s*([A-Za-z_]\w*)\s*=\s*(0x[0-9A-Fa-f]+)\s*;", re.M)
+
+
+def linker_symbols() -> dict[str, int]:
+    """Absolute symbols the link script defines (dtk names them in split objects)."""
+    try:
+        return {m[1]: int(m[2], 16) for m in _LD_ASSIGN.finditer(LDSCRIPT.read_text())}
+    except OSError:
+        return {}
+
+
 class SymbolTable:
     def __init__(self, path: Optional[Path] = None):
         path = SYMBOLS if path is None else path
@@ -254,6 +266,8 @@ class SymbolTable:
         e = self.entries.get(name)
         if e is None:
             e = self._dtk_local(name)
+        if e is None and name not in self.duplicates:
+            return linker_symbols().get(name)
         return e.addr if e and name not in self.duplicates else None
 
     def _dtk_local(self, name: str) -> Optional[SymEntry]:
