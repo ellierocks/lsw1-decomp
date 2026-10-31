@@ -110,6 +110,11 @@ dolphin/os/OSSemaphore.c:
 dolphin/os/OSSync.c:
 	.text       start:0x80162334 end:0x801623B8
 
+dolphin/os/OSThread.c:
+	.text       start:0x801623B8 end:0x801637C4
+	.data       start:0x801E3E68 end:0x801E4678
+	.sdata      start:0x8040A000 end:0x8040A008
+
 dolphin/os/OSTime.c:
 	.text       start:0x801637C4 end:0x801638A0
 	.data       start:0x801E4678 end:0x801E46D8

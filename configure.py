@@ -394,6 +394,7 @@ config.libs = [
         SDKObject("os/OSRtc", Matching, external_bss=True),
         SDKObject("os/OSSemaphore", Matching),
         SDKObject("os/OSSync", Matching),
+        SDKObject("os/OSThread", Matching, external_bss=True),
         SDKObject("os/OSTime", Matching),
         SDKObject("os/OSMutex", Matching),
         SDKObject("os/OSCache", Matching),
