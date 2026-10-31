@@ -112,3 +112,24 @@ f32 NuAngDiff(s32 ang)
     x2 = x * x;
     return ((((((-2.39000002e-08f * x2 + 2.75260004e-06f) * x2 - 0.000198409005f) * x2 + 0.00833333191f) * x2 - 0.166666672f) * x2 + 1.0f) * x) * sign;
 }
+
+extern s16 fn_8000AEC4(s32 ang);
+
+s16 NuACos(s32 ang)
+{
+    return 0x4000 - fn_8000AEC4(ang);
+}
+
+struct nusem_s {
+    s32 pad[3];
+};
+
+extern struct nusem_s lbl_8020A140[];
+extern void OSWaitSemaphore(struct nusem_s* sem);
+
+void fn_8000A834(s32 id)
+{
+    if (id >= 0) {
+        OSWaitSemaphore(&lbl_8020A140[id]);
+    }
+}

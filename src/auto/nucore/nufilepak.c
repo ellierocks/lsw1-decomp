@@ -67,3 +67,17 @@ s32 fn_800094C4(struct nupakhdr_s* hdr, s32 handle, s32 required)
     }
     return 0;
 }
+
+extern void NuHeap(s32 a, s32 b, s32 c, s32 d);
+extern void fn_80008E78(s32 a, s32 b, s32* c, s32 d, s32 e, s32 f);
+
+void fn_80008E54(s32 a, s32 b, s32 c)
+{
+    NuHeap(a, b, c, 0);
+}
+
+void fn_800092F0(s32 a, s32 b, s32* c, s32 d)
+{
+    s32 tmp = *c;
+    fn_80008E78(a, b, &tmp, d, 0, 0);
+}
