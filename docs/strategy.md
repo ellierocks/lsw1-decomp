@@ -172,6 +172,38 @@ per-function `compile.sh` wrapper (`score_fn.py NAME "$1" --compile-only -o "$3"
 `target.o` or `settings.toml`, or scores through the strict verifier. Close plateaus
 such as `fn_8000A64C` wait on that.
 
+#### Shared-header batch
+
+The first shared-header batch (`t3/phase3-nu2-headers`) confirmed `nugscn_s`,
+`nuinstance_s`, `nuspecial_s`, `nugobj_s`, and the new `nudisplayscene_s`,
+`nudisplayspecial_s` and `nuhspecial_s` against LSW1 accesses
+([evidence](nu2_engine_reference.md#lsw1-confirmed-nu3dx-layouts)). Using those headers,
+22 of the 24 functions in `auto/nu3d/nuspecial` strictly match. Two are parked, so the
+unit stays NonMatching and is not promoted. The rate was about 9 to 10 matched functions
+per agent-hour, including header confirmation.
+
+- `NuSpecialFind` is parked at 100/101. Retail emits the display-path clear tail as
+  stores at 8, 0, 4. The source order that produces that tail is cross-jumped into the
+  identical legacy-path tail. Next: stop the cross-jump, or run the permuter.
+- `fn_80012C44` is parked at 45/47. Retail uses `add` then `stbu r0,8(r9)`, and the
+  draft uses `addi` then `stb`. Next: step a pre-incremented attribute pointer by 16.
+
+Failure modes new to this batch:
+
+- **Block order.** GCC 2.95 places basic blocks in source order. Put the shared
+  "found" blocks ahead of their loops as `goto` targets to get the retail layout.
+- **Cross-jumping.** GCC merges identical tails, so two branches cannot keep
+  separate copies of the same store sequence.
+- **Register allocation.** Separate count and index locals per branch, declared
+  in retail's order, matched `NuSpecialFindMulti` after the shared-local versions
+  failed.
+- **Misnamed symbols.** Read the body before trusting a donor name.
+  `NuSpecialFindMultiWC` and `NuSpecialGetInstAnim` hold other functions.
+
+The next structs to confirm, by caller count, are the animation and instance-animation
+structs, `numtl_s`, `nugeom_s`, game character and object structs, `nufile`, and the
+rest of `nugscn_s`.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.

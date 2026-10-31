@@ -126,6 +126,30 @@ struct nuvtx_tc1_s { nuvec_s pnt, nrm; int diffuse; float tc[2]; };      // 0x24
 struct nuvtx_sk3tc1_s { nuvec_s pnt; float weights[2]; float indexes[3]; nuvec_s nrm; int diffuse; float tc[2]; }; // 0x38
 ```
 
+### LSW1-confirmed `nu3dx` layouts
+
+These layouts are in [`nu3dx/nu3dx.h`](../src/nu3dx/nu3dx.h). They were confirmed
+against the 24 accessors in `auto/nu3d/nuspecial` (`0x80012C44..0x80013900`). Each
+kept field has an LSW1 load or store of the stated width. Unconfirmed ranges are
+`unknownXX` padding. Several CrashWOC/OpenSaga offsets do not hold on GC: the donor
+`nugscn_s` puts `gobjs` at 0x14 too, but the special and display fields differ.
+
+| Struct | Size | Field (offset, access) | Evidence |
+|---|---|---|---|
+| `nugscn_s` | ≥ 0x1A4 | `gobjs` 0x14 `lwz`; `numInstance` 0x18; `instances` 0x1C (0x50 stride); `numSpecial` 0x20; `specials` 0x24; `displayScene` 0x1A0 `lwz` | `NuSpecialFind`, `NuSpecialFindMulti`, `fn_800135B0` |
+| `nuinstance_s` | 0x50 | `mtx` 0x00; `objid` 0x40 `lha`; flag word 0x44: `visible` bit 31, `onScreen` bit 30, `noVisiTest` bit 28; `animMtx` 0x48 | `fn_800131B8`..`fn_80013310`, `fn_80013380`, `fn_80013618` |
+| `nuspecial_s` | 0x50 | `mtx` 0x00; `instance` 0x40; `name` 0x44 | `NuSpecialFind*`, `fn_80013350`, `NuSpecialGetInstAnim` |
+| `nudisplayscene_s` | ≥ 0x74 | `numSpecials` 0x6C; `specials` 0x70 (0xD0 stride) | `NuSpecialFind*` |
+| `nudisplayspecial_s` | 0xD0 | `mtx` 0x00; `drawMtx` 0x40; `boundsMin` 0x80; `boundsMax` 0x90; `center` 0xA0; `radius` 0xAC `lfs`; `name` 0xB4; `flags` 0xB8 (0x2 visible, 0x80 no visibility test); `instanceIx` 0xC0; `animMtx` 0xC4 (NULL or -1 means none) | `fn_800133FC`, `fn_80013454`, `fn_800136CC`, `fn_800137D0`, `fn_800135B0` |
+| `nuhspecial_s` | 0xC | `scene` 0x0; `special` 0x4; `display` 0x8 | every accessor; set by `NuSpecialFind*` |
+| `nugobj_s` | ≥ 0x50 | `boundingRadiusFromOrigin` 0x14; `boundingBoxMin/Max/Center` 0x1C/0x28/0x34; `boundingRadiusFromCenter` 0x40; `nextGobj` 0x4C | `fn_80013618`, `fn_800136CC`, `fn_80013764` |
+
+`nuhspecial_s` is a handle: exactly one of `special` (legacy scene) and `display`
+(display scene) is set. In the legacy path, `NuSpecialFindMulti` stores a display
+pointer counted from NULL in 0xD0 steps when `displayScene` is set; the donor stores
+NULL. Two `symbols.txt` names are wrong by body: `NuSpecialFindMultiWC` is DrawAt and
+`NuSpecialGetInstAnim` is GetName. They are not renamed yet.
+
 ### `nusound/` — Sound
 
 ```c
