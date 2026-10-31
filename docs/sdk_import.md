@@ -1093,3 +1093,32 @@ Remaining imports include dvdfs, dvd, EXIBios, the other AX units, Pad, vi and
 remaining CARD/OS units. Their unfinished experiments are preserved separately
 at `wip/sdk-family-imports-fb9c5ca`; none are enabled by this batch. EXIBios still
 needs shared small-data ownership resolved, and dvd needs its BSS references mapped.
+
+## Batch 5: AX voice allocation and auxiliary buses
+
+Two units are promoted from baseline `97e792b`, bringing the SDK total to 62.
+Measured progress rises from **89,952 bytes / 451 functions** to
+**92,336 bytes / 474 functions**, a gain of **2,384 bytes / 23 functions**.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `ax/AXAlloc` | `8017237C..80172844` | 10 | 1,224 | 0 |
+| `ax/AXAux` | `80172844..80172CCC` | 13 | 1,160 | 0 |
+
+All 23 retained functions pass `verify_fn.py --build --strict-symbols`; both units
+pass `verify_unit.py --build`, and the linked image has zero differing bytes.
+Dead donor functions (`__AXCheckStacks`, `__AXPopFreeStack`, `__AXPushStackHead`,
+`__AXPopStackFromBottom`, `AXSetVoicePriority`, `AXRegisterAux{A,B}Callback`) and the
+inlined `__AXInitVoiceStacks` are stripped.
+
+The donors keep their file-scope statics. Declaring them `extern` changes code
+generation (the compiler reloads values around the callback), so the statics stay
+`static` and `tools/strip_unused.py --external-bss` now externalizes `.sbss` as well
+as `.bss`: each static is replaced by a reference to the `symbols.txt` object of the
+same name, and the emptied section drops to alignment 1 so it cannot pad the retail
+`.sbss` tail. The 17 AX bss/sbss labels were renamed to the donor names
+(`__AXStackHead`, `__AXBufferAuxA`, `__AXClMode`, and so on); storage stays in
+assembly fallback. `__AXSetPBDefault` is named from its `MATCH` row in the AXVPB probe.
+
+Remaining AX units (AXCL, AXOut, AXSPB, AXVPB) still carry `MISMATCH` or
+`CODE_SAME` rows that need comparing with retail before they can be promoted.

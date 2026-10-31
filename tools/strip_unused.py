@@ -70,11 +70,11 @@ class Elf:
         with open(path, 'wb') as f:
             f.write(out)
 
-BSS_LINE = re.compile(r'^(\S+)\s*=\s*\.bss:0x([0-9A-Fa-f]+);\s*//(.*)$')
+BSS_LINE = re.compile(r'^(\S+)\s*=\s*\.s?bss:0x([0-9A-Fa-f]+);\s*//(.*)$')
 
 
 def load_bss_symbols(path):
-    """Map DTK link names to (address, size) for the .bss entries of symbols.txt."""
+    """Map DTK link names to (address, size) for the .bss and .sbss entries of symbols.txt."""
     table = {}
     for line in Path(path).read_text().splitlines():
         m = BSS_LINE.match(line)
@@ -90,7 +90,7 @@ def load_bss_symbols(path):
     return table
 
 
-def externalize_bss(elf, table):
+def externalize_bss(elf, table, section='.bss'):
     """Turn BSS definitions into references to the fallback objects they were compiled at.
 
     The compiled layout must agree with symbols.txt: every defined object needs
@@ -98,7 +98,7 @@ def externalize_bss(elf, table):
     across the section and no gap that could hide another object. The section
     is then emptied, so only the retail BSS ranges remain in the link.
     """
-    bss = [i for i, name in enumerate(elf.names) if name == '.bss']
+    bss = [i for i, name in enumerate(elf.names) if name == section]
     if not bss:
         return
     bss = bss[0]
@@ -118,29 +118,29 @@ def externalize_bss(elf, table):
     end = 0
     for off, size, name, _ in objects:
         if name not in table:
-            sys.exit(f'strip_unused: .bss object {name} has no .bss symbol in symbols.txt')
+            sys.exit(f'strip_unused: {section} object {name} has no {section} symbol in symbols.txt')
         addr, table_size = table[name]
         if size > table_size:
-            sys.exit(f'strip_unused: .bss object {name} is {size:#x} bytes; symbols.txt allows {table_size:#x}')
+            sys.exit(f'strip_unused: {section} object {name} is {size:#x} bytes; symbols.txt allows {table_size:#x}')
         if base is None:
             base = addr - off
             if base % max(elf.sections[bss][8], 1):
-                sys.exit(f'strip_unused: .bss base {base:#x} violates section alignment')
+                sys.exit(f'strip_unused: {section} base {base:#x} violates section alignment')
         elif addr - off != base:
-            sys.exit(f'strip_unused: .bss object {name} sits at {off:#x} but symbols.txt places it at {addr:#x}')
+            sys.exit(f'strip_unused: {section} object {name} sits at {off:#x} but symbols.txt places it at {addr:#x}')
         if off < end:
-            sys.exit(f'strip_unused: .bss object {name} overlaps the previous object')
+            sys.exit(f'strip_unused: {section} object {name} overlaps the previous object')
         if off - end >= DATA_GRANULE:
             sys.exit(f'strip_unused: gap before .bss object {name} could hide an undefined object')
         end = off + size
     if len(elf.contents[bss]) - end >= DATA_GRANULE:
-        sys.exit('strip_unused: trailing .bss space is not covered by a symbols.txt object')
+        sys.exit(f'strip_unused: trailing {section} space is not covered by a symbols.txt object')
 
     def owner(offset):
         for off, size, name, index in objects:
             if off <= offset < off + size:
                 return off, name
-        sys.exit(f'strip_unused: .bss offset {offset:#x} is outside every object')
+        sys.exit(f'strip_unused: {section} offset {offset:#x} is outside every object')
     object_index = {i for _, _, _, i in objects}
     section_like = {i for i, s in enumerate(syms) if s[5] == bss and i not in object_index}
     names = bytearray(strs)
@@ -188,6 +188,7 @@ def externalize_bss(elf, table):
     elf.contents[symtab] = bytearray().join((struct.pack('>IIIBBH', *s) for s in new_syms))
     elf.sections[symtab][7] = next((k for k, s in enumerate(new_syms) if s[3] >> 4 != 0), len(new_syms))
     elf.contents[bss] = bytearray()
+    elf.sections[bss][8] = 1
 
 
 def main():
@@ -212,7 +213,9 @@ def main():
         sys.exit('strip_unused: target has no defined symbols')
     elf = Elf(open(args.object, 'rb').read())
     if args.external_bss:
-        externalize_bss(elf, load_bss_symbols(args.external_bss))
+        table = load_bss_symbols(args.external_bss)
+        for section in ('.bss', '.sbss'):
+            externalize_bss(elf, table, section)
     symtab = elf.index('.symtab')
     strtab = elf.sections[symtab][6]
     syms = [list(struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]

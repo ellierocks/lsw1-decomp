@@ -28,7 +28,9 @@ references the retail synchronization call label and externalizes its unused
 `__GXCurrentBP` definition. GXInit keeps the donor's static `FifoObj` and `gxData`
 because MWCC generates different code for externs; the build then replaces their
 `.bss` definitions with the fallback symbols (`strip_unused.py --external-bss`),
-and its small-data references use DTK names.
+and its small-data references use DTK names. `ax/AXAlloc.c` and `ax/AXAux.c` are
+unmodified donors that likewise keep their statics; `--external-bss` also
+replaces their `.sbss` definitions, so their storage stays in the fallback data.
 
 These units use Nintendo's CodeWarrior GC/1.2.5n release flags and the retail
 ProDG 3.9.3 linker. Compiler flags, per-file overrides and dead stripping follow
