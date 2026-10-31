@@ -73,27 +73,37 @@ def split_ranges(text, unit):
 
 
 MAX_ALIGN_TAIL = 32
+LAST_REFUSAL = ""
+
+
+def refuse(reason):
+    """Record why prove_unit gave up, so the caller can say more than "did not succeed"."""
+    global LAST_REFUSAL
+    LAST_REFUSAL = reason
+    return None
 LOCAL_BRANCH_OPCODES = {10: 18, 11: 16}
 
 
 def prove_unit(target, mine, ranges, symbols, dol):
     """Return proved section bases, or None. No name-only relocation matches."""
     if not ranges or dol is None:
-        return None
+        return refuse("no split ranges or no retail DOL")
     try:
         from tools.verify_fn import RELOC_TYPES, HALFWORD_TYPES, WORD_OR_HALF_TYPES
     except ModuleNotFoundError:
         from verify_fn import RELOC_TYPES, HALFWORD_TYPES, WORD_OR_HALF_TYPES
     def sections(elf):
         if any(section.sh_type == 9 for section in elf.sections):
-            return None  # SHT_REL is not decoded by the function verifier.
+            return refuse("SHT_REL sections are not decoded")
         result = {}
         for section in elf.sections:
             if section.flags & 2 and section.size:
                 if section.name in result or section.name not in ranges:
-                    return None
+                    return refuse(f"{section.name} is duplicated or has no split range")
                 result[section.name] = section
-        return result if set(result) == set(ranges) else None
+        if set(result) != set(ranges):
+            return refuse(f"object sections {sorted(result)} differ from split ranges {sorted(ranges)}")
+        return result
     ts, ms = sections(target), sections(mine)
     if ts is None or ms is None:
         return None
@@ -120,18 +130,19 @@ def prove_unit(target, mine, ranges, symbols, dol):
     for name, (start, end) in ranges.items():
         t, m = ts[name], ms[name]
         if t.size != end - start or t.sh_type != m.sh_type or t.flags != m.flags:
-            return None
+            return refuse(f"{name}: split range 0x{end - start:x}, target 0x{t.size:x}, donor 0x{m.size:x}, "
+                          "or type/flags differ")
         # The linker aligns the next object, so a donor data section may end
         # before its retail range. Only a short all-zero tail is accepted.
         pad = t.size - m.size
         if pad and not (0 < pad < MAX_ALIGN_TAIL and not t.flags & 4 and t.sh_type != 8):
-            return None
+            return refuse(f"{name}: donor section is {pad} bytes short of the retail range")
         # BSS has no retail bytes: do not infer uninitialised layout from zeroes.
         if t.sh_type == 8:
-            return None
+            return refuse(f"{name}: uninitialised sections have no retail bytes to prove")
         tb, mb, rb = bytearray(target.section_bytes(t)), bytearray(mine.section_bytes(m)), dol.read(start, t.size)
         if rb is None or len(tb) != t.size or len(mb) != m.size or len(rb) != t.size:
-            return None
+            return refuse(f"{name}: cannot read retail bytes")
         if pad:
             if any(tb[m.size:]) or any(rb[m.size:]):
                 return None
@@ -166,7 +177,8 @@ def prove_unit(target, mine, ranges, symbols, dol):
 
         tc, mc = canonical(target, tr), canonical(mine, mr)
         if tc is None or mc is None:
-            return None
+            return refuse(f"{name}: unsupported, duplicate or unresolved relocation in the "
+                          f"{'target' if tc is None else 'donor'} object")
         if code:
             # DTK emits a relocation for a branch back to its own function
             # entry; the assembler resolves it. Accept it only when the
@@ -185,17 +197,21 @@ def prove_unit(target, mine, ranges, symbols, dol):
         # The resolved address is the proof: a section symbol plus offset and a
         # named symbol with a zero addend are the same relocation target.
         if {o: (k, a, m) for o, (k, _, a, m) in tc.items()} != {o: (k, a, m) for o, (k, _, a, m) in mc.items()}:
-            return None
+            diff = sorted(o for o in set(tc) | set(mc) if tc.get(o) != mc.get(o))
+            return refuse(f"{name}: relocations differ at +0x{diff[0]:x} (target {tc.get(diff[0])}, "
+                          f"donor {mc.get(diff[0])}); {len(diff)} differing")
         clean_retail = bytearray(rb)
         for offset, (kind, _, address, mask) in tc.items():
             word = int.from_bytes(rb[offset:offset + 4], 'big')
             if not retail_relocation_matches(kind, address, start + offset, word, symbols, dol):
-                return None
+                return refuse(f"{name}: retail word at +0x{offset:x} does not encode relocation to 0x{address:x}")
             for body in (tb, mb, clean_retail):
                 word = int.from_bytes(body[offset:offset + 4], 'big') & ~mask & 0xffffffff
                 body[offset:offset + 4] = word.to_bytes(4, 'big')
         if tb != mb or tb != clean_retail:
-            return None
+            bad = next(i for i in range(len(tb)) if tb[i] != mb[i] or tb[i] != clean_retail[i])
+            return refuse(f"{name}: bytes differ at +0x{bad:x} (target {tb[bad]:02x}, donor {mb[bad]:02x}, "
+                          f"retail {clean_retail[bad]:02x})")
     return {name: start for name, (start, _) in ranges.items()}
 
 
@@ -255,7 +271,7 @@ def main(argv=None):
         print(f"FAIL: {args.unit}: {exc}", file=sys.stderr)
         return 1
     if proof is None:
-        print(f"FAIL: {args.unit}: full section and relocation proof did not succeed")
+        print(f"FAIL: {args.unit}: full section and relocation proof did not succeed: {LAST_REFUSAL}")
         return 1
     print(f"PASS: {args.unit}: {len(proof)} complete sections match retail")
     if not args.functions:

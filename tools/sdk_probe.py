@@ -49,6 +49,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -141,7 +142,7 @@ def prune_outliers(out: dict[str, tuple[str, str]], retail: list, index: dict[st
     best, lo, run = (0, 0, 0), 0, 0
     for hi, (_, _, _, w) in enumerate(items):
         run += w
-        while items[hi][0] + items[hi][1] - items[lo][0] > total:
+        while lo < hi and items[hi][0] + items[hi][1] - items[lo][0] > total:
             run -= items[lo][3]
             lo += 1
         if run > best[0]:
@@ -151,13 +152,34 @@ def prune_outliers(out: dict[str, tuple[str, str]], retail: list, index: dict[st
         del out[n]
 
 
+TINY = 16
+
+
+def same_code(elf: vf.Elf, f: vf.Symbol, retail_name: str, symbols: vf.SymbolTable,
+              dol: vf.Dol | None) -> bool:
+    """True when f's words equal the retail function's outside relocated fields."""
+    e = symbols.entries.get(retail_name)
+    raw = dol.read(e.addr, e.size) if dol is not None and e is not None else None
+    if raw is None or len(raw) != f.size:
+        return False
+    try:
+        insns = vf.extract_function(elf, f.name, f).insns
+    except vf.ToolError:
+        return False
+    return all(int.from_bytes(raw[n * 4:n * 4 + 4], "big") & ~i.mask & 0xFFFFFFFF == i.cmp
+               for n, i in enumerate(insns))
+
+
 def anchor(funcs: list[vf.Symbol], symbols: vf.SymbolTable,
-           known: dict[str, str] | None = None) -> dict[str, tuple[str, str]]:
+           known: dict[str, str] | None = None,
+           compatible: Callable[[vf.Symbol, str], bool] | None = None) -> dict[str, tuple[str, str]]:
     """Map compiled function name -> (retail symbol name, how).
 
     Walks outward from each name or code anchor through the retail function
     list. A compiled function takes the next retail function when sizes agree;
-    otherwise it is assumed dead-stripped by the linker and skipped.
+    otherwise it is assumed dead-stripped by the linker and skipped. A function of at
+    most TINY bytes also needs `compatible` code, because a getter and a setter of
+    one variable have the same size and both fit any slot of that size.
     """
     retail = sorted((e.addr, n, e.size) for n, e in symbols.entries.items()
                     if e.is_function and e.section in vf.CODE_SECTIONS and n not in symbols.duplicates)
@@ -180,11 +202,18 @@ def anchor(funcs: list[vf.Symbol], symbols: vf.SymbolTable,
                 g = funcs[j]
                 if g.name in out:
                     break
-                if retail[r][2] == g.size:
+                if retail[r][2] == g.size and (g.size > TINY or compatible is None
+                                               or compatible(g, retail[r][1])):
                     out[g.name] = (retail[r][1], f"layout from {f.name}")
                     r += step
                 j += step
     return out
+
+
+def anchor_unit(elf: vf.Elf, funcs: list[vf.Symbol], symbols: vf.SymbolTable,
+                dol: vf.Dol | None) -> dict[str, tuple[str, str]]:
+    return anchor(funcs, symbols, code_anchors(elf, funcs, symbols, dol),
+                  lambda f, retail: same_code(elf, f, retail, symbols, dol))
 
 
 def run_verify(retail: str, compiled: str, obj: Path) -> dict:
@@ -232,7 +261,7 @@ def probe(sdk: Path, unit: str, tmp: Path, symbols: vf.SymbolTable,
     elf = vf.Elf(obj)
     funcs = [f for f in elf.function_symbols() if f.size]
     dol = vf.load_dol(vf.DOL_PATH, [])
-    anchors = anchor(funcs, symbols, code_anchors(elf, funcs, symbols, dol))
+    anchors = anchor_unit(elf, funcs, symbols, dol)
     rows = []
     for f in funcs:
         if f.name not in anchors:
