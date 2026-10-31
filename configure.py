@@ -387,6 +387,7 @@ config.libs = [
         SDKObject("os/OSAudioSystem", Matching),
         SDKObject("os/OSError", Matching, external_bss=True),
         SDKObject("os/OSReset", Matching, external_bss=True),
+        SDKObject("os/OSSemaphore", Matching),
         SDKObject("os/OSSync", Matching),
         SDKObject("os/OSTime", Matching),
         SDKObject("os/OSMutex", Matching),
