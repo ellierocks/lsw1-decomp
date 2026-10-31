@@ -47,7 +47,7 @@ auto/nucore/nuheap.c:
 auto/nucore/nufilepak.c:
 	.text       start:0x80008CD8 end:0x80009948
 
-auto/nucore/ngc/nuerror_ngc.c:
+nucore/ngc/nuerror_ngc.c:
 	.text       start:0x80009948 end:0x800099D4
 
 auto/nucore/ngc/nufile_ngc_1.c:
