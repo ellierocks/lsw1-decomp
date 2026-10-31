@@ -27,3 +27,42 @@ f32 fn_8000C038(void)
     u.i = (v & 0x7fffff) | 0x3f800000;
     return u.f - 1.0f;
 }
+
+void fn_8000BF0C(f32* dst, f32* a, f32* b, f32* t)
+{
+    f32 d;
+    if (t != 0) {
+        dst[0] = *t;
+    } else {
+        dst[0] = 0.0f;
+    }
+    d = dst[0] - a[0];
+    dst[1] = a[1] + d * b[1] / b[0];
+    dst[2] = a[2] + d * b[2] / b[0];
+}
+
+void fn_8000BF70(f32* dst, f32* a, f32* b, f32* t)
+{
+    f32 d;
+    if (t != 0) {
+        dst[1] = *t;
+    } else {
+        dst[1] = 0.0f;
+    }
+    d = dst[1] - a[1];
+    dst[0] = a[0] + d * b[0] / b[1];
+    dst[2] = a[2] + d * b[2] / b[1];
+}
+
+void fn_8000BFD4(f32* dst, f32* a, f32* b, f32* t)
+{
+    f32 d;
+    if (t != 0) {
+        dst[2] = *t;
+    } else {
+        dst[2] = 0.0f;
+    }
+    d = dst[2] - a[2];
+    dst[0] = a[0] + d * b[0] / b[2];
+    dst[1] = a[1] + d * b[1] / b[2];
+}

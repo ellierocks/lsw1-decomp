@@ -63,3 +63,20 @@ void NuTexSetTextureDirect(void)
 void fn_8000AFB8(void)
 {
 }
+
+void fn_8000BCB0(f32* dst, f32* a, f32* b, f32 t)
+{
+    dst[0] = (1.0f - t) * a[0] + t * b[0];
+    dst[1] = (1.0f - t) * a[1] + t * b[1];
+    dst[2] = (1.0f - t) * a[2] + t * b[2];
+    dst[3] = (1.0f - t) * a[3] + t * b[3];
+}
+
+f32 fn_8000B264(f32 x)
+{
+    f32 f = (f32)(s32)x;
+    if (f > x) {
+        return f - 1.0f;
+    }
+    return f;
+}
