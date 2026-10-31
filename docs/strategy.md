@@ -156,7 +156,7 @@ Failure modes, in order of cost:
 - **GCC store and load order.** The scheduler does not follow source order. A shared
   `s32` local for repeated constants (`-1`, `0`) and an exhaustive search over store
   permutations (at most 7! compiles at 0.15 s) solved `fn_800127D8`, `fn_8002BE28` and
-  siblings. Do this before hand-tuning.
+  siblings. `tools/order_search.py` automates that search; run it before hand-tuning.
 - **Branch shape.** `return a != b;` and `if (a != b) return 1; return 0;` compile
   differently (`bnelr` early return only in the second). Try both forms and the inverted
   sense before suspecting types.

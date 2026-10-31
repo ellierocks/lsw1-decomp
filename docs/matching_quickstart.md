@@ -64,6 +64,14 @@ It takes well under a second and prints the verdict, score, exact instructions
 and the first difference. Change one source choice per attempt, guided by that
 first difference.
 
+If only the order of independent stores or loads differs, mark those statements
+with `/* order: begin */` and `/* order: end */` in a scratch copy and search every
+ordering ([order search](code_matching_workflow.md#store-and-load-order-search)):
+
+```sh
+python3 tools/order_search.py NAME work/NAME/order.c --const-locals -j 8
+```
+
 ## 5. Record and accept
 
 ```sh
