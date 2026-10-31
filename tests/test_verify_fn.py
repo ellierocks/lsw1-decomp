@@ -274,6 +274,17 @@ class SyntheticVerdictTests(Env):
         code, out, _ = self.run_tool()
         self.assertEqual(code, 1, out)
 
+    def test_relocated_recursive_call_matches(self):
+        # MWCC keeps the relocation on a static function's recursive bl.
+        funcs = [("Foo", [ADDI, BL, BLR, BLR]), ("Bar", [BLR, BLR])]
+        self.put("target", build_elf(funcs, relocs=[(4, R_REL24, "Foo", 0)]))
+        self.put("mine", build_elf(funcs, relocs=[(4, R_REL24, "Foo", 0)]))
+        code, out, _ = self.run_tool("--strict-symbols")
+        self.assertEqual(code, 0, out)
+        self.put("mine", build_elf(funcs, relocs=[(4, R_REL24, "Bar", 0)]))
+        code, out, _ = self.run_tool("--strict-symbols")
+        self.assertEqual(code, 1, out)
+
     def test_mwcc_halfword_sda21_offset_matches_word_offset(self):
         """MWCC places EMB_SDA21 at insn+2; DTK and GNU as place it at insn+0."""
         funcs = [("Foo", [SDA_LWZ, ADDI, BLR, BLR]), ("Bar", [BLR, BLR])]

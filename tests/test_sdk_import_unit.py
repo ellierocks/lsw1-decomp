@@ -301,6 +301,24 @@ class HeaderResolutionTests(unittest.TestCase):
         self.assertEqual(imp.add_root_flag(text), text)
 
 
+class DonorSideProposalTests(unittest.TestCase):
+    def test_retail_names_the_sdk_uses_are_not_rewritten_in_donor_copies(self):
+        Prop = type("Prop", (), {})
+        def prop(retail, donor):
+            p = Prop()
+            p.retail, p.donor = retail, donor
+            return p
+        with tempfile.TemporaryDirectory() as d:
+            sdk = Path(d)
+            (sdk / "src/dvd").mkdir(parents=True)
+            (sdk / "include").mkdir()
+            (sdk / "src/dvd/dvdfs.c").write_text("BOOL DVDPrepareStreamAsync(void) { return 0; }\n")
+            got = imp.donor_side_proposals([prop("DVDPrepareStreamAsync", "cbForStateMotorStopped"),
+                                            prop("fn_8016A2B0", "DVDCancelAsync"),
+                                            prop("DVDCancelAsync", "fn_801435B8")], sdk)
+        self.assertEqual(got, {"fn_8016A2B0": "DVDCancelAsync"})
+
+
 class FailureSummaryTests(unittest.TestCase):
     def test_the_explaining_lines_come_first_and_are_not_buried_by_the_tail(self):
         noise = [f"[{i}/90] MWCC build/x{i}.o" for i in range(60)]

@@ -604,7 +604,7 @@ def _self_entry_branch(t: Insn, m: Insn, index: int, mine: Func) -> bool:
 
 def _align_key(insn: Insn, index: int, func: Func, is_target: bool):
     ref = insn.ref
-    if is_target:
+    if is_target or ref is not None:
         entry = (ref is not None and not ref.is_section and ref.name == func.name
                  and not ref.addend and ref.rtype in (10, 11))
         rtype = ref.rtype if entry else None
