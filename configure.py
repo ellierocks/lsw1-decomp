@@ -367,6 +367,18 @@ config.libs = [
             Object(NonMatching, "numath/numtx.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "numath/nu_asm.c"),
             Object(NonMatching, "nu3dx/nuanim.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(Matching, "nucore/ngc/nuerror_ngc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/nudlist_1.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/nudlist_2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/numath/nutrig.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nucore/nustring.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nucore/ngc/nuthread.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/ngc/nuqfnt_ngc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/nutimebar.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/NuHGobjEval.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/ngc/nucamera.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/camera/socksys/socksys.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nungc/ps2dma.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             # Auto-generated fallback units (auto_NN_*) come from dtk's config.json;
             # native split produces their asm and objects, so they are not listed here.
         ],
