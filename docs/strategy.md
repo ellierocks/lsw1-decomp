@@ -169,7 +169,7 @@ Failure modes, in order of cost:
 #### Second measured batch
 
 The second leaf batch (`t3/phase3-leaf-batch-2`, lane `auto/nucore/*` and `auto/numath/*`)
-attempted 65 small functions across 11 `auto/` units and strictly matched 62
+attempted 64 small functions across 10 `auto/` units and strictly matched 62
 (`verify_fn.py --build --strict-symbols`). Parked: `NuFParGetWord` (71 insns, 13
 attempts) and `fn_8000DC80` (matrix-identity stores, about 2,700 order evaluations;
 `order_search.py` cannot cover 16 free stores). No unit was promoted: every touched
