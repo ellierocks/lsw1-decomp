@@ -76,3 +76,8 @@ existing rules, leaving the complete retained 56-byte constant pool.
 donors. Their initialized data is owned by their splits. CARDOpen and CARDCreate
 now use the proved `__CARDPermMask` symbol directly. The include search root
 `src/dolphin` resolves CARDMount/CARDNet's `os/__os.h` include.
+
+`os/OSRtc.c`, `os/OSFont.c` and `os/OSFatal.c` are unchanged donors. Their
+BSS statics stay in fallback storage and are externalized after compilation.
+OSFont owns its encoding tables and initialized constants; OSFatal owns its
+message format and conversion constants.

@@ -1442,3 +1442,62 @@ whole DOL remains byte-identical to retail with SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable checks and the 169-test
 suite with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped). CARDBios and
 CARDProgram remain fallback; this batch does not claim their promotion.
+
+## OS SRAM, fonts and fatal-screen batch
+
+From the CARD batch (`ecd95bf`, merged as `a371f5c`), three unchanged donors
+promote 26 functions and 8,964 code bytes. SDK units total 78. Matching reaches
+120,472 code bytes / 581 functions and 13,488 matched data bytes; the baseline
+was 111,508 / 555 and 13,412 data bytes. None of these units had promoted bytes
+on the baseline. DTK's report denominator is now 1,569,632 code bytes / 4,153
+functions after reanalysis with the corrected supporting names (previously
+1,569,628 / 4,152); only the proved unit bytes count as matching progress.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `os/OSRtc` | `80161724..8016220C` | 15 | 2,792 | 0 |
+| `os/OSFont` | `8015F5A4..80160130` | 7 | 2,956 | 2,848 |
+| `os/OSFatal` | `8018BE6C..8018CAFC` | 4 | 3,216 | 68 |
+
+Manual initialized-data splits follow unique complete donor-byte matches:
+OSFont's tables at `801E3278..801E3D88` (including six zero alignment bytes)
+and its constant at `8040B708..8040B710`; OSFatal's constant pool at
+`8040BCF0..8040BD30`. Small-data references establish OSFont's `FontEncode`
+at `80409FF8..8040A000` (two bytes plus six zero alignment bytes) and
+OSFatal's four-byte message format at `8040A2A8..8040A2AC`. The two four-byte
+labels at `8040B708` and `8040B70C` are one eight-byte donor constant. The
+16 bytes after OSFatal's last double stay fallback, with no ownership claim.
+
+OSRtc's existing local `Scb` fallback symbol becomes global so `--external-bss`
+can resolve the donor name. OSFont's four `.sbss` statics are named and the
+combined Sjis/fixed-pitch placeholder is split into two four-byte objects.
+OSFatal's existing `8030FBA8..8030FE80` fallback block is split into
+`FatalParam` (12 bytes), four alignment bytes and `FatalContext` (712 bytes).
+Their addresses follow the retail base-register accesses and donor layout.
+All BSS remains fallback; it is not promoted.
+
+Strict code identity corrects the SRAM callback/initializer names and the
+shifted VI retrace, callback and initialization names required by OSFatal.
+VIConfigure, VIConfigurePan and VIGetRetraceCount are supporting callee names,
+not additional promoted functions. `strlen` replaces the old call label;
+CARDOpen and CARDCreate drop their label alias and still strictly match.
+No compiler pins, oracle checks or existing unit boundaries change.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/os/OSRtc --build --functions
+python3 tools/verify_unit.py dolphin/os/OSFont --build --functions
+python3 tools/verify_unit.py dolphin/os/OSFatal --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDOpen --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDCreate --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+All 26 imported functions and eight complete sections pass. The full-unit
+gate proves 2,916 initialized bytes, although objdiff credits only 76 new data
+bytes (OSFont's eight-byte constant and OSFatal's 68 bytes). The whole DOL
+remains byte-identical to retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable workflow checks and
+169 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped). OSExec,
+OSThread and the VI unit still need their own promotion proof.
