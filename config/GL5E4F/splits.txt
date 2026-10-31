@@ -11,33 +11,267 @@ Sections:
 dolphin/si/SISamplingRateBSS.c:
 	.sbss       start:0x8040A920 end:0x8040A924
 
+auto/nucore/nufile_1.c:
+	.text       start:0x800034A0 end:0x800056E0
+
 nucore/nufile_size.c:
 	.text       start:0x800056E0 end:0x80005764
+
+auto/nucore/nufile_2.c:
+	.text       start:0x80005764 end:0x800058DC
 
 nucore/nufile.c:
 	.text       start:0x800058DC end:0x800059A0
 
+auto/nucore/nufile_3.c:
+	.text       start:0x800059A0 end:0x80005CC4
+
+auto/nucore/nufpar.c:
+	.text       start:0x80005CC4 end:0x80006B14
+
 nucore/nufpar.c:
 	.text       start:0x80006B14 end:0x80006F44
 
+auto/nucore/numem.c:
+	.text       start:0x80006F44 end:0x80007594
+
+auto/nucore/nustring.c:
+	.text       start:0x80007594 end:0x800082A4
+
+auto/nucore/rnc.c:
+	.text       start:0x800082A4 end:0x80008A60
+
+auto/nucore/nuheap.c:
+	.text       start:0x80008A60 end:0x80008CD8
+
+auto/nucore/nufilepak.c:
+	.text       start:0x80008CD8 end:0x80009948
+
+auto/nucore/ngc/nuerror_ngc.c:
+	.text       start:0x80009948 end:0x800099D4
+
+auto/nucore/ngc/nufile_ngc_1.c:
+	.text       start:0x800099D4 end:0x8000A3D0
+
 nucore/nufile_exists.c:
 	.text       start:0x8000A3D0 end:0x8000A40C
+
+auto/nucore/ngc/nufile_ngc_2.c:
+	.text       start:0x8000A40C end:0x8000A64C
+
+auto/nucore/ngc/nuthread.c:
+	.text       start:0x8000A64C end:0x8000A834
+
+auto/numath/nutrig.c:
+	.text       start:0x8000A834 end:0x8000BD10
+
+auto/numath/nugraph_1.c:
+	.text       start:0x8000BD10 end:0x8000C0C0
 
 numath/nurand.c:
 	.text       start:0x8000C0C0 end:0x8000C1B8
 	.sdata      start:0x80407B40 end:0x80407B64
 
+auto/numath/nugraph_2.c:
+	.text       start:0x8000C1B8 end:0x8000C634
+
 numath/nuvec.c:
 	.text       start:0x8000C634 end:0x8000CB50
+
+auto/numath/nugraph_3.c:
+	.text       start:0x8000CB50 end:0x8000DEF0
 
 numath/numtx.c:
 	.text       start:0x8000DEF0 end:0x8000E250
 
+auto/numath/nugraph_4.c:
+	.text       start:0x8000E250 end:0x8000E7E4
+
+auto/nu3d/nudlist_1.c:
+	.text       start:0x8000E7E4 end:0x8000E918
+
 numath/nu_asm.c:
 	.text       start:0x8000E918 end:0x8000E9BC
 
+auto/nu3d/nudlist_2.c:
+	.text       start:0x8000E9BC end:0x80012C44
+
+auto/nu3d/nuspecial.c:
+	.text       start:0x80012C44 end:0x8001384C
+
+auto/nu3d/nutexanm.c:
+	.text       start:0x8001384C end:0x800162A0
+
+auto/nu3d/nutimebar.c:
+	.text       start:0x800162A0 end:0x80016558
+
+auto/nu3d/nuanim_1.c:
+	.text       start:0x80016558 end:0x80016A98
+
 nu3dx/nuanim.c:
 	.text       start:0x80016A98 end:0x8001752C
+
+auto/nu3d/nuanim_2.c:
+	.text       start:0x8001752C end:0x80018F78
+
+auto/nu3d/NuHGobjEval.c:
+	.text       start:0x80018F78 end:0x8001B22C
+
+auto/nu3d/nuportal_gen.c:
+	.text       start:0x8001B22C end:0x8001EE20
+
+auto/nu3d/nuqfnt.c:
+	.text       start:0x8001EE20 end:0x800215CC
+
+auto/nu3d/ngc/nucamera.c:
+	.text       start:0x800215CC end:0x800244A8
+
+auto/nu3d/ngc/nugobj.c:
+	.text       start:0x800244A8 end:0x800248CC
+
+auto/nu3d/ngc/numtl.c:
+	.text       start:0x800248CC end:0x80024DB8
+
+auto/nu3d/ngc/nutex.c:
+	.text       start:0x80024DB8 end:0x80024F0C
+
+auto/nu3d/ngc/nurndr.c:
+	.text       start:0x80024F0C end:0x80027DC8
+
+auto/nu3d/ngc/nufont_ngc.c:
+	.text       start:0x80027DC8 end:0x80028138
+
+auto/nu3d/ngc/nugscn.c:
+	.text       start:0x80028138 end:0x8002A4B0
+
+auto/nu3d/ngc/nuhgobj.c:
+	.text       start:0x8002A4B0 end:0x8002B3A0
+
+auto/nu3d/ngc/nudlistngc.c:
+	.text       start:0x8002B3A0 end:0x8002BB60
+
+auto/nu3d/ngc/nuqfnt_ngc.c:
+	.text       start:0x8002BB60 end:0x8002C644
+
+auto/nu3d/ngc/nustream.c:
+	.text       start:0x8002C644 end:0x8002D0FC
+
+auto/nu3d/ngc/ngc_mtl.c:
+	.text       start:0x8002D0FC end:0x80033FA8
+
+auto/nu3d/ngc/ngc_video.c:
+	.text       start:0x80033FA8 end:0x80037C1C
+
+auto/nungc/ngcapi.c:
+	.text       start:0x80037C1C end:0x800395E8
+
+auto/nungc/ps2dma.c:
+	.text       start:0x800395E8 end:0x8003A214
+
+auto/gamelib/gcutscn.c:
+	.text       start:0x8003A214 end:0x80040A88
+
+auto/gamelib/glutils.c:
+	.text       start:0x80040A88 end:0x80040B4C
+
+auto/gamelib/ngc/saveload.c:
+	.text       start:0x80040B4C end:0x80042F58
+
+auto/nusound3/ngc/nusound.c:
+	.text       start:0x80042F58 end:0x800451B4
+
+auto/nusound3/ngc/NGCSound.c:
+	.text       start:0x800451B4 end:0x8004605C
+
+auto/nusound3/ngc/NGCStreaming.c:
+	.text       start:0x8004605C end:0x80047384
+
+auto/nusound3/ngc/NGCStreaming2.c:
+	.text       start:0x80047384 end:0x80048348
+
+auto/nufmv/ngc/nufmvmtl.c:
+	.text       start:0x80048348 end:0x80049AFC
+
+auto/nufmv/ngc/HVQM4PlayerEx.c:
+	.text       start:0x80049AFC end:0x80049DC0
+
+auto/gamelib/terrain.c:
+	.text       start:0x80049DC0 end:0x8005A3F8
+
+auto/gamelib/debris.c:
+	.text       start:0x8005A3F8 end:0x8006624C
+
+auto/gamelib/audio.c:
+	.text       start:0x8006624C end:0x8006EB40
+
+auto/rtl/rtl.c:
+	.text       start:0x8006EB40 end:0x80071E9C
+
+auto/effects/objects/part.c:
+	.text       start:0x80071E9C end:0x80072028
+
+auto/gui/gamemenu/apimenu.c:
+	.text       start:0x80072028 end:0x80078E40
+
+auto/gui/gamemenu/apisave.c:
+	.text       start:0x80078E40 end:0x8007AC0C
+
+auto/ai/aisys/aiscript.c:
+	.text       start:0x8007AC0C end:0x8007E3CC
+
+auto/ai/aisys/aisys.c:
+	.text       start:0x8007E3CC end:0x8008F434
+
+auto/characters/apiobject/apiobject.c:
+	.text       start:0x8008F434 end:0x80092E18
+
+auto/camera/socksys/socksys.c:
+	.text       start:0x80092E18 end:0x8009CD4C
+
+auto/game/main.c:
+	.text       start:0x8009CD4C end:0x800A20AC
+
+auto/game/creature.c:
+	.text       start:0x800A20AC end:0x800AB85C
+
+auto/game/levels.c:
+	.text       start:0x800AB85C end:0x800DBDE0
+
+auto/game/obstacle.c:
+	.text       start:0x800DBDE0 end:0x80108CCC
+
+auto/game/credits.c:
+	.text       start:0x80108CCC end:0x8010C570
+
+auto/game/config.c:
+	.text       start:0x8010C570 end:0x8011A9FC
+
+auto/game/cut.c:
+	.text       start:0x8011A9FC end:0x8011F17C
+
+auto/game/force.c:
+	.text       start:0x8011F17C end:0x8012724C
+
+auto/game/gameai.c:
+	.text       start:0x8012724C end:0x8012D13C
+
+auto/game/gameaiscript.c:
+	.text       start:0x8012D13C end:0x8013C4F4
+
+auto/game/pickups.c:
+	.text       start:0x8013C4F4 end:0x8013F304
+
+auto/game/rtlif.c:
+	.text       start:0x8013F304 end:0x8013FA74
+
+auto/game/turret.c:
+	.text       start:0x8013FA74 end:0x8014072C
+
+auto/game/chris.c:
+	.text       start:0x8014072C end:0x80146194
+
+auto/game/podrace.c:
+	.text       start:0x80146194 end:0x8015BEF4
 
 dolphin/base/PPCArch.c:
 	.text       start:0x8015BEF4 end:0x8015C008

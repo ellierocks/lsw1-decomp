@@ -84,6 +84,12 @@ class ProposedRangeTests(unittest.TestCase):
         units = tb.parse_splits(text)
         self.assertEqual([(u.name, u.sections) for u in units], [("auto/game/a.c", {".text": (0x100, 0x140)})])
 
+    def test_rerun_replaces_auto_units(self):
+        base = "Sections:\n\t.text type:code\n\ngame/b.c:\n\t.text       start:0x00000110 end:0x00000120\n"
+        once = tb.splits_with(base, [("auto/game/a.c", 0x100, 0x110)])
+        self.assertEqual(tb.splits_with(tb.without_auto(once), [("auto/game/a.c", 0x100, 0x110)]), once)
+        self.assertEqual([u.name for u in tb.parse_splits(tb.without_auto(once))], ["game/b.c"])
+
 
 if __name__ == "__main__":
     unittest.main()
