@@ -1779,3 +1779,62 @@ python3 tools/matching_progress.py
 All 24 functions and three complete sections pass. The other 14 card units still
 pass. The whole DOL remains byte-identical to retail, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+## VI, pad and EXI batch
+
+Three unchanged donors promote 64 functions and 21,692 code bytes. Rebased after the
+CARD bios batch, SDK units total 89, and SDK matching reaches 165,680 code bytes / 740
+functions and 15,138 matched data bytes. When this batch was first measured from `5e3b54a`,
+`NuVecRotateAxis` also moved from 99.64% to 100% in the objdiff report for a reason this
+batch does not explain; it strictly matches under `verify_fn.py --strict-symbols`.
+None of the units had promoted bytes on the baseline. The probe's `MISMATCH` rows were
+dead-stripped donor functions: no version-drift fix was needed.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `exi/EXIBios` | `80163984..80165360` | 23 | 6,620 | 328 |
+| `vi/vi` | `8016BEC0..8016E058` | 22 | 8,600 | 1,008 |
+| `pad/Pad` | `8016E29C..8016FBE4` | 19 | 6,472 | 120 |
+
+Data ranges come from unique complete donor-byte matches, including the alignment bytes
+before the next owner: EXIBios `.data` `801F5918..801F5A28` and `.sdata` `8040A008..8040A040`,
+vi `.data` `801F6748..801F6B30` (its jump table `@740` ends the range) and `.sdata`
+`8040A0E8..8040A0F8` (`__VIVersion` and the `"vi.c"` string), Pad `.data`
+`801F6B30..801F6B88` and `.sdata` `8040A0F8..8040A118`. The importer gained `--data
+SECTION=START..END` for this (see [Importing a unit quickly](#importing-a-unit-quickly)).
+Pad's `SamplingHandler` (`8016FAB4`) and `PADSetSamplingCallback` (`8016FB14`) are Pad
+functions; the earlier si/SISteeringAuto anchors on them were false.
+
+`.bss` and `.sbss` stay fallback. `symbols.txt` follows the donor layout so
+`--external-bss` can bind the compiled statics:
+
+- VI's `lbl_802F4AB8` (`0xF0`) is two `u16[59]` arrays, `regs` and `shdwRegs`, 8-byte
+  aligned (`0x78` each). Every retail access uses `802F4AB8` as the base register.
+  `message$360` is the function-local static in `VIGetTvFormat`, named as the compiler does.
+- A donor static needs a global symbol for `strip_unused.py` (a `scope:local` entry is looked
+  up as `NAME_<address>`), so VI's `CurrTvMode`, EXI's `Ecb` and `IDSerialPort1` and Pad's
+  `Type` (`802F4C00`) lose the flag. SIBios also has a local `.data` `Type`; `SymbolTable`
+  now keeps a global and a local of one name apart (the local resolves as `Type_801F5A80`),
+  while two globals or two locals stay duplicates.
+- Pad's static `OnReset` (`8016F9F8`) is referenced from its `.data` and must carry its donor
+  name. A second local `OnReset` (OSMemory) would make both unverifiable by name, so Pad's
+  is `PADOnReset` in `symbols.txt` and `Pad.c`; a static function's identifier does not
+  change the code.
+
+Callee names follow: `EXIInit`, `getTiming`, `GetCurrentDisplayPosition`, `VIGetNextField`,
+`PADRead` and the CodeWarrior runtime labels `__shr2u` and `__shl2i`.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/exi/EXIBios --build --functions
+python3 tools/verify_unit.py dolphin/vi/vi --build --functions
+python3 tools/verify_unit.py dolphin/pad/Pad --build --functions
+python3 tools/verify_unit.py dolphin/os/OSMemory --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+All three units pass three complete sections and every function strictly (23, 22 and 19);
+OSMemory still passes six of six. The whole DOL remains byte-identical to retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`.
+Portable workflow checks and 178 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped).

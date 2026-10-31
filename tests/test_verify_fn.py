@@ -386,6 +386,30 @@ class SyntheticDataTests(Env):
         self.assertIn("retail SHA-1", err)
 
 
+class SymbolScopeTests(unittest.TestCase):
+    def table(self, *lines):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "symbols.txt"
+            path.write_text("\n".join(lines) + "\n")
+            return vf.SymbolTable(path)
+
+    def test_global_and_local_of_one_name_stay_distinct(self):
+        for order in (0, 1):
+            rows = ["Type = .data:0x801F5A80; // type:object size:0x10 scope:local",
+                    "Type = .bss:0x802F4C00; // type:object size:0x10"]
+            t = self.table(*rows[::1 - 2 * order])
+            self.assertEqual(t.addr("Type"), 0x802F4C00)
+            self.assertEqual(t.addr("Type_801F5A80"), 0x801F5A80)
+            self.assertNotIn("Type", t.duplicates)
+
+    def test_two_locals_or_two_globals_of_one_name_remain_duplicates(self):
+        for scope in (" scope:local", ""):
+            t = self.table(f"OnReset = .text:0x80160BB8; // type:function size:0x3C{scope}",
+                           f"OnReset = .text:0x8016F9F8; // type:function size:0xBC{scope}")
+            self.assertIn("OnReset", t.duplicates)
+            self.assertIsNone(t.addr("OnReset"))
+
+
 class UnitProofCoverageTests(unittest.TestCase):
     def comparer(self, proof):
         return vf.Comparer(None, None, proof)

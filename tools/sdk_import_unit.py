@@ -3,10 +3,11 @@
 
 Handles the common shape, a unit whose retail footprint is a single .text range plus
 optional file-scope .bss/.sbss statics (built with external_bss). Units that also own
-initialised data (.data, .rodata, .sdata, .sdata2) are reported as manual work.
+initialised data (.data, .rodata, .sdata, .sdata2) need their retail ranges given with --data.
 
     python3 tools/sdk_import_unit.py ax/AXAux           # plan only, writes nothing
     python3 tools/sdk_import_unit.py ax/AXAux --apply   # import, rebuild and prove
+    python3 tools/sdk_import_unit.py vi/vi --data .data=0x801F6748..0x801F6B30 --apply
 
 --apply does what a hand import does:
   1. copy the donor source (and donor-local headers) under src/dolphin/
@@ -52,6 +53,7 @@ SPLITS = ROOT / "config/GL5E4F/splits.txt"
 SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
 CONFIGURE = ROOT / "configure.py"
 BSS_SECTIONS = {".bss", ".sbss"}
+DATA_ORDER = (".rodata", ".data", ".sdata", ".sdata2")
 UNNAMED = re.compile(r"^(?:fn|lbl|jumptable)_[0-9A-F]{8}$")
 LOCAL_SUFFIX = re.compile(r"^(.+)_([0-9A-F]{8})$")
 INCLUDE = re.compile(r'^\s*#\s*include\s+([<"])([^>"]+)[>"]', re.M)
@@ -87,8 +89,10 @@ def split_blocks(text: str) -> list[tuple[str, int, int | None]]:
     return blocks
 
 
-def insert_split_block(text: str, unit: str, start: int, end: int) -> str:
-    """Insert `dolphin/<unit>.c` with its .text range after the block with the next lower start."""
+def insert_split_block(text: str, unit: str, start: int, end: int,
+                       data: dict[str, tuple[int, int]] | None = None) -> str:
+    """Insert `dolphin/<unit>.c` with its .text range, then any `data` ranges, after the block
+    with the next lower start."""
     name = f"dolphin/{unit}.c:"
     if any(h == name for h, _, _ in split_blocks(text)):
         raise ImportError_(f"splits.txt already has {name}")
@@ -101,6 +105,9 @@ def insert_split_block(text: str, unit: str, start: int, end: int) -> str:
     while j < len(lines) and lines[j].strip():
         j += 1
     block = [name, f"\t.text       start:0x{start:08X} end:0x{end:08X}"]
+    for sec in DATA_ORDER:
+        if data and sec in data:
+            block.append(f"\t{sec:<11} start:0x{data[sec][0]:08X} end:0x{data[sec][1]:08X}")
     if j == len(lines):
         lines += [""] + block
     else:
@@ -342,6 +349,7 @@ class Plan:
     retail_funcs: int = 0
     external_bss: bool = False
     manual_sections: dict[str, int] = field(default_factory=dict)
+    data_ranges: dict[str, tuple[int, int]] = field(default_factory=dict)
     headers: list[tuple[Path, Path]] = field(default_factory=list)
     new_include_dir: bool = False
     new_root_flag: bool = False
@@ -388,7 +396,9 @@ def plan_headers(plan: Plan, sdk: Path, source: str, flag_dirs: set[str], has_ro
         plan.new_include_dir = True
 
 
-def make_plan(unit: str, sdk: Path, tmp: Path) -> tuple[Plan, Path]:
+def make_plan(unit: str, sdk: Path, tmp: Path,
+              data_ranges: dict[str, tuple[int, int]] | None = None) -> tuple[Plan, Path]:
+    data_ranges = data_ranges or {}
     plan = Plan(unit, unit.split("/")[0])
     source = sdk / "src" / f"{unit}.c"
     if not source.is_file():
@@ -435,9 +445,14 @@ def make_plan(unit: str, sdk: Path, tmp: Path) -> tuple[Plan, Path]:
                 plan.external_bss = True
             else:
                 plan.manual_sections[sec.name] = sec.size
-    if plan.manual_sections:
-        plan.errors.append("unit owns initialised data needing split ranges by hand: "
-                           + ", ".join(f"{n} {s:#x}" for n, s in plan.manual_sections.items()))
+    short = {n: s for n, s in plan.manual_sections.items()
+             if n not in data_ranges or data_ranges[n][1] - data_ranges[n][0] < s}
+    if short:
+        plan.errors.append("unit owns initialised data needing split ranges by hand (--data SECTION=START..END): "
+                           + ", ".join(f"{n} {s:#x}" for n, s in short.items()))
+    plan.data_ranges = {n: r for n, r in data_ranges.items() if n in plan.manual_sections}
+    for n in data_ranges.keys() - plan.manual_sections.keys():
+        plan.errors.append(f"--data {n}: the donor unit has no {n} section")
     config = CONFIGURE.read_text()
     plan_headers(plan, sdk, source.read_text(errors="replace"), configure_flag_dirs(config),
                  configure_has_root(config))
@@ -679,7 +694,7 @@ def apply(plan: Plan, sdk: Path, raw_obj: Path, verify: bool, accept: bool = Fal
     for src, dst in plan.headers:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
-    splits = insert_split_block(SPLITS.read_text(), unit, plan.start, plan.end)
+    splits = insert_split_block(SPLITS.read_text(), unit, plan.start, plan.end, plan.data_ranges)
     SPLITS.write_text(splits)
     config = CONFIGURE.read_text()
     if plan.new_include_dir:
@@ -749,7 +764,14 @@ def apply(plan: Plan, sdk: Path, raw_obj: Path, verify: bool, accept: bool = Fal
 
 def doc_row(plan: Plan) -> str:
     return (f"| `{plan.unit}` | `{plan.start:08X}..{plan.end:08X}` | {plan.retail_funcs} | "
-            f"{plan.end - plan.start:,} | 0 |")
+            f"{plan.end - plan.start:,} | {sum(e - b for b, e in plan.data_ranges.values()):,} |")
+
+
+def parse_data_range(text: str) -> tuple[str, tuple[int, int]]:
+    m = re.fullmatch(r"(\.(?:rodata|data|sdata|sdata2))=(?:0x)?([0-9A-Fa-f]+)\.\.(?:0x)?([0-9A-Fa-f]+)", text)
+    if not m or int(m[2], 16) >= int(m[3], 16):
+        raise argparse.ArgumentTypeError(f"expected .data=START..END with START < END, got {text!r}")
+    return m[1], (int(m[2], 16), int(m[3], 16))
 
 
 def main(argv=None) -> int:
@@ -759,15 +781,19 @@ def main(argv=None) -> int:
     ap.add_argument("--no-verify", action="store_true", help="with --apply, stop after renaming")
     ap.add_argument("--accept-name-conflicts", action="store_true",
                     help="apply name-conflict proposals backed by identical code (never rejected renames)")
+    ap.add_argument("--data", action="append", default=[], metavar="SECTION=START..END", type=parse_data_range,
+                    help="retail range of an initialised-data section the unit owns, e.g. "
+                         ".data=0x801F6748..0x801F6B2C (repeatable; padding up to the next owner may be included)")
     ap.add_argument("--sdk", type=Path, default=None, help="dolsdk2004 checkout (default: shared cache)")
     args = ap.parse_args(argv)
+    args.data = dict(args.data)
     sdk = (args.sdk or sdk_probe.default_sdk()).resolve()
     if not (sdk / "src").is_dir():
         print(f"error: no dolsdk2004 checkout at {sdk}; run tools/fetch_dolsdk.sh", file=sys.stderr)
         return 2
     try:
         with tempfile.TemporaryDirectory(prefix="sdk_import_") as d:
-            plan, raw_obj = make_plan(args.unit, sdk, Path(d))
+            plan, raw_obj = make_plan(args.unit, sdk, Path(d), args.data)
             print_plan(plan)
             if plan.errors:
                 return 1

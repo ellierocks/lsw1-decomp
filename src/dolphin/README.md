@@ -88,3 +88,7 @@ names that collide with `os/OSMemory` become `CARDOnReset` and
 `CARDResetFunctionInfo`. CARDOpen and CARDCreate use the proved
 `__CARDDiskNone` symbol directly. `card/CARDProgram.c` is not vendored: retail
 does not link it (see `docs/sdk_import.md`).
+
+`exi/EXIBios.c`, `vi/vi.c` and `pad/Pad.c` are unchanged donors except that Pad's
+static `OnReset` is `PADOnReset`, because OSMemory already has a local `OnReset`. Each owns
+its initialized data; BSS stays in fallback storage.

@@ -230,10 +230,14 @@ def linker_symbols() -> dict[str, int]:
 
 
 class SymbolTable:
+    shadowed_locals: dict[str, SymEntry] = {}
+
     def __init__(self, path: Optional[Path] = None):
         path = SYMBOLS if path is None else path
         self.entries: dict[str, SymEntry] = {}
         self.duplicates: set[str] = set()
+        self.shadowed_locals = {}
+        local: dict[str, bool] = {}
         try:
             lines = Path(path).read_text(errors="replace").splitlines()
         except OSError as e:
@@ -246,10 +250,22 @@ class SymbolTable:
             sz = _SIZE.search(rest)
             entry = SymEntry(sec, addr, int(sz.group(1), 16) if sz else 0,
                              "type:function" in rest)
+            is_local = "scope:local" in rest
             if name in self.entries:
+                # A local and a global of one name stay distinct: split objects name the
+                # local NAME_<address>, and the unsuffixed name is the global.
+                if is_local != local[name] and name not in self.duplicates:
+                    old = self.entries[name]
+                    if local[name]:
+                        self.shadowed_locals[f"{name}_{old.addr:08X}"] = old
+                        self.entries[name], local[name] = entry, False
+                    else:
+                        self.shadowed_locals[f"{name}_{addr:08X}"] = entry
+                    continue
                 self.duplicates.add(name)
                 continue
             self.entries[name] = entry
+            local[name] = is_local
 
     def function(self, name: str) -> SymEntry:
         if name in self.duplicates:
@@ -265,7 +281,7 @@ class SymbolTable:
     def addr(self, name: str) -> Optional[int]:
         e = self.entries.get(name)
         if e is None:
-            e = self._dtk_local(name)
+            e = self.shadowed_locals.get(name) or self._dtk_local(name)
         if e is None and name not in self.duplicates:
             return linker_symbols().get(name)
         return e.addr if e and name not in self.duplicates else None

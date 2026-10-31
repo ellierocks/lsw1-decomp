@@ -292,7 +292,7 @@ cflags_mw_sdk = [
     "-enum int", "-warn pragmas", "-requireprotos", '-pragma "cats off"',
     "-O4,p", "-inline auto", "-D__GEKKO__", "-DSDK_REVISION=1", "-DRELEASE",
     "-char unsigned", "-I-", "-i include", "-i include/dolphin", "-i include/dolphin/libc",
-    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/ax", "-i src/dolphin/card", "-i src/dolphin",
+    "-i src/dolphin/gx", "-i src/dolphin/os", "-i src/dolphin/dsp", "-i src/dolphin/ax", "-i src/dolphin/card", "-i src/dolphin/vi", "-i src/dolphin/pad", "-i src/dolphin",
 ]
 
 
@@ -404,11 +404,12 @@ config.libs = [
         SDKObject("os/OSMemory", Matching),
         SDKObject("os/OSFatal", Matching, external_bss=True),
     ]),
-    DolphinLib("exi", [SDKObject("exi/EXIUart", Matching)]),
+    DolphinLib("exi", [SDKObject("exi/EXIBios", Matching, external_bss=True), SDKObject("exi/EXIUart", Matching)]),
     DolphinLib("si", [SDKObject("si/SIBios", Matching, external_bss=True), SDKObject("si/SISamplingRate", Matching),
                       Object(NonMatching, "dolphin/si/SISamplingRateBSS.c")]),
     DolphinLib("db", [SDKObject("db/db", Matching)]),
-    DolphinLib("pad", [SDKObject("pad/Padclamp", Matching)]),
+    DolphinLib("vi", [SDKObject("vi/vi", Matching, external_bss=True)]),
+    DolphinLib("pad", [SDKObject("pad/Padclamp", Matching), SDKObject("pad/Pad", Matching, external_bss=True)]),
     DolphinLib("dvd", [SDKObject("dvd/dvdfs", Matching, external_bss=True), SDKObject("dvd/dvd", Matching, external_bss=True), SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching, external_bss=True)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
