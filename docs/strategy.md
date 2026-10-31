@@ -104,9 +104,18 @@ not verify BSS.
    [proposed TU boundaries](build_config.md#proposed-game-tu-boundaries).
 2. Add a provisional unit per TU with assembly fallback. A split change must
    not change the relinked DOL. Mark boundaries provisional and revise them on
-   evidence, never to raise a score.
+   evidence, never to raise a score. **Done:** 78 `auto/` `.text` units are
+   committed. Phase 3 does not wait for the remaining boundary and data work.
+   Revise a boundary when it blocks promoting a TU.
 
 ### Phase 3: agent draft-and-climb for game code
+
+Throughput is the measure. Run Phase 3 in parallel batches: one worktree thread
+per TU or leaf-function cluster, a capped number of attempts per function, and
+a plateau note for each function left unmatched. Record matched functions per
+agent-hour after each batch and choose the next lanes by that rate. Build the
+shared `nu2` headers early, starting with the structs the most-called functions
+touch, because every later draft reuses them.
 
 For each queued function:
 

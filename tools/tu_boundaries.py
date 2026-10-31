@@ -15,9 +15,9 @@ block (for example `../nu2api.legogc/nucore/ngc_obj/../nufile.c`), so the path s
 Alignment padding is not used. Every pair of consecutive functions tiles exactly, at known
 unit boundaries too, so it carries no signal.
 
-The result is a report. It never edits `config/`. With `--write-splits`, it also writes a
-complete candidate `splits.txt`: existing units are kept, and provisional `auto/` `.text`
-units are cut around them. Use it to check that a relinked DOL stays byte-identical.
+The result is a report. With `--write-splits`, it also writes a complete `splits.txt`:
+existing units are kept, earlier `auto/` units are replaced, and provisional `auto/`
+`.text` units are cut around the rest. Check that a relinked DOL stays byte-identical.
 TUs with no path string are absorbed into a neighbour, and a boundary between functions
 that have no evidence can move freely. The report gives the range of equally good start
 addresses for each TU.
@@ -349,6 +349,11 @@ def proposed_ranges(segs, anchors, functions, units, sdk_start) -> list[tuple[st
     return out
 
 
+def without_auto(splits_text: str) -> str:
+    """Drop provisional `auto/` units so a rerun replaces them instead of cutting around them."""
+    return re.sub(r"\n*^auto/[^\n]*:\n(?:[ \t]+[^\n]*\n?)*", "\n", splits_text, flags=re.M)
+
+
 def splits_with(splits_text: str, ranges: list[tuple[str, int, int]]) -> str:
     blocks = "".join(f"\n{name}:\n\t.text       start:0x{a:08X} end:0x{b:08X}\n" for name, a, b in ranges)
     return splits_text.rstrip("\n") + "\n" + blocks
@@ -405,7 +410,7 @@ def main(argv=None) -> int:
     if not args.dol.exists():
         print(f"error: missing {args.dol}; run tools/bootstrap.sh", file=sys.stderr)
         return 2
-    splits_text = SPLITS.read_text()
+    splits_text = without_auto(SPLITS.read_text())
     anchors, functions, segs, keep, units, sdk_start = analyse(args.dol.read_bytes(), sx.SYMBOLS, splits_text, mac_order())
     rows = report(anchors, functions, segs, keep, units)
     args.tsv.parent.mkdir(parents=True, exist_ok=True)

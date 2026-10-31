@@ -51,9 +51,13 @@ without evidence that the target needs them.
 
 ### Proposed game TU boundaries
 
-`python3 tools/tu_boundaries.py --write-splits work/splits_proposed.txt` proposes
-`.text` units for the game and Nu2 code below the first Dolphin split. It writes
-`work/tu_boundaries.tsv` and never edits `config/`. Its evidence:
+`tools/tu_boundaries.py` proposes `.text` units for the game and Nu2 code below
+the first Dolphin split and writes `work/tu_boundaries.tsv`. The committed
+`splits.txt` carries its 78 provisional `auto/` units. To regenerate them after
+a symbol or split change, run
+`python3 tools/tu_boundaries.py --write-splits config/GL5E4F/splits.txt`.
+This replaces the existing `auto/` blocks and keeps every other unit. Check that
+the DOL still matches before committing. Its evidence:
 
 - **`__FILE__` strings.** Each TU's `.rodata` block holds its own source path,
   for example `../nu2api.legogc/nucore/ngc_obj/../nufile.c`. The blocks follow
@@ -73,10 +77,15 @@ gap before each one. With the current symbols, it assigns 3316 functions to
 slack. The `start_range` column gives the equally good start addresses for each
 TU, and the DP picks the earliest.
 
-Applying the 78 resulting `auto/` units, cut around existing splits and
-appended after them, links a byte-identical DOL (SHA-1
-`95cca08a19224775d1a8d6cc64601fb7d0080981`). The report grows from 149 to
-217 units, and an incremental rebuild takes about 9 s.
+The 78 `auto/` units are cut around existing splits and appended after them.
+They link a byte-identical DOL (SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`),
+and an incremental rebuild takes about 9 s.
+
+The `auto/` units are provisional and give game code a target object per TU.
+When a TU's C is matched, give its unit the real path (for example
+`gamelib/terrain.c`), drop the `auto/` prefix, and fix the boundary from the
+matched code. Change a boundary only on evidence. Revise it first where it
+blocks promotion, such as an absorbed TU.
 
 Limits:
 
