@@ -198,20 +198,15 @@ struct NUBLENDGEOM_s {
 // ----- Game Object -----
 
 struct nugobj_s {
-    struct nugobj_s* sysnext;
-    struct nugobj_s* syslast;
-    enum gobjtype_s type;
-    struct nugeom_s* geom;
-    void* faceon_geom;
-    f32 bounding_radius_from_origin;
-    f32 bounding_rsq_from_origin;
-    struct nuvec_s bounding_box_min, max, center;
-    f32 bounding_radius_from_center;
-    f32 bounding_rsq_from_center;
-    s32 ngobjs;
-    struct nugobj_s* next_gobj;
-    struct nuvec_s origin;
-    s32 ignore, culltype;
+    u8 unknown00[0x14];
+    f32 boundingRadiusFromOrigin;
+    u8 unknown18[4];
+    struct nuvec_s boundingBoxMin;
+    struct nuvec_s boundingBoxMax;
+    struct nuvec_s boundingBoxCenter;
+    f32 boundingRadiusFromCenter;
+    u8 unknown44[8];
+    struct nugobj_s* nextGobj;
 };
 
 // ----- Lights -----
@@ -253,18 +248,55 @@ struct NUNODE_s {
 
 struct nuinstance_s {
     struct numtx_s mtx;
-    s32 objid;
-    s32 flags;
-    void* anim;
-    s16 room_group;
-    char special_flag;
+    s16 objid;
+    u8 unknown42[2];
+    u32 visible : 1;
+    u32 onScreen : 1;
+    u32 unknownFlag2 : 1;
+    u32 noVisiTest : 1;
+    u32 unknownFlags4 : 28;
+    struct numtx_s* animMtx;
+    u8 unknown4C[4];
 };
 
 struct nuspecial_s {
     struct numtx_s mtx;
     struct nuinstance_s* instance;
     char* name;
-    s32 flags;
+    u8 unknown48[8];
+};
+
+#define NUDISPLAYSPECIAL_VISIBLE 0x2
+#define NUDISPLAYSPECIAL_NOVISITEST 0x80
+
+struct nudisplayspecial_s {
+    struct numtx_s mtx;
+    struct numtx_s drawMtx;
+    struct nuvec_s boundsMin;
+    u8 unknown8C[4];
+    struct nuvec_s boundsMax;
+    u8 unknown9C[4];
+    struct nuvec_s center;
+    f32 radius;
+    u8 unknownB0[4];
+    char* name;
+    u32 flags;
+    u8 unknownBC[4];
+    s32 instanceIx;
+    struct numtx_s* animMtx;
+    u8 unknownC8[8];
+};
+
+struct nudisplayscene_s {
+    u8 unknown00[0x6C];
+    s32 numSpecials;
+    struct nudisplayspecial_s* specials;
+};
+
+struct nuhspecial_s {
+    struct nugscn_s* scene;
+    struct nuspecial_s* special;
+    struct nudisplayspecial_s* display;
 };
 
 struct nuscene_s {
@@ -286,33 +318,14 @@ struct nuscene_s {
 };
 
 struct nugscn_s {
-    s16* tids;
-    s32 numtid;
-    struct numtl_s** mtls;
-    s32 nummtl;
-    s32 numgobj;
+    u8 unknown00[0x14];
     struct nugobj_s** gobjs;
-    s32 numinstance;
+    s32 numInstance;
     struct nuinstance_s* instances;
-    s32 numspecial;
+    s32 numSpecial;
     struct nuspecial_s* specials;
-    void* splinedata;
-    s32 numsplines;
-    void* splines;
-    char* nametable;
-    s32 numexspecials;
-    struct nuspecial_s* exspecials;
-    s32 exallocix;
-    void* instanimblock;
-    void** instanimdata;
-    s32 numinstanims, numinstanceixs;
-    s16* instanceixs;
-    s16 crossfade, crossfaderate;
-    s32 crossfadegobj, crossfadefirst;
-    s32 numtexanims;
-    void* texanims;
-    s16* texanim_tids;
-    s16* instancelightix;
+    u8 unknown28[0x178];
+    struct nudisplayscene_s* displayScene;
 };
 
 // ----- Hierarchical GO -----
@@ -364,10 +377,5 @@ struct NUHGOBJ_s {
     s16* texanim_tids;
     u8 num_joints, num_joint_ixs, num_layers, num_points_of_interest, num_poi_ixs, shadowoff;
 };
-
-// ----- Functions -----
-
-struct nuinstance_s* NuSpecialFind(struct nuscene_s* scene, char* name);
-s32 NuSpecialFindMulti(struct nuscene_s* scene, char* name, struct nuinstance_s** out, s32 max);
 
 #endif

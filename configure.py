@@ -379,6 +379,7 @@ config.libs = [
             Object(NonMatching, "auto/nu3d/ngc/nucamera.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/camera/socksys/socksys.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nungc/ps2dma.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nu3d/nuspecial.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             # Auto-generated fallback units (auto_NN_*) come from dtk's config.json;
             # native split produces their asm and objects, so they are not listed here.
         ],

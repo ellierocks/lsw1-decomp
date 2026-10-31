@@ -17,4 +17,8 @@ typedef s32 fileHandle;
 typedef int UNKWORD;
 typedef void UNKTYPE;
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
 #endif
