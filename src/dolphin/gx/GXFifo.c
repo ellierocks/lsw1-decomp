@@ -5,8 +5,7 @@
 
 #include "__gx.h"
 
-extern void lbl_8015BF2C(void);
-#define PPCSync lbl_8015BF2C
+extern void PPCSync(void);
 
 extern __GXFifoObj* lbl_8040AC70;
 extern __GXFifoObj* lbl_8040AC74;

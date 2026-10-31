@@ -5,7 +5,7 @@
 
 #include "__gx.h"
 
-extern void lbl_8015BF2C(void);
+extern void PPCSync(void);
 extern GXDrawSyncCallback lbl_8040AC90;
 extern GXDrawDoneCallback lbl_8040AC94;
 extern u8 lbl_8040AC98;
@@ -54,7 +54,7 @@ void GXFlush(void) {
     GX_WRITE_U32(0);
     GX_WRITE_U32(0);
 
-    lbl_8015BF2C();
+    PPCSync();
 }
 
 void GXResetWriteGatherPipe(void) {

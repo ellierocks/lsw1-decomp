@@ -376,6 +376,7 @@ config.libs = [
         SDKObject("mtx/mtxvec", Matching),
         SDKObject("mtx/mtx44", Matching),
     ]),
+    DolphinLib("base", [SDKObject("base/PPCArch", Matching)]),
     DolphinLib("os", [
         SDKObject("os/OSAlloc", Matching),
         SDKObject("os/OSLink", Matching),
