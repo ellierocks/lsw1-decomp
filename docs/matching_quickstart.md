@@ -30,6 +30,12 @@ rather than a game function, skip to `tools/sdk_import_unit.py` in
 
 ## 2. Pick a target
 
+Follow the current phase in [strategy](strategy.md): SDK import first, then
+whole-binary splits, then agent draft-and-climb for game code. Claim one library,
+TU or function per worktree branch. Naming and donor mining serve that target.
+For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
+`python3 tools/sdk_import_unit.py UNIT --apply` imports and proves a unit.
+
 ```sh
 python3 tools/next_target.py
 ```
