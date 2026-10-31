@@ -373,6 +373,7 @@ config.libs = [
             Object(NonMatching, "auto/numath/nutrig.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/nustring.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/nufpar.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nucore/nufilepak.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/ngc/nuthread.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nuqfnt_ngc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/nutimebar.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
