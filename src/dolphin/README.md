@@ -21,15 +21,16 @@ definitions that retail dead-stripped, plus `dvd/dvderror.c`, `dvd/dvdidutils.c`
 `ax/AXProf.c` and `exi/EXIUart.c`, which declare their retail `.sbss` statics
 `extern` (and drop dead-stripped donor functions where retail has none):
 their unverified BSS references are externalized to DTK fallback names so storage
-remains in assembly fallback. CARDDir uses `lbl_8030E320` for the shared card
-control block. GXMisc also references a retail call label directly and omits
+remains in assembly fallback. CARDDir and the other card files use `__CARDBlock` for
+the shared card control block. GXMisc also references a retail call label directly and omits
 two functions whose strings are outside the retained retail unit. GXFifo also
 references the retail synchronization call label and externalizes its unused
 `__GXCurrentBP` definition. GXInit keeps the donor's static `FifoObj` and `gxData`
 because MWCC generates different code for externs; the build then replaces their
 `.bss` definitions with the fallback symbols (`strip_unused.py --external-bss`),
-and its small-data references use DTK names. `ax/AXAlloc.c` and `ax/AXAux.c` are
-unmodified donors that likewise keep their statics; `--external-bss` also
+and its small-data references use DTK names. `ax/AXAlloc.c`, `ax/AXAux.c`, `ax/AXCL.c`,
+`ax/AXOut.c`, `os/OSMessage.c`, `os/OSSemaphore.c`, `os/OSResetSW.c` and `card/CARDRdwr.c`
+are unmodified donors that likewise keep their statics; `--external-bss` also
 replaces their `.sbss` definitions, so their storage stays in the fallback data.
 
 `tools/sdk_import_unit.py` copies donor sources and donor-local headers verbatim; the

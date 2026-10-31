@@ -8,7 +8,7 @@
 
 #include "__card.h"
 
-extern CARDControl lbl_8030E320[2];
+extern CARDControl __CARDBlock[2];
 
 // prototypes
 static void CreateCallbackFat(s32 chan, s32 result);
@@ -19,7 +19,7 @@ static void CreateCallbackFat(s32 chan, s32 result) {
     CARDDir* ent;
     CARDCallback callback;
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     callback = card->apiCallback;
     card->apiCallback = NULL;
 

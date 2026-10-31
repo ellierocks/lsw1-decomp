@@ -2,7 +2,7 @@
 
 #include "__card.h"
 
-extern CARDControl lbl_8030E320[2];
+extern CARDControl __CARDBlock[2];
 
 // prototypes
 static void CARDWriteWriteCallback(s32 chan, s32 result);
@@ -16,7 +16,7 @@ static void CARDWriteWriteCallback(s32 chan, s32 result) {
     CARDDir* ent;
     CARDFileInfo* fileInfo;
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     if (result >= 0) {
         fileInfo = card->fileInfo;
         if (fileInfo->length < 0) {
@@ -61,7 +61,7 @@ static void CARDWriteEraseCallback(s32 chan, s32 result) {
     CARDCallback callback;
     CARDFileInfo* fileInfo;
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     if (result >= 0) {
         fileInfo = card->fileInfo;
         ASSERTLINE(161, OFFSET(fileInfo->offset, card->sectorSize) == 0);

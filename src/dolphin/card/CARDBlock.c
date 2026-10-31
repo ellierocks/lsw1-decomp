@@ -2,7 +2,7 @@
 
 #include "__card.h"
 
-extern CARDControl lbl_8030E320[2];
+extern CARDControl __CARDBlock[2];
 
 // prototypes
 static void CARDBlockWriteCallback(s32 chan, s32 result);
@@ -19,7 +19,7 @@ static void CARDBlockWriteCallback(s32 chan, s32 result) {
     u16* fat0;
     u16* fat1;
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
 
     if (result >= 0) {
         fat0 = (u16*)((u8*)card->workArea + 0x6000);
@@ -47,7 +47,7 @@ static void CARDBlockWriteCallback(s32 chan, s32 result) {
 }
 
 static void CARDBlockEraseCallback(s32 chan, s32 result) {
-    CARDControl* card = &lbl_8030E320[chan];
+    CARDControl* card = &__CARDBlock[chan];
     CARDCallback callback;
     u16* fat;
     u32 addr;
@@ -85,7 +85,7 @@ s32 __CARDAllocBlock(s32 chan, u32 cBlock, CARDCallback callback) {
     ASSERTLINE(182, 0 < cBlock);
     ASSERTLINE(183, 0 <= chan && chan < 2);
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     if (!card->attached)
         return CARD_RESULT_NOCARD;
 
@@ -128,7 +128,7 @@ s32 __CARDFreeBlock(s32 chan, u16 nBlock, CARDCallback callback) {
 
     ASSERTLINE(253, 0 <= chan && chan < 2);
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     if (!card->attached)
         return CARD_RESULT_NOCARD;
 
@@ -152,7 +152,7 @@ s32 __CARDUpdateFatBlock(s32 chan, u16* fat, CARDCallback callback) {
 
     ASSERTLINE(295, 0 <= chan && chan < 2);
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     ++fat[2];
     __CARDCheckSum(fat + 2, 0x1FFC, fat, fat + 1);
     DCStoreRange(fat, 0x2000);

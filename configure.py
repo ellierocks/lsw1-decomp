@@ -420,6 +420,7 @@ config.libs = [
         SDKObject("card/CARDWrite", Matching),
         SDKObject("card/CARDDelete", Matching),
         SDKObject("card/CARDStat", Matching),
+        SDKObject("card/CARDRdwr", Matching),
     ]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),

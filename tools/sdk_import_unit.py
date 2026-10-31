@@ -434,10 +434,12 @@ def apply(plan: Plan, sdk: Path, raw_obj: Path, verify: bool) -> list[str]:
     renames, pairing = compute_renames(plan, raw_obj, target_obj)
     log = [f"rename {old} -> {new}" for old, new in sorted(renames.items())]
     if renames:
-        for old in renames:
+        for old, new in renames.items():
             for path in list((ROOT / "src").rglob("*.[ch]")):
-                if re.search(rf"\b{re.escape(old)}\b", path.read_text(errors="replace")):
-                    log.append(f"warning: {old} is also used in {path.relative_to(ROOT)}")
+                text = path.read_text(errors="replace")
+                if re.search(rf"\b{re.escape(old)}\b", text):
+                    path.write_text(re.sub(rf"\b{re.escape(old)}\b", new, text))
+                    log.append(f"note: renamed {old} -> {new} in {path.relative_to(ROOT)}")
         SYMBOLS.write_text(rename_symbols(SYMBOLS.read_text(), renames))
     log += [f"note: {n}" for n in pairing.notes] + [f"manual: {c}" for c in dict.fromkeys(pairing.conflicts)]
     if not verify:

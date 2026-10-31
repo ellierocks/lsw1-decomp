@@ -2,7 +2,7 @@
 
 #include "__card.h"
 
-extern CARDControl lbl_8030E320[2];
+extern CARDControl __CARDBlock[2];
 
 // prototypes
 static void CARDDeleteDeleteCallback(s32 chan, s32 result);
@@ -11,7 +11,7 @@ static void CARDDeleteDeleteCallback(s32 chan, s32 result) {
     CARDControl* card;
     CARDCallback callback;
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     callback = card->apiCallback;
     card->apiCallback = NULL;
 
