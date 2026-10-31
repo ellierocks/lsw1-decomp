@@ -81,3 +81,10 @@ now use the proved `__CARDPermMask` symbol directly. The include search root
 BSS statics stay in fallback storage and are externalized after compilation.
 OSFont owns its encoding tables and initialized constants; OSFatal owns its
 message format and conversion constants.
+
+`card/CARDBios.c` is the donor with two edits for version drift: retail calls
+`__OSInitAlarm` (declared locally, as in `dvd/dvdlow.c`), and the two static
+names that collide with `os/OSMemory` become `CARDOnReset` and
+`CARDResetFunctionInfo`. CARDOpen and CARDCreate use the proved
+`__CARDDiskNone` symbol directly. `card/CARDProgram.c` is not vendored: retail
+does not link it (see `docs/sdk_import.md`).

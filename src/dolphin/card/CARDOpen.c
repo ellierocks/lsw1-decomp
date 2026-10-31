@@ -1,4 +1,3 @@
-#define __CARDDiskNone lbl_8030E540
 #define memcmp Menu_SetupDisplay
 #define strncpy lbl_80156184
 

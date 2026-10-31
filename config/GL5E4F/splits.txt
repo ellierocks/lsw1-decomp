@@ -258,6 +258,11 @@ dolphin/dsp/dsp_task.c:
 	.text       start:0x801756F4 end:0x80175F78
 	.data       start:0x801FA740 end:0x801FA880
 
+dolphin/card/CARDBios.c:
+	.text       start:0x80175F78 end:0x801773A0
+	.data       start:0x801FA880 end:0x801FA8D8
+	.sdata      start:0x8040A148 end:0x8040A150
+
 dolphin/card/CARDBlock.c:
 	.text       start:0x801773A0 end:0x801777A4
 

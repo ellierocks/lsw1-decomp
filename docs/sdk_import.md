@@ -1723,3 +1723,59 @@ python3 tools/matching_progress.py
 
 Every function strictly matches and every complete section matches retail. The whole
 DOL remains byte-identical to retail, SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+## CARD bios batch
+
+The donor `card/CARDBios.c` promotes 24 functions and 5,160 code bytes. Rebased after
+the OS thread batch, SDK units total 86, and matching reaches 149,304 code bytes / 712
+functions and 14,014 matched data bytes.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `card/CARDBios` | `80175F78..801773A0` | 24 | 5,160 | 96 |
+
+The probe's single `MISMATCH` was version drift, not different code: the April 2004
+OS calls `__OSInitAlarm` where the donor calls `OSInitAlarm`, which left an
+unresolved relocation. CARDBios declares `__OSInitAlarm` locally, as `dvd/dvdlow.c`
+does, and all 24 functions match strictly. Both static names that collide with
+`os/OSMemory` (`OnReset`, `ResetFunctionInfo`) are renamed `CARDOnReset` and
+`CARDResetFunctionInfo`, as OSAlarm does with `AlarmOnReset`, because
+`--strict-symbols` refuses a name defined twice.
+
+Retail names were shifted by one across the unit and are corrected from strict code
+identity: `TimeoutHandler` (`801765E4`), `__CARDStart` (`80176A38`), `CARDInit`
+(`80176FDC`), `__CARDSetDiskID` (`80177090`) and `CARDOnReset` (`80177334`, which
+had carried the dead-stripped `__CARDSync` name; its remaining callers are
+dead-stripped sync wrappers). Statics are marked `scope:local` except the two
+`.sbss` halfwords, which `--external-bss` can only resolve as global.
+
+Manual data ownership: `.data 801FA880..801FA8D8` is the 0x46-byte version string,
+two alignment bytes and the 16-byte reset record, and `.sdata 8040A148..8040A150`
+is `__CARDVersion` (pointer to the string) and `__CARDFreq` (4, `EXI_FREQ_16M`).
+The `.sdata` and `.data` bytes were compared with the donor's complete compiled
+sections. `__CARDDiskNone` (`8030E540`, 0x20), `__CARDEncode` and `__CARDFastMode`
+(`.sbss 8040AC40`, `8040AC42`) are named from the retail base-register accesses in
+`CARDInit` and `CARDGetFastMode`. All BSS remains fallback.
+
+**CARDProgram is not in retail.** The probe reports `CODE_SAME` and `MISMATCH`, but
+both anchors are the already promoted `CARDRead` functions: `ProgramCallback` is
+code-identical to `CARDReadReadCallback` (same shape, `__CARDWrite` in place of
+`__CARDRead`), and `CARDProgramAsync` was layout-anchored to `CARDReadAsync`, which it
+equals in size only. The importer refuses the unit because `8017A6D8..8017A94C` lies
+inside the `CARDRead` split. The card splits are contiguous from `CARDBios` to
+`CARDRdwr` with no gap for a further object, and the probe finds no code anchor for
+`CARDProgram` or for `CARDProgramAsync`, so the object was not linked into LSW1. It is not imported and
+no symbols change.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/card/CARDBios --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDOpen --build --functions
+python3 tools/verify_unit.py dolphin/card/CARDCreate --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+All 24 functions and three complete sections pass. The other 14 card units still
+pass. The whole DOL remains byte-identical to retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`.
