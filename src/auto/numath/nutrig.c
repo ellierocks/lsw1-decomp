@@ -51,3 +51,15 @@ f32 fn_8000B2C4(f32 a, f32 b)
 {
     return a - (s32)(a / b) * b;
 }
+
+void NuTexGetDDS(void)
+{
+}
+
+void NuTexSetTextureDirect(void)
+{
+}
+
+void fn_8000AFB8(void)
+{
+}
