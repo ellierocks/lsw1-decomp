@@ -429,6 +429,7 @@ config.libs = [
         SDKObject("dsp/dsp_task", Matching),
     ]),
     DolphinLib("card", [
+        SDKObject("card/CARDBios", Matching, external_bss=True),
         SDKObject("card/CARDBlock", Matching),
         SDKObject("card/CARDDir", Matching),
         SDKObject("card/CARDCheck", Matching),
