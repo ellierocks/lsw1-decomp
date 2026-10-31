@@ -400,6 +400,35 @@ class UnitProofCoverageTests(unittest.TestCase):
         self.assertFalse(self.comparer(None).unit_proof_covers((".sdata2", 0), section, 4, 0x1000))
 
 
+class LinkerSymbolTests(unittest.TestCase):
+    def table(self, ld_text, rows=(), duplicates=()):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        ld = Path(d) / "ldscript.ld"
+        ld.write_text(ld_text)
+        t = vf.SymbolTable.__new__(vf.SymbolTable)
+        t.entries = {n: vf.SymEntry(".text", a, 4, True) for n, a in rows}
+        t.duplicates = set(duplicates)
+        return t, mock.patch.object(vf, "LDSCRIPT", ld)
+
+    def test_ldscript_assignment_resolves_a_missing_name(self):
+        t, patch = self.table(" _stack_end = 0x8040BD40;\n __ArenaHi = 0x81780000;\n")
+        with patch:
+            self.assertEqual(t.addr("_stack_end"), 0x8040BD40)
+            self.assertEqual(t.addr("__ArenaHi"), 0x81780000)
+            self.assertIsNone(t.addr("nowhere"))
+
+    def test_symbols_txt_wins_over_the_ldscript(self):
+        t, patch = self.table(" Foo = 0x1;\n", rows=[("Foo", 0x80001000)])
+        with patch:
+            self.assertEqual(t.addr("Foo"), 0x80001000)
+
+    def test_duplicate_names_stay_unresolved(self):
+        t, patch = self.table(" Foo = 0x1;\n", duplicates=["Foo"])
+        with patch:
+            self.assertIsNone(t.addr("Foo"))
+
+
 class ErrorHandlingTests(Env):
     def test_truncated_object_is_error_not_mismatch(self):
         self.target()

@@ -1590,3 +1590,64 @@ Both units pass three complete sections and every function strictly. The whole D
 remains byte-identical to retail, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. The portable workflow checks pass, and so
 do 176 tests with `VERIFY_FN_REQUIRE_RETAIL=1` (one skipped).
+
+## OS thread, init, exec and EABI batch
+
+From `0b1151b`, four more OS units are promoted: `os/__ppc_eabi_init`, `os/OSThread`,
+`os/OS` and `os/OSExec`. They add 46 functions and 10,336 code bytes, and SDK units
+total 85. Matching reaches 144,144 code bytes / 688 functions; the baseline was
+133,808 / 642. Data reaches 13,918 matched bytes, up from 13,888.
+
+| Unit (under `dolphin/`) | Retail range, end exclusive | Functions | Owned initialized data |
+|---|---|---:|---|
+| `os/__ppc_eabi_init` | `.init 80003464..8000348C` | 2 | none |
+| `os/OSThread` | `.text 801623B8..801637C4` | 22 | `.data 801E3E68..801E4678`, `.sdata 8040A000..8040A008` |
+| `os/OS` | `.text 8015C008..8015CAD4` | 14 | `.data 801E2338..801E2530`, `.sdata 80409FC8..80409FD8` |
+| `os/OSExec` | `.text 8015EC44..8015F5A4` | 8 | `.data 801E3268..801E3273`, `.sdata 80409FF0..80409FF3` |
+
+`sdk_import_unit.py` refuses units that sit in `.init` or own initialized data, so the
+splits, `SDKObject` entries and data ranges were added by hand. Each data range is the
+unique full-byte match of the donor's `.data` or `.sdata` in the retail DOL (relocated
+words wildcarded); the `.sdata` of OSExec is the three bytes of `"%d"`.
+
+- **OSTimer is a false unit.** The probe's range `8015CF8C..8015D20C` lies inside the
+  promoted OSAlarm split, so there is nothing to import.
+- **Version drift (May 2004 rebuild).** Source edits keep the retail bytes: the
+  `.init` `__init_user` is an empty `blr` (the donor calls `__init_cpp`);
+  `OSInit` calls `__OSInitAlarm`, not `OSInitAlarm`; and the three `__OSDBINTEND`
+  expressions in `OSExceptionInit` use `__OSDBJUMPSTART`, because dtk keeps one
+  label per address and the value is the same.
+- **Run is one function.** dtk had split the asm `Run` (`8015EDCC`, `0x3C` bytes) at
+  its first `blr` into `fn_8015EDCC` and `fn_8015EDF4`; `symbols.txt` now has one
+  `Run` symbol. Its unreachable tail is part of the donor body.
+- **Name collisions.** OS's static `BootInfo` is `OSBootInfoPtr` in source, because
+  fstload owns a local `BootInfo` at `8040A930`. OSExec's static `Callback` is
+  `ExecCallback` (the DVD `Callback` at `8040A9D0` is a different object), and
+  `apploaderPosition` moves from function scope to file scope so that the compiler's
+  `$NN` suffix does not hide it from `strip_unused.py --external-bss`.
+- **Retail labels fixed.** `Menu_AddOption` (`801541B4`) is ProDG `sprintf`, `lbl_80155FB4`
+  is `strcpy`, and `DVDInit` at `801680CC` replaces an earlier `DVDInit` mislabel;
+  the stale `.text` symbol `__DVDLongFileNameFlag` became `fn_`. OSReset's
+  `__OSRebootParams` is now a real symbol instead of a `#define` for `lbl_802F3B30`.
+- **Linker symbols.** dtk synthesizes undefined relocations to `_stack_addr`,
+  `_stack_end`, `__ArenaLo` and `__ArenaHi`. `ldscript.ld` defines them with the
+  retail values (the old `_stack_end` value was wrong), and
+  `verify_fn.SymbolTable.addr` falls back to the link script's absolute assignments
+  for names `symbols.txt` lacks, so the verifier and the link agree. A test covers the
+  fallback.
+- **BSS.** OSThread, OS and OSExec use `external_bss=True`; their statics were made
+  global in `symbols.txt` so that `strip_unused.py` can map them by name. All BSS
+  remains fallback.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/os/__ppc_eabi_init --build --functions
+python3 tools/verify_unit.py dolphin/os/OSThread --build --functions
+python3 tools/verify_unit.py dolphin/os/OS --build --functions
+python3 tools/verify_unit.py dolphin/os/OSExec --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+Every function strictly matches and every complete section matches retail. The whole
+DOL remains byte-identical to retail, SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
