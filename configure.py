@@ -379,6 +379,7 @@ config.libs = [
     DolphinLib("base", [SDKObject("base/PPCArch", Matching)]),
     DolphinLib("os", [
         SDKObject("os/OSAlloc", Matching),
+        SDKObject("os/OSFont", Matching, external_bss=True),
         SDKObject("os/OSLink", Matching),
         SDKObject("os/OSMessage", Matching),
         SDKObject("os/OSReboot", Matching),
@@ -389,6 +390,7 @@ config.libs = [
         SDKObject("os/OSError", Matching, external_bss=True),
         SDKObject("os/OSReset", Matching, external_bss=True),
         SDKObject("os/OSResetSW", Matching, external_bss=True),
+        SDKObject("os/OSRtc", Matching, external_bss=True),
         SDKObject("os/OSSemaphore", Matching),
         SDKObject("os/OSSync", Matching),
         SDKObject("os/OSTime", Matching),
@@ -396,6 +398,7 @@ config.libs = [
         SDKObject("os/OSCache", Matching),
         SDKObject("os/OSInterrupt", Matching),
         SDKObject("os/OSMemory", Matching),
+        SDKObject("os/OSFatal", Matching, external_bss=True),
     ]),
     DolphinLib("exi", [SDKObject("exi/EXIUart", Matching)]),
     DolphinLib("si", [SDKObject("si/SIBios", Matching, external_bss=True), SDKObject("si/SISamplingRate", Matching),
