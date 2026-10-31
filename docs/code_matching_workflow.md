@@ -32,6 +32,14 @@ Metrowerks linker settings do not identify the game's compiler.
 The compiler audit, RTL dump instructions and the SN GCC v1.79 evaluation moved to
 [compiler evaluation](compiler_evaluation.md). The pin stays ProDG 3.9.3 (`cc1.exe`, v1.76).
 
+## Coding conventions
+
+- Function names: `Nu{Subsystem}{Verb}` (engine), `Action_*`/`Condition_*` (dispatch).
+- Struct tags: `nu{name}_s` (engine), `NU{NAME}_s` (game).
+- Fields: `camelCase`; error strings: `str_FunctionName_Description`.
+- Four-space C indentation; follow surrounding code.
+- No comments in decomp source unless explaining a subtle match constraint.
+
 ## Select and prepare
 
 1. Read current symbol evidence and rejected renames. Prefer a small function with

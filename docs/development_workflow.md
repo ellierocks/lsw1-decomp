@@ -46,7 +46,9 @@ python3 tools/matching_progress.py     # objdiff matching summary
 
 Run the retail checks locally when a change touches splitting, configuration,
 compiler wiring, candidate sources or the report. Pure tooling changes need only the
-portable checks.
+portable checks. Documentation-only changes need local link validation,
+migrated-content preservation review and `git diff --check`, without unrelated
+software builds. Required current-head CI still applies.
 
 Before proposing a C candidate for matching, verify it with `tools/verify_fn.py`
 (see [code matching workflow](code_matching_workflow.md)). A candidate is not linked
@@ -92,7 +94,8 @@ and never print the key in logs. Rotation steps are in
 
 C matching sessions follow the bounded [matching loop](code_matching_workflow.md#measure-and-iterate). PRs
 retain the baseline, best attempt, target addresses and exact verification
-commands. Local experiment snapshots stay under ignored `work/`; include a
+commands, promoted bytes and remaining limits. Local experiment snapshots stay
+under ignored `work/`; include a
 concise explanation of what improved and whether any bytes were promoted.
 
 Symbol naming and matched code are separate measures. Naming (`config/GL5E4F/symbols.txt`)
