@@ -140,6 +140,38 @@ record the corrected parser layout and the next small-target queue. The
 string/math helpers, AI conditions, accessors and cutscene helpers, with
 explicit exclusions for changed TCS behavior.
 
+#### First measured batch
+
+The first leaf batch (`t3/phase3-leaf-batch-1`) attempted 51 small functions across
+11 `auto/` units plus `nuerror_ngc`, and strictly matched 50 (`verify_fn.py --build
+--strict-symbols`). `fn_8000A64C` is parked at 49/50. The objdiff report counts 46 new
+matches (+1,616 code bytes, 773 to 819 functions): four float-literal functions
+(`fn_8000ED40`, `NuFdiv`, `fn_8000B234`, `fn_8000B2C4`) are strict matches whose literal
+reloc reads `.rodata` rather than the `lbl_` symbol, so objdiff shows 98 to 99%. Only
+`nuerror_ngc` was promoted; `nudlist_1` is complete but is half of the `nudlist.c` TU,
+and merging the halves would move a split.
+
+Failure modes, in order of cost:
+
+- **GCC store and load order.** The scheduler does not follow source order. A shared
+  `s32` local for repeated constants (`-1`, `0`) and an exhaustive search over store
+  permutations (at most 7! compiles at 0.15 s) solved `fn_800127D8`, `fn_8002BE28` and
+  siblings. Do this before hand-tuning.
+- **Branch shape.** `return a != b;` and `if (a != b) return 1; return 0;` compile
+  differently (`bnelr` early return only in the second). Try both forms and the inverted
+  sense before suspecting types.
+- **Missing types.** Off-SDA data needs `extern T x[]` (array of unknown size) to get
+  `lis`/`lfs` instead of an SDA21 access.
+- **Handler thunks.** `fn_80009948` returns a function pointer that is called with the
+  message; model it as `((void(*)(char*, ...))fn(file, line))(msg)`.
+- **Out of scope for C.** Paired-single (`psq_l`/`ps_*`) functions are hand-written asm.
+
+decomp-permuter is **not** wired end to end. `score_fn.py --compile-only -o` produces the
+object, but the checkout is not fetched by `bootstrap.sh`, and nothing generates the
+per-function `compile.sh` wrapper (`score_fn.py NAME "$1" --compile-only -o "$3"`),
+`target.o` or `settings.toml`, or scores through the strict verifier. Close plateaus
+such as `fn_8000A64C` wait on that.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
