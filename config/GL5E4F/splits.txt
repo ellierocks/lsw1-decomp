@@ -198,6 +198,14 @@ dolphin/ax/AXCL.c:
 dolphin/ax/AXOut.c:
 	.text       start:0x80173404 end:0x80173C10
 
+dolphin/ax/AXVPB.c:
+	.text       start:0x801740D8 end:0x801753CC
+	.data       start:0x801F6CA8 end:0x801F6D80
+	.sdata2     start:0x8040B7A0 end:0x8040B7D8
+
+dolphin/ax/AXComp.c:
+	.data       start:0x801F6D80 end:0x801F87C0
+
 dolphin/ax/AXProf.c:
 	.text       start:0x801753CC end:0x80175414
 
