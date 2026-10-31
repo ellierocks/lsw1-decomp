@@ -8,7 +8,8 @@ static s16 __AXOutBuffer[3][320];
 static s32 __AXOutSBuffer[160];
 static u16 __AXDramImage[8192];
 static DSPTaskInfo __AXDSPTask;
-AXPROFILE __AXLocalProfile;
+/* Retail places __AXStudio at the 0x30-byte mark, so axNumVoices overlaps it. */
+u64 __AXLocalProfile[6];
 
 volatile static u32 __AXOutFrame;
 volatile static u32 __AXAiDmaFrame;
@@ -34,7 +35,7 @@ void __AXOutNewFrame(u32 lessDspCycles) {
     u8* dest;
     u32 i;
 
-    __AXLocalProfile.axFrameStart = OSGetTime();
+    ((AXPROFILE*)__AXLocalProfile)->axFrameStart = OSGetTime();
     __AXSyncPBs(lessDspCycles);
     __AXPrintStudio();
     cl = __AXGetCommandListAddress();
@@ -46,16 +47,16 @@ void __AXOutNewFrame(u32 lessDspCycles) {
     do {} while (DSPCheckMailToDSP() != 0);
 
     __AXServiceCallbackStack();
-    __AXLocalProfile.auxProcessingStart = OSGetTime();
+    ((AXPROFILE*)__AXLocalProfile)->auxProcessingStart = OSGetTime();
     __AXProcessAux();
-    __AXLocalProfile.auxProcessingEnd = OSGetTime();
-    __AXLocalProfile.userCallbackStart = OSGetTime();
+    ((AXPROFILE*)__AXLocalProfile)->auxProcessingEnd = OSGetTime();
+    ((AXPROFILE*)__AXLocalProfile)->userCallbackStart = OSGetTime();
 
     if (__AXUserFrameCallback) {
         __AXUserFrameCallback();
     }
 
-    __AXLocalProfile.userCallbackEnd = OSGetTime();
+    ((AXPROFILE*)__AXLocalProfile)->userCallbackEnd = OSGetTime();
     __AXNextFrame(__AXOutSBuffer, &__AXOutBuffer[__AXOutFrame][0]);
     __AXOutFrame += 1;
 
@@ -66,14 +67,14 @@ void __AXOutNewFrame(u32 lessDspCycles) {
         AIInitDMA((u32)&__AXOutBuffer[__AXOutFrame][0], 0x280);
     }
 
-    __AXLocalProfile.axFrameEnd = OSGetTime();
-    __AXLocalProfile.axNumVoices = __AXGetNumVoices();
+    ((AXPROFILE*)__AXLocalProfile)->axFrameEnd = OSGetTime();
+    ((AXPROFILE*)__AXLocalProfile)->axNumVoices = __AXGetNumVoices();
     profile = (void*)__AXGetCurrentProfile();
 
     if (profile) {
         i = 56;
         dest = (u8*)profile;
-        src = (u8*)&__AXLocalProfile;
+        src = (u8*)__AXLocalProfile;
 
         while (i != 0) {
             *dest = *src;
