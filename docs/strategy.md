@@ -58,11 +58,27 @@ Naming only counts when it unblocks a matching target.
 - `verify_fn.py` accepts MWCC's halfword-placed `EMB_SDA21` relocations.
 - Wrong SDK names in game code were removed. See `rejected_renames.tsv`.
 
-### Phase 1: SDK import (in progress)
+### Phase 1: SDK import (complete)
 
-Eighty-nine SDK units are promoted so far, and the whole image still matches retail. The per-import
+Eighty-nine SDK units are promoted, and the whole image still matches retail. The per-import
 figures are archived in [strategy progress](history/strategy_progress.md); the current totals are
 in the README status block and [SDK import](sdk_import.md).
+
+The donor queue is exhausted. Each remaining `sdk_probe.py --pending` row is
+recorded in [SDK import](sdk_import.md) as not linked in retail or as a false
+anchor: CARDErase, CARDProgram, SISteeringAuto, axfx, mtxstack, OSTimer and
+odemustubs. These ranges stay assembly fallback and are deferred lanes, not
+blockers:
+
+- the HVQM4 decoder (`8018432C..8018A10C`), which has no donor source;
+- the debugger driver (`8018A10C..8018AB8C`), which needs a hand-written
+  `DebuggerDriver.c`;
+- `libsn`/libc, which needs SN's GCC source build (see RE4).
+
+Two promoted units do not pass `verify_unit.py --functions` on current main:
+OSError's `OSPanic` and `__OSUnhandledException` cannot map the duplicated
+local `@13` string symbol, and five SIBios functions report unverified
+references to the unsized `Type` table.
 
 SISamplingRate promotes its two functions and initialized data; its four-byte
 `SamplingRate` BSS remains assembly fallback because the complete-unit gate does
