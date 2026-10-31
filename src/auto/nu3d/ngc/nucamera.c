@@ -1,3 +1,7 @@
+#include "types.h"
+
+extern u8 lbl_80313298[];
+extern void fn_8000CD08(s32 a, u8* b, s32 c);
 #include "numath/numath.h"
 
 extern struct numtx_s lbl_80313268;
@@ -35,4 +39,18 @@ s32 NuAnimData2GetEnd(struct nuanimdata2_s* d)
         return (u16)d->end;
     }
     return d->end;
+}
+
+s32 fn_8002171C(u8* p)
+{
+    u8* q = *(u8**)(p + 0x1a0);
+    if (q != 0) {
+        return *(s32*)(q + 0x6c);
+    }
+    return *(s32*)(p + 0x20);
+}
+
+void NuCameraDistSqr(s32 a)
+{
+    fn_8000CD08(a, lbl_80313298, 0);
 }
