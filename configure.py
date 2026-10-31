@@ -381,6 +381,7 @@ config.libs = [
         SDKObject("os/__ppc_eabi_init", Matching),
         SDKObject("os/OS", Matching, external_bss=True),
         SDKObject("os/OSAlloc", Matching),
+        SDKObject("os/OSExec", Matching, external_bss=True),
         SDKObject("os/OSFont", Matching, external_bss=True),
         SDKObject("os/OSLink", Matching),
         SDKObject("os/OSMessage", Matching),
