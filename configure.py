@@ -379,6 +379,7 @@ config.libs = [
     DolphinLib("os", [
         SDKObject("os/OSAlloc", Matching),
         SDKObject("os/OSLink", Matching),
+        SDKObject("os/OSMessage", Matching),
         SDKObject("os/OSReboot", Matching),
         SDKObject("os/OSAlarm", Matching),
         SDKObject("os/OSContext", Matching),
