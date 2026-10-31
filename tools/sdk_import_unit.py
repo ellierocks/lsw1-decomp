@@ -657,6 +657,20 @@ def rewrite_sources(texts: dict[Path, str], everywhere: dict[str, str], donor_si
     return log
 
 
+def donor_side_proposals(applied: list, sdk: Path) -> dict[str, str]:
+    """Proposal renames safe inside src/dolphin/. A retail name that the SDK itself uses is a
+    real donor identifier for some other function, so donor copies keep it."""
+    donors = {p.donor for p in applied}
+    candidates = {p.retail: p.donor for p in applied if p.retail not in donors}
+    if not candidates:
+        return {}
+    pattern = re.compile(r"\b(" + "|".join(map(re.escape, candidates)) + r")\b")
+    used: set[str] = set()
+    for path in sorted((sdk / "src").rglob("*.[ch]")) + sorted((sdk / "include").rglob("*.h")):
+        used.update(pattern.findall(path.read_text(errors="replace")))
+    return {r: d for r, d in candidates.items() if r not in used}
+
+
 def apply(plan: Plan, sdk: Path, raw_obj: Path, verify: bool, accept: bool = False) -> list[str]:
     unit, lib = plan.unit, plan.lib
     dest = ROOT / "src/dolphin" / f"{unit}.c"
@@ -707,8 +721,7 @@ def apply(plan: Plan, sdk: Path, raw_obj: Path, verify: bool, accept: bool = Fal
         log += [f"manual: {m}" for m in layout.manual]
     everywhere = {**renames, **proposed}
     if everywhere:
-        donors = {p.donor for p in applied}
-        donor_side = {**renames, **{p.retail: p.donor for p in applied if p.retail not in donors}}
+        donor_side = {**renames, **donor_side_proposals(applied, sdk)}
         skip = {dest} | {dst for _, dst in plan.headers}
         log += rewrite_sources(texts, everywhere, donor_side, skip)
     SYMBOLS.write_text(rename_symbols(symbols_text, everywhere))

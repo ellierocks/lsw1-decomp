@@ -1540,3 +1540,53 @@ Both units pass one complete section and every function strictly. The whole DOL
 remains byte-identical to retail, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable workflow checks and 174
 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped).
+
+## DVD filesystem and drive state machine batch
+
+From `5e3b54a`, dvdfs and dvd promote 58 functions and 12,496 `.text` bytes. The
+objdiff report counts 56 functions and 12,112 bytes of new matched code. SDK units
+total 81. Matching reaches 133,808 code bytes / 642 functions; the baseline was
+121,696 / 586. Data reaches 13,888 matched bytes, up from 13,488.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `dvd/dvdfs` | `80167780..801680C8` | 11 | 2,376 | 1,016 |
+| `dvd/dvd` | `801680C8..8016A850` | 47 | 10,120 | 424 |
+
+The data ranges came from compiling each donor and matching its `.data` prefix in the
+DOL: dvdfs owns `.data 801F5C00..801F5FF0` and `.sdata 8040A068..8040A070`, and dvd owns
+`.data 801F5FF0..801F6178` and `.sdata 8040A070..8040A090`.
+
+- **Names.** The retail label at `8015417C` is ProDG libc `tolower`, which dvdfs
+  calls. The old dvdfs names were shifted by one function (`DVDReadAsyncPrio`,
+  `DVDOpenDir`, `DVDCloseDir`), and the lone `blr` at `801680C8` is `fn_801680C8`, the
+  first dvd function. In dvd, code-identical pairing renamed five symbols:
+  `fn_801680CC` is `DVDInit`; the old `DVDInit`, `DVDPrepareStreamAsync` and
+  `DVDPrepareStreamAbsAsync` labels are `cbForStateCheckID1`,
+  `cbForStateMotorStopped` and `DVDCheckDisk`; and `fn_8016A2B0` is `DVDCancelAsync`.
+  The former `DVDCancelAsync` at `801435B8` (different code) becomes `fn_801435B8`.
+- **Source.** Both donors are unchanged copies apart from two defines at the top of
+  `dvd.c`. `memcmp` maps to `Menu_SetupDisplay`, the retail label CARD already uses
+  for it. The global `LastState` maps to `LastState_8040A9A8`, because OSResetSW owns
+  the `LastState` symbol.
+- **BSS.** Both units use `external_bss=True`. Their statics lose `scope:local` so that
+  `strip_unused.py` can map them by name. `CancelAllSyncComplete` and `ResetCount`
+  gained symbols, and dvd's `.sbss` ends at `8040A9AC`. All BSS remains fallback.
+- **Tool fixes.** `verify_fn.py` now treats a relocated recursive `bl` on the compiled
+  side as an entry branch, which `entryToPath` needs. `sdk_import_unit.py` no longer
+  rewrites donor copies under `src/dolphin/` for a proposal whose retail name is a real
+  SDK identifier. Before this fix it renamed `DVDPrepareStreamAsync` inside dvdfs.
+  Each fix has a test.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/dvd/dvdfs --build --functions
+python3 tools/verify_unit.py dolphin/dvd/dvd --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+Both units pass three complete sections and every function strictly. The whole DOL
+remains byte-identical to retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. The portable workflow checks pass, and so
+do 176 tests with `VERIFY_FN_REQUIRE_RETAIL=1` (one skipped).
