@@ -145,6 +145,11 @@ dolphin/mtx/mtx44.c:
 	.text       start:0x801676E8 end:0x80167780
 	.sdata2     start:0x8040B730 end:0x8040B740
 
+dolphin/dvd/dvdfs.c:
+	.text       start:0x80167780 end:0x801680C8
+	.data       start:0x801F5C00 end:0x801F5FF0
+	.sdata      start:0x8040A068 end:0x8040A070
+
 dolphin/dvd/dvdqueue.c:
 	.text       start:0x8016A850 end:0x8016AA48
 
