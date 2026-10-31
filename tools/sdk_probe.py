@@ -186,12 +186,20 @@ def anchor(funcs: list[vf.Symbol], symbols: vf.SymbolTable,
     index = {n: i for i, (_, n, _) in enumerate(retail)}
     funcs = sorted(funcs, key=lambda f: f.value)
     out: dict[str, tuple[str, str]] = {}
+    known = {n: r for n, r in (known or {}).items() if r in index}
+    claimed = set(known.values())
     for f in funcs:
-        if f.name in index:
+        by_code = known.get(f.name)
+        if by_code is not None and f.name in index and by_code == f.name:
             out[f.name] = (f.name, "name")
-        elif known and f.name in known and known[f.name] in index:
-            out[f.name] = (known[f.name], "code")
+        elif by_code is not None and (f.name not in index or f.size > TINY):
+            # Identical code beats a name that sits on a different function: older heuristic
+            # names are often shifted by one slot, so the donor's name points at its neighbour.
+            out[f.name] = (by_code, "code")
+        elif f.name in index and f.name not in claimed:
+            out[f.name] = (f.name, "name")
     prune_outliers(out, retail, index, sum(f.size for f in funcs))
+    owners = {r: n for n, (r, _) in out.items()}
     for i, f in enumerate(funcs):
         if out.get(f.name, ("", ""))[1] not in ("name", "code"):
             continue
@@ -202,9 +210,12 @@ def anchor(funcs: list[vf.Symbol], symbols: vf.SymbolTable,
                 g = funcs[j]
                 if g.name in out:
                     break
+                if retail[r][1] in owners:
+                    break
                 if retail[r][2] == g.size and (g.size > TINY or compatible is None
                                                or compatible(g, retail[r][1])):
                     out[g.name] = (retail[r][1], f"layout from {f.name}")
+                    owners[retail[r][1]] = g.name
                     r += step
                 j += step
     return out
