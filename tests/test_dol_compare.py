@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import struct
 import tempfile
@@ -5,6 +7,20 @@ import unittest
 from pathlib import Path
 
 from tools import dol_compare
+
+_quiet = None
+
+
+def setUpModule():
+    """Keep the tools' progress and usage output out of the test log."""
+    global _quiet
+    _quiet = contextlib.ExitStack()
+    _quiet.enter_context(contextlib.redirect_stdout(io.StringIO()))
+    _quiet.enter_context(contextlib.redirect_stderr(io.StringIO()))
+
+
+def tearDownModule():
+    _quiet.close()
 
 
 def make_dol(text: bytes, data: bytes = b"", text_addr: int = 0x80003100, data_addr: int = 0x80400000) -> bytes:

@@ -1,3 +1,5 @@
+import contextlib
+import io
 import sys
 import unittest
 from pathlib import Path
@@ -8,6 +10,20 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import update_readme as readme
+
+_quiet = None
+
+
+def setUpModule():
+    """Keep the tools' progress and usage output out of the test log."""
+    global _quiet
+    _quiet = contextlib.ExitStack()
+    _quiet.enter_context(contextlib.redirect_stdout(io.StringIO()))
+    _quiet.enter_context(contextlib.redirect_stderr(io.StringIO()))
+
+
+def tearDownModule():
+    _quiet.close()
 
 
 class ReadmeTests(unittest.TestCase):

@@ -6,6 +6,53 @@ their sections, canonical relocations and linked ranges match retail. The
 unreferenced donor functions are removed before comparison and linking, as
 with the original SN linker. No candidate instruction bytes are replaced.
 
+## Importing a unit quickly
+
+Units that are one `.text` range plus file-scope `.bss`/`.sbss` statics (the common
+case; AXAlloc and AXAux are examples) import with one command. Setup is shared
+between worktrees: `bash tools/bootstrap.sh` links `build/tools`, `build/compilers`
+and `build/binutils` and the retail DOL from `~/.cache/lsw1` or the primary
+checkout, clones the pinned dolsdk2004 into `~/.cache/lsw1/dolsdk2004`
+(`tools/fetch_dolsdk.sh`), and finishes in a second on a prepared machine.
+`LSW1_CACHE` moves the cache, `DOLSDK2004` points at another donor checkout,
+`LSW1_REFRESH=1` refetches tools after a pin change and `LSW1_NO_SHARE=1` keeps a
+private toolchain.
+
+```sh
+python3 tools/sdk_probe.py --pending --tsv work/sdk_pending.tsv   # import queue
+python3 tools/sdk_import_unit.py ax/AXCL                          # plan only
+python3 tools/sdk_import_unit.py ax/AXCL --apply                  # import + prove
+```
+
+The probe anchors donor functions to retail by name, by unique code bytes (so units
+whose retail functions are still `fn_XXXXXXXX` are found) and by layout, and ignores
+anchors that cannot fit in the unit's compiled size. The importer then copies the
+source and donor-local headers, inserts the split and `SDKObject` in address order,
+builds the split target, and pairs the donor's relocations with the target's to
+rename unnamed functions, callees and statics in `symbols.txt` (rejected renames are
+never applied; unresolved pairs are printed as `manual:`). It finishes with the
+full-unit and per-function proof (`verify_unit.py --functions`, one process for every
+function), the linked-image comparison, and prints the table row for this file.
+Re-importing AXAlloc and AXAux this way from baseline `97e792b` reproduces the
+hand-made splits, configuration, symbols and sources byte for byte, in about three
+seconds each.
+
+Plans stop with an error, and `--apply` is refused, when the unit owns initialised
+data (`.data`, `.rodata`, `.sdata`, `.sdata2`), when retail functions inside the
+range are not matched by the donor, or when the range overlaps an existing split.
+Those need the manual steps below.
+
+Keep file-scope statics as the donor wrote them and let `--external-bss` replace their
+storage: declaring them `extern` changes MWCC's code (it reloads values around
+callbacks), so the importer always uses `external_bss=True` for units with `.bss` or
+`.sbss`. `strip_unused.py` maps the donor's static names to `symbols.txt` objects by
+name, which is why the importer renames the retail `lbl_` labels to the donor names.
+
+Several units can be imported in parallel worktrees: each touches `splits.txt`,
+`configure.py`, `symbols.txt` and this file at different lines, so conflicts are
+mechanical. Rebase, rerun the importer's verify step (`verify_unit.py UNIT --build
+--functions`) and regenerate the totals rather than merging numbers by hand.
+
 ## Measured result
 
 Baseline is strategy commit `299b2fa`, built from the pinned retail DOL.
@@ -80,7 +127,9 @@ python3 tools/verify_fn.py GXInitTexObj --build --strict-symbols
 python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
 ```
 
-To repeat every SDK unit/function check after building:
+`verify_unit.py dolphin/LIB/UNIT --build --functions` also strictly verifies every
+function of the unit in one process (about 0.6 s for a 13-function unit). To repeat
+every SDK unit/function check after building:
 
 ```sh
 python3 - <<'PY'
@@ -103,7 +152,8 @@ PY
 ```
 
 Re-probe the retained donor functions after naming with
-`tools/sdk_probe.py --sdk /path/to/dolsdk2004 --strip-imported gx/GXTexture`
+`tools/sdk_probe.py --strip-imported gx/GXTexture` (or `--all --strip-imported` for
+every imported unit; non-imported units are skipped)
 (and the other imported units). The default probe still reports the complete
 unstripped donor for discovery; the explicit imported mode enables full-unit
 proofs after dead stripping. All 75 retained rows are `MATCH` in that mode.
