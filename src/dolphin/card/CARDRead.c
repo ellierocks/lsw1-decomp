@@ -2,7 +2,7 @@
 
 #include "__card.h"
 
-extern CARDControl lbl_8030E320[2];
+extern CARDControl __CARDBlock[2];
 
 #define TRUNC(n, a) (((u32)(n)) & ~((a)-1))
 
@@ -67,7 +67,7 @@ static void CARDReadReadCallback(s32 chan, s32 result) {
     CARDFileInfo* fileInfo;
     s32 length;
 
-    card = &lbl_8030E320[chan];
+    card = &__CARDBlock[chan];
     if (result < 0)
         goto error;
 

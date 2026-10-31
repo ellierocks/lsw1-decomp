@@ -2,7 +2,7 @@
 
 #include "__os.h"
 
-extern CARDControl lbl_8030E320[2];
+extern CARDControl __CARDBlock[2];
 #include "__card.h"
 
 // prototypes
@@ -51,7 +51,7 @@ static s32 VerifyID(CARDControl* card) {
     sramEx = __OSLockSramEx();
     for (i = 0; i < 12; i++) {
         rand = (rand * 1103515245 + 12345) >> 16;
-        if (id->serial[i] != (u8)(sramEx->flashID[card - lbl_8030E320][i] + rand)) {
+        if (id->serial[i] != (u8)(sramEx->flashID[card - __CARDBlock][i] + rand)) {
             __OSUnlockSramEx(FALSE);
             return CARD_RESULT_BROKEN;
         }

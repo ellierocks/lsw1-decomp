@@ -3,8 +3,8 @@
 #include "__os.h"
 #include "__card.h"
 
-extern CARDControl lbl_8030E320[2];
-#define __CARDBlock lbl_8030E320
+extern CARDControl __CARDBlock[2];
+#define __CARDBlock __CARDBlock
 
 static void FormatCallback(s32 chan, s32 result) {
     CARDControl* card;

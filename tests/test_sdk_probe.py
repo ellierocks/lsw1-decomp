@@ -30,6 +30,24 @@ class AnchorTests(unittest.TestCase):
         self.assertEqual(got["Last"][0], "fn_c")
         self.assertNotIn("Stripped", got)
 
+    def test_tiny_layout_slot_needs_compatible_code(self):
+        table = Table([("fn_get", 0x100, 8), ("OSKnown", 0x108, 12)])
+        funcs = [sym("Getter", 0, 8), sym("Setter", 8, 8), sym("OSKnown", 16, 12)]
+        got = sdk_probe.anchor(funcs, table)
+        self.assertEqual(got["Setter"][0], "fn_get")
+        got = sdk_probe.anchor(funcs, table, None, lambda f, retail: f.name == "Getter")
+        self.assertEqual(got["Getter"][0], "fn_get")
+        self.assertNotIn("Setter", got)
+
+    def test_oversized_lone_anchor_does_not_crash_outlier_pruning(self):
+        table = Table([("OSBig", 0x100, 64)])
+        got = sdk_probe.anchor([sym("OSBig", 0, 64), sym("Small", 64, 4)], table)
+        self.assertEqual(got["OSBig"], ("OSBig", "name"))
+        out = {"Tiny": ("OSBig", "name")}
+        retail = [(0x100, "OSBig", 64)]
+        sdk_probe.prune_outliers(out, retail, {"OSBig": 0}, 8)
+        self.assertEqual(out, {"Tiny": ("OSBig", "name")})
+
     def test_no_anchor_without_a_named_function(self):
         table = Table([("fn_a", 0x100, 8)])
         self.assertEqual(sdk_probe.anchor([sym("Foo", 0, 8)], table), {})

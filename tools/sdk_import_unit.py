@@ -324,7 +324,7 @@ def make_plan(unit: str, sdk: Path, tmp: Path) -> tuple[Plan, Path]:
     symbols = vf.SymbolTable()
     dol = vf.load_dol(vf.DOL_PATH, [])
     funcs = [f for f in elf.function_symbols() if f.size]
-    anchors = sdk_probe.anchor(funcs, symbols, sdk_probe.code_anchors(elf, funcs, symbols, dol))
+    anchors = sdk_probe.anchor_unit(elf, funcs, symbols, dol)
     plan.anchors = anchors
     plan.dead = [f.name for f in funcs if f.name not in anchors]
     if not anchors:
@@ -434,19 +434,25 @@ def apply(plan: Plan, sdk: Path, raw_obj: Path, verify: bool) -> list[str]:
     renames, pairing = compute_renames(plan, raw_obj, target_obj)
     log = [f"rename {old} -> {new}" for old, new in sorted(renames.items())]
     if renames:
-        for old in renames:
+        for old, new in renames.items():
             for path in list((ROOT / "src").rglob("*.[ch]")):
-                if re.search(rf"\b{re.escape(old)}\b", path.read_text(errors="replace")):
-                    log.append(f"warning: {old} is also used in {path.relative_to(ROOT)}")
+                text = path.read_text(errors="replace")
+                if re.search(rf"\b{re.escape(old)}\b", text):
+                    path.write_text(re.sub(rf"\b{re.escape(old)}\b", new, text))
+                    log.append(f"note: renamed {old} -> {new} in {path.relative_to(ROOT)}")
         SYMBOLS.write_text(rename_symbols(SYMBOLS.read_text(), renames))
     log += [f"note: {n}" for n in pairing.notes] + [f"manual: {c}" for c in dict.fromkeys(pairing.conflicts)]
     if not verify:
         return log
-    run(["ninja", "build/GL5E4F/main.dol"], "full build")
-    out = run([sys.executable, "tools/verify_unit.py", f"dolphin/{unit}", "--build", "--functions"], "verify")
-    log.append(out.strip().splitlines()[-1])
-    run([sys.executable, "tools/dol_compare.py", "build/GL5E4F/main.dol", "orig/GL5E4F/sys/main.dol",
-         "--linked-units"], "linked-image comparison")
+    try:
+        run(["ninja", "build/GL5E4F/main.dol"], "full build")
+        out = run([sys.executable, "tools/verify_unit.py", f"dolphin/{unit}", "--build", "--functions"], "verify")
+        log.append(out.strip().splitlines()[-1])
+        run([sys.executable, "tools/dol_compare.py", "build/GL5E4F/main.dol", "orig/GL5E4F/sys/main.dol",
+             "--linked-units"], "linked-image comparison")
+    except ImportError_ as exc:
+        # The renames and conflicts explain most failures; do not lose them with the error.
+        raise ImportError_(f"{exc}\n\nimport log before the failure (files are left modified):\n" + "\n".join(log)) from exc
     log.append("linked image: zero differing bytes in linked units")
     return log
 

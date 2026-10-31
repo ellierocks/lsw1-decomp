@@ -1,6 +1,7 @@
 import unittest
 from types import SimpleNamespace as NS
 
+from tools import verify_unit
 from tools.verify_unit import prove_unit, split_ranges
 from tools.verify_fn import Comparer, Report
 
@@ -57,9 +58,11 @@ class VerifyUnitTests(unittest.TestCase):
     def test_changed_bytes_and_relocation_are_rejected(self):
         self.mine.data = bytes(4) + b'ABCE'
         self.assertIsNone(self.proof())
+        self.assertIn('bytes differ at +0x7', verify_unit.LAST_REFUSAL)
         self.mine.data = self.data
         self.mine.relocs[1] = [NS(offset=0, rtype=1, sym=0, addend=8)]
         self.assertIsNone(self.proof())
+        self.assertIn('relocations differ at +0x0', verify_unit.LAST_REFUSAL)
         self.mine.relocs[1] = [NS(offset=0, rtype=6, sym=0, addend=4)]
         self.assertIsNone(self.proof())
         self.mine.relocs[1] = [NS(offset=4, rtype=1, sym=0, addend=4)]

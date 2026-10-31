@@ -379,6 +379,7 @@ config.libs = [
     DolphinLib("os", [
         SDKObject("os/OSAlloc", Matching),
         SDKObject("os/OSLink", Matching),
+        SDKObject("os/OSMessage", Matching),
         SDKObject("os/OSReboot", Matching),
         SDKObject("os/OSAlarm", Matching),
         SDKObject("os/OSContext", Matching),
@@ -386,6 +387,8 @@ config.libs = [
         SDKObject("os/OSAudioSystem", Matching),
         SDKObject("os/OSError", Matching, external_bss=True),
         SDKObject("os/OSReset", Matching, external_bss=True),
+        SDKObject("os/OSResetSW", Matching, external_bss=True),
+        SDKObject("os/OSSemaphore", Matching),
         SDKObject("os/OSSync", Matching),
         SDKObject("os/OSTime", Matching),
         SDKObject("os/OSMutex", Matching),
@@ -400,7 +403,7 @@ config.libs = [
     DolphinLib("dvd", [SDKObject("dvd/dvdqueue", Matching, external_bss=True), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching, external_bss=True)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
-    DolphinLib("ax", [SDKObject("ax/AX", Matching), SDKObject("ax/AXAlloc", Matching, external_bss=True), SDKObject("ax/AXAux", Matching, external_bss=True), SDKObject("ax/AXProf", Matching)]),
+    DolphinLib("ax", [SDKObject("ax/AX", Matching), SDKObject("ax/AXAlloc", Matching, external_bss=True), SDKObject("ax/AXAux", Matching, external_bss=True), SDKObject("ax/AXCL", Matching, external_bss=True), SDKObject("ax/AXOut", Matching, external_bss=True), SDKObject("ax/AXProf", Matching)]),
     DolphinLib("dsp", [
         SDKObject("dsp/dsp", Matching),
         SDKObject("dsp/dsp_debug", Matching),
@@ -417,6 +420,7 @@ config.libs = [
         SDKObject("card/CARDWrite", Matching),
         SDKObject("card/CARDDelete", Matching),
         SDKObject("card/CARDStat", Matching),
+        SDKObject("card/CARDRdwr", Matching),
     ]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),

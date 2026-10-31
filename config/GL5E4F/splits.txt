@@ -75,6 +75,9 @@ dolphin/os/OSInterrupt.c:
 dolphin/os/OSLink.c:
 	.text       start:0x8016099C end:0x801609B4
 
+dolphin/os/OSMessage.c:
+	.text       start:0x801609B4 end:0x80160BB8
+
 dolphin/os/OSMemory.c:
 	.text       start:0x80160BB8 end:0x80160E90
 	.data       start:0x801E3E08 end:0x801E3E18
@@ -85,6 +88,12 @@ dolphin/os/OSReboot.c:
 dolphin/os/OSReset.c:
 	.text       start:0x80160F14 end:0x80161398
 	.data       start:0x801E3E18 end:0x801E3E68
+
+dolphin/os/OSResetSW.c:
+	.text       start:0x80161398 end:0x80161724
+
+dolphin/os/OSSemaphore.c:
+	.text       start:0x8016220C end:0x80162334
 
 dolphin/os/OSSync.c:
 	.text       start:0x80162334 end:0x801623B8
@@ -180,6 +189,12 @@ dolphin/ax/AXAlloc.c:
 dolphin/ax/AXAux.c:
 	.text       start:0x80172844 end:0x80172CCC
 
+dolphin/ax/AXCL.c:
+	.text       start:0x80172CCC end:0x80173404
+
+dolphin/ax/AXOut.c:
+	.text       start:0x80173404 end:0x80173C10
+
 dolphin/ax/AXProf.c:
 	.text       start:0x801753CC end:0x80175414
 
@@ -224,6 +239,9 @@ dolphin/card/CARDDelete.c:
 
 dolphin/card/CARDStat.c:
 	.text       start:0x8017AE34 end:0x8017B1A0
+
+dolphin/card/CARDRdwr.c:
+	.text       start:0x8017C4C4 end:0x8017C754
 
 dolphin/gx/GXInit.c:
 	.text       start:0x8017C77C end:0x8017DB08
