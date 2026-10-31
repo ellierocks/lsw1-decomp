@@ -124,7 +124,7 @@ For each queued function:
 2. **Agent search.** Iterate with `score_fn.py`, recording candidates worth
    keeping through `hillclimb.py try`.
 3. **Permuter.** Run decomp-permuter on functions that are close (about 95%
-   exact or better), using `score_fn.py --compile-only` as its compile step.
+   exact or better) with `tools/permute_setup.py NAME --run`.
 4. **Accept.** Use `verify_fn.py --build --strict-symbols`. Promote whole TUs
    when every function matches, and batch several matched functions per PR.
 
@@ -148,8 +148,7 @@ The first leaf batch (`t3/phase3-leaf-batch-1`) attempted 51 small functions acr
 matches (+1,616 code bytes, 773 to 819 functions): four float-literal functions
 (`fn_8000ED40`, `NuFdiv`, `fn_8000B234`, `fn_8000B2C4`) are strict matches whose literal
 reloc reads `.rodata` rather than the `lbl_` symbol, so objdiff shows 98 to 99%. Only
-`nuerror_ngc` was promoted; `nudlist_1` is complete but is half of the `nudlist.c` TU,
-and merging the halves would move a split.
+`nuerror_ngc` was promoted; `nudlist_1` is complete but its TU is unresolved (see below).
 
 Failure modes, in order of cost:
 
@@ -166,11 +165,22 @@ Failure modes, in order of cost:
   message; model it as `((void(*)(char*, ...))fn(file, line))(msg)`.
 - **Out of scope for C.** Paired-single (`psq_l`/`ps_*`) functions are hand-written asm.
 
-decomp-permuter is **not** wired end to end. `score_fn.py --compile-only -o` produces the
-object, but the checkout is not fetched by `bootstrap.sh`, and nothing generates the
-per-function `compile.sh` wrapper (`score_fn.py NAME "$1" --compile-only -o "$3"`),
-`target.o` or `settings.toml`, or scores through the strict verifier. Close plateaus
-such as `fn_8000A64C` wait on that.
+decomp-permuter is wired end to end. `bootstrap.sh` fetches the pinned checkout,
+`tools/permute_setup.py NAME` writes the work directory and `--run` starts it; scoring
+goes through the strict verifier, so score 0 means `score_fn.py` MATCH
+([workflow](code_matching_workflow.md#decomp-permuter)). Its first run matched the
+parked `fn_8000A64C` in about 2,000 iterations: wrapping the body after
+`OSWaitSemaphore` in `do { ... } while (0)` makes GCC load `t->value` before the
+`mode == 1` compare. The whole `nuthread` unit then matched and was promoted to
+`nucore/ngc/nuthread.c` (0x8000A64C..0x8000A834, 8 functions).
+
+`nudlist_1` and `nudlist_2` stay separate: `tu_boundaries.py` has no evidence that
+they form one TU. The seven `nu3d/nudlist.c` path references start at `fn_80010120`.
+`nudlist_1` (`NuMtxDet3`, `fn_8000E830`, `fn_8000E8A4`) has no rodata or path
+reference, and the DP's `nudlist.c` start range spans 0x8000E7E4..0x8000EBE8. The
+hand-split `numath/nu_asm.c` lies between the halves, so merging them would also
+absorb it. The nearest evidence (Mac order: `NuMtxDet3` 1949, `NuVec4MtxTransformVU0`
+2305) points at numath matrix code rather than `nudlist.c`.
 
 #### Shared-header batch
 
