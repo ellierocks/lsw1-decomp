@@ -276,7 +276,7 @@ void AXSetMode(u32 mode);
 u32 AXGetMode(void);
 
 // AXOut
-extern AXPROFILE __AXLocalProfile;
+extern u64 __AXLocalProfile[6];
 
 void AXSetStepMode(u32 i);
 AXCallback AXRegisterCallback(AXCallback callback);

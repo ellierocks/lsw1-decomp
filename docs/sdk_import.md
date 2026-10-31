@@ -1381,11 +1381,9 @@ python3 tools/matching_progress.py
 ```
 
 AXComp is data-only, so its gate intentionally omits `--functions` (that option
-requires at least one function). AXSPB remains unpromoted: its retail studio
-address `802FCAE0` aliases `__AXLocalProfile+0x30`, inside the profile buffer.
-A separate overlapping DTK object is rejected, and C member/cast alternatives
-change the code. The local plateau retains this alias issue and the next
-hypothesis of an evidence-backed symbol alias; no oracle changes were made.
+requires at least one function). AXSPB was left unpromoted here because its
+retail studio address `802FCAE0` aliased `__AXLocalProfile+0x30`; the
+[AX studio batch](#ax-studio-batch) resolves the layout.
 
 ## CARD mounting, serial number and unlock batch
 
@@ -1501,3 +1499,44 @@ remains byte-identical to retail, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable workflow checks and
 169 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped). OSExec,
 OSThread and the VI unit still need their own promotion proof.
+
+## AX studio batch
+
+From `7f260a4`, the unchanged AXSPB donor promotes 5 functions and 1,224 code
+bytes. SDK units total 79. Matching reaches 121,696 code bytes / 586 functions;
+the baseline was 120,472 / 581. Data stays at 13,488 matched bytes.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `ax/AXSPB` | `80173C10..801740D8` | 5 | 1,224 | 0 |
+
+`__AXGetStudio` and `__AXPrintStudio` address the studio at `802FCAE0`, and
+retail `__AXOutNewFrame` stores `axNumVoices` to the same address through its
+`__AXOutBuffer` base (`r31+0x4A80`). AXOut has no relocation to the profile's
+tail, so in the linked image `__AXLocalProfile` owns only `0x30` bytes before the
+32-byte-aligned `__AXStudio` (`802FCAE0..802FCB20`, which ends at `__AXPB`). The
+symbols now say so: `__AXLocalProfile` is `0x30` bytes and `__AXStudio` replaces
+`lbl_802FCAE8`. To keep AXOut's compiled `.bss` object within that size for
+`--external-bss`, AXOut and `ax.h` declare `__AXLocalProfile` as `u64[6]` and
+reach the fields through an `AXPROFILE*` cast; AXOut still matches all nine
+functions. The nine AXSPB `.sbss` accumulators take their donor names. All BSS
+remains fallback.
+
+SISteeringAuto is not imported: its two anchors (`8016FAB4`, `8016FB14`) sit
+inside the Pad range and are Pad's own `SamplingHandler` and
+`PADSetSamplingCallback`, code-identical to the steering copies. The one-function
+anchors for `axfx/axfx` (`8002765C`, name only) and `mtx/mtxstack` (`8004ADB4`, 8
+bytes) lie in game code and are treated the same way.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/ax/AXSPB --build --functions
+python3 tools/verify_unit.py dolphin/ax/AXOut --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+Both units pass one complete section and every function strictly. The whole DOL
+remains byte-identical to retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable workflow checks and 174
+tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped).

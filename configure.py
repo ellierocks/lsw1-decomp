@@ -414,6 +414,7 @@ config.libs = [
         SDKObject("ax/AXAux", Matching, external_bss=True),
         SDKObject("ax/AXCL", Matching, external_bss=True),
         SDKObject("ax/AXOut", Matching, external_bss=True),
+        SDKObject("ax/AXSPB", Matching, external_bss=True),
         SDKObject("ax/AXVPB", Matching, external_bss=True),
         SDKObject("ax/AXComp", Matching),
         SDKObject("ax/AXProf", Matching),
