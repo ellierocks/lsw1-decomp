@@ -19,16 +19,16 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 | Measure | Matched | Total | Progress |
 |---------|---------|-------|----------|
-| Code bytes | 133,808 | 1,569,632 | 8.52% |
-| Functions | 642 | 4,153 | 15.46% |
+| Code bytes | 144,144 | 1,569,652 | 9.18% |
+| Functions | 688 | 4,153 | 16.57% |
 
 **Symbol naming** (`config/GL5E4F/symbols.txt`):
 
 | Section | Named | Total | Progress |
 |---------|-------|-------|----------|
-| `.text` (functions) | 1,587 | 4,205 | 37.7% |
+| `.text` (functions) | 1,607 | 4,211 | 38.2% |
 | `.rodata` | 775 | 8,384 | 9.2% |
-| `.bss` | 71 | 748 | 9.5% |
+| `.bss` | 78 | 752 | 10.4% |
 <!-- progress:end -->
 
 CI refreshes these figures after successful GitHub builds on `main`.
