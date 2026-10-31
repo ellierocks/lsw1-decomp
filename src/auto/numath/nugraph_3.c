@@ -43,3 +43,11 @@ void fn_8000DC10(struct nugraph3_blk_s* dst)
 {
     *dst = lbl_801B0F08;
 }
+
+extern f32 NuVecMagSqr(f32* v);
+extern f32 NuFsqrt(f32 x);
+
+f32 fn_8000CB50(f32* v)
+{
+    return NuFsqrt(NuVecMagSqr(v));
+}

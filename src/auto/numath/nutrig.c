@@ -133,3 +133,19 @@ void fn_8000A834(s32 id)
         OSWaitSemaphore(&lbl_8020A140[id]);
     }
 }
+
+extern void OSSignalSemaphore(struct nusem_s* sem);
+
+void fn_8000A86C(s32 id)
+{
+    if (id >= 0) {
+        OSSignalSemaphore(&lbl_8020A140[id]);
+    }
+}
+
+extern s32 fn_8000ABDC(s32 ang);
+
+f32 fn_8000AFBC(s32 ang)
+{
+    return (f32)fn_8000ABDC(ang) * 9.58738019e-05f;
+}
