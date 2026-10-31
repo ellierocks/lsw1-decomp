@@ -83,7 +83,42 @@ python3 tools/score_fn.py NuVecScale src/numath/nuvec.c
 python3 tools/score_fn.py NuVecScale scratch.c --compile-only -o out.o   # permuter compile step
 ```
 
-Its score has the same order as `hillclimb.py`. Record a candidate with
+Its score has the same order as `hillclimb.py`.
+
+### Store and load order search
+
+When the only remaining difference is the order of independent stores or loads,
+search the orderings instead of hand-tuning them. Copy the candidate to a scratch
+file, mark the free statements and run `order_search.py`:
+
+```c
+void fn_800127D8(struct fn_800127D8_outer* o)
+{
+    struct fn_800127D8_inner* p = o->inner;
+    /* order: decl */
+    /* order: begin */
+    p->f8 = 0;
+    p->f14 = -1;
+    p->f20 = -1;
+    /* order: end */
+}
+```
+
+```sh
+python3 tools/order_search.py fn_800127D8 work/fn_800127D8/order.c --const-locals -j 8
+```
+
+Each `begin`/`end` block is split into top-level statements (a braced statement
+counts as one); several blocks are permuted independently. `--const-locals` also
+tries one shared `s32` local for each constant that is the whole right-hand side of
+two or more assignments in a block, declared at `/* order: decl */` (or in a brace
+around the block without that marker). Every variant is scored by `score_fn.py`;
+the search stops at the first strict `MATCH` and refuses more than `--limit`
+variants (default 7! = 5040, about two minutes with `-j 8`). `--dry-run` prints the
+count. The best variant goes to `work/order_search/NAME/best.c`; port it into the
+unit source and accept it with `verify_fn.py --build --strict-symbols`.
+
+Record a candidate with
 `hillclimb.py try` when it improves the incumbent or settles a hypothesis;
 exploratory attempts do not need ledger entries.
 
