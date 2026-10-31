@@ -1304,3 +1304,34 @@ differing bytes. The symbol diff against the hand edits is the AXSPB neighbour
 Measured progress rises from 98,620 bytes / 502 functions to **98,732 bytes / 503
 functions**. The three `.bss` statics belong to dead-stripped functions and have no retail
 symbols, so `externalize_bss` drops them.
+
+## PPCArch import
+
+On baseline `553ba7a`, unchanged donor `base/PPCArch.c` promotes 22 functions
+and 276 code bytes at `0x8015BEF4..0x8015C008`, with no owned data or BSS.
+The SDK total is now 70 units (the previous strategy count omitted the already
+promoted GXDisplayList). Matching rises from 98,732 bytes / 503 functions
+to 99,008 bytes / 525 functions; matched data remains 6,220 bytes.
+
+The first import failed the complete-section gate because `PPCMthid0` at
+`0x8015BF0C` and `PPCSync` at `0x8015BF2C` were labels, so dead stripping
+omitted their eight-byte bodies. Retail instructions (`mtspr HID0,r3; blr`
+and `sc; blr`) and their calls match the donor. Both are now function symbols;
+existing AR/GX sources refer to `PPCSync` directly. Neither split boundaries
+nor compiler flags changed after the initial import plan. The 16 newly classified
+code bytes also increase the report's total code denominator to 1,569,628 bytes
+and its function denominator to 4,152.
+
+Validation:
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/base/PPCArch --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+The complete section and relocations match, all 22 functions strictly match,
+and the whole linked image has zero differing bytes. The baseline promoted
+zero PPCArch bytes; no donor edits were needed. Remaining Phase 1 units still
+need their own import and promotion proof.

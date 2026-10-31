@@ -22,9 +22,9 @@ definitions that retail dead-stripped, plus `dvd/dvderror.c`, `dvd/dvdidutils.c`
 `extern` (and drop dead-stripped donor functions where retail has none):
 their unverified BSS references are externalized to DTK fallback names so storage
 remains in assembly fallback. CARDDir and the other card files use `__CARDBlock` for
-the shared card control block. GXMisc also references a retail call label directly and omits
+the shared card control block. GXMisc also references `PPCSync` directly and omits
 two functions whose strings are outside the retained retail unit. GXFifo also
-references the retail synchronization call label and externalizes its unused
+references `PPCSync` and externalizes its unused
 `__GXCurrentBP` definition. GXInit keeps the donor's static `FifoObj` and `gxData`
 because MWCC generates different code for externs; the build then replaces their
 `.bss` definitions with the fallback symbols (`strip_unused.py --external-bss`),
@@ -63,3 +63,6 @@ storage is promoted. The matrix sources retain donor assembly verbatim.
 
 See [SDK import evidence](../../docs/sdk_import.md) for ranges, verification,
 progress and remaining work.
+
+`base/PPCArch.c` is an unchanged donor; its complete text and all 22 retained
+functions match. AR and GX now use the proved `PPCSync` name directly.

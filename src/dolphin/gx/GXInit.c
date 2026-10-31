@@ -29,12 +29,11 @@ extern u32 GXResetFuncRegistered_8040AC6C;
 extern u32 lbl_8040AC68;
 extern OSTime lbl_8040AC60;
 extern u32 lbl_8040AC58;
-extern void lbl_8015BF2C(void);
+extern void PPCSync(void);
 #define resetFuncRegistered GXResetFuncRegistered_8040AC6C
 #define calledOnce lbl_8040AC68
 #define time lbl_8040AC60
 #define peCount lbl_8040AC58
-#define PPCSync lbl_8015BF2C
 GXData* const __GXData = &gxData;
 
 #if DEBUG

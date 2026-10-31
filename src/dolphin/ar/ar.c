@@ -4,8 +4,7 @@
 
 #include "__ar.h"
 
-extern void lbl_8015BF2C(void);
-#define PPCSync lbl_8015BF2C
+extern void PPCSync(void);
 
 #ifdef DEBUG
 const char* __ARVersion = "<< Dolphin SDK - AR\tdebug build: Apr  5 2004 03:56:19 (0x2301) >>";
