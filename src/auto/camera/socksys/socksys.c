@@ -26,7 +26,19 @@ struct socksys_b_s {
 };
 
 extern struct socksys_a_s* lbl_80408DF0;
+extern s32 lbl_80408DE4;
+extern s32 lbl_8040AF38;
 extern f32 lbl_8019DFB8[];
+
+void fn_80094F90(s32 a)
+{
+    lbl_80408DE4 = a;
+}
+
+s32 fn_80094F98(void)
+{
+    return lbl_80408DE4;
+}
 
 s32 fn_800952D8(s32 idx)
 {
@@ -58,4 +70,9 @@ f32* fn_80095724(struct socksys_list_s* l, s32 idx)
         return &l->items[idx]->f24;
     }
     return 0;
+}
+
+void fn_80095874(s32 a)
+{
+    lbl_8040AF38 = a;
 }
