@@ -42,7 +42,7 @@ static u32 CheckingBits;
 static u32 PendingBits;
 static u32 BarrelBits;
 
-static u32 Type[4];
+static u32 PADType[4];
 static PADStatus Origin[4];
 
 u32 __PADSpec;
@@ -199,7 +199,7 @@ static void PADProbeCallback(s32 chan, u32 error, OSContext* context) {
     u32 type;
     ASSERTLINE(710, 0 <= ResettingChan && ResettingChan < SI_MAX_CHAN);
     ASSERTLINE(711, chan == ResettingChan);
-    ASSERTLINE(713, (Type[chan] & SI_WIRELESS_CONT_MASK) == SI_WIRELESS_CONT && !(Type[chan] & SI_WIRELESS_LITE));
+    ASSERTLINE(713, (PADType[chan] & SI_WIRELESS_CONT_MASK) == SI_WIRELESS_CONT && !(PADType[chan] & SI_WIRELESS_LITE));
     
     if (!(error & (SI_ERROR_UNDER_RUN | SI_ERROR_OVER_RUN | SI_ERROR_NO_RESPONSE | SI_ERROR_COLLISION)))
     {
@@ -233,7 +233,7 @@ static void PADTypeAndStatusCallback(s32 chan, u32 type) {
     }
 
     type &= ~0xFF;
-    Type[ResettingChan] = type;
+    PADType[ResettingChan] = type;
 
     if ((type & SI_TYPE_MASK) != SI_TYPE_GC || !(type & SI_GC_STANDARD)) {
         DoReset();
@@ -694,7 +694,7 @@ static void SPEC2_MakeStatus(s32 chan, PADStatus* status, u32 data[2]) {
     status->substickX -= 128;
     status->substickY -= 128;
 
-    if (((Type[chan] & (0xFFFF0000)) == SI_GC_CONTROLLER) && ((status->button & 0x80) ^ 0x80)) {
+    if (((PADType[chan] & (0xFFFF0000)) == SI_GC_CONTROLLER) && ((status->button & 0x80) ^ 0x80)) {
         BarrelBits |= (PAD_CHAN0_BIT >> chan);
         status->stickX = 0;
         status->stickY = 0;

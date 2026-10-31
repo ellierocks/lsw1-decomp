@@ -90,5 +90,6 @@ names that collide with `os/OSMemory` become `CARDOnReset` and
 does not link it (see `docs/sdk_import.md`).
 
 `exi/EXIBios.c`, `vi/vi.c` and `pad/Pad.c` are unchanged donors except that Pad's
-static `OnReset` is `PADOnReset`, because OSMemory already has a local `OnReset`. Each owns
+static `OnReset` is `PADOnReset`, because OSMemory already has a local `OnReset`, and its
+static `Type` is `PADType`, because SIBios has a local `Type`. Each owns
 its initialized data; BSS stays in fallback storage.

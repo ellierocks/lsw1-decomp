@@ -409,6 +409,19 @@ class SymbolScopeTests(unittest.TestCase):
             self.assertIn("OnReset", t.duplicates)
             self.assertIsNone(t.addr("OnReset"))
 
+    def test_duplicate_locals_resolve_inside_unit_ranges(self):
+        t = self.table("@13 = .data:0x801E2F48; // type:object size:0x16 scope:local data:string",
+                       "@13 = .data:0x801F65CC; // type:object size:0x80 scope:local")
+        self.assertIsNone(t.addr("@13"))
+        self.assertEqual(t.addr("@13", {".data": (0x801E2E38, 0x801E3268)}), 0x801E2F48)
+        self.assertEqual(t.addr("@13", {".data": (0x801F6328, 0x801F66D8)}), 0x801F65CC)
+        self.assertIsNone(t.addr("@13", {".data": (0x80200000, 0x80201000)}))
+
+    def test_duplicate_globals_ignore_unit_ranges(self):
+        t = self.table("OnReset = .text:0x80160BB8; // type:function size:0x3C",
+                       "OnReset = .text:0x8016F9F8; // type:function size:0xBC")
+        self.assertIsNone(t.addr("OnReset", {".text": (0x80160000, 0x80161000)}))
+
 
 class UnitProofCoverageTests(unittest.TestCase):
     def comparer(self, proof):

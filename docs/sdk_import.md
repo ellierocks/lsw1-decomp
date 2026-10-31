@@ -1813,9 +1813,14 @@ functions; the earlier si/SISteeringAuto anchors on them were false.
   `message$360` is the function-local static in `VIGetTvFormat`, named as the compiler does.
 - A donor static needs a global symbol for `strip_unused.py` (a `scope:local` entry is looked
   up as `NAME_<address>`), so VI's `CurrTvMode`, EXI's `Ecb` and `IDSerialPort1` and Pad's
-  `Type` (`802F4C00`) lose the flag. SIBios also has a local `.data` `Type`; `SymbolTable`
-  now keeps a global and a local of one name apart (the local resolves as `Type_801F5A80`),
-  while two globals or two locals stay duplicates.
+  BSS lose the flag. `SymbolTable` keeps a global and a local of one name apart (the local
+  resolves as `NAME_<address>`), but SIBios's split object still names its local `.data`
+  `Type` without a suffix, so a global Pad `Type` hid it and five SIBios functions lost
+  their reference proof. Pad's `Type` (`802F4C00`) is therefore `PADType` in `symbols.txt`
+  and `Pad.c`.
+- Two locals of one name stay duplicates, but `verify_fn.py` resolves a duplicated local
+  inside the unit's own split ranges. This fixes OSError's `@13` string, which became
+  ambiguous when dvdFatal added its own `@13`.
 - Pad's static `OnReset` (`8016F9F8`) is referenced from its `.data` and must carry its donor
   name. A second local `OnReset` (OSMemory) would make both unverifiable by name, so Pad's
   is `PADOnReset` in `symbols.txt` and `Pad.c`; a static function's identifier does not

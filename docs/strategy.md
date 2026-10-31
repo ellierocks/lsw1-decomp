@@ -75,11 +75,6 @@ blockers:
   `DebuggerDriver.c`;
 - `libsn`/libc, which needs SN's GCC source build (see RE4).
 
-Two promoted units do not pass `verify_unit.py --functions` on current main:
-OSError's `OSPanic` and `__OSUnhandledException` cannot map the duplicated
-local `@13` string symbol, and five SIBios functions report unverified
-references to the unsized `Type` table.
-
 SISamplingRate promotes its two functions and initialized data; its four-byte
 `SamplingRate` BSS remains assembly fallback because the complete-unit gate does
 not verify BSS.
