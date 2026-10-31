@@ -7,7 +7,8 @@ A target is a named `.text` function in config/GL5E4F/symbols.txt that:
   - is not already claimed by a work/<name>/ directory, and
   - lies inside a split unit (so verify_fn.py can compare it).
 
-Ranking: fewest distinct direct callees first, then smallest size. Callees and
+Ranking: fewest distinct direct callees first, then smallest size; donor name
+leads break ties. Callees and
 sizes come from the retail DOL. Read-only; nothing is written.
 
     python3 tools/next_target.py
@@ -23,6 +24,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import verify_fn as vf  # noqa: E402
+
+try:
+    from . import opensaga
+except ImportError:
+    import opensaga
+
 
 ROOT = vf.ROOT
 SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
@@ -91,6 +98,7 @@ def main(argv=None) -> int:
     if dol is None:
         print(f"error: retail DOL missing at {vf.DOL_PATH.relative_to(ROOT)}; see README.md", file=sys.stderr)
         return vf.EXIT_ERROR
+    donor_state = opensaga.snapshot()
     symbols = read_symbols()
     done = defined_in_src()
     verified, attempts = ledger_state()
@@ -111,31 +119,33 @@ def main(argv=None) -> int:
         callees = direct_callees(code, addr)
         source = vf.source_for_unit(unit)
         rows.append({
+            "opensaga": opensaga.lookup(name, donor_state),
             "name": name, "address": f"0x{addr:08X}", "size": size, "unit": unit,
             "callees": len(callees), "callee_names": sorted(names_at.get(t, f"0x{t:08X}") for t in callees),
             "source": str(source.relative_to(ROOT)) if source else None,
             "claimed": name in claimed, "attempts": attempts.get(name, 0),
         })
-    rows.sort(key=lambda r: (r["callees"], r["size"], r["address"]))
+    rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["address"]))
     rows_all = rows
     rows = rows[:args.limit]
 
     if args.json:
         print(json.dumps(rows, indent=2))
         return 0
-    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<18}{'source':<28}state")
+    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<18}{'source':<28}{'saga':<14}state")
     for r in rows:
         state = "claimed" if r["claimed"] else ("attempted" if r["attempts"] else "ready")
         print(f"{r['name']:<22}{r['address']:<12}{r['size']:>#6x} {r['callees']:>7}  {r['unit']:<18}"
-              f"{(r['source'] or '(new file)'):<28}{state}")
+              f"{(r['source'] or '(new file)'):<28}{r['opensaga']['result']:<14}{state}")
     if rows:
         top = rows[0]
         src = top["source"] or f"src/{top['unit']}.c"
         print(f"\nNext for {top['name']}:")
+        print(f"  python3 tools/opensaga.py lookup {top['name']}")
         print(f"  python3 tools/ls1_task_pack.py {top['name']} --out-dir work")
         print(f"  python3 tools/score_fn.py {top['name']} {src}")
         print(f"  python3 tools/hillclimb.py try {top['name']} --unit {top['unit']} --source {src} "
-              "--hypothesis '<one falsifiable change>'")
+              "--hypothesis '<one falsifiable change>' --donor-note '<GC-grounded donor review or limit>'")
     print(f"\n{len(rows_all)} ready targets lie in split units. {skipped_unit} unmatched functions within "
           f"--max-size are outside any split unit and cannot be verified yet (see Phase 2 in docs/strategy.md).")
     return 0

@@ -51,7 +51,15 @@ The compiler audit, RTL dump instructions and the SN GCC v1.79 evaluation moved 
 Use the [OpenSaga lane](symbol_donors/opensaga_matching.md) as a routine Nu2
 donor lookup alongside CrashWOC and Mac evidence. It links GC body evidence,
 orders small parser/helpers first, and identifies shared layouts and rejected
-transfers. Its expansion gate requires strict matches, not partial scores.
+transfers. Generated task packs contain `donor_evidence.md`; inspect its source
+leads and relevant callees/keyword strings against GC before drafting. The first
+game/Nu2 experiment requires `--donor-note` recording inspected paths, confirmed
+facts and rejected differences, or an explicit no-hit/unavailable limit. Notes
+are inherited for that donor revision and automatically retained with lookup
+provenance in the ledger. SDK units are exempt. Carry the conclusion into the PR
+or plateau handoff; record reusable GC facts in shared headers/evidence pages.
+See the [end-to-end workflow](symbol_donors/opensaga_matching.md#end-to-end-workflow).
+Its expansion gate requires strict matches, not partial scores.
 
 ## Measure and iterate
 
@@ -61,7 +69,8 @@ From the repository root (replace the example function, unit and source):
 python3 configure.py
 python3 tools/hillclimb.py try NuVecScale --unit numath/nuvec \
   --source src/numath/nuvec.c --source src/numath/numath.h \
-  --hypothesis 'baseline with existing vector types'
+  --hypothesis 'baseline with existing vector types' \
+  --donor-note '<inspected paths; GC-confirmed facts; differences or lookup limit>'
 python3 tools/hillclimb.py status NuVecScale --unit numath/nuvec
 python3 tools/verify_fn.py NuVecScale --unit numath/nuvec --build --strict-symbols --full
 ```

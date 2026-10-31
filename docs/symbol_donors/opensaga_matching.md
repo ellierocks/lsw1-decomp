@@ -12,6 +12,58 @@ The [repository-wide donor audit](opensaga_audit.md) records the remaining
 string/math, AI, accessor and cutscene leads, plus observed semantic differences.
 Use its queue after the parser/helpers below; shared names are not matches.
 
+## End-to-end workflow
+
+The pin is owned by [`config/donors/opensaga.json`](../../config/donors/opensaga.json).
+The provenance in older evidence pages describes their original measurements;
+changing the pin requires a deliberate donor refresh and rechecking affected
+conclusions, not an automatic update to upstream HEAD.
+
+1. **Bootstrap.** `bash tools/bootstrap.sh` fetches a detached checkout at the
+   pin into `$LSW1_CACHE/opensaga` (default `~/.cache/lsw1/opensaga`). Set
+   `OPENSAGA` to use an existing checkout. `LSW1_NO_OPENSAGA=1` skips the fetch
+   for offline/SDK-only setup. Explicitly retry with
+   `python3 tools/opensaga.py fetch`. Existing modified or differently pinned
+   checkouts are preserved; choose a fresh `OPENSAGA` path to resolve them.
+2. **Select.** `next_target.py` attaches donor metadata to each candidate and
+   uses name leads only to break equal callee-count/size ties. It never ranks by
+   donor percentage or changes ownership/split requirements. `lookup` accepts
+   a current GC name or address:
+
+   ```sh
+   python3 tools/opensaga.py lookup NuStrCpy
+   python3 tools/opensaga.py lookup 0x80007B6C --json
+   python3 tools/opensaga.py search cfgtab_Script --limit 10
+   ```
+
+3. **Prepare.** Both individual and object-neighborhood task packs write
+   `donor_evidence.md`: pin, source owners, URLs, lookup state and review
+   instructions. Read the GC body first, then the donor body and relevant
+   callees/keyword tables. Exact name lookup is deliberately conservative and
+   can return several source owners; inspect all plausible owners. A no-hit
+   is not proof of absence: search names, callees or strings. Unassigned report
+   functions and differently named equivalents may need this manual search.
+4. **Draft and record.** Write C from GC assembly, using the donor as semantic
+   evidence. Before the first game/Nu2 `hillclimb.py try`, provide
+   `--donor-note` with inspected paths, GC-supported semantics/offsets and
+   rejected differences. If lookup is unavailable or unsuccessful, record the
+   actual limitation and searches instead. The ledger automatically stores
+   lookup metadata, pin and review note; later attempts inherit the note for
+   that revision. A new pin needs a new note. Existing ledgers without a note
+   need one on their next attempt. `dolphin/` SDK units are exempt.
+5. **Verify and finish.** Fast scoring, strict function verification and unit/
+   linked-range promotion are unchanged. Keep the donor conclusion in the PR
+   or plateau handoff alongside baseline/best score, verification commands,
+   promoted bytes and next hypothesis. Put newly proven reusable field facts
+   in the owning shared header/evidence page; keep unproven donor layouts out.
+
+All lookups after bootstrap are offline and read-only. Search returns paths
+and line numbers, not copied source. Wrong revisions, modified checkouts and
+missing reports are **unavailable**, not no-hit results. These states do not
+change the oracle or prohibit work from GC evidence; record the limit.
+The review note is a provenance requirement, not automated proof that the
+agent's interpretation is correct. Review still checks it against GC.
+
 ## Evidence and initial queue
 
 [File/parser evidence](opensaga_file_parser_evidence.md) supplies the first

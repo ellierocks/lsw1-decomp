@@ -13,6 +13,12 @@ from pathlib import Path
 import subprocess
 import sys
 
+try:
+    from . import opensaga
+except ImportError:
+    import opensaga
+
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -61,6 +67,7 @@ def main(argv=None):
     ap.add_argument('--unit', required=True, help='configured comparison unit, e.g. numath/nuvec')
     ap.add_argument('--source', action='append', default=[], help='snapshot each edited source/header')
     ap.add_argument('--hypothesis', help='one concrete source/codegen hypothesis')
+    ap.add_argument('--donor-note', help='reviewed OpenSaga paths, GC-confirmed facts, rejected differences or lookup limit')
     ap.add_argument('--compiled-symbol')
     ap.add_argument('--ledger', default='work/hillclimb')
     ap.add_argument('--patience', type=int, default=8)
@@ -91,10 +98,21 @@ def main(argv=None):
             if attempts and attempts[-1]['environment'] != environment:
                 summary['state'] = 'CONTEXT_CHANGED'
             if args.action == 'status':
-                print(json.dumps(dict(identity, **summary, ledger=str(directory)), indent=2))
+                print(json.dumps(dict(identity, **summary, ledger=str(directory),
+                                      donor_review=attempts[-1].get('opensaga') if attempts else None), indent=2))
                 return 0
             if summary['state'] in ('VERIFIED', 'PARK') or len(attempts) >= args.max_attempts:
                 ap.error('target verified or budget exhausted; inspect ledger and select another target')
+            donor = ({'result': 'sdk-not-applicable'} if args.unit.startswith('dolphin/')
+                     else opensaga.lookup(args.function))
+            previous = attempts[-1].get('opensaga', {}) if attempts else {}
+            note = args.donor_note or (previous.get('review_note')
+                                      if previous.get('revision') == donor.get('revision') else None)
+            if donor['result'] != 'sdk-not-applicable' and not (note and note.strip()):
+                ap.error('game/Nu2 attempts require --donor-note: record inspected OpenSaga paths, '
+                         'GC-confirmed facts/rejected transfers, or the no-hit/unavailable limit; '
+                         'run python3 tools/opensaga.py lookup ' + args.function)
+            donor['review_note'] = note
             sources = {}
             for raw in args.source:
                 path = (ROOT / raw).resolve()
@@ -117,7 +135,7 @@ def main(argv=None):
                 measured = score(report) if code in (0, 1, 3) else None
             except (ValueError, KeyError, TypeError):
                 report, measured, code = {'error': 'invalid verifier output'}, None, 2
-            record = dict(identity, attempt=len(attempts) + 1,
+            record = dict(identity, opensaga=donor, attempt=len(attempts) + 1,
                           timestamp=datetime.now(timezone.utc).isoformat(),
                           hypothesis=args.hypothesis, sources=sources, command=command,
                           environment=environment,

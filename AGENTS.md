@@ -19,10 +19,15 @@ library, TU or function per worktree branch. Search with `tools/score_fn.py`
 and accept only with `verify_fn.py --build --strict-symbols`
 ([C matching](docs/code_matching_workflow.md)). Park a plateau with its best
 score, its remaining mismatch and one concrete next hypothesis. Naming and
-donor mining serve a selected matching target. Consult the
-[OpenSaga lane](docs/symbol_donors/opensaga_matching.md) routinely for Nu2
-evidence: start with small parser/helpers, reuse confirmed GC header layouts,
-and expand only after strict matches.
+donor mining serve a selected matching target. For every game/Nu2 target, read
+its generated `donor_evidence.md`, inspect the pinned OpenSaga body and relevant
+callees/keywords against GC, and record accepted facts, rejected transfers or
+an explicit no-hit/unavailable limit with `hillclimb.py try --donor-note`.
+The note is required once per target/donor revision and must survive in the PR
+or plateau handoff. SDK units use the Dolphin donor lane instead. The
+[OpenSaga workflow](docs/symbol_donors/opensaga_matching.md#end-to-end-workflow)
+covers bootstrap, discovery, drafting and completion; reuse only GC-confirmed
+layouts and expand only after strict matches.
 
 A strict function match is **VERIFIED**, not **PROMOTED**. Promotion also needs
 unit sections, relocations and linked retail ranges to match without regression.
