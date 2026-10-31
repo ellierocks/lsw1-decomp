@@ -292,6 +292,9 @@ dolphin/gx/GXPixel.c:
 	.data       start:0x801FB4D8 end:0x801FB4F8
 	.sdata2     start:0x8040B8A8 end:0x8040B908
 
+dolphin/gx/GXDisplayList.c:
+	.text       start:0x80183370 end:0x801833E0
+
 dolphin/gx/GXTransform.c:
 	.text       start:0x801833E0 end:0x8018392C
 	.sdata2     start:0x8040B908 end:0x8040B91C

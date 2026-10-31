@@ -434,6 +434,7 @@ config.libs = [
         SDKObject("gx/GXBump", Matching),
         SDKObject("gx/GXTev", Matching),
         SDKObject("gx/GXPixel", Matching),
+        SDKObject("gx/GXDisplayList", Matching, external_bss=True),
         SDKObject("gx/GXTransform", Matching),
         SDKObject("gx/GXPerf", Matching),
     ]),

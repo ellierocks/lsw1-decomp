@@ -177,8 +177,8 @@ class ExternalBssTests(unittest.TestCase):
         self.assertIn("symbols.txt places it", result.stderr)
         self.assertEqual(self.obj.read_bytes(), before)
 
-    def test_unknown_object_is_rejected(self):
-        self.build([("mystery", 0, 0x30, 1, 2)], [])
+    def test_unknown_object_used_by_retained_code_is_rejected(self):
+        self.build([("mystery", 0, 0x30, 1, 2)], [(0, 3, 0)])
         result = self.run_strip()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("mystery has no .bss symbol", result.stderr)
@@ -188,6 +188,43 @@ class ExternalBssTests(unittest.TestCase):
         result = self.run_strip()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("trailing .bss space", result.stderr)
+
+    def build_with_dead_function(self, relocations, first_at=0x10, second_at=None):
+        symbols = [("func", 0, 4, 2, 1), ("dead", 4, 4, 2, 1), ("section", 0, 0, 3, 2),
+                   ("ghost", 0, 0x10, 1, 2), ("first", first_at, 0x10, 1, 2),
+                   ("second_80300010", second_at or first_at + 0x10, 0x20, 1, 2)]
+        make_elf(self.obj, symbols, text=b"CODEDEAD", data=bytes((second_at or first_at + 0x10) + 0x20), relocations=relocations,
+                 data_name=".bss", data_type=8)
+
+    def test_static_used_only_by_a_dead_function_needs_no_symbol(self):
+        self.build_with_dead_function([(0, 5, 0), (4, 4, 8)])
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        self.assertEqual(elf.contents[elf.index(".text")], b"CODE")
+        self.assertNotIn("ghost", [s[0] for s in symbols(elf)])
+        rela = elf.contents[elf.index(".rela.text")]
+        self.assertEqual(len(rela), 12)
+        names = [s[0] for s in symbols(elf)]
+        self.assertEqual(names[struct.unpack_from(">IIi", rela)[1] >> 8], "first")
+
+    def test_static_used_by_retained_code_still_needs_a_symbol(self):
+        self.build_with_dead_function([(0, 4, 0)])
+        result = self.run_strip()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ghost has no .bss symbol", result.stderr)
+
+    def test_dropped_static_does_not_excuse_a_gap_before_kept_objects(self):
+        self.build_with_dead_function([(0, 5, 0), (4, 4, 0)], first_at=0x20)
+        result = self.run_strip()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("gap before .bss object first", result.stderr)
+
+    def test_dropped_static_does_not_excuse_a_misplaced_kept_object(self):
+        self.build_with_dead_function([(0, 5, 0), (4, 4, 0)], second_at=0x28)
+        result = self.run_strip()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("symbols.txt places it", result.stderr)
 
 
 if __name__ == "__main__":
