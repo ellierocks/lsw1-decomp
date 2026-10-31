@@ -19,6 +19,7 @@ checkout, clones the pinned dolsdk2004 into `~/.cache/lsw1/dolsdk2004`
 private toolchain.
 
 ```sh
+bash build.sh                                                     # once per worktree: target objects
 python3 tools/sdk_probe.py --pending --tsv work/sdk_pending.tsv   # import queue
 python3 tools/sdk_import_unit.py ax/AXCL                          # plan only
 python3 tools/sdk_import_unit.py ax/AXCL --apply                  # import + prove
@@ -36,6 +37,13 @@ function), the linked-image comparison, and prints the table row for this file.
 Re-importing AXAlloc and AXAux this way from baseline `97e792b` reproduces the
 hand-made splits, configuration, symbols and sources byte for byte, in about three
 seconds each.
+
+A failed `--apply` leaves the split, configuration and renames in place and prints the
+rename and `manual:` log after the error; `verify_unit.py` says why a proof was refused
+(first differing relocation or byte). Fix the symbols, then rerun
+`verify_unit.py dolphin/UNIT --build --functions`; to start over, `git checkout config
+configure.py` and delete the new `src/dolphin/UNIT.c`. Renames also rewrite the old
+`lbl_` name in existing sources.
 
 Plans stop with an error, and `--apply` is refused, when the unit owns initialised
 data (`.data`, `.rodata`, `.sdata`, `.sdata2`), when retail functions inside the
@@ -1170,5 +1178,60 @@ same name, and the emptied section drops to alignment 1 so it cannot pad the ret
 (`__AXStackHead`, `__AXBufferAuxA`, `__AXClMode`, and so on); storage stays in
 assembly fallback. `__AXSetPBDefault` is named from its `MATCH` row in the AXVPB probe.
 
-Remaining AX units (AXCL, AXOut, AXSPB, AXVPB) still carry `MISMATCH` or
-`CODE_SAME` rows that need comparing with retail before they can be promoted.
+Remaining AX units (AXSPB, AXVPB) still carry `MISMATCH` or `CODE_SAME` rows that
+need comparing with retail before they can be promoted.
+
+## Batch 6: AX command list and output, OS reset, messages, semaphores, card read/write
+
+Six units are promoted from baseline `5ead3b3`, bringing the SDK total to 68.
+Measured progress rises from **92,336 bytes / 474 functions** to
+**98,620 bytes / 502 functions**, a gain of **6,284 bytes / 28 functions**.
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `ax/AXCL` | `80172CCC..80173404` | 7 | 1,848 | 0 |
+| `ax/AXOut` | `80173404..80173C10` | 9 | 2,060 | 0 |
+| `os/OSMessage` | `801609B4..80160BB8` | 3 | 516 | 0 |
+| `os/OSSemaphore` | `8016220C..80162334` | 3 | 296 | 0 |
+| `os/OSResetSW` | `80161398..80161724` | 2 | 908 | 0 |
+| `card/CARDRdwr` | `8017C4C4..8017C754` | 4 | 656 | 0 |
+
+All 28 retained functions pass `verify_unit.py --build --functions` (strict symbols),
+and the linked image has zero differing bytes. All six sources are unmodified donors.
+
+Hand work, each backed by relocation or size evidence rather than a score:
+
+- **AXCL.** The probe's layout walk had given the 8-byte slot of the retail
+  `AXSetCompressor` (a store) to the donor's 8-byte `AXGetMode` (a load). Layout
+  anchoring now also compares code for functions of at most 16 bytes, so
+  `AXGetMode` is the dead-stripped function.
+- **AXSPB/AXOut neighbours.** Three older names were one slot off: `0x80173BCC` is
+  `AXRegisterCallback` (68 bytes), `0x80173C10` is `__AXGetStudio` (12 bytes, called
+  by `__AXNextFrame`) and `0x80173C1C` is `__AXPrintStudio` (1,016 bytes). A game
+  function at `0x80140504` had been named `__AXOutNewFrame` and is `fn_80140504` again;
+  the real one is `0x80173404`.
+- **AXOut `.bss`/`.sbss`.** `lbl_802F8060` (0x4A00) was three donor arrays and is now
+  `__AXOutBuffer`, `__AXOutSBuffer` and `__AXDramImage`. The DSP task is 0x50 bytes,
+  `__AXLocalProfile` follows it at `0x802FCAB0` (0x38) and the `0x38` bytes after
+  it belong to the next unit (`lbl_802FCAE8`). `__AXOsTime` is one 8-byte object.
+- **OSResetSW.** `OSTime` statics (`__OSStartTime`, `HoldUp`, `HoldDown`) were split by
+  DTK into two 4-byte `lbl_` entries because the code only touches the halves; each
+  pair is now one 8-byte object.
+- **CARDRdwr.** The retail callees were named `CARDInit` and `__CARDSetDiskID`; by
+  size (0x134, 0x13C) and call position they are `__CARDReadSegment` and
+  `__CARDWritePage`. The functions previously carrying those names (0x2A0 and
+  0x110 bytes) are the donor's static `Retry` and `UnlockedCallback`. The other
+  `CARDBios` names are probably shifted the same way; re-anchor them with the
+  CARDBios batch. `lbl_8030E320` became `__CARDBlock`, and the importer now rewrites
+  that name in the already-imported card sources.
+
+Parked: `si/SISteeringAuto` is not in retail. Its `SamplingHandler` and
+`SISetSteeringSamplingCallback` rows are the existing `pad/Pad` functions (retail
+`SamplingHandler`, `PADSetSamplingCallback`); import `pad/Pad` instead.
+`gx/GXDisplayList` keeps only `GXCallDisplayList`, but its three `.bss` statics have no
+retail symbols because the functions that used them are dead-stripped, and
+`strip_unused.py --external-bss` requires every static to map to a symbol. Next hypothesis:
+let `externalize_bss` drop statics whose only references are in functions the
+target lacks. `os/OSFatal`, `card/CARDUnlock` and `card/CARDMount` own `.data` or
+`.sdata2` and need hand-written split ranges (CARDMount also needs `os/__os.h`
+from the donor).

@@ -316,6 +316,9 @@ def main(argv=None) -> int:
     if not (args.sdk / "src").is_dir():
         print(f"error: no dolsdk2004 checkout at {args.sdk}; run tools/fetch_dolsdk.sh", file=sys.stderr)
         return 2
+    if not any((BUILD / "GL5E4F" / "obj").glob("**/*.o")):
+        print("error: no target objects under build/GL5E4F/obj; run `bash build.sh` first", file=sys.stderr)
+        return 2
     units = args.units
     if args.all or args.pending:
         units = sorted(str(p.relative_to(args.sdk / "src").with_suffix(""))
