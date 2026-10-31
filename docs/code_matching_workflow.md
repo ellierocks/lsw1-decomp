@@ -88,7 +88,7 @@ temporary object, without ninja or a ledger, in well under a second:
 
 ```sh
 python3 tools/score_fn.py NuVecScale src/numath/nuvec.c
-python3 tools/score_fn.py NuVecScale scratch.c --compile-only -o out.o   # permuter compile step
+python3 tools/score_fn.py NuVecScale scratch.c --compile-only -o out.o   # permuter compile.sh
 ```
 
 Its score has the same order as `hillclimb.py`.
@@ -125,6 +125,36 @@ the search stops at the first strict `MATCH` and refuses more than `--limit`
 variants (default 7! = 5040, about two minutes with `-j 8`). `--dry-run` prints the
 count. The best variant goes to `work/order_search/NAME/best.c`; port it into the
 unit source and accept it with `verify_fn.py --build --strict-symbols`.
+
+### decomp-permuter
+
+For a close plateau that is not just an ordering problem, run the pinned
+[decomp-permuter](https://github.com/simonlindholm/decomp-permuter). `bootstrap.sh`
+fetches it (`tools/fetch_permuter.sh`; `DECOMP_PERMUTER` overrides the checkout).
+
+```sh
+python3 tools/permute_setup.py fn_8000A64C                 # writes work/permute/fn_8000A64C/
+python3 tools/permute_setup.py fn_8000A64C --run -- -j 8 --stop-on-zero --best-only
+```
+
+`permute_setup.py` writes `base.c`, the best scored `hillclimb.py` snapshot of the
+unit source (else the unit source; `--source` overrides), preprocessed with ProDG's
+CPP. It also writes `target.o` (the retail DTK split object), `compile.sh`
+(`score_fn.py NAME "$1" --compile-only -o "$3"`) and `settings.toml`, and prints
+the base score. `--run` reuses an existing directory unless `--force` is given.
+
+Scoring uses a verifier-backed dumper rather than normalised objects. The
+permuter's objdump scorer compares relocation symbol names (`.rodata+0x8` never
+equals `lbl_8018F150`) and diffs every function in the object. `settings.toml`
+therefore points `objdump_command` at `tools/permute_objdump.py`. It runs the
+`score_fn.py` comparison and prints each row the strict verifier accepted with the
+target's text, and each other row with the candidate's text. Unless the verdict is a
+strict `MATCH`, it adds a `verify_fn <verdict>` line. Permuter score 0 therefore
+means `score_fn.py` MATCH, and the permuter's diff is the verifier's diff.
+
+Output lands in `work/permute/NAME/output-*`. Minimise the change by hand, port it
+into the unit source and accept it only with `verify_fn.py NAME --build
+--strict-symbols`.
 
 Record a candidate with
 `hillclimb.py try` when it improves the incumbent or settles a hypothesis;

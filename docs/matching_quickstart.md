@@ -78,6 +78,13 @@ ordering ([order search](code_matching_workflow.md#store-and-load-order-search))
 python3 tools/order_search.py NAME work/NAME/order.c --const-locals -j 8
 ```
 
+For any other close plateau, run decomp-permuter scored by the strict verifier
+([details](code_matching_workflow.md#decomp-permuter)):
+
+```sh
+python3 tools/permute_setup.py NAME --run -- -j 8 --stop-on-zero --best-only
+```
+
 ## 5. Record and accept
 
 ```sh

@@ -124,7 +124,7 @@ For each queued function:
 2. **Agent search.** Iterate with `score_fn.py`, recording candidates worth
    keeping through `hillclimb.py try`.
 3. **Permuter.** Run decomp-permuter on functions that are close (about 95%
-   exact or better), using `score_fn.py --compile-only` as its compile step.
+   exact or better) with `tools/permute_setup.py NAME --run`.
 4. **Accept.** Use `verify_fn.py --build --strict-symbols`. Promote whole TUs
    when every function matches, and batch several matched functions per PR.
 
@@ -148,8 +148,7 @@ The first leaf batch (`t3/phase3-leaf-batch-1`) attempted 51 small functions acr
 matches (+1,616 code bytes, 773 to 819 functions): four float-literal functions
 (`fn_8000ED40`, `NuFdiv`, `fn_8000B234`, `fn_8000B2C4`) are strict matches whose literal
 reloc reads `.rodata` rather than the `lbl_` symbol, so objdiff shows 98 to 99%. Only
-`nuerror_ngc` was promoted; `nudlist_1` is complete but is half of the `nudlist.c` TU,
-and merging the halves would move a split.
+`nuerror_ngc` was promoted; `nudlist_1` is complete but its TU is unresolved (see below).
 
 Failure modes, in order of cost:
 
@@ -165,6 +164,23 @@ Failure modes, in order of cost:
 - **Handler thunks.** `fn_80009948` returns a function pointer that is called with the
   message; model it as `((void(*)(char*, ...))fn(file, line))(msg)`.
 - **Out of scope for C.** Paired-single (`psq_l`/`ps_*`) functions are hand-written asm.
+
+decomp-permuter is wired end to end. `bootstrap.sh` fetches the pinned checkout,
+`tools/permute_setup.py NAME` writes the work directory and `--run` starts it; scoring
+goes through the strict verifier, so score 0 means `score_fn.py` MATCH
+([workflow](code_matching_workflow.md#decomp-permuter)). Its first run matched the
+parked `fn_8000A64C` in about 2,000 iterations: wrapping the body after
+`OSWaitSemaphore` in `do { ... } while (0)` makes GCC load `t->value` before the
+`mode == 1` compare. The whole `nuthread` unit then matched and was promoted to
+`nucore/ngc/nuthread.c` (0x8000A64C..0x8000A834, 8 functions).
+
+`nudlist_1` and `nudlist_2` stay separate: `tu_boundaries.py` has no evidence that
+they form one TU. The seven `nu3d/nudlist.c` path references start at `fn_80010120`.
+`nudlist_1` (`NuMtxDet3`, `fn_8000E830`, `fn_8000E8A4`) has no rodata or path
+reference, and the DP's `nudlist.c` start range spans 0x8000E7E4..0x8000EBE8. The
+hand-split `numath/nu_asm.c` lies between the halves, so merging them would also
+absorb it. The nearest evidence (Mac order: `NuMtxDet3` 1949, `NuVec4MtxTransformVU0`
+2305) points at numath matrix code rather than `nudlist.c`.
 
 #### Second measured batch
 
@@ -186,12 +202,6 @@ New failure modes seen:
   fails the data compare; read the real value from `build/GL5E4F/main.elf` (`NuASin`).
 - **Struct-copy size.** A global-to-pointer struct assignment is a 3-stage unrolled
   loop; size the struct from the tail copy (`fn_8000DBA0`, 0x40 bytes).
-
-decomp-permuter is **not** wired end to end. `score_fn.py --compile-only -o` produces the
-object, but the checkout is not fetched by `bootstrap.sh`, and nothing generates the
-per-function `compile.sh` wrapper (`score_fn.py NAME "$1" --compile-only -o "$3"`),
-`target.o` or `settings.toml`, or scores through the strict verifier. Close plateaus
-such as `fn_8000A64C` wait on that.
 
 #### Shared-header batch
 
@@ -224,6 +234,34 @@ Failure modes new to this batch:
 The next structs to confirm, by caller count, are the animation and instance-animation
 structs, `numtl_s`, `nugeom_s`, game character and object structs, `nufile`, and the
 rest of `nugscn_s`.
+
+#### Second measured batch
+
+Batch 4 (`t3/phase3-leaf-batch-4`) added 20 provisional `auto/` units and strictly matched
+275 leaf functions (`verify_fn.py --build --strict-symbols`), moving the objdiff report
+from 819 to 1,094 functions (+5,536 code bytes, 170,712 to 176,248). No unit was promoted
+and the relinked DOL is unchanged. Four `auto/game/podrace` functions are parked
+(`fn_801507CC`, `fn_80150D80`, `fn_80150DBC`, `fn_80150418`): several variants do not match,
+and the next hypothesis is that the TU's compile flags or inlining differ from the rest.
+
+Measured rate: the wall clock from first to last acceptance was 5 h 20 min, but the active
+time (gaps over 15 minutes removed) was about 15 minutes, so the rate is 275 functions in
+roughly 15 active minutes. That figure is not comparable to batch 1: nearly all targets were
+callee-less accessors and setters that a template generator drafted from the disassembly,
+with `score_fn.py` as the filter. Plan Phase 3 on the functions that remain, which have calls,
+loops and branches, and expect a much lower rate.
+
+Failure modes, in order of cost:
+
+- **Families with a shared shape.** One template matches many siblings (the 76 guarded
+  setters in `auto/game/cut`). Do the template once, then batch-score; do not hand-draft.
+- **Store order and compare sense.** `fn_8011B378` matched only with stores ordered
+  32, 40, 44. `cror so,eq,lt` + `bnslr` is `if (x <= limit) store`, not `x > limit`.
+- **Pointer-as-integer globals.** cut.c declares `lbl_8040B250` as `s32` and indexes it
+  with integer arithmetic; a struct pointer conflicts with sibling externs in the same unit.
+  A local `volatile s32*` stops GCC merging `|=` and `^=` into one `ori`/`xori`.
+- **TUs with other flags.** The podrace parks show that not every provisional unit
+  compiles with the shared `cflags_prodg`.
 
 ## Rules that do not change
 

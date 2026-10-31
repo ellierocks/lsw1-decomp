@@ -44,19 +44,22 @@ s32 fn_8000A64C(s32 idx, s32 val, s32 mode)
         lbl_80407B04 = 1;
     }
     OSWaitSemaphore(&lbl_80207DC0);
-    base = t->base;
-    switch (mode) {
-    case 0:
-        t->value = val;
-        break;
-    case 1:
-        base = t->value;
-    case 2:
-        t->value = base + val;
-        break;
-    }
-    OSSignalSemaphore(&lbl_80207DC0);
-    return t->value;
+    /* do/while(0) schedules the t->value load before the mode == 1 compare */
+    do {
+        base = t->base;
+        switch (mode) {
+        case 0:
+            t->value = val;
+            break;
+        case 1:
+            base = t->value;
+        case 2:
+            t->value = base + val;
+            break;
+        }
+        OSSignalSemaphore(&lbl_80207DC0);
+        return t->value;
+    } while (0);
 }
 
 s32 fn_8000A714(s32 a, s32 b, s32* out)
