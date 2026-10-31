@@ -38,17 +38,55 @@ Re-importing AXAlloc and AXAux this way from baseline `97e792b` reproduces the
 hand-made splits, configuration, symbols and sources byte for byte, in about three
 seconds each.
 
-A failed `--apply` leaves the split, configuration and renames in place and prints the
-rename and `manual:` log after the error; `verify_unit.py` says why a proof was refused
-(first differing relocation or byte). Fix the symbols, then rerun
-`verify_unit.py dolphin/UNIT --build --functions`; to start over, `git checkout config
-configure.py` and delete the new `src/dolphin/UNIT.c`. Renames also rewrite the old
-`lbl_` name in existing sources.
+A failed `--apply` leaves the split, configuration and renames in place. The error
+output starts with the lines that explain it (`strip_unused:`, `error`, `FAILED`,
+`Missing`) before the last 30 lines of the build, and a `strip_unused:` failure also
+lists the donor `.bss`/`.sbss` objects with their sizes and offsets. `verify_unit.py`
+says why a proof was refused (first differing relocation or byte). Fix the symbols, then
+rerun `verify_unit.py dolphin/UNIT --build --functions`. To start over:
+
+```sh
+git checkout config configure.py && rm src/dolphin/UNIT.c   # plus any copied donor headers
+bash build.sh                                               # prerequisite for every import and probe
+```
+
+`tools/sdk_probe.py` and the importer need `build/GL5E4F/obj` from `bash build.sh` and
+stop immediately without it.
+
+Renames also rewrite the old `lbl_` name in existing sources, in one simultaneous pass
+(so swaps and chains are safe).
+
+**Name conflicts.** When a donor function is anchored to a retail function that already
+carries a different SDK name, the plan prints `name conflict   retail NAME at ADDR vs
+donor NAME, same size, code identical` when the code is equal outside relocations. Such
+a proposal is checked against `docs/symbol_donors/rejected_renames.tsv` and, if the
+donor name is held by another function, that holder is demoted to `fn_ADDR` (a same-named
+static in another split, such as the second `OnReset`, blocks it instead). Chains and
+swaps count a name vacated by another accepted proposal as free, and for a pairing
+conflict the importer follows the callee into the donor unit that defines it and proposes
+the whole shifted run. Nothing is renamed on size alone; functions of at most 16 bytes
+count as identical only on a unique code match or next to a proven neighbour. Plans with
+proposals are refused by `--apply` until you add `--accept-name-conflicts`, which applies
+exactly the ones marked code-identical and prints the rest as `unproven`, `blocked` or
+`rejected`.
+
+**`.bss`/`.sbss` granularity.** DTK splits a `u64` into two 4-byte labels and merges
+adjacent arrays into one covering symbol. The importer merges the unnamed label into
+the object before it when the donor accesses `NAME+4` and `label+0` and both are 4 bytes
+(`OSTime`, `HoldUp`, `HoldDown`, `__OSStartTime`). When a retail symbol covers several
+donor objects, the donor object sizes and offsets are printed, and the symbol is split
+automatically only when the donor sizes tile it exactly; otherwise the objects are
+listed as `manual:` (`AXOut`'s DSP task and local profile are examples).
+
+**Includes.** `src/dolphin` is added as an include root (`-i src/dolphin`) when a donor
+source includes a directory-qualified header such as `"os/__os.h"`; the header is taken
+from the repo, or copied from the donor's `src/` tree.
 
 Plans stop with an error, and `--apply` is refused, when the unit owns initialised
 data (`.data`, `.rodata`, `.sdata`, `.sdata2`), when retail functions inside the
 range are not matched by the donor, or when the range overlaps an existing split.
-Those need the manual steps below.
+Those need the manual steps below (or, for statics that only dead-stripped functions
+used, `strip_unused.py --external-bss` now drops them; see GXDisplayList below).
 
 Keep file-scope statics as the donor wrote them and let `--external-bss` replace their
 storage: declaring them `extern` changes MWCC's code (it reloads values around
@@ -1228,10 +1266,41 @@ Hand work, each backed by relocation or size evidence rather than a score:
 Parked: `si/SISteeringAuto` is not in retail. Its `SamplingHandler` and
 `SISetSteeringSamplingCallback` rows are the existing `pad/Pad` functions (retail
 `SamplingHandler`, `PADSetSamplingCallback`); import `pad/Pad` instead.
-`gx/GXDisplayList` keeps only `GXCallDisplayList`, but its three `.bss` statics have no
-retail symbols because the functions that used them are dead-stripped, and
-`strip_unused.py --external-bss` requires every static to map to a symbol. Next hypothesis:
-let `externalize_bss` drop statics whose only references are in functions the
-target lacks. `os/OSFatal`, `card/CARDUnlock` and `card/CARDMount` own `.data` or
-`.sdata2` and need hand-written split ranges (CARDMount also needs `os/__os.h`
-from the donor).
+`os/OSFatal`, `card/CARDUnlock` and `card/CARDMount` own `.data` or `.sdata2` and need
+hand-written split ranges; CARDMount's include failure (`os/__os.h`) was a resolver bug
+and is fixed, leaving only its `.data 0x40`. `ax/AXVPB`, `card/CARDBios` and
+`os/OSThread` are blocked on initialised data too.
+
+## Import workflow fixes
+
+Retrospective items from Batch 6, fixed in the tools rather than by hand:
+
+| Item | Result |
+|---|---|
+| Name conflicts | `--accept-name-conflicts`, evidence by code, rejected list honoured, chains and demotions (above). The CARDBios shift chain (`__CARDSyncCallback`, `__CARDExtHandler`, `__CARDExiHandler`, `__CARDTxHandler`, `__CARDStart`, `__CARDSync`) is found by a dry run; `OnReset` is blocked by the other `OnReset` inside `os/OSMemory`. AXSPB has no remaining conflicts and AXVPB shows none. VI, OS, DVD, OSRtc and dvdfs names show the same off-by-one shifts in the probe diff and are for their own batches. |
+| `.bss` granularity | Half-label merge and exact-tiling split (above). |
+| `strip_unused --external-bss` | Drops statics with no references from retained code and no symbol, keeping the constant-bias, overlap, hidden-gap and alignment checks. |
+| `gx/GXDisplayList` | Imports and proves with the new drop rule. |
+| Includes | `-i src/dolphin` root and donor lookup. |
+| Failure output | Key lines first. |
+| `SISamplingRateBSS.c` | The "Missing configuration" message was a deliberate sbss-only fallback split with no `Object`; it is now a `NonMatching` object and the DOL is unchanged. |
+
+`sdk_probe.anchor` now prefers identical code over a name that sits on a different
+function and never lets two donor functions claim one retail function, which is what let
+shifted names mislead earlier runs.
+
+Re-importing AXCL, AXOut, OSMessage, OSSemaphore, OSResetSW and CARDRdwr from the
+Batch 6 baseline with `--apply --accept-name-conflicts` reproduces them with zero
+differing bytes. The symbol diff against the hand edits is the AXSPB neighbour
+`0x80173BCC`, which the tool leaves as `fn_80173BCC` where the hand edit used
+`AXRegisterCallback`.
+
+### GXDisplayList
+
+| Unit (under `dolphin/`) | Retail `.text` range, end exclusive | Functions | Code bytes | Owned data bytes |
+|---|---|---:|---:|---:|
+| `gx/GXDisplayList` | `80183370..801833E0` | 1 | 112 | 0 |
+
+Measured progress rises from 98,620 bytes / 502 functions to **98,732 bytes / 503
+functions**. The three `.bss` statics belong to dead-stripped functions and have no retail
+symbols, so `externalize_bss` drops them.

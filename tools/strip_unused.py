@@ -90,14 +90,35 @@ def load_bss_symbols(path):
     return table
 
 
-def externalize_bss(elf, table, section='.bss'):
+def dead_function_ranges(elf, keep):
+    """{section index: [(start, end)]} of the functions the target does not define."""
+    symtab = elf.index('.symtab')
+    strs = elf.contents[elf.sections[symtab][6]]
+    ranges = {}
+    for o in range(0, len(elf.contents[symtab]), 16):
+        name, value, size, info, _, shndx = struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16])
+        if shndx == 0 or shndx >= elf.shnum or info & 15 != STT_FUNC:
+            continue
+        nm = strs[name:strs.index(b'\x00', name)].decode()
+        if nm not in keep.get(elf.names[shndx], ()):
+            ranges.setdefault(shndx, []).append((value, value + size))
+    return ranges
+
+
+def externalize_bss(elf, table, section='.bss', dead=None):
     """Turn BSS definitions into references to the fallback objects they were compiled at.
 
     The compiled layout must agree with symbols.txt: every defined object needs
     a DTK link name there, a size that fits, a single constant address bias
     across the section and no gap that could hide another object. The section
     is then emptied, so only the retail BSS ranges remain in the link.
+
+    `dead` maps section indexes to the function ranges that dead stripping will
+    remove. An object with no symbols.txt entry is dropped instead of rejected when
+    only those functions reference it (a static used by a function the target lacks).
+    It still occupies its compiled extent, so the checks on the kept objects hold.
     """
+    dead = dead or {}
     bss = [i for i, name in enumerate(elf.names) if name == section]
     if not bss:
         return
@@ -114,9 +135,36 @@ def externalize_bss(elf, table, section='.bss'):
                      if s[5] == bss and s[3] & 15 == STT_OBJECT)
     if not objects:
         return
+    object_index = {i for _, _, _, i in objects}
+
+    def containing(offset):
+        return next((o for o in objects if o[0] <= offset < o[0] + o[1]), None)
+    retained = set()
+    for i, sh in enumerate(elf.sections):
+        if sh[1] != SHT_RELA:
+            continue
+        for o in range(0, len(elf.contents[i]), 12):
+            r_off, r_info, r_add = struct.unpack('>IIi', elf.contents[i][o:o + 12])
+            if any(a <= r_off < b for a, b in dead.get(sh[7], ())):
+                continue
+            sym = r_info >> 8
+            if sym in object_index:
+                retained.add(sym_name(syms[sym]))
+            elif syms[sym][5] == bss:
+                hit = containing(syms[sym][1] + r_add)
+                if hit:
+                    retained.add(hit[2])
+    dropped = {name for _, _, name, _ in objects if name not in table and name not in retained}
     base = None
     end = 0
     for off, size, name, _ in objects:
+        if name in dropped:
+            if off < end:
+                sys.exit(f'strip_unused: {section} object {name} overlaps the previous object')
+            if off - end >= DATA_GRANULE:
+                sys.exit(f'strip_unused: gap before .bss object {name} could hide an undefined object')
+            end = off + size
+            continue
         if name not in table:
             sys.exit(f'strip_unused: {section} object {name} has no {section} symbol in symbols.txt')
         addr, table_size = table[name]
@@ -141,7 +189,6 @@ def externalize_bss(elf, table, section='.bss'):
             if off <= offset < off + size:
                 return off, name
         sys.exit(f'strip_unused: {section} offset {offset:#x} is outside every object')
-    object_index = {i for _, _, _, i in objects}
     section_like = {i for i, s in enumerate(syms) if s[5] == bss and i not in object_index}
     names = bytearray(strs)
     new_index = {}
@@ -153,6 +200,8 @@ def externalize_bss(elf, table, section='.bss'):
         new_index[i] = len(new_syms)
         new_syms.append(s)
     for _, _, name, i in objects:
+        if name in dropped:
+            continue
         appended[name] = len(new_syms)
         new_syms.append([len(names), 0, 0, STB_GLOBAL << 4, 0, 0])
         names += name.encode() + b'\x00'
@@ -165,10 +214,14 @@ def externalize_bss(elf, table, section='.bss'):
             sym, rtype = r_info >> 8, r_info & 255
             if sym in object_index:
                 name = sym_name(syms[sym])
+                if name in dropped:
+                    continue
                 r_add -= next(off for off, _, n, _ in objects if n == name) - syms[sym][1]
                 sym = appended[name]
             elif syms[sym][5] == bss:
                 off, name = owner(syms[sym][1] + r_add)
+                if name in dropped:
+                    continue
                 r_add = syms[sym][1] + r_add - off
                 sym = appended[name]
             else:
@@ -183,7 +236,7 @@ def externalize_bss(elf, table, section='.bss'):
             recs = [body[hdr + 8 * k:hdr + 8 * k + 8] for k in range(len(syms))]
             undefined = next((r for r, s in zip(recs, syms) if s[5] == 0 and s[3] >> 4 == STB_GLOBAL), bytes(8))
             kept = [recs[k] for k in range(len(syms)) if k in new_index]
-            elf.contents[ci] = bytearray(body[:hdr]) + bytearray().join(kept + [undefined] * len(objects))
+            elf.contents[ci] = bytearray(body[:hdr]) + bytearray().join(kept + [undefined] * len(appended))
     elf.contents[strtab] = names
     elf.contents[symtab] = bytearray().join((struct.pack('>IIIBBH', *s) for s in new_syms))
     elf.sections[symtab][7] = next((k for k, s in enumerate(new_syms) if s[3] >> 4 != 0), len(new_syms))
@@ -214,8 +267,9 @@ def main():
     elf = Elf(open(args.object, 'rb').read())
     if args.external_bss:
         table = load_bss_symbols(args.external_bss)
+        dead = dead_function_ranges(elf, keep)
         for section in ('.bss', '.sbss'):
-            externalize_bss(elf, table, section)
+            externalize_bss(elf, table, section, dead)
     symtab = elf.index('.symtab')
     strtab = elf.sections[symtab][6]
     syms = [list(struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]
