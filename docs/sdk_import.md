@@ -1590,3 +1590,75 @@ Both units pass three complete sections and every function strictly. The whole D
 remains byte-identical to retail, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. The portable workflow checks pass, and so
 do 176 tests with `VERIFY_FN_REQUIRE_RETAIL=1` (one skipped).
+
+## SDK tail batch: CARDErase, debugger stubs and the debugger driver range
+
+No unit in this batch is promotable, so the SDK unit count stays at 81 and matching
+stays at 133,808 code bytes / 642 functions (data 13,888). Each skip below was checked
+against the surrounding retail range, not just the probe table.
+
+| Unit | Probe result | Decision |
+|---|---|---|
+| `card/CARDErase` | `EraseCallback` CODE_SAME at `8017A94C`; `CARDEraseAsync` and `CARDErase` NO_ANCHOR | Skip: false anchor, dead-stripped |
+| `odemustubs/odemustubs` | `DBInitComm`, `DBInitInterrupts` MATCH; `DBWrite` MISMATCH; the rest NO_ANCHOR | Skip: false anchors |
+| `amcstubs/AmcExi2Stubs` | all NO_ANCHOR | Skip: not linked |
+| `amcnotstub/amcnotstub` | `AMC_IsStub` NO_ANCHOR | Skip: not linked |
+
+- **CARDErase.** The only anchor pairs donor `EraseCallback` with retail
+  `CARDWriteWriteCallback` at `8017A94C..8017AABC`. The two are code-identical because both
+  callbacks follow the same pattern, but that range already belongs to
+  `dolphin/card/CARDWrite`, and the name `EraseCallback` is already used at `8017787C` in
+  `CARDDir`. `CARDEraseAsync` (0x10C) and `CARDErase` (0x48) have no byte match anywhere
+  in retail, and the card splits run gap-free from `CARDBlock` to `CARDRdwr`, so the
+  unit is not linked. `__CARDEraseSector` (`80176ECC`) belongs to CARDBios, not this file.
+- **odemustubs, AmcExi2Stubs, amcnotstub.** Their functions are 4 or 8 bytes (`blr`,
+  `li r3,0; blr`, `li r3,1; blr`), so bytes alone anchor them to every identical stub in
+  the DOL. The two `MATCH`es come from "layout from DBWrite" and land on the lone `blr`s
+  at `8018A10C` and `8018A110`, which are not `DBInitComm`/`DBInitInterrupts`. Retail
+  contains the real `DBInitComm` (`8018A4F0`, 0x78 bytes) and `DBInitInterrupts`
+  (`8018A49C`, 0x54), so the stub versions cannot be linked at the same time. `DBWrite`
+  is MISMATCH for the same reason: the donor returns 0 and retail is 0x260 bytes.
+  `Hu_IsStub` and `AMC_IsStub` are not in the symbol map.
+
+### Debugger driver range `8018A10C..8018AB8C`
+
+Retail `.text` `8018A10C..8018AB8C` (0xA80 bytes) is the Metrowerks debugger driver
+(EXI channel 2 mailbox transport), not a dolsdk2004 unit.
+`~/.cache/lsw1/dolsdk2004/src/` has only the stub replacements (`odemustubs`,
+`odenotstub`, `amcstubs`, `amcnotstub`) and `db/db.c`, which retail already splits at
+`80167280..8016736C`. Searching the donor and the opensaga cache for `DBGEXIImm`,
+`DBGHandler`, `MWCallback` and `DBGReadStatus` finds nothing, so there is no source to
+import and none was invented.
+
+| Retail address | Size | Function |
+|---|---:|---|
+| `8018A10C`, `8018A110` | 0x4 each | lone `blr`s, unnamed (`fn_8018A10C`, `fn_8018A110`) |
+| `8018A114` | 0x260 | `DBWrite` |
+| `8018A374` | 0x8C | `DBRead` |
+| `8018A400` | 0x9C | `DBQueryData` |
+| `8018A49C` | 0x54 | `DBInitInterrupts` |
+| `8018A4F0` | 0x78 | `DBInitComm` |
+| `8018A568`, `8018A5A8` | 0x40, 0x3C | `DBGHandler`, `MWCallback` |
+| `8018A5E4`, `8018A690`, `8018A76C`, `8018A848` | 0xAC, 0xDC, 0xDC, 0xAC | `DBGReadStatus`, `DBGWrite`, `DBGRead`, `DBGReadMailbox` |
+| `8018A8F4` | 0x298 | `DBGEXIImm` |
+
+The callers and callees agree with the names (`call_graph.tsv`): the `DB*` entry points
+wrap `OSDisableInterrupts`/`OSRestoreInterrupts` around the `DBG*` helpers, all of which
+funnel into `DBGEXIImm`, and `DBInitInterrupts`/`DBInitComm` call
+`__OSMaskInterrupts`, `__OSUnmaskInterrupts` and `__OSSetInterruptHandler`. CrashWOC
+links the same code with the same sizes: `crashwoc_fn_matches.tsv` has `DBGEXIImm`
+(exact), `DBGHandler` and `DBWrite` (normalized body) paired to these addresses. CrashWOC
+orders it `DBGEXIImm..DBWrite`, `DBOpen`, `DBClose`, then the `EXI2_*` stubs, while retail
+runs in reverse. `DBClose`/`DBOpen` would then be the two `blr`s at `8018A10C` and
+`8018A110`, with the `EXI2_*` stubs and `AMC_IsStub` not linked in LSW1.
+
+The range sits directly after the HVQM4 decoder (`8018432C..8018A10C`, out of scope) and
+before `fn_8018AB8C`/`_write`, which call `InitializeUART`/`WriteUARTN`, so the
+range boundary is `8018A10C..8018AB8C`.
+
+**Next hypothesis.** No donor source exists, so this is not an import. A hand-written
+`DebuggerDriver.c` would have to be reconstructed from the retail (or CrashWOC) bytes with
+the CodeWarrior GC/1.2.5n compiler, starting from `DBGEXIImm` and the `DBG*` helpers,
+then given a split at `8018A10C..8018AB8C`, its own `.sbss`/`.bss` ranges (not yet
+located) and the `DBOpen`/`DBClose` names. Until then the two `blr`s stay unnamed and the
+`DB*` labels remain symbol-only, which is not matching progress.
