@@ -50,8 +50,8 @@ Naming only counts when it unblocks a matching target.
 
 ### Phase 0: foundations (done in the strategy PR)
 
-- `tools/sdk_probe.py`: compile dolsdk2004 units, anchor them to retail by name
-  and layout, and classify each function with the strict verifier.
+- `tools/sdk_probe.py`: compile dolsdk2004 units, anchor them to retail by name,
+  unique code bytes and layout, and classify each function with the strict verifier.
 - `tools/score_fn.py`: compile-and-score a single function without ninja, at
   about 0.15 s per attempt (ProDG) or 0.5 s (MWCC). This is the inner loop for
   agents and the permuter.
@@ -70,7 +70,9 @@ not verify BSS.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
-2. Run `sdk_probe.py --all --tsv work/sdk_probe.tsv`. Use the `CODE_SAME` and
+2. Run `sdk_probe.py --pending --tsv work/sdk_pending.tsv` (or `--all`) for the import
+   queue and `sdk_import_unit.py UNIT --apply` for units without initialised data
+   ([quick import](sdk_import.md#importing-a-unit-quickly)). Use the `CODE_SAME` and
    `UNVERIFIED` rows to name SDK functions and data in `symbols.txt` from
    verified code identity. These names follow from matching code, which is the
    one case where naming is the matching task.

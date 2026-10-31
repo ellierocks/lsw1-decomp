@@ -199,6 +199,30 @@ def prove_unit(target, mine, ranges, symbols, dol):
     return {name: start for name, (start, _) in ranges.items()}
 
 
+def verify_functions(vf, unit):
+    """Strictly verify every function of the unit's object in one process.
+
+    Returns (name, ok, verdict) rows. The object must already be fresh.
+    """
+    import argparse
+    import struct
+    rows = []
+    for fn in vf.Elf(vf.SRC_OBJ_DIR / f"{unit}.o").function_symbols():
+        if fn.sym_type != vf.STT_FUNC or not fn.size:
+            continue
+        args = argparse.Namespace(name=fn.name, unit=unit, compiled_symbol=None, object=None,
+                                  target_object=None, build=False, allow_stale=True, dol=None,
+                                  no_dol=False, quiet=True)
+        try:
+            rep = vf.verify(args)[0]
+        except (vf.ToolError, struct.error, ValueError, IndexError, OSError) as exc:
+            rows.append((fn.name, False, f"ERROR {str(exc).splitlines()[0]}"))
+            continue
+        ok = rep.exit_code == vf.EXIT_MATCH and "unverified" not in rep.verdict
+        rows.append((fn.name, ok, rep.verdict))
+    return rows
+
+
 def main(argv=None):
     import argparse
     import sys
@@ -212,6 +236,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Prove a complete split unit against retail.")
     parser.add_argument("unit", help="unit path without extension, for example dolphin/gx/GXPerf")
     parser.add_argument("--build", action="store_true", help="build the source object with ninja first")
+    parser.add_argument("--functions", action="store_true",
+                        help="also strictly verify every function in the unit (like verify_fn.py "
+                             "--strict-symbols, in one process)")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)*", args.unit):
         print("FAIL: invalid unit path", file=sys.stderr)
@@ -231,7 +258,14 @@ def main(argv=None):
         print(f"FAIL: {args.unit}: full section and relocation proof did not succeed")
         return 1
     print(f"PASS: {args.unit}: {len(proof)} complete sections match retail")
-    return 0
+    if not args.functions:
+        return 0
+    rows = verify_functions(vf, args.unit)
+    failed = [row for row in rows if not row[1]]
+    for name, ok, verdict in rows:
+        print(f"  {'PASS' if ok else 'FAIL'}: {name}: {verdict}")
+    print(f"{'FAIL' if failed else 'PASS'}: {args.unit}: {len(rows) - len(failed)}/{len(rows)} functions strictly match")
+    return 1 if failed or not rows else 0
 
 
 if __name__ == "__main__":

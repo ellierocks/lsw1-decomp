@@ -11,7 +11,9 @@ CodeWarrior too; its game code generation does not transfer.
 Start with the [matching quickstart](docs/matching_quickstart.md): `tools/bootstrap.sh`,
 then `tools/next_target.py` to choose a target. Follow the current phase in
 [strategy](docs/strategy.md): SDK import first,
-then whole-binary splits, then agent draft-and-climb for game code. Claim one
+then whole-binary splits, then agent draft-and-climb for game code. For SDK units, `tools/sdk_probe.py --pending`
+ranks the queue and `tools/sdk_import_unit.py UNIT --apply` imports and proves a unit
+([quick import](docs/sdk_import.md#importing-a-unit-quickly)). Claim one
 library, TU or function per worktree branch. Search with `tools/score_fn.py`
 (fast, no ninja). Record candidates worth keeping with `tools/hillclimb.py try`,
 and accept only with `verify_fn.py --build --strict-symbols`

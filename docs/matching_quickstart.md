@@ -11,11 +11,17 @@ bash tools/bootstrap.sh
 ```
 
 This fetches wibo, ProDG, binutils and objdiff, and builds the patched DTK. It
-takes about 10 seconds on a warm cache and does not split the DOL. Verification
+does not split the DOL. Worktrees share one toolchain: `build/tools`,
+`build/compilers`, `build/binutils` and the retail DOL are linked from
+`~/.cache/lsw1` (or the primary checkout), so a new worktree is ready in about a
+second and the pinned dolsdk2004 donor is cloned once into the same cache
+(`LSW1_CACHE`, `DOLSDK2004`, `LSW1_REFRESH=1` and `LSW1_NO_SHARE=1` adjust this). Verification
 also needs `orig/GL5E4F/sys/main.dol`; see the [README](../README.md#prerequisites).
 Run `bash build.sh` when you change splits, configuration or compiler wiring.
 
-If a tool says the toolchain is missing, run the bootstrap again.
+If a tool says the toolchain is missing, run the bootstrap again. For an SDK unit
+rather than a game function, skip to `tools/sdk_import_unit.py` in
+[SDK import](sdk_import.md#importing-a-unit-quickly).
 
 ## 2. Pick a target
 

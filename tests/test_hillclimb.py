@@ -1,4 +1,6 @@
 """Exercise experiment retention, strict acceptance, errors and stop budgets."""
+import contextlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -8,6 +10,20 @@ from unittest import mock
 
 from tools import hillclimb as hc
 from tools import ls1_task_pack as packs
+
+_quiet = None
+
+
+def setUpModule():
+    """Keep the tools' progress and usage output out of the test log."""
+    global _quiet
+    _quiet = contextlib.ExitStack()
+    _quiet.enter_context(contextlib.redirect_stdout(io.StringIO()))
+    _quiet.enter_context(contextlib.redirect_stderr(io.StringIO()))
+
+
+def tearDownModule():
+    _quiet.close()
 
 
 def report(verdict='MISMATCH', differences=2, exact=2):

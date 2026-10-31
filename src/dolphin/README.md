@@ -32,6 +32,10 @@ and its small-data references use DTK names. `ax/AXAlloc.c` and `ax/AXAux.c` are
 unmodified donors that likewise keep their statics; `--external-bss` also
 replaces their `.sbss` definitions, so their storage stays in the fallback data.
 
+`tools/sdk_import_unit.py` copies donor sources and donor-local headers verbatim; the
+pinned donor checkout is cloned by `tools/fetch_dolsdk.sh`. Prefer unmodified donors with
+file-scope statics and `external_bss=True` over editing the C.
+
 These units use Nintendo's CodeWarrior GC/1.2.5n release flags and the retail
 ProDG 3.9.3 linker. Compiler flags, per-file overrides and dead stripping follow
 [adonis-singh/re4](https://github.com/adonis-singh/re4), commit
