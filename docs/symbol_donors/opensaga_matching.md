@@ -8,6 +8,10 @@ read-only donor is `opensagadev/saga`, pinned at
 headers, no DWARF. Donor names, layouts, compiler behavior and percentages do
 not establish GC identity. Do not execute donor scripts or copy donor source.
 
+The [repository-wide donor audit](opensaga_audit.md) records the remaining
+string/math, AI, accessor and cutscene leads, plus observed semantic differences.
+Use its queue after the parser/helpers below; shared names are not matches.
+
 ## Evidence and initial queue
 
 [File/parser evidence](opensaga_file_parser_evidence.md) supplies the first

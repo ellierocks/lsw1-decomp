@@ -62,8 +62,11 @@ leads, not the GC layout.
   buffers. The allocator's implicit/old-style `memset` declaration reproduces
   retail CR1 clearing; a normal prototype changes its calling sequence.
 - `NuFParCreate` combines creation/opening and needs the retail shared failure
-  tail. Store order and `NuStrCpy`'s pointer return type resolve the last
-  scheduling differences. No flags, pins or verifier rules changed.
+  tail. Store order resolved scheduling differences. **Corrected return type:**
+  `NuStrCpy` returns a 32-bit count, not a pointer; the non-null GC path counts
+  the terminating NUL, unlike Saga. Parser callers discard the result. See the
+  [audit evidence](opensaga_audit.md#nustrcpy-return-contract). No flags, pins
+  or verifier rules changed.
 - GC has a single eight-entry command stack at `+0x520`; donor dual-stack
   fields do not transfer. **Corrected initial evidence:** `+0x51C` is the
   buffer end, `+0x540` the command position. Refill code at `0x80006080`–

@@ -15,7 +15,7 @@ void* memset();
 void (*fn_80009948(char* file, s32 line))();
 void fn_80005764(s32 handle);
 void NuFileSeek(s32 handle, s32 offset, s32 origin);
-char* NuStrCpy(char* dest, char* source);
+s32 NuStrCpy(char* dest, char* source);
 void NuUnicodeToAscii(char* dest, u16* source);
 s32 NuHexStringToI(char* text);
 s32 NuAToI(char* text);

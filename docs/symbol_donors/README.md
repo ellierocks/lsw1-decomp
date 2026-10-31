@@ -13,7 +13,9 @@ The [OpenSaga matching lane](opensaga_matching.md) links the pinned parser, AI
 and animation evidence, the initial small-target queue and shared GC layouts.
 It records the strict-match gate for expanding this donor lane. The
 [matching results](opensaga_matching_results.md) record the promoted parser and
-file helpers, the corrected parser layout and the next queue.
+file helpers, the corrected parser layout and the next queue. The
+[donor audit](opensaga_audit.md) records remaining lanes, target-specific
+counterexamples and the corrected `NuStrCpy` return contract.
 
 ## Names corrected by PR #5 (`e7bbacf`)
 
