@@ -353,3 +353,6 @@ dolphin/os/OSFatal.c:
 	.text       start:0x8018BE6C end:0x8018CAFC
 	.sdata      start:0x8040A2A8 end:0x8040A2AC
 	.sdata2     start:0x8040BCF0 end:0x8040BD30
+
+dolphin/os/__ppc_eabi_init.c:
+	.init       start:0x80003464 end:0x8000348C

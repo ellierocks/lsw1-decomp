@@ -378,6 +378,7 @@ config.libs = [
     ]),
     DolphinLib("base", [SDKObject("base/PPCArch", Matching)]),
     DolphinLib("os", [
+        SDKObject("os/__ppc_eabi_init", Matching),
         SDKObject("os/OSAlloc", Matching),
         SDKObject("os/OSFont", Matching, external_bss=True),
         SDKObject("os/OSLink", Matching),
