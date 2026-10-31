@@ -1,5 +1,4 @@
 #define __CARDDiskNone lbl_8030E540
-#define __CARDPermMask lbl_8040A152
 #define memcmp Menu_SetupDisplay
 #define strlen lbl_80156038
 #define strncpy lbl_80156184

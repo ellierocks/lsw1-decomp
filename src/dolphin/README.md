@@ -71,3 +71,8 @@ functions match. AR and GX now use the proved `PPCSync` name directly.
 four large BSS arrays and three small counters are externalized after compilation;
 all storage remains fallback. Its unused weak math constants are stripped by the
 existing rules, leaving the complete retained 56-byte constant pool.
+
+`card/CARDMount.c`, `card/CARDNet.c` and `card/CARDUnlock.c` are unchanged
+donors. Their initialized data is owned by their splits. CARDOpen and CARDCreate
+now use the proved `__CARDPermMask` symbol directly. The include search root
+`src/dolphin` resolves CARDMount/CARDNet's `os/__os.h` include.
