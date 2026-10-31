@@ -66,3 +66,8 @@ progress and remaining work.
 
 `base/PPCArch.c` is an unchanged donor; its complete text and all 22 retained
 functions match. AR and GX now use the proved `PPCSync` name directly.
+
+`ax/AXVPB.c` and the data-only `ax/AXComp.c` are unchanged donors. AXVPB's
+four large BSS arrays and three small counters are externalized after compilation;
+all storage remains fallback. Its unused weak math constants are stripped by the
+existing rules, leaving the complete retained 56-byte constant pool.

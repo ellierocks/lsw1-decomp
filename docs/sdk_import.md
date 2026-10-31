@@ -1335,3 +1335,54 @@ The complete section and relocations match, all 22 functions strictly match,
 and the whole linked image has zero differing bytes. The baseline promoted
 zero PPCArch bytes; no donor edits were needed. Remaining Phase 1 units still
 need their own import and promotion proof.
+
+## AX voice parameters and compressor table
+
+Baseline `d33e2d3` has 70 promoted SDK units, 99,008 matched code bytes and
+525 matched functions. This batch promotes two unchanged donor units, bringing
+the SDK total to 72 and adding 4,852 code bytes / 16 functions. Total matching
+is 103,860 code bytes / 541 functions and 12,996 matched data bytes (previously
+6,220). Neither unit had promoted bytes on the baseline.
+
+| Unit (under `dolphin/`) | Retail range, end exclusive | Functions | Code bytes | Owned initialized data bytes |
+|---|---|---:|---:|---:|
+| `ax/AXVPB` | `.text 801740D8..801753CC` | 16 | 4,852 | 272 |
+| `ax/AXComp` | `.data 801F6D80..801F87C0` | 0 | 0 | 6,720 |
+
+AXVPB owns `.data 801F6CA8..801F6D80` (three cycle-cost tables plus four
+alignment bytes) and `.sdata2 8040B7A0..8040B7D8`. The automatic importer
+refuses initialized data; these ranges were added manually from the complete
+tables and retained constant pool. The unstripped donor has 32 bytes of weak
+inline math constants before that pool; the existing dead-strip rules remove
+them. The preceding retail `8040B780..8040B7A0` constants remain fallback,
+with no ownership claim. No existing split boundary or compiler flag changes.
+
+The four donor BSS arrays tile `802FCB20..8030E320` at offsets `0`, `0x3D00`,
+`0x4D00` and `0x8D00`, with sizes `0x3D00`, `0x1000`, `0x4000` and `0x8B00`.
+They replace two coarse fallback symbols; code and relocations prove their
+addresses. Their storage and the three small counters stay in assembly fallback.
+`__AXServiceVPB` and `AXSetVoiceMix` are named by their strict matches.
+
+All 16 functions pass strict verification, and all four owned sections across
+the two units pass the complete-section and relocation gate. The whole linked
+DOL remains byte-identical to retail, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Objdiff credits AXVPB with only
+56 matched data bytes, although the full-unit gate proves all 272 initialized
+bytes; its tables and padding account for the 216-byte difference. The report's
+data denominator falls by four bytes when the padding becomes a separate label.
+AXComp contributes all 6,720 matched table bytes.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/ax/AXVPB --build --functions
+python3 tools/verify_unit.py dolphin/ax/AXComp --build
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
+
+AXComp is data-only, so its gate intentionally omits `--functions` (that option
+requires at least one function). AXSPB remains unpromoted: its retail studio
+address `802FCAE0` aliases `__AXLocalProfile+0x30`, inside the profile buffer.
+A separate overlapping DTK object is rejected, and C member/cast alternatives
+change the code. The local plateau retains this alias issue and the next
+hypothesis of an evidence-backed symbol alias; no oracle changes were made.
