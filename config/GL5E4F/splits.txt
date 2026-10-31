@@ -42,6 +42,11 @@ nu3dx/nuanim.c:
 dolphin/base/PPCArch.c:
 	.text       start:0x8015BEF4 end:0x8015C008
 
+dolphin/os/OS.c:
+	.text       start:0x8015C008 end:0x8015CAD4
+	.data       start:0x801E2338 end:0x801E2530
+	.sdata      start:0x80409FC8 end:0x80409FD8
+
 dolphin/os/OSAlarm.c:
 	.text       start:0x8015CAD4 end:0x8015D2AC
 	.data       start:0x801E2530 end:0x801E2540

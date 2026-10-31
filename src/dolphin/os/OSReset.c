@@ -66,8 +66,7 @@ extern u32 bootThisDol_8040A8C0;
 static int CallResetFunctions(int final);
 static void Reset(u32 resetCode);
 
-extern OSExecParams lbl_802F3B30;
-#define __OSRebootParams lbl_802F3B30
+extern OSExecParams __OSRebootParams;
 
 void OSRegisterResetFunction(OSResetFunctionInfo* info) {
     ASSERTLINE(208, info->func);

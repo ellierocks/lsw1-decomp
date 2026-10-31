@@ -1,7 +1,8 @@
 /* Retail DOL section addresses and startup SDA bases.
  * RE4's ProDG link-script pattern; no input bytes or replacement code.
  * _stack_addr and _stack_end are the retail stack top and end (stack top - 0x10000)
- * that dtk names in split objects; the SDK's OS code references them.
+ * that dtk names in split objects; the SDK's OS code references them, as it does
+ * __ArenaLo and __ArenaHi.
  * ai.o carries an empty 8-aligned .sbss (extern OSTime statics); it is placed
  * first so that its alignment cannot pad the end of .sbss and the DOL bss size.
  */
@@ -19,4 +20,6 @@ SECTIONS
  _SDA2_BASE_ = 0x8041FA40;
  _stack_addr = 0x8041BD40;
  _stack_end = 0x8040BD40;
+ __ArenaLo = 0x8041BD60;
+ __ArenaHi = 0x81780000;
 }
