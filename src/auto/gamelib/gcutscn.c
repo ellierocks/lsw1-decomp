@@ -1134,3 +1134,34 @@ void instNuGCutRigidSysReset(gcut_rigid_view* rigid, gcut_matrix* matrix)
     matrix->m[14] = -matrix->m[14];
     NuMtxTranslate(matrix, (f32*)((u8*)rigid + 0x30));
 }
+
+void fn_8003AD00(gcut_instance_view* instance)
+{
+    s32* words = (s32*)instance;
+    *(f32*)((u8*)instance + 0x90) = 1.0f;
+    *(f32*)((u8*)instance + 0x94) = 1.0f;
+    { instance->flags &= ~0xe0000000; instance->flags &= ~0x80000; }
+    words[0xb0/4] = 0;
+    words[0xb4/4] = 0;
+    { words[0x8c/4] &= ~0x2000000; words[0x8c/4] &= ~0x80000; }
+    if (*(f32*)((u8*)instance + 0x98) < 0.0f)
+        *(f32*)((u8*)instance + 0x98) = -*(f32*)((u8*)instance + 0x98);
+    if (words[0xa0/4])
+        instNuGCutRigidSysUpdate((gcut_rigid_runtime*)words[0xa0/4], (gcut_rigid_system*)((s32*)instance->scene)[5]);
+    if (words[0xa8/4])
+        instNuGCutLocatorSysStart(instance);
+    if (words[0xac/4])
+        fn_8003EF38(instance);
+    if (words[0xa4/4] && lbl_804081CC)
+        ((void (*)(gcut_instance_view*))lbl_804081CC)(instance);
+    if (*(s16*)((u8*)instance + 0xd8)) {
+        if (lbl_80346FFC[*(s8*)((u8*)instance + 0xde)] == *(s16*)((u8*)instance + 0xd8) && fn_80044AE8(*(s8*)((u8*)instance + 0xde)) == *(s16*)((u8*)instance + 0xd8))
+            fn_80044AF0(*(s8*)((u8*)instance + 0xde));
+        if (*(s16*)((u8*)instance + 0xda) && lbl_80346FFC[*(s8*)((u8*)instance + 0xde) + 1] == *(s16*)((u8*)instance + 0xda) && fn_80044AE8(*(s8*)((u8*)instance + 0xde) + 1) == *(s16*)((u8*)instance + 0xda))
+            fn_80044AF0(*(s8*)((u8*)instance + 0xde) + 1);
+        if (!*(u8*)((u8*)instance + 0xde) && (*(s32*)((u8*)instance + 0x8c) & 0x100000)) {
+            fn_80044D0C();
+            *(s32*)((u8*)instance + 0x8c) &= ~0x100000;
+        }
+    }
+}
