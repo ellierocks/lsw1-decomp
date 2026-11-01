@@ -140,7 +140,7 @@ record the corrected parser layout and the next small-target queue. The
 string/math helpers, AI conditions, accessors and cutscene helpers, with
 explicit exclusions for changed TCS behavior.
 
-#### First measured batch
+#### Leaf batch 1
 
 The first leaf batch (`t3/phase3-leaf-batch-1`) attempted 51 small functions across
 11 `auto/` units plus `nuerror_ngc`, and strictly matched 50 (`verify_fn.py --build
@@ -182,7 +182,7 @@ hand-split `numath/nu_asm.c` lies between the halves, so merging them would also
 absorb it. The nearest evidence (Mac order: `NuMtxDet3` 1949, `NuVec4MtxTransformVU0`
 2305) points at numath matrix code rather than `nudlist.c`.
 
-#### Second measured batch
+#### Leaf batch 2
 
 The second leaf batch (`t3/phase3-leaf-batch-2`, lane `auto/nucore/*` and `auto/numath/*`)
 attempted 64 small functions across 10 `auto/` units and strictly matched 62
@@ -235,7 +235,42 @@ The next structs to confirm, by caller count, are the animation and instance-ani
 structs, `numtl_s`, `nugeom_s`, game character and object structs, `nufile`, and the
 rest of `nugscn_s`.
 
-#### Second measured batch
+#### Leaf batch 3
+
+The third leaf batch (`t3/phase3-leaf-batch-3`) covered `auto/nu3d`, `auto/nungc`,
+`auto/nusound3` and `nufmvmtl`. It attempted 155 smallest-first functions with at most
+one callee and strictly matched 154 (`verify_fn.py --build --strict-symbols`), 841 to
+995 functions and +3,328 code bytes (173,200 to 176,528). Six more matched in
+`nuspecial` but landed first via the headers batch, so they are not counted. No unit
+was promoted: every touched unit still holds unmatched functions.
+
+Composition: 38 empty `blr` stubs, about 50 constant-return, getter and setter
+accessors, 32 zero-callee bodies of 20 to 64 bytes, and 39 one-callee wrappers. Active
+agent time was about 20 minutes, roughly 450 functions per hour. The wall-clock span
+in `work/batch3_timing.txt` is longer because the session sat paused. This rate is for
+trivial leaves; do not extrapolate it to bodies with branches, structs or floats.
+
+- `fn_80043040` is parked at 3/4. Retail is `li r0,1; stw r0,A444; stw r4,A448`; the
+  draft stores `r4` first. Tried source swaps, a shared local, a `u32` argument,
+  `volatile` on either global and chained assignment. Next: model both stores as
+  fields of one struct or find a caller that shows an inlined macro.
+
+Failure modes new to this batch, in order of cost:
+
+- **Store order.** An exhaustive permutation search (a stand-in for
+  `tools/order_search.py`) fixed every wrong-order case but `fn_80043040`.
+- **Conditional call.** `bne` to the epilogue means the `bl` sits inside the `if`
+  (`fn_80042F58`), not after it.
+- **Array sizing.** `li rX, sym@sda21` needs an `extern T x[2]`; an unsized array
+  gives `lis/addi`.
+- **Local reuse.** One local for both halves of an if-chain gave `mr` plus `bnelr`;
+  two locals matched.
+- **Prototype state.** `crclr cr1eq` before `bl memset` means the callee is declared
+  without a prototype (`extern void* memset();`).
+- **Donors.** OpenSaga pin 7bb2402 has no body for any of these leaves; layouts came
+  from GC assembly.
+
+#### Leaf batch 4
 
 Batch 4 (`t3/phase3-leaf-batch-4`) added 20 provisional `auto/` units and strictly matched
 275 leaf functions (`verify_fn.py --build --strict-symbols`), moving the objdiff report
@@ -283,38 +318,3 @@ Failure modes, in order of cost:
 3. Record a plateau in the task's `status.md` with its best score, its
    remaining mismatch and one concrete next hypothesis. Then move on.
 4. When a phase step lands, update this file in the same PR.
-
-#### Leaf batch 3
-
-The third leaf batch (`t3/phase3-leaf-batch-3`) covered `auto/nu3d`, `auto/nungc`,
-`auto/nusound3` and `nufmvmtl`. It attempted 155 smallest-first functions with at most
-one callee and strictly matched 154 (`verify_fn.py --build --strict-symbols`), 841 to
-995 functions and +3,328 code bytes (173,200 to 176,528). Six more matched in
-`nuspecial` but landed first via the headers batch, so they are not counted. No unit
-was promoted: every touched unit still holds unmatched functions.
-
-Composition: 38 empty `blr` stubs, about 50 constant-return, getter and setter
-accessors, 32 zero-callee bodies of 20 to 64 bytes, and 39 one-callee wrappers. Active
-agent time was about 20 minutes, roughly 450 functions per hour. The wall-clock span
-in `work/batch3_timing.txt` is longer because the session sat paused. This rate is for
-trivial leaves; do not extrapolate it to bodies with branches, structs or floats.
-
-- `fn_80043040` is parked at 3/4. Retail is `li r0,1; stw r0,A444; stw r4,A448`; the
-  draft stores `r4` first. Tried source swaps, a shared local, a `u32` argument,
-  `volatile` on either global and chained assignment. Next: model both stores as
-  fields of one struct or find a caller that shows an inlined macro.
-
-Failure modes new to this batch, in order of cost:
-
-- **Store order.** An exhaustive permutation search (a stand-in for
-  `tools/order_search.py`) fixed every wrong-order case but `fn_80043040`.
-- **Conditional call.** `bne` to the epilogue means the `bl` sits inside the `if`
-  (`fn_80042F58`), not after it.
-- **Array sizing.** `li rX, sym@sda21` needs an `extern T x[2]`; an unsized array
-  gives `lis/addi`.
-- **Local reuse.** One local for both halves of an if-chain gave `mr` plus `bnelr`;
-  two locals matched.
-- **Prototype state.** `crclr cr1eq` before `bl memset` means the callee is declared
-  without a prototype (`extern void* memset();`).
-- **Donors.** OpenSaga pin 7bb2402 has no body for any of these leaves; layouts came
-  from GC assembly.
