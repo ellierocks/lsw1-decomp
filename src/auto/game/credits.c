@@ -46,3 +46,37 @@ void fn_8010BD90(void)
     lbl_801DEC0C[7] = v;
     lbl_801DEC0C[0] = v;
 }
+
+extern s32 NuStrICmp(const char*, const char*);
+
+u8* fn_80109294(u8* scene, const char* name)
+{
+    u8* entry;
+    s32 i;
+    if (scene && (entry = *(u8**)(scene + 0x230))) {
+        for (i = 0; i < *(s32*)(scene + 0x234); i++, entry += 0x30) {
+            if (NuStrICmp(name, (char*)entry) == 0)
+                return entry;
+        }
+    }
+    return 0;
+}
+
+void fn_80109314(u8* scene)
+{
+    u8* entry;
+    s32 i;
+    u8* selection;
+    if (scene && (entry = *(u8**)(scene + 0x230))) {
+        for (i = 0; i < *(s32*)(scene + 0x234); i++, entry += 0x30) {
+            u8* object = *(u8**)(entry + 0x28);
+            selection = scene + 0x250;
+            if ((!object || (*(u16*)(object + 0x20) & 0x101)) &&
+                (*(s8*)(entry + 0x2d) == -1 ||
+                 selection[*(s8*)(entry + 0x2d)] == entry[0x2e]))
+                entry[0x2c] = 1;
+            else
+                entry[0x2c] = 0;
+        }
+    }
+}
