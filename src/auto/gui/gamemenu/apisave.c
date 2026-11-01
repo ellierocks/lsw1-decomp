@@ -182,3 +182,22 @@ void fn_80079434(u8* menu)
     }
     fn_800769B4(menu, lbl_80408AA4, lbl_80408A57);
 }
+
+extern s32 lbl_80408C0C, lbl_80408C10, gMenuDepth;
+extern f32 lbl_80408C24, lbl_80408C38;
+extern u8 gMenuStack[];
+extern void fn_80076194(void);
+extern void Menu_OpenSpecial(void*);
+
+void fn_80079EBC(void)
+{
+    if (lbl_80408C0C || lbl_80408C10 || lbl_80408C24 > 0.0f)
+        lbl_80408C38 = 1.5f;
+    if (lbl_80408C0C && lbl_80408224) {
+        lbl_80408C0C = 0;
+        fn_80076194();
+        Menu_OpenSpecial(gMenuStack + gMenuDepth * 0xe0);
+    }
+    if (lbl_80408C38 <= 0.0f)
+        Menu_CloseCurrent();
+}
