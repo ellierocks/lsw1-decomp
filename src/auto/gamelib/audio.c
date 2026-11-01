@@ -136,3 +136,20 @@ void fn_8006E094(void)
             fn_80044BF4(1 - lbl_801BB44C[2]);
     }
 }
+
+struct AudioNameEntry { const char* name; u8 rest[0x3c]; };
+extern struct AudioNameEntry lbl_803B6E04[];
+extern char lbl_8019854C[], lbl_8019857C[];
+extern void (*fn_80009970(char*, s32))();
+
+s32 fn_8006DDC4(const char* name, s32 length)
+{
+    struct AudioNameEntry* entry = lbl_803B6E04;
+    s32 i;
+    for (i = 0; i < 800; i++) {
+        if (fn_800076E4(name, (entry++)->name, length) == 0)
+            return i;
+    }
+    (*fn_80009970(lbl_8019854C, 0x3ef))(lbl_8019857C, name);
+    return -1;
+}
