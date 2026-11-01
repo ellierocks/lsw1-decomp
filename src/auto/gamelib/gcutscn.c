@@ -1165,3 +1165,35 @@ void fn_8003AD00(gcut_instance_view* instance)
         }
     }
 }
+
+extern s32 lbl_80408184, lbl_80408188, lbl_8040818C;
+extern void fn_8003E328(gcut_instance_view*, f32, s32);
+void fn_8003C754(gcut_instance_view* instance, s32 arg)
+{
+    s32* words = (s32*)instance;
+    if (!(instance->flags & 0x100000)) {
+      if (instance->flags & 0x40000000) {
+       if (instance->flags & 0x200000) {
+        if (instance->flags & 0x2000) {
+            if (lbl_80408184 && words[0xa0/4])
+                fn_8003E328(instance, *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x94), arg);
+            if (lbl_80408188 && words[0xa4/4])
+                NuSetCutSceneFindCharactersFn(instance, *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x94), arg);
+            if ((words[0x8c/4] & 0x2000000) && *(f32*)((u8*)instance + 0x90) == *(f32*)((u8*)instance->scene + 8) - 1.0f)
+                return;
+            if (!(instance->flags & 2) && lbl_8040818C && words[0xa8/4])
+                instNuGCutLocatorSysUpdate(instance, *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x94), arg);
+        } else {
+            if (lbl_80408184 && words[0xa0/4])
+                fn_8003E328(instance, *(f32*)((u8*)instance + 0x94), arg);
+            if (lbl_80408188 && words[0xa4/4])
+                NuSetCutSceneFindCharactersFn(instance, *(f32*)((u8*)instance + 0x94), arg);
+            if ((words[0x8c/4] & 0x2000000) && *(f32*)((u8*)instance + 0x90) == *(f32*)((u8*)instance->scene + 8) - 1.0f)
+                return;
+            if (!(instance->flags & 2) && lbl_8040818C && words[0xa8/4])
+                instNuGCutLocatorSysUpdate(instance, *(f32*)((u8*)instance + 0x94), arg);
+        }
+    }
+  }
+ }
+}
