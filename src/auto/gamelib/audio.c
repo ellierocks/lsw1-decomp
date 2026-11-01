@@ -105,3 +105,19 @@ void fn_8006E00C(void)
             fn_80044BF4(1 - lbl_801BB44C[2]);
     }
 }
+
+extern s32 lbl_804086DC;
+extern f32 lbl_804086FC;
+extern void fn_80044C30(s32, s32);
+
+void fn_8006DF68(f32 volume)
+{
+    if (!lbl_804086E8 && !lbl_804086EC) {
+        lbl_804086FC = volume;
+        if (lbl_801BB44C[0] == 4) {
+            s32 index = lbl_801BB44C[3];
+            s32* entries = (s32*)lbl_804086DC;
+            fn_80044C30(lbl_801BB44C[2], (s32)((f32)entries[index * 5 + 3] * volume));
+        }
+    }
+}
