@@ -327,6 +327,76 @@ it is not a forecast for larger game functions. Next: the API-object position
 and flag prefix and its relationship to creature objects, character-data extent,
 then pickup and turret structs. Engine headers remain in the parallel lane.
 
+#### Mid-size batch B
+
+Mid-size batch B (`t3/phase3-mid-batch-b`) took game-code bodies of 0x80 to 0x10C bytes with
+branches, loops, calls and floats from `auto/ai`, `auto/game`, `auto/gamelib`,
+`auto/characters` and `auto/camera`. It strictly matched 47 functions
+(`verify_fn.py --build --strict-symbols`, 7,288 bytes), moving the report from 1,322 to
+1,365 functions (+43 in objdiff) and from 186,400 to 193,092 code bytes (12.30%).
+No unit was promoted: every touched unit still holds unmatched bodies. The relinked DOL is
+byte-identical (`sha1 95cca08a19224775d1a8d6cc64601fb7d0080981`).
+
+| Unit | Matched | Notes |
+|---|---:|---|
+| `auto/ai/aisys/aisys` | 15 | wall-spline, terrain and LOS flag actions, trigger-area conditions |
+| `auto/game/gameaiscript` | 14 | parameter-loop actions, angle and force-object conditions |
+| `auto/gamelib/gcutscn` | 10 | cutscene fix-up, create and update helpers |
+| `auto/characters/apiobject/apiobject` | 5 | name-search loops and pool reset |
+| `auto/camera/socksys/socksys` | 3 | stochastic particle counts and random animation time |
+
+Measurement: timestamps remain in `work/midB_timing.txt` and the three worker timing
+files. Search spans were 231 s for the parent, 238 s for AI, 198 s for game-AI and
+149 s for cutscenes: 816 summed active seconds, about 207 strict functions/hour and
+32,153 bytes/hour, including failed searches and tool waits. Parent integration through
+00:26:52 adds 41 s (about 197 functions/hour and 30,615 bytes/hour). Documentation and
+later continuation/CI time are outside that search measurement. No gaps were trimmed.
+**Do not extrapolate this to the binary.** Twenty-two matches share parameter-loop flag
+families, targets top out at 0x10C, and no unit finished. This sample does not establish a
+sustainable rate for unrelated larger bodies. Initial drafts used GC assembly and donors;
+Ghidra references were audited afterward, rather than used for the initial drafts.
+
+Four strict matches are below 100% in objdiff because literal relocations use section
+symbols: CalculateCentre, both AngleFromPlayer conditions and NumForceObjects. The
+strict verifier checked their retail constant bytes. Thus the report adds 43 functions
+and 6,692 bytes, distinct from 47 strict matches and 7,288 bytes.
+Permuter: 3 genuine nonzero-base plateau runs (`Condition_PlayerInTriggerArea`,
+`Action_SetGravityHeight`, `instNuGCutSceneCalculateCentre`) plus `fn_8008F968`, and all four
+reached score 0, so 4 of 4 hits in about 25 to 700 iterations. Additional `--run` calls
+started at an already-matching seed; they are confirmations and excluded from the hit rate.
+This four-case hit rate is too small to generalize; CalculateCentre was also solved
+independently by order_search.
+
+Parked:
+
+- `fn_80095128` (`auto/camera/socksys`, 53 insns) is at 49/53. Retail copies `pool->masks`
+  into `r26` through `addic. r0,r29,8; mr r26,r0`, and the draft allocates `addic. r26`
+  directly, which also shifts two branch targets. Nine pointer-expression variants did not solve it. Next: inline a LOS helper with
+  independent address expressions to separate the address-test and mask-base lifetimes.
+
+Failure modes new to this batch, in order of cost:
+
+- **Donor identity is not behavior.** Same-name OpenSaga bodies often describe different
+  code: `instNuGCutSceneSetEndCallback` sets a callback upstream and copies a matrix in GC;
+  `Condition_NumForceObjects` is a constant-zero stub upstream; `Action_SetGravityHeight`
+  parses keywords GC lacks; flag fields are words at different offsets. Only loop shapes and
+  guards transferred. GC assembly stays authoritative.
+- **Indexed loop, not `while (n > 0)`.** An indexed `for` lets ProDG lower to the target
+  count-down and allocate packet and parameter registers correctly.
+- **Local lifetime.** A hoisted flag local reproduces an early `clrlwi` and `r0` reuse; a
+  float local loaded before a flags store moves the `lfs` ahead of it; caching a pointer
+  removed a redundant `mr` that retail has. The permuter found three of these.
+- **Writable extern floats.** Explicit extern float reads add alias reloads; literals
+  reproduce constant reuse.
+- **Operand order.** `scene[3] + field` versus `field + scene[3]` survives instruction
+  selection.
+- **Shared tool mutation.** Concurrent lanes hit transient `ETXTBSY` from wibo while
+  `download_tool.py` replaced the executable. Errors inflated permuter error counts. Retry
+  the identical candidate; never count it as a mismatch. Run lanes with the tool already
+  downloaded.
+- **Stale ledgers.** `hillclimb.py try` rejects further records on a VERIFIED ledger, so
+  cosmetic renames after verification are covered only by a final direct strict check.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
