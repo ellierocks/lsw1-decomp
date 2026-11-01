@@ -542,3 +542,22 @@ void instNuGCutLocatorSysStart(gcut_instance_view* instance)
         }
     }
 }
+
+extern s32 lbl_804081E4;
+extern void instNuGCutDebrisLocatorUpdate(gcut_locator_system*, gcut_locator_runtime_item*, gcut_locator_record*, s32, f32);
+void instNuGCutSceneUpdate(gcut_instance_view* instance, gcut_locator_system* system,
+                          gcut_locator_runtime_item* item, gcut_locator_record* record,
+                          s32 arg, s32 skip, f32 frame)
+{
+    gcut_locator_event* event = &system->events[record->event];
+    if (event->flags & 1) {
+        if (!skip)
+            instNuGCutDebrisLocatorUpdate(system, item, record, arg, frame);
+    } else if (event->flags & 2) {
+        s32 callback = *(s32*)((u8*)&((gcut_event_callback*)lbl_804081EC)[event->index] + 0x10);
+        if (callback && event->index != 0xffff)
+            ((void (*)(gcut_instance_view*, gcut_locator_system*, gcut_locator_runtime_item*, gcut_locator_record*, s32, s32, f32))callback)(instance, system, item, record, arg, skip, frame);
+    } else if ((event->flags & 4) && lbl_804081E4 && *(f32*)((u8*)instance + 0x98) != 0.0f) {
+        ((void (*)(gcut_locator_system*, gcut_locator_runtime_item*, gcut_locator_record*, s32, s32, f32))lbl_804081E4)(system, item, record, arg, skip, frame);
+    }
+}
