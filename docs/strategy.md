@@ -295,8 +295,20 @@ Failure modes, in order of cost:
 - **Pointer-as-integer globals.** cut.c declares `lbl_8040B250` as `s32` and indexes it
   with integer arithmetic; a struct pointer conflicts with sibling externs in the same unit.
   A local `volatile s32*` stops GCC merging `|=` and `^=` into one `ori`/`xori`.
-- **TUs with other flags.** The podrace parks show that not every provisional unit
-  compiles with the shared `cflags_prodg`.
+- **Possible assembly in provisional TUs.** The podrace parks prompted a flag
+  investigation; the private register/CR convention instead points to absorbed
+  debugger assembly (see below).
+
+#### Per-TU compile flags
+
+The [podrace investigation](build_config.md#podrace-investigation-phase-3) tested
+70 pinned ProDG flag trials without matching the four parked probes. No per-TU
+flag override is confirmed. The tail after `0x80150398` has private r31 state,
+r30 LR saves, CR0 results across calls and SN debugger strings; investigate its
+assembly/runtime ownership next. The sweep found no other `auto/` unit with
+that signature. Existing podrace matches remain unchanged; no bytes were promoted.
+Use the [flag investigation gate](code_matching_workflow.md#per-tu-flag-investigations)
+before installing an override, and keep the strict oracle and compiler pin.
 
 ## Rules that do not change
 

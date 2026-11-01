@@ -97,6 +97,103 @@ Limits:
   consecutive `.c` paths, and each extra copy marks an anonymous TU.
 - The data sections are not proposed yet.
 
+## Per-TU ProDG flags
+
+`cflags_prodg` is the shared game/Nu2 baseline (`-O2`), not proof of the
+original flags for every provisional unit. An `Object` can replace its `cflags`
+in the same style as `sdk_cflags(unit)`. Once a unit has a confirmed override,
+make a named list/helper beside `cflags_prodg` and pass it only to that object's
+`cflags=`. Derive the list from the baseline, replacing the optimization option
+rather than leaving competing `-O` options. Preserve includes and defines.
+No ProDG per-TU override is currently confirmed or installed.
+
+`tools/prodg_cc.py` routes `-O*`, `-f*` and `-m*` to the pinned cc1; preprocessing
+options go to CPP. For small-data experiments use **two tokens** `-G 0`, not
+`-G0`: the wrapper explicitly joins the former for cc1, but drops the latter.
+Unknown options can be silently dropped, so inspect retained commands and
+compiler output before interpreting a trial. `-fno-common` concerns tentative
+definitions and section placement; it cannot be inferred from setters of
+extern objects. Likewise, unknown-size extern arrays affect SDA selection.
+See [the acceptance procedure](code_matching_workflow.md#per-tu-flag-investigations).
+
+### Podrace investigation (Phase 3)
+
+The batch-4 claim that podrace demonstrates different flags was a hypothesis.
+No tested flag set explains its four parked functions. The stronger evidence
+is that the provisional `auto/game/podrace` range absorbs debugger assembly
+after `PodraceLoadLapSettings` ends at `0x80150398`. The first suspect routine
+starts at `0x801503A0`; this is a boundary lead, not an authorized split change.
+
+| Parked address | Retail signature | Baseline reconstructed probe |
+| --- | --- | --- |
+| `0x801507CC` | `lis/ori r3` with HI/LO relocations to `lbl_802EAC60`, then `li r4,1; stw r4,0x6d4(r3)` | `lis r9` with HA relocation to base+offset, `li r0,1; stw` with LO relocation; 4 vs 5 instructions |
+| `0x80150D80` | HI/LO `lis/ori r4` to `lbl_801E19DC`, `li r5,0; stw r5,0(r4)` | HA/LO addressing via r9, zero in r0; 4 vs 5 instructions |
+| `0x80150DBC` | MMIO address in r3, `lwz r4; andi. r4,r4,0x14; li r4,0; blr` | Discarded masked volatile read loses the mask and returns zero in r3; 5 vs 6 instructions |
+| `0x80150418` | `li r6,0; stw r6,0x6ec(r31); li r3,0; blr` | Ordinary global-base store materializes an address; 5 vs 4 instructions |
+
+These are not simply scheduling differences. `fn_80150DE8` calls
+`fn_80150DBC` then immediately branches on its CR0 result. The callee leaves
+the MMIO pointer in r3 and clears r4 **without changing CR0**. Ordinary C
+return-value conventions do not express that interface. `fn_80150418` uses
+inherited r31 without establishing a stack frame; nearby routines load r31
+with `lbl_802EAC60`, a state base. Others save LR in r30 and use private calls.
+`fn_80150F34` restores CPU state and executes `rfi` at `0x80151008`.
+The same region's data includes `snPause() : Stopped.`, an exception-vector
+patch error and a non-debug-mode file-server error. Together these support an
+SN debugger runtime/assembly attribution, not a game-wide optimization change.
+The nearby `EnableMetroTRKInterrupts` name alone does not identify its vendor.
+Debugger/transport assembly continues through at least `0x80152D00`, but the
+whole remaining split is not assembly: later functions have ordinary ProDG C
+prologues, and arithmetic runtime code appears near `0x8015BD40..0x8015BEF4`.
+The [cross-game body evidence](symbol_donors/nu2_gc_body_confirmations.tsv)
+also finds `fn_801503A0` unchanged in LSW2 and Narnia.
+
+The historical best drafts/ledgers were not retained in the available checkout.
+The experiment therefore reconstructed minimal probes, without claiming to
+reproduce their old best scores: integer stores to unknown-size extern arrays
+at the first two addresses; a discarded masked volatile read of `0xcc006000`
+followed by `return 0`; and a store to global base+`0x6ec` followed by `return 0`.
+All experiments and raw objects remain local under `work/tu_flags/`.
+The three existing source functions were included as regression controls.
+
+Pinned ProDG 3.9.3 cc1 (SN v1.76) was used for 70 compile trials:
+
+- Baseline, plus the Cartesian product of `-O0`, `-O1`, `-O2`, `-O3`, `-Os`;
+  neither/both/each disabled scheduler (`-fno-schedule-insns`,
+  `-fno-schedule-insns2`); and default/`-fno-omit-frame-pointer` (40 trials).
+- Individually on `-O2`: `-fno-inline`, `-finline-functions`, `-fno-common`,
+  `-fcommon`, `-fomit-frame-pointer`, `-fno-peephole`, `-fno-gcse`,
+  `-fno-expensive-optimizations`, `-mno-sdata`, `-msdata=none`, `-msdata=eabi`,
+  and `-G` thresholds 0, 4, 8, 32, 1024 (16 trials).
+- Individually: `-mrelocatable`, `-mrelocatable-lib`, `-meabi`, `-mno-eabi`,
+  `-msdata=sysv`, `-msdata=data`, `-mcall-sysv`, `-mcall-eabi`, `-mcpu=750`,
+  `-mcpu=603`; plus no-inline with both schedulers disabled, and no-inline
+  with each of `-O1` and `-O3` (13 trials).
+
+All compiled; none strictly matched any parked probe. Thirty-three trials
+preserved all three controls. `-O0` adds frames/spills even to empty functions;
+forcing a frame pointer also breaks the controls. `-G 0` changes the known
+setter's SDA accesses and breaks it. No-common and inlining cannot repair the
+private register/CR interface. Strict `verify_fn.py --build --strict-symbols`
+checks on temporarily installed baseline probes returned MISMATCH for the four
+parks and MATCH for `fn_80146F1C`, `fn_8014CF8C`, `fn_801508F4`; the probe source
+was then removed. No code was accepted or promoted.
+
+A retail sweep covered all 76 `auto/` text ranges (78 units including units
+without text), with 3,318 symbol bodies. It found no r30/r31 stack-frame
+establishments/restores of the tested `mr`/zero-offset `addi` forms. All 12
+`mflr r30` bodies and all 21 call-bearing bodies without an r1 adjustment
+were in `auto/game/podrace`. No other TU has this same signature. This does
+not prove uniform scheduling, inlining, common-data or small-data settings:
+bytes alone, without equivalent source and owned-data definitions, cannot
+identify those flags. The evidence-supported list of non-default flag TUs is
+currently empty; podrace's tail is an assembly/boundary candidate instead.
+
+Next: identify the debugger runtime and its entry/exit conventions, then
+establish its real text/data ownership before changing splits or choosing an
+assembly implementation. Do not spend another C permutation budget trying to
+make a normal ABI return reproduce CR0/r4 results.
+
 ## Dolphin SDK and retail linker
 
 `DolphinLib` uses MWCC `GC/1.2.5n` with dolsdk2004's release flags:

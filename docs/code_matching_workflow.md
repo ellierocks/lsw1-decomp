@@ -32,6 +32,33 @@ Metrowerks linker settings do not identify the game's compiler.
 The compiler audit, RTL dump instructions and the SN GCC v1.79 evaluation moved to
 [compiler evaluation](compiler_evaluation.md). The pin stays ProDG 3.9.3 (`cc1.exe`, v1.76).
 
+### Per-TU flag investigations
+
+Treat a flag difference as a hypothesis until equivalent drafts strictly match
+and existing matches in the same unit remain matches. Scheduling changes order;
+optimization changes instruction selection and frames; frame-pointer use needs
+a stack-derived base, not merely accesses through r31. Calls returning state in
+CR0 or an inherited private register may instead identify assembly. Common-data
+and SDA hypotheses also require declarations, sections and relocations.
+
+Use `tools/compare_prodg_cc.py --source path/to/probe.c --out work/flags-run
+--variant 'nosched:flag=-fno-schedule-insns;flag=-fno-schedule-insns2'` (one shell
+line) for an isolated search. It uses the pinned compiler and strict verifier;
+retain drafts, commands and rejected sets locally. Its baseline is shared
+`-O2`, and `score_fn.py` also hardcodes that baseline: neither automatically
+inherits a future per-unit override. Pass the candidate options explicitly in
+experiments and use the configured ninja object for acceptance. Inspect the
+wrapper's actual cc1 arguments, particularly `-G` routing.
+
+Once confirmed, install a replacement per-object `cflags` list in
+`configure.py`, regenerate, and run `verify_fn.py NAME --unit auto/path/unit
+--build --strict-symbols` for every changed and previously matched function.
+Compare other units' compile commands/objects against baseline, then run the
+full build, linked-range/DOL comparison and progress report. Keep NonMatching
+until the separate promotion gates pass. Rejected searches belong in an evidence
+note with the remaining source/declaration/assembly hypothesis, not in a
+speculative permanent override. See [podrace results and override wiring](build_config.md#per-tu-prodg-flags).
+
 ## Coding conventions
 
 - Function names: `Nu{Subsystem}{Verb}` (engine), `Action_*`/`Condition_*` (dispatch).
