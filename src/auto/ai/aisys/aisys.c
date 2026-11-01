@@ -803,3 +803,23 @@ f32 Condition_EitherPlayerInLevelNode(u8* sys, void* process, void* packet, char
     }
     return lbl_8019C5C0[0];
 }
+extern f32 fn_8000CD08(void*, void*, void*);
+extern f32 NuFsqrt(f32);
+extern f32 lbl_8019C5A8[];
+f32 Condition_NearestPlayerRange(u8* sys, void* process, u8* packet)
+{
+    f32 distance = lbl_8019C5A8[0];
+    f32 out[3];
+    if (packet && *(u8**)(packet + 0x50) && sys) {
+        u8* player = *(u8**)(sys + 0x1380);
+        if (player)
+            distance = fn_8000CD08(player + 0x6c, *(u8**)(packet + 0x50) + 0x6c, out);
+        player = *(u8**)(sys + 0x1384);
+        if (player) {
+            f32 other = fn_8000CD08(player + 0x6c, *(u8**)(packet + 0x50) + 0x6c, out);
+            if (other < distance) distance = other;
+        }
+        if (distance != lbl_8019C5A8[0]) distance = NuFsqrt(distance);
+    }
+    return distance;
+}
