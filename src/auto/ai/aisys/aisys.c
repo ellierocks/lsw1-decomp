@@ -710,3 +710,20 @@ s32 fn_8008F35C(u8* process, u32 priority, u32 id, char* name, f32 value)
     }
     return 0;
 }
+
+extern char lbl_8019BFCC[];
+extern char* NuStrIStr(char*, char*);
+extern void fn_8008F3D4(void*, char*);
+s32 Action_ClearInterrupt(void* sys, void* process, void* packet, char** args, s32 count, void* active)
+{
+    char* name = 0;
+    s32 i;
+    if (active && process) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(args[i], lbl_8019BFCC);
+            if (found) name = found + 6;
+        }
+        if (name) fn_8008F3D4(process, name);
+    }
+    return 1;
+}
