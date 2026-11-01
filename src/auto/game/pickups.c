@@ -9,8 +9,8 @@ extern f32 lbl_80409A08;
 void fn_8013C620(struct NUPICKUPPOOL_s* pool)
 {
     s32 i = 0, j;
+    f32* value = lbl_801AEC5C;
     if (pool->state710 == 0) {
-        f32* value = lbl_801AEC5C;
         for (; i < 6; i++) {
             f32 v = *value;
             for (j = 0; j < pool->counts[i]; j++) {

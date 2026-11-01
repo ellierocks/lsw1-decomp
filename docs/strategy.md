@@ -399,6 +399,23 @@ Failure modes new to this batch, in order of cost:
 - **Stale ledgers.** `hillclimb.py try` rejects further records on a VERIFIED ledger, so
   cosmetic renames after verification are covered only by a final direct strict check.
 
+#### Game struct headers 2
+
+The second game-header batch extends the API-object collision view, establishes
+`NUCHARACTERDATA_s`'s GC array stride of `0x48`, and starts pickup and turret
+records ([field evidence and access ranking](game_structs.md)). Four new
+consumers strictly match: `fn_8009083C`, `fn_8013F1B0`, `fn_8013F1DC`,
+and `fn_8014068C`. The existing `fn_800AA92C` remains strict after the
+character-data extension. One consumer, `fn_8013C620`, is parked at 41/51;
+the bounded permuter run did not match. No unit is complete or promoted.
+
+The active interval recorded in `work/gameheaders2_timing.txt` is about
+350 seconds, or about 41 new strict functions per active hour. This is a small
+sample dominated by short functions and does not predict sustained throughput.
+Next: match the pickup group initializer by reshaping its loop and float-load
+lifetime; prove more character-data and turret-entry fields with consumers,
+and establish the relationship between turret entries and the allocation.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.

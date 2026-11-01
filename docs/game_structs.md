@@ -115,6 +115,25 @@ Next: API-object position/flags and its relation to the creature prefix, charact
 data extents, then the pickup and turret records; prove each with additional
 consumers before expanding these views.
 
+## Round 2 access ranking
+
+The following counts are discovery ranks: number of functions in each retail
+unit containing a direct load or store at the offset, excluding stack and SDA
+bases. They are upper bounds for a particular struct because register provenance
+was not tracked, and miss indexed or rebased accesses. The field evidence below
+traces the relevant pointers before publishing a type.
+
+| Unit | Direct offsets, descending function count |
+| --- | --- |
+| apiobject | `+0x78` and `+0x20C`: 4 each; `+0x80`, `+0x1F8`, `+0x1FC`, `+0x200`, `+0x204`, `+0x208`, `+0x210`: 3 each; `+0x218`: 2; `+0x7C`, `+0x90`, `+0x1EC`, `+0x1F0`: 1 each |
+| pickups | `+0x39`, `+0x710`: 9 each; `+0x18`: 7; `+0x38`, `+0x122`: 6 each; `+0x1C`: 5; `+0x100`: 4; `+0x2C`, `+0x71C`: 3 each; `+0x734`: 1 |
+| turret | `+0x6E`: 3; `+0x73`: 2; `+0x70`, `+0x74`, `+0xF04`: 1 each |
+
+Character-data accesses were ranked by tracing the object `+0x64` load:
+`+0x20` occurs throughout creature processing; `+0x04` is used in at least
+six functions, and `+0x2C`, `+0x38`, `+0x40`, and `+0x1C` have the
+specific consumers listed below. These are conservative counts.
+
 ## Round 2: API-object prefix
 
 The GC collision routines `fn_80090FB0` and `fn_8009083C` use the same
@@ -161,7 +180,8 @@ counts at `+0x734` from the pool and stepping each record by `0x40`. It
 stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
 `fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`. The group
 initialization draft is parked at 41/51: loop register allocation and float
-load placement differ. Next, reshape the group loop to preserve the loop index
+load placement differ. A 45-second permuter run did not find a match.
+Next, reshape the group loop to preserve the loop index
 in r11 and defer the float load until after the count check.
 
 A separate callback record has a float at `+0x100` and a signed halfword at
