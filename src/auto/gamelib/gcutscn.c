@@ -855,3 +855,33 @@ void fn_8003B310(gcut_instance_view* instance)
             ((void (*)(gcut_float_array*, gcut_count8*, f32))NuGCutLocatorCalcMtx)((gcut_float_array*)words[0xa8/4], (gcut_count8*)scene[7], *(f32*)((u8*)instance + 0x90));
     }
 }
+
+gcut_character_runtime* instNuCGutCharSysCreate(s32* scene, u32* memory)
+{
+    gcut_character_system* system = (gcut_character_system*)scene[6];
+    gcut_character_runtime* result = 0;
+    s32 i;
+    if (system && system->count && memory) {
+        gcut_character_runtime* aligned = (gcut_character_runtime*)((*memory + 15) & ~15);
+        result = aligned;
+        *memory = (u32)(result + 1);
+        result->items = 0;
+        *memory = (*memory + 15) & ~15;
+        result->items = (gcut_character_runtime_item*)*memory;
+        *memory += system->count * sizeof(gcut_character_runtime_item);
+        memset(result->items, 0, system->count * sizeof(gcut_character_runtime_item));
+        for (i = 0; i < system->count; i++) {
+            gcut_character_view* character = &system->characters[i];
+            gcut_character_runtime_item* item = &aligned->items[i];
+            ((u8*)item)[0x16] = 0xff;
+            ((u8*)item)[0x15] = 0xff;
+            if (((u8*)character)[0x5c] & 2) {
+                if (lbl_804081D0)
+                    ((void (*)(gcut_character_view*, gcut_character_runtime_item*, u32*))lbl_804081D0)(character, item, memory);
+            } else {
+                item->value = *(s32*)((u8*)character + 0x50);
+            }
+        }
+    }
+    return result;
+}
