@@ -1304,3 +1304,64 @@ void fn_8003B874(gcut_instance_view* instance, f32 delta)
     }
  }
 }
+
+typedef struct gcut_data208 { u8 bytes[208]; } gcut_data208;
+typedef struct gcut_data80 { u8 bytes[80]; } gcut_data80;
+typedef struct gcut_model { u8 pad0[0x24]; gcut_data80* meshes; u8 pad28[0x178]; struct gcut_model_extra* extra; } gcut_model;
+typedef struct gcut_model_extra { u8 pad[0x70]; gcut_data208* entries; } gcut_model_extra;
+extern char str_instNuCGutRigidSysCreate_CannotReferenceRigid[];
+gcut_rigid_runtime* instNuCGutRigidSysCreate(s32* scene, gcut_model* model, u32* memory)
+{
+    gcut_rigid_system* system = (gcut_rigid_system*)scene[5];
+    gcut_rigid_runtime* result = 0;
+    s32 i;
+    if (system && system->count && memory) {
+        gcut_rigid_runtime* aligned = (gcut_rigid_runtime*)((*memory + 15) & ~15);
+        result = aligned;
+        *memory = (u32)(result + 1);
+        result->items = 0;
+        *memory = (*memory + 15) & ~15;
+        result->items = (gcut_rigid_runtime_item*)*memory;
+        *memory += system->count * sizeof(gcut_rigid_runtime_item);
+        memset(result->items, 0, system->count * sizeof(gcut_rigid_runtime_item));
+        for (i = 0; i < system->count; i++) {
+            gcut_rigid_view* rigid = &system->rigids[i];
+            gcut_rigid_runtime_item* item = &aligned->items[i];
+            if (model && model != *(gcut_model**)((u8*)rigid + 0x44)) {
+                if (*(void**)((u8*)rigid + 0x48)) {
+                    gcut_model_extra* extra;
+                    *(gcut_model**)item = model;
+                    extra = model->extra;
+                    if (extra) {
+                        gcut_data208* base = extra->entries;
+                        gcut_data208* original = (*(gcut_model**)((u8*)rigid + 0x44))->extra->entries;
+                        gcut_data208* ptr = *(gcut_data208**)((u8*)rigid + 0x48);
+                        *(void**)((u8*)item + 4) = 0;
+                        *(gcut_data208**)((u8*)item + 8) = base + (ptr - original);
+                    } else {
+                        gcut_data80* base = model->meshes;
+                        gcut_data80* original = (*(gcut_model**)((u8*)rigid + 0x44))->meshes;
+                        gcut_data80* ptr = *(gcut_data80**)((u8*)rigid + 0x48);
+                        *(void**)((u8*)item + 8) = extra;
+                        *(gcut_data80**)((u8*)item + 4) = base + (ptr - original);
+                    }
+                    if (*((u8*)rigid + 0x58) & 2)
+                        item->b = *((u8*)rigid + 0x58) & 1;
+                } else {
+                    fn_80009970(lbl_8019308C, 0xf26)(str_instNuCGutRigidSysCreate_CannotReferenceRigid, rigid->name);
+                }
+            } else {
+                *(gcut_model**)item = *(gcut_model**)((u8*)rigid + 0x44);
+                if (*(gcut_model**)item && (*(gcut_model**)item)->extra) {
+                    *(void**)((u8*)item + 4) = 0;
+                    *(void**)((u8*)item + 8) = *(void**)((u8*)rigid + 0x48);
+                } else {
+                    void* value = *(void**)((u8*)rigid + 0x48);
+                    *(void**)((u8*)item + 8) = 0;
+                    *(void**)((u8*)item + 4) = value;
+                }
+            }
+        }
+    }
+    return result;
+}
