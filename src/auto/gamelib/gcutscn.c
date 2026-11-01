@@ -1034,3 +1034,61 @@ gcut_locator_runtime* NuCGutLocatorSysCreateInst(gcut_locator_system* system, u3
     }
     return result;
 }
+
+extern f32 lbl_80193440, lbl_80193444, lbl_80193448;
+extern void NuVecMtxRotate(f32*, f32*, gcut_matrix*);
+void instNuGCutLocatorUpdate(u32 axis, gcut_matrix* matrix, f32* vector)
+{
+    s32 rotate = 0;
+    switch (axis) {
+    case 0:
+    case 1:
+        vector[2] = 0.0f;
+        vector[0] = 0.0f;
+        vector[1] = 1.0f;
+        break;
+    case 2:
+        vector[2] = 0.0f;
+        vector[0] = 0.0f;
+        vector[1] = -1.0f;
+        break;
+    case 3:
+        rotate = 1;
+        vector[0] = -1.0f;
+        vector[1] = 0.0f;
+        vector[2] = 0.0f;
+        break;
+    case 4:
+        rotate = 1;
+        vector[0] = 1.0f;
+        vector[1] = 0.0f;
+        vector[2] = 0.0f;
+        break;
+    case 5:
+        rotate = 1;
+        vector[0] = 0.0f;
+        vector[1] = -1.0f;
+        vector[2] = 0.0f;
+        break;
+    case 6:
+        rotate = 1;
+        vector[0] = 0.0f;
+        vector[1] = 1.0f;
+        vector[2] = 0.0f;
+        break;
+    case 7:
+        rotate = 1;
+        vector[0] = 0.0f;
+        vector[1] = 0.0f;
+        vector[2] = 1.0f;
+        break;
+    case 8:
+        rotate = 1;
+        vector[0] = 0.0f;
+        vector[1] = 0.0f;
+        vector[2] = -1.0f;
+        break;
+    }
+    if (rotate)
+        NuVecMtxRotate(vector, vector, matrix);
+}
