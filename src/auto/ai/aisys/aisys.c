@@ -858,3 +858,26 @@ s32 fn_8008F294(u8* sys, char* name)
     }
     return 0;
 }
+extern char lbl_8019BF88[], lbl_8019BF90[], lbl_8019BFB4[];
+extern u8* fn_8008A6D4(void*, void*, char*, char*, s32*);
+s32 Action_PathConnectionObstacle(void* sys, void* process, void* packet, char** args, s32 count, void* active)
+{
+    s32 enabled = 0;
+    s32 unused = 0;
+    char* from = 0;
+    char* to = 0;
+    s32 i;
+    if (sys && active) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(args[i], lbl_8019BF88);
+            if (found) from = found + 5;
+            else if ((found = NuStrIStr(args[i], lbl_8019BF90))) to = found + 3;
+            else if (!NuStrICmp(args[i], lbl_8019BFB4)) enabled = 1;
+        }
+        if (from && to) {
+            u8* connection = fn_8008A6D4(sys, 0, from, to, &unused);
+            if (connection && (*(u32*)(connection + 4) & 0x20000000)) connection[0x21] = enabled;
+        }
+    }
+    return 1;
+}
