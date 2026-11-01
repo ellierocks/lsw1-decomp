@@ -1002,3 +1002,35 @@ void fn_8003ABC4(gcut_instance_view* instance)
         }
     }
 }
+
+gcut_locator_runtime* NuCGutLocatorSysCreateInst(gcut_locator_system* system, u32* memory)
+{
+    gcut_locator_runtime* result = 0;
+    s32 i;
+    if (system && system->count && memory) {
+        gcut_locator_runtime* aligned = (gcut_locator_runtime*)((*memory + 15) & ~15);
+        result = aligned;
+        *memory = (u32)(result + 1);
+        result->items = 0;
+        *memory = (*memory + 15) & ~15;
+        result->items = (gcut_locator_runtime_item*)*memory;
+        *memory += system->count * sizeof(gcut_locator_runtime_item);
+        memset(result->items, 0, system->count * sizeof(gcut_locator_runtime_item));
+        for (i = 0; i < system->count; i++) {
+            gcut_locator_record* record = &system->records[i];
+            gcut_locator_event* event = &system->events[record->event];
+            gcut_locator_runtime_item* item = &aligned->items[i];
+            if (!(event->flags & 1)) {
+                if (!(event->flags & 2)) {
+                    if (event->flags & 4) {
+                        *memory = (*memory + 15) & ~15;
+                        *(void**)((u8*)item + 4) = (void*)*memory;
+                        *memory += 16;
+                        memset(*(void**)((u8*)item + 4), 0, 16);
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
