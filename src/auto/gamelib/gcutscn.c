@@ -917,3 +917,33 @@ void instNuGCutRigidSysStart(gcut_instance_view* instance, f32 frame)
         }
     }
 }
+
+extern void NuAnimDataFixPtrs(gcut_instance_view*);
+extern s16 lbl_80346FFC[];
+extern s32 fn_80044AE8(s32);
+extern void fn_80044AF0(s32);
+extern void fn_80044B20(s32);
+void fn_8003AA94(gcut_instance_view* instance)
+{
+    gcut_instance_view* previous;
+    if (instance->flags & 0x40000000)
+        NuAnimDataFixPtrs(instance);
+    if (*(s32*)((u8*)instance + 0xa4))
+        instNuGCutCharSysRender(instance);
+    if (instance->next)
+        *(gcut_instance_view**)((u8*)instance->next + 4) = *(gcut_instance_view**)((u8*)instance + 4);
+    previous = *(gcut_instance_view**)((u8*)instance + 4);
+    if (previous)
+        previous->next = instance->next;
+    else
+        lbl_8040A42C = (s32)instance->next;
+    if (*(s16*)((u8*)instance + 0xd8)) {
+        if (lbl_80346FFC[*(s8*)((u8*)instance + 0xde)] == *(s16*)((u8*)instance + 0xd8) && fn_80044AE8(*(s8*)((u8*)instance + 0xde)) == *(s16*)((u8*)instance + 0xd8))
+            fn_80044AF0(*(s8*)((u8*)instance + 0xde));
+        if (*(s16*)((u8*)instance + 0xda) && lbl_80346FFC[*(s8*)((u8*)instance + 0xde) + 1] == *(s16*)((u8*)instance + 0xda) && fn_80044AE8(*(s8*)((u8*)instance + 0xde) + 1) == *(s16*)((u8*)instance + 0xda))
+            fn_80044AF0(*(s8*)((u8*)instance + 0xde) + 1);
+        fn_80044B20(*(s16*)((u8*)instance + 0xd8));
+        if (*(s16*)((u8*)instance + 0xda))
+            fn_80044B20(*(s16*)((u8*)instance + 0xda));
+    }
+}
