@@ -652,3 +652,32 @@ f32 Condition_PlayerRange(u8* sys, void* process, u8* packet)
     else result = lbl_8019C5A4[0];
     return result;
 }
+
+
+extern f32 lbl_8019C63C[], lbl_8019C640[], lbl_8019C644[];
+f32 Condition_OriginRange(u8* sys, void* process, u8* packet)
+{
+    f32 out[3], result;
+    if (packet && *(void**)(packet + 0x50) && packet[0xa6] != 0xff && sys)
+        result = fn_8000CCA4(packet + 0x100, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+    else result = lbl_8019C63C[0];
+    return result;
+}
+f32 Condition_OpponentToOrigin(u8* sys, void* process, u8* packet)
+{
+    u8* opponent;
+    f32 out[3], result;
+    if (sys && packet && (opponent = *(u8**)(packet + 0x64)) && packet[0xa6] != 0xff)
+        result = fn_8000CCA4(opponent + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+    else result = lbl_8019C640[0];
+    return result;
+}
+f32 Condition_PlayerToOrigin(u8* sys, void* process, u8* packet)
+{
+    u8* player;
+    f32 out[3], result;
+    if (sys && packet && (player = *(u8**)(sys + 0x1380)) && packet[0xa6] != 0xff)
+        result = fn_8000CCA4(player + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+    else result = lbl_8019C644[0];
+    return result;
+}
