@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -89,30 +90,76 @@ def direct_callees(code: bytes, addr: int) -> set[int]:
     return targets
 
 
+FINISHABLE = 10
+SPRINT_PREFIX = "t3/sprint-"
+
+
+def squash(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def sprint_branches(remote: bool = True) -> set[str]:
+    """Names (without the `t3/sprint-` prefix) of open sprint PR branches, excluding the current one."""
+    heads: set[str] = set()
+    if remote:
+        try:
+            out = subprocess.run(["gh", "pr", "list", "--state", "open", "--json", "headRefName",
+                                  "--jq", ".[].headRefName"], cwd=ROOT, capture_output=True, text=True,
+                                 timeout=15)
+            heads.update(out.stdout.split() if out.returncode == 0 else [])
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    try:
+        cur = subprocess.run(["git", "branch", "--show-current"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    except OSError:
+        cur = ""
+    return {h[len(SPRINT_PREFIX):] for h in heads if h.startswith(SPRINT_PREFIX) and h != cur}
+
+
+def owned_by_sprint(unit: str, branches: set[str]) -> bool:
+    """A sprint branch owns a unit when its name matches the unit's leaf or its whole path."""
+    keys = {squash(unit.rsplit("/", 1)[-1]), squash(unit), squash(unit.removeprefix("auto/"))}
+    return any(squash(b) in keys for b in branches)
+
+
 def in_units(unit: str, prefixes: list[str]) -> bool:
     return not prefixes or any(unit.startswith(p) for p in prefixes)
 
 
-def print_by_unit(rows, args) -> int:
-    """One line per unit: ready targets, their bytes and size range."""
+def print_by_unit(rows, args, owned=frozenset()) -> int:
+    """One line per unit: ready targets, bytes, size range and how many functions the unit has left."""
     units = {}
     for r in rows:
         if r["claimed"]:
             continue
         units.setdefault(r["unit"], []).append(r)
-    order = sorted(units.items(), key=lambda kv: (-len(kv[1]), sum(r["size"] for r in kv[1]), kv[0]))
-    order = order[:args.limit]
+    skipped = sorted(u for u in units if u in owned)
+    for u in skipped:
+        del units[u]
+
+    def key(kv):
+        u, rs = kv
+        finish = rs[0]["unit_left"] <= FINISHABLE
+        return (not finish, -len(rs), sum(r["size"] for r in rs), u)
+
+    order = sorted(units.items(), key=key)[:args.limit]
     if args.json:
-        print(json.dumps([{"unit": u, "ready": len(rs), "bytes": sum(r["size"] for r in rs),
+        print(json.dumps([{"unit": u, "ready": len(rs), "left": rs[0]["unit_left"],
+                           "finishable": rs[0]["unit_left"] <= FINISHABLE, "bytes": sum(r["size"] for r in rs),
                            "min_size": min(r["size"] for r in rs), "max_size": max(r["size"] for r in rs),
                            "source": rs[0]["source"], "names": [r["name"] for r in rs]}
                           for u, rs in order], indent=2))
         return 0
-    print(f"{'unit':<34}{'ready':>6}{'bytes':>8}  {'sizes':<14}source")
+    print(f"{'unit':<34}{'ready':>6}{'left':>6}{'bytes':>8}  {'sizes':<14}source")
     for unit, rs in order:
         sizes = sorted(r["size"] for r in rs)
-        print(f"{unit:<34}{len(rs):>6}{sum(sizes):>#8x}  {f'{sizes[0]:#x}..{sizes[-1]:#x}':<14}"
+        left = rs[0]["unit_left"]
+        mark = "*" if left <= FINISHABLE else " "
+        print(f"{unit:<34}{len(rs):>6}{left:>5}{mark}{sum(sizes):>#8x}  {f'{sizes[0]:#x}..{sizes[-1]:#x}':<14}"
               f"{rs[0]['source'] or '(new file)'}")
+    print(f"\n* = {FINISHABLE} or fewer functions left in the unit (all sizes): finishing it allows promotion.")
+    if skipped:
+        print(f"Skipped (open sprint PR): {', '.join(skipped)}")
     if order:
         print(f"\nSprint queue for the first unit:\n  python3 tools/next_target.py --unit {order[0][0]} "
               f"--max-size {args.max_size:#x} --limit 10")
@@ -128,7 +175,9 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int, default=15)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--by-unit", action="store_true",
-                    help="summarize ready targets per unit to scope a sprint (sorted by ready count)")
+                    help="summarize ready targets per unit to scope a sprint (finishable units first, "
+                         "then by ready count; units owned by an open t3/sprint-* PR are skipped)")
+    ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
     args = ap.parse_args(argv)
 
     dol = vf.load_dol(vf.DOL_PATH, [])
@@ -142,11 +191,20 @@ def main(argv=None) -> int:
     claimed = {p.name for p in WORK.iterdir() if p.is_dir()} if WORK.is_dir() else set()
     names_at = {addr: name for name, addr, _ in symbols}
 
+    unit_left: dict[str, int] = {}
+    unit_of: dict[str, str | None] = {}
+    for name, addr, size in symbols:
+        if size and name not in done and name not in verified:
+            u = vf.lookup_unit(addr)
+            unit_of[name] = u
+            if u is not None:
+                unit_left[u] = unit_left.get(u, 0) + 1
+
     rows, skipped_unit = [], 0
     for name, addr, size in symbols:
         if not size or size > args.max_size or size < args.min_size or name in done or name in verified:
             continue
-        unit = vf.lookup_unit(addr)
+        unit = unit_of[name]
         if unit is None:
             skipped_unit += 1
             continue
@@ -164,11 +222,14 @@ def main(argv=None) -> int:
             "source": str(source.relative_to(ROOT)) if source else None,
             "source_path": str(source.relative_to(ROOT)) if source else f"src/{unit}.c",
             "claimed": name in claimed, "attempts": attempts.get(name, 0),
+            "unit_left": unit_left.get(unit, 0),
         })
     rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["address"]))
     rows_all = rows
     if args.by_unit:
-        return print_by_unit(rows_all, args)
+        branches = sprint_branches(remote=not args.no_remote)
+        owned = {r["unit"] for r in rows_all if owned_by_sprint(r["unit"], branches)}
+        return print_by_unit(rows_all, args, owned)
     rows = rows[:args.limit]
 
     if args.json:

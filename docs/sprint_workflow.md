@@ -14,10 +14,15 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 
 - **One unit per sprint.** Pick it with `next_target.py --by-unit`, then take the queue
   with `--unit UNIT --limit 10`. Choose a related family of functions inside one unit.
-  Do not spread across several units.
-- **Check open PRs first.** Run `gh pr list --state open` before you start. If an open
-  sprint branch (`t3/sprint-<unit>`) owns the unit, choose another unit. `work/` claim
-  markers are local to each worktree, so other threads cannot see them.
+  Do not spread across several units. Siblings with one shape (a `Curve` and `Curve2`
+  pair, setters, loop-per-parameter actions) beat unrelated bodies: draft one, then reuse
+  its structure. Aim for 0x100 to 0x300 bytes per function; tiny accessors add few bytes
+  and large unique bodies tend to plateau.
+- **Check open PRs first.** `--by-unit` asks `gh` for open `t3/sprint-*` PRs and skips the
+  units they own (`--no-remote` turns that off), and it lists units with 10 or fewer
+  functions left first (marked `*`). Branch names must follow `t3/sprint-<unit-leaf>` for
+  that to work. `work/` claim markers are local to each worktree, so other threads
+  cannot see them.
 - **Headers come with their consumers.** Add a shared-header field only when a function
   in the queue reads or writes it, and confirm it in the same sprint. Keep everything else
   as `char unk[N]` or a local view. A sprint that only changes headers matches nothing.
@@ -31,8 +36,8 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 1. AGENTS.md and this page.
 2. Run `python3 tools/next_target.py --unit UNIT --limit 10` and save the list as the
    queue in the first message of the thread.
-3. Run `bash build.sh` once if `build/` is stale. Record
-   `python3 tools/matching_progress.py --json` as the baseline.
+3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
+   to record the objdiff figures, the strict-only count and the DOL hash.
 
 Do not read the batch history or the whole C matching guide up front. When a mismatch
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
@@ -42,7 +47,8 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
 | Step | Limit |
 |---|---|
-| Draft and fast `score_fn.py` attempts | 8 attempts without improvement |
+| Draft: `tools/draft_fn.py NAME` for an m2c start, then fast `score_fn.py` attempts | 8 attempts without improvement |
+| `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
 | `order_search.py`, if only the order differs | one run |
 | Permuter, only at about 90% exact or better | one run of at most 180 s (`timeout 180`) |
 | Then | park and move on; do not come back in this sprint |
@@ -59,12 +65,19 @@ next sprint as a new thread.
 ## Finish (one pass)
 
 ```sh
-git fetch -q origin && git rebase origin/main
-bash build.sh                              # DOL must stay byte-identical
-python3 tools/matching_progress.py --json  # compare with the kickoff baseline
-for f in FN1 FN2 ...; do python3 tools/verify_fn.py "$f" --build --strict-symbols || echo "FAIL $f"; done
-git diff --check origin/main
+python3 tools/sprint_finish.py FN1 FN2 ... --unit UNIT --rebase \
+  --parked "FN3=41/51: <mismatch>; next: <hypothesis>"
 ```
+
+Commit first. The script rebases, runs `bash build.sh` once, strict-verifies each function
+against that build, runs `git diff --check origin/main`, compares the DOL hash and the
+report with the kickoff baseline, and prints the record below with only Donor and Headers
+left to fill in. It exits non-zero on any failure.
+
+A function can pass the strict verifier yet sit below 100% in objdiff, because a literal reloc
+targets `.rodata+N` rather than the retail `lbl_` symbol. Those do not move `matched_functions`.
+`matching_progress.py --strict-gap` (and `tools/strict_gap.py`) counts them separately; report
+that figure, not an adjusted objdiff total.
 
 Rebase once, at the end. If main moved, the report delta includes main's changes; say so
 in the PR rather than building a separate baseline worktree. Run `verify_unit.py UNIT
@@ -84,7 +97,7 @@ Sprint: `UNIT` (N matched, M parked)
 | fn_Y | parked 41/51: <mismatch>; next: <hypothesis> |
 
 - Promoted: none | UNIT (bytes), verify_unit and linked range clean
-- Report: functions A → B, code bytes C → D (includes main drift: yes/no)
+- Report: functions A → B, code bytes C → D (includes main drift: yes/no); strict-only E → F
 - DOL: byte-identical (`bash build.sh`); `matching_progress.py` passes
 - Donor: <one line, or "no OpenSaga hits">
 - Headers: <fields added with their consumer, or none>
@@ -99,6 +112,12 @@ Only durable facts go into docs, in the same PR:
 
 Update `strategy.md` only when the plan changes, for example when a lane is finished or
 the lane order changes.
+
+## Git hook
+
+The Git guard inspects the directory a command starts in. Run `git -C <worktree> commit ...`
+or start the command inside the worktree; `cd X && git commit` from the main checkout is
+rejected as a commit on `main`.
 
 ## Merge and clean up
 

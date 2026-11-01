@@ -71,6 +71,7 @@ if [[ -z ${LSW1_NO_SHARE:-} && -z ${LSW1_REFRESH:-} && -n ${primary:-} && $prima
 fi
 bash tools/fetch_dolsdk.sh >/dev/null 2>&1 || echo 'note: dolsdk2004 donor not fetched; run tools/fetch_dolsdk.sh when online' >&2
 bash tools/fetch_permuter.sh >/dev/null 2>&1 || echo 'note: decomp-permuter not fetched; run tools/fetch_permuter.sh when online' >&2
+bash tools/fetch_m2c.sh >/dev/null 2>&1 || echo 'note: m2c not fetched; run tools/fetch_m2c.sh when online' >&2
 if [[ -z ${LSW1_NO_OPENSAGA:-} ]]; then
     python3 tools/opensaga.py fetch || echo 'note: OpenSaga unavailable; record this limit or rerun tools/opensaga.py fetch' >&2
 fi
