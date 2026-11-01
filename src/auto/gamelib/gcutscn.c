@@ -707,3 +707,28 @@ void NuGCutRigidCalcMtx(s32* scene, void* lookup)
         }
     }
 }
+
+void NuGCutLocatorSysFixPtrs(s32* scene, s32 delta, s32 animDelta)
+{
+    if (scene[7]) {
+        gcut_locator_system* system = (gcut_locator_system*)(scene[7] + delta);
+        s32 i;
+        scene[7] = (s32)system;
+        system->records = system->records ? (gcut_locator_record*)((s32)system->records + delta) : 0;
+        if (system->records && animDelta) {
+            for (i = 0; i < system->count; i++) {
+                gcut_locator_record* record = &system->records[i];
+                void** anim = (void**)((u8*)record + 0x50);
+                if (*anim)
+                    *anim = fn_8001678C(*anim, animDelta);
+            }
+        }
+        system->events = system->events ? (gcut_locator_event*)((s32)system->events + delta) : 0;
+        if (system->events) {
+            for (i = 0; i < *((u8*)system + 9); i++) {
+                s32* name = (s32*)&system->events[i];
+                *name = scene[3] + *name - 1;
+            }
+        }
+    }
+}
