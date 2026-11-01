@@ -1197,3 +1197,65 @@ void fn_8003C754(gcut_instance_view* instance, s32 arg)
   }
  }
 }
+
+void copyAnims(s32* dest, s32* src)
+{
+    s32* dst_camera = (s32*)dest[4];
+    s32* src_camera = (s32*)src[4];
+    s32 i;
+    if (src_camera[2])
+        dst_camera[2] = src_camera[2];
+    dst_camera[3] = src_camera[3];
+    if (src[7]) {
+        gcut_locator_system* from = (gcut_locator_system*)src[7];
+        gcut_locator_system* to = (gcut_locator_system*)dest[7];
+        if (from->records) {
+            for (i = 0; i < from->count; i++) {
+                gcut_locator_record* a = &from->records[i];
+                gcut_locator_record* b = &to->records[i];
+                if (*(s32*)((u8*)a + 0x50))
+                    *(s32*)((u8*)b + 0x50) = *(s32*)((u8*)a + 0x50);
+            }
+        }
+    }
+    if (src[5]) {
+        gcut_rigid_system* from = (gcut_rigid_system*)src[5];
+        gcut_rigid_system* to = (gcut_rigid_system*)dest[5];
+        if (from->rigids) {
+            for (i = 0; i < from->count; i++) {
+                gcut_rigid_view* a = &from->rigids[i];
+                gcut_rigid_view* b = &to->rigids[i];
+                if (a->anim)
+                    b->anim = a->anim;
+                b->state = a->state;
+            }
+        }
+    }
+    if (src[6]) {
+        gcut_character_system* from = (gcut_character_system*)src[6];
+        gcut_character_system* to = (gcut_character_system*)dest[6];
+        if (from->characters) {
+            for (i = 0; i < from->count; i++) {
+                gcut_character_view* a = &from->characters[i];
+                gcut_character_view* b = &to->characters[i];
+                if (a->anim) b->anim = a->anim;
+                if (a->face) b->face = a->face;
+                if (a->extra) b->extra = a->extra;
+            }
+        }
+    }
+    if (src[9]) {
+        gcut_trigger_system* from = (gcut_trigger_system*)src[9];
+        gcut_trigger_system* to = (gcut_trigger_system*)dest[9];
+        if (from->events) {
+            for (i = 0; i < from->count; i++) {
+                gcut_trigger_event* a;
+                gcut_trigger_event* b;
+                a = (gcut_trigger_event*)((u32)from->events + i * 12);
+                b = (gcut_trigger_event*)((u32)to->events + i * 12);
+                b->anim = a->anim;
+            }
+        }
+    }
+    *(f32*)&dest[2] = *(f32*)&src[2];
+}
