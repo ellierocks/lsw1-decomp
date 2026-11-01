@@ -681,3 +681,18 @@ f32 Condition_PlayerToOrigin(u8* sys, void* process, u8* packet)
     else result = lbl_8019C644[0];
     return result;
 }
+
+extern void* fn_800076C4(void*);
+extern void* fn_800076CC(void*, void*);
+extern s32 NuStrICmp(char*, char*);
+extern f32 lbl_8019C674[], lbl_8019C678[];f32 Condition_IAm(void* sys, void* process, u8* packet, char* name, void* actor)
+{
+    u8* owner;
+    u8* model;
+    f32 result;
+    if (packet && (owner = *(u8**)(packet + 0x50)) &&
+        (owner == actor || ((model = *(u8**)(owner + 0x64)) && *(char**)(model + 0xc) && NuStrICmp(*(char**)(model + 0xc), name) == 0)))
+        result = lbl_8019C674[0];
+    else result = lbl_8019C678[0];
+    return result;
+}
