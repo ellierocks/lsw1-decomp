@@ -473,4 +473,4 @@ owner of the `.sdata` tail are separate evidence tasks before extending this uni
 - `matching_progress.py`: objdiff report, configured with
   `functionRelocDiffs=all`. Lenient relocation mode previously produced a
   false `NuVecRotateAxis` match against the wrong float constant.
-- [Research](research.md): symbol lookup, donor provenance, Ghidra and RAM dumps.
+- [Research](research.md): symbol lookup, donor provenance, Ghidra and REA, and RAM dumps.

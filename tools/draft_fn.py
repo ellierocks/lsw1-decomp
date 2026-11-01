@@ -3,6 +3,7 @@
 
     python3 tools/draft_fn.py NuAnimCurve2SetApplyToJointTransLoc
     python3 tools/draft_fn.py NAME --score          # also score the draft once
+    python3 tools/draft_fn.py NAME --ghidra         # also write work/NAME/ghidra.c
 
 The draft goes to `work/NAME/draft_m2c.c` (ignored by git). m2c runs from the pinned checkout
 (`tools/fetch_m2c.sh`, default ~/.cache/lsw1/m2c; `M2C` overrides it) with the PPC GCC target.
@@ -10,6 +11,9 @@ Its output is a starting point only and usually does not compile until typed: pa
 struct accesses are raw offsets. Replace them with the shared headers, then iterate with
 `score_fn.py` and `variant_search.py`. Nothing here counts as a match until
 `verify_fn.py --build --strict-symbols` passes on the unit source.
+
+`--ghidra` also writes `work/NAME/ghidra.c` (named globals, loops, switch recovery) from the
+project that `tools/ghidra_decompile.py setup` created; it is a reference, not a draft.
 """
 from __future__ import annotations
 
@@ -41,6 +45,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name", help="function name in symbols.txt")
     ap.add_argument("--score", action="store_true", help="score the draft once with score_fn.py")
+    ap.add_argument("--ghidra", action="store_true",
+                    help="also export Ghidra's decompile to work/NAME/ghidra.c (needs ghidra_decompile.py setup)")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "work")
     args = ap.parse_args(argv)
     task = args.out_dir / args.name
@@ -63,6 +69,15 @@ def main(argv=None) -> int:
     out = task / "draft_m2c.c"
     out.write_text(clean(r.stdout, args.name))
     print(f"wrote {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
+    if args.ghidra:
+        g = subprocess.run([sys.executable, str(ROOT / "tools" / "ghidra_decompile.py"), "decompile", args.name,
+                            "--out-dir", str(task)], cwd=ROOT, capture_output=True, text=True)
+        produced = task / f"{args.name}.c"
+        if g.returncode == 0 and produced.is_file():
+            produced.replace(task / "ghidra.c")
+            print(f"wrote {(task / 'ghidra.c').relative_to(ROOT) if task.is_relative_to(ROOT) else task / 'ghidra.c'}")
+        else:
+            print(f"ghidra: {(g.stdout + g.stderr).strip()[-400:] or 'no output'}", file=sys.stderr)
     if args.score:
         s = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), args.name, str(out),
                             "-I", "src"], cwd=ROOT, capture_output=True, text=True)

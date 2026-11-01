@@ -75,6 +75,12 @@ pinned [m2c](https://github.com/matt-kempster/m2c) (`tools/fetch_m2c.sh`, run by
 bootstrap). It does not compile until the arguments have real struct types; use it for the
 control flow and the offsets.
 
+With `--ghidra` it also writes `work/NAME/ghidra.c`, which shows named small-data globals,
+loops and switches that m2c leaves raw. That needs a one-time
+`tools/ghidra_decompile.py setup`. For "who else reads or writes this global", run
+`tools/ghidra_decompile.py xrefs NAME`; REA covers callers, strings and tables interactively
+([Ghidra and REA](research.md#ghidra-and-rea)).
+
 ## 4. Score candidates (fast loop)
 
 ```sh

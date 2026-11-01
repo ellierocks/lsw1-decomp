@@ -38,6 +38,9 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
    queue in the first message of the thread.
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
    to record the objdiff figures, the strict-only count and the DOL hash.
+4. Optional, about a minute: `python3 tools/ghidra_decompile.py setup`, then
+   `python3 tools/ghidra_decompile.py decompile FN1 ... FN10` writes `work/FN/ghidra.c` for
+   the queue in one run ([Ghidra and REA](research.md#ghidra-and-rea)).
 
 Do not read the batch history or the whole C matching guide up front. When a mismatch
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
@@ -47,7 +50,7 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
 | Step | Limit |
 |---|---|
-| Draft: `tools/draft_fn.py NAME` for an m2c start, then fast `score_fn.py` attempts | 8 attempts without improvement |
+| Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement |
 | `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
 | `order_search.py`, if only the order differs | one run |
 | Permuter, only at about 90% exact or better | one run of at most 180 s (`timeout 180`) |

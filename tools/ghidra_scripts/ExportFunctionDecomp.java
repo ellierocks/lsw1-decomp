@@ -1,79 +1,68 @@
-// Exports Ghidra decompiler output for one function by name or address.
+// Exports Ghidra decompiler output for several functions in one headless run.
+// Args: <timeout-seconds> <target>=<out-file> ...  (target: symbol name or 0x address)
 // @category LSW1
 
 import ghidra.app.decompiler.DecompInterface;
+import ghidra.app.decompiler.DecompileOptions;
 import ghidra.app.decompiler.DecompileResults;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
-import ghidra.program.model.listing.FunctionIterator;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.List;
 
 public class ExportFunctionDecomp extends GhidraScript {
-    private Function findFunction(String target) throws Exception {
+    private Function findFunction(String target) {
         if (target.startsWith("0x") || target.startsWith("0X")) {
-            long offset = Long.decode(target);
-            Address address = currentProgram.getAddressFactory()
-                .getDefaultAddressSpace()
-                .getAddress(offset);
+            Address address = toAddr(Long.decode(target));
             Function function = getFunctionAt(address);
-            if (function == null) {
-                function = getFunctionContaining(address);
-            }
-            return function;
+            return function != null ? function : getFunctionContaining(address);
         }
-
-        FunctionIterator functions = currentProgram.getFunctionManager().getFunctions(true);
-        while (functions.hasNext()) {
-            Function function = functions.next();
-            if (function.getName().equals(target)) {
-                return function;
-            }
-        }
-        return null;
-    }
-
-    private String safeFileName(String name) {
-        return name.replaceAll("[^A-Za-z0-9_.-]", "_");
+        List<Function> matches = getGlobalFunctions(target);
+        return matches.isEmpty() ? null : matches.get(0);
     }
 
     @Override
     protected void run() throws Exception {
         String[] args = getScriptArgs();
         if (args.length < 2) {
-            printerr("Usage: ExportFunctionDecomp.java <function-or-addr> <out-dir> [timeout-seconds]");
+            printerr("Usage: ExportFunctionDecomp.java <timeout> <target>=<out-file> ...");
             return;
         }
-
-        String target = args[0];
-        File outDir = new File(args[1]);
-        int timeout = args.length >= 3 ? Integer.parseInt(args[2]) : 60;
-        outDir.mkdirs();
-
-        Function function = findFunction(target);
-        if (function == null) {
-            printerr("Function not found: " + target);
-            return;
-        }
-
+        int timeout = Integer.parseInt(args[0]);
         DecompInterface decompiler = new DecompInterface();
+        DecompileOptions options = new DecompileOptions();
+        options.grabFromProgram(currentProgram);
+        decompiler.setOptions(options);
         decompiler.openProgram(currentProgram);
-        DecompileResults results = decompiler.decompileFunction(function, timeout, monitor);
-        if (!results.decompileCompleted()) {
-            printerr("Decompile failed for " + function.getName() + ": " + results.getErrorMessage());
-            return;
+        try {
+            for (int i = 1; i < args.length; i++) {
+                int eq = args[i].indexOf('=');
+                String target = args[i].substring(0, eq);
+                File outFile = new File(args[i].substring(eq + 1));
+                Function function = findFunction(target);
+                if (function == null) {
+                    println("error: function not found: " + target);
+                    continue;
+                }
+                DecompileResults results = decompiler.decompileFunction(function, timeout, monitor);
+                if (!results.decompileCompleted()) {
+                    println("error: decompile failed for " + target + ": " + results.getErrorMessage());
+                    continue;
+                }
+                outFile.getParentFile().mkdirs();
+                try (FileWriter writer = new FileWriter(outFile)) {
+                    writer.write("/* Ghidra reference output; control flow only, never matching source. */\n");
+                    writer.write("/* " + function.getName() + " @ " + function.getEntryPoint()
+                        + ", " + function.getBody().getNumAddresses() + " bytes */\n\n");
+                    writer.write(results.getDecompiledFunction().getC());
+                }
+                println("wrote " + outFile.getPath());
+            }
+        } finally {
+            decompiler.dispose();
         }
-
-        File outFile = new File(outDir, safeFileName(function.getName()) + ".c");
-        try (FileWriter writer = new FileWriter(outFile)) {
-            writer.write("/* Ghidra decompiler reference output. Do not commit as matching source. */\n");
-            writer.write("/* Function: " + function.getName() + " @ " + function.getEntryPoint() + " */\n\n");
-            writer.write(results.getDecompiledFunction().getC());
-            writer.write("\n");
-        }
-
-        println("Wrote " + outFile.getAbsolutePath());
     }
 }

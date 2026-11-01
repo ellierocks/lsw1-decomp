@@ -49,5 +49,8 @@ dtk-split.log
 /*.txt
 *.exe
 
+# Ghidra projects and decompiler output hold retail code; see docs/research.md#ghidra-and-rea
+/ghidra_out/
+
 # Local AI experiments (candidate snapshots, verifier output)
 /work/

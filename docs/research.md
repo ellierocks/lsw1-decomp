@@ -111,22 +111,54 @@ address-materialization patterns (`lis` plus `addi`, load/store displacement
 or `ori`). It can miss indirect references. Confirm the actual instruction
 sequence and containing function before using a string as rename evidence.
 
-## Ghidra
+## Ghidra and REA
 
-Optional control-flow reference; the matching build does not require it.
-Put `analyzeHeadless` on `PATH` or set `GHIDRA_INSTALL_DIR` to the Ghidra
-installation. The helper defaults to the retail DOL:
+Both are optional control-flow references; the matching build needs neither. Their
+output is never matching source, and it stays local because it is derived from the retail
+binary. Write C against the target assembly and verify it with ProDG.
+
+**Setup, once per checkout (about 50 s).** Ghidra 12.1 from PATH, `GHIDRA_INSTALL_DIR`
+or `/opt/ghidra`:
 
 ```sh
-python3 tools/ghidra_decompile.py import-symbols
-python3 tools/ghidra_decompile.py decompile Shop_UpdateSubMenu
-python3 tools/ghidra_decompile.py decompile 0x801486FC
+python3 tools/ghidra_decompile.py setup     # symbolized ELF + headless import + analysis
+python3 tools/ghidra_decompile.py status    # prints the ELF path to open in REA
 ```
 
-Projects live under `ghidra_out/project/`; exports under
-`ghidra_out/decomp/<Function>.c`. Re-import after renames. Use exports to
-understand branches and pointer roles, then write C against target assembly
-and verify with ProDG. Ghidra output is not matching source to commit.
+Ghidra cannot load a DOL with names, so `setup` first writes `main.elf`. It carries the
+retail segments as named sections, every `symbols.txt` name with size and type, and
+`_SDA_BASE_`/`_SDA2_BASE_` (r13 `0x8040FA40`, r2 `0x8041FA40`, read from `__start`).
+A pre-analysis script sets r13 and r2, so small-data accesses resolve to `lbl_` globals.
+State lives in `<primary checkout>/build/ghidra/<checkout>-<hash>/`, because Ghidra rejects
+project paths that contain a `.`-prefixed element such as `.claude/worktrees`.
+
+**Headless (batch).** Use it for the sprint queue and for questions about globals:
+
+```sh
+python3 tools/ghidra_decompile.py decompile FN1 FN2 0x801486FC   # one JVM, work/FN/ghidra.c
+python3 tools/draft_fn.py NAME --ghidra                           # m2c draft + Ghidra view
+python3 tools/ghidra_decompile.py xrefs lbl_80407A5C 0x80200080   # READ/WRITE sites by function
+python3 tools/ghidra_decompile.py sync                            # after symbols.txt changes
+```
+
+`decompile` re-applies names automatically when `symbols.txt` has changed since the last
+sync. A Ghidra GUI holding the project open locks it; close the GUI first.
+
+**REA (interactive).** The `rea` MCP server uses the same Ghidra install. Open the ELF that
+`status` prints with `open_binary` (`provider_id: "ghidra"`). The first query imports and
+analyses it, in about a minute. Then use `procedure_pseudo_code`, `procedure_assembly`,
+`procedure_callers`/`procedure_callees`, `analyze_function`, `search_strings` and
+`read_bytes` (data tables), and call `close_binary` when you are done. Two limits apply:
+
+- REA imports without the r13/r2 context, so it shows small-data accesses as
+  `*(unaff_r13 + -0x7fe4)` (address = `0x8040FA40` + offset; r2 uses `0x8041FA40`), and its
+  `xrefs` misses those globals. Use the headless `xrefs` for them.
+- `set_address_name` and annotations last only for the session. Durable names go through
+  `symbols.txt` with the evidence rules above; regenerate the ELF (`ghidra_decompile.py elf`)
+  before reopening.
+
+Neither tool decodes Gekko paired-single instructions (`psq_l`, `ps_*`), which appear
+mostly in SDK math. Read those functions from the assembly.
 
 ## RAM dumps
 
