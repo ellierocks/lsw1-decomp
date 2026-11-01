@@ -89,3 +89,19 @@ s32 fn_80069900(const char* name)
     }
     return -1;
 }
+
+extern s32 lbl_804086EC, lbl_804086E8, lbl_80408298;
+extern void fn_80044BF4(s32);
+
+void fn_8006E00C(void)
+{
+    s32 minimum;
+    if (!lbl_804086EC && !lbl_804086E8 && lbl_80408298 != -1 &&
+        (u32)((u16)lbl_801BB44C[0] - 11) > 2) {
+        minimum = 5;
+        fn_80044BF4(lbl_801BB44C[2]);
+        if (lbl_801BB44C[0] > 10) return;
+        if (lbl_801BB44C[0] >= minimum)
+            fn_80044BF4(1 - lbl_801BB44C[2]);
+    }
+}
