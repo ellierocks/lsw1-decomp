@@ -732,3 +732,28 @@ void NuGCutLocatorSysFixPtrs(s32* scene, s32 delta, s32 animDelta)
         }
     }
 }
+
+extern s8 lbl_804081B4;
+extern char lbl_801932BC[], lbl_801932FC[], lbl_80193344[];
+extern void (*fn_80009984(char*, s32))(s32, char*, ...);
+s32 fn_80040974(gcut_instance_view* instance, s32 arg)
+{
+    s32* words = (s32*)instance;
+    if ((words[0x8c / 4] & 0x1000000) && !arg) {
+        fn_80009984(lbl_8019308C, 0x8aa)(lbl_804081B4, lbl_801932BC, ((s32*)instance->scene)[11]);
+        return 0;
+    }
+    if (words[0xe4 / 4]) {
+        fn_80009984(lbl_8019308C, 0x8b1)(lbl_804081B4, lbl_801932FC, ((s32*)instance->scene)[11]);
+        return 0;
+    }
+    if (instance->flags & 8) {
+        words[0xe4 / 4] = words[0xc0 / 4];
+        instance->flags &= ~8;
+    } else {
+        words[0xe4 / 4] = words[0xbc / 4];
+        instance->flags |= 8;
+    }
+    fn_80009984(lbl_8019308C, 0x8c1)(lbl_804081B4, lbl_80193344, ((s32*)instance->scene)[11]);
+    return 1;
+}
