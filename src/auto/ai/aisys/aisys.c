@@ -890,3 +890,8 @@ void* fn_8008386C(char* name, u8* script)
         if (!NuStrICmp(name, *(char**)(entry + 0x18))) return entry;
     return 0;
 }
+f32 Condition_InterruptID(void* sys, u8* process)
+{
+    if (process) return (f32)process[0x45];
+    return lbl_8019C670[0];
+}
