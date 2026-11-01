@@ -395,3 +395,55 @@ void fn_800407B0(gcut_instance_view* instance)
         *(dest = (u8*)((u32)values + i * 4)) = 0;
     }
 }
+
+void NuGCutSceneDestroy(s32* scene)
+{
+    if (scene[6])
+        NuGCutCharSysDestroy(scene);
+}
+extern void NuGCutRigidCalcMtx(s32*);
+void instNuGCutSceneCreate(s32* scene)
+{
+    if (scene && scene[5])
+        NuGCutRigidCalcMtx(scene);
+}
+void* StateAnimFixPtrs(void* state, s32 delta)
+{
+    s32* result = state ? (s32*)((u32)state + delta) : 0;
+    if (result) {
+        result[1] = result[1] ? result[1] + delta : 0;
+        result[2] = result[2] ? result[2] + delta : 0;
+    }
+    return result;
+}
+
+extern void fn_8003C754(gcut_instance_view*, s32);
+void NuGCutSceneSysRender(s32 arg)
+{
+    gcut_instance_view* instance = (gcut_instance_view*)lbl_8040A42C;
+    for (; instance; instance = instance->next)
+        fn_8003C754(instance, arg);
+}
+extern void fn_8000DC80(gcut_matrix*);
+void instNuGCutSceneEnd(gcut_instance_view* instance)
+{
+    instance->flags |= 0x1000000;
+    fn_8000DC80(&instance->matrix);
+    instNuGCutSceneCalculateCentre(instance, &instance->matrix);
+}
+
+typedef struct gcut_cam_state { u8 flags; u8 value; u8 pad[2]; } gcut_cam_state;
+typedef struct gcut_cam_runtime { u32 unused; gcut_cam_state* states; u8 a, b, c; } gcut_cam_runtime;
+typedef struct gcut_cam_data { u32 count; u8 pad[12]; u8 value; } gcut_cam_data;
+void instNuGCutCamSysStart(gcut_cam_runtime* runtime, gcut_cam_data* data)
+{
+    u32 i;
+    runtime->a = 0;
+    runtime->b = data->value;
+    runtime->c = 0;
+    for (i = 0; i < data->count; i++) {
+        gcut_cam_state* state = &runtime->states[i];
+        state->flags &= 0xfd;
+        state->value = 0;
+    }
+}
