@@ -947,3 +947,33 @@ void fn_8003AA94(gcut_instance_view* instance)
             fn_80044B20(*(s16*)((u8*)instance + 0xda));
     }
 }
+
+typedef struct gcut_events { s32 count; f32* times; u8* values; } gcut_events;
+extern char lbl_801935D0[];
+s32 fn_800407F4(void* events_ptr, gcut_trigger_byte* state, u8* output, f32 frame)
+{
+    gcut_events* events = events_ptr;
+    s32 changed = 0;
+    if (state->value < events->count) do {
+        if (!(frame >= events->times[state->value]))
+            break;
+        *output = events->values[state->value];
+        changed = 1;
+        state->value++;
+    } while (state->value < events->count);
+    if (!changed) {
+        if (state->value) do {
+            if (!(frame < events->times[state->value - 1]))
+                break;
+            state->value--;
+            if (state->value)
+                *output = events->values[state->value - 1];
+            else {
+                fn_80009970(lbl_8019308C, 0x13d3)(lbl_801935D0);
+                *output = events->values[0];
+            }
+            changed = 1;
+        } while (state->value);
+    }
+    return changed;
+}
