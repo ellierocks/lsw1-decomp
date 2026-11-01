@@ -115,19 +115,35 @@ struct numtlattrib_s {
     u32 uvmode : 1;
 };
 
+// GC layout (0x11C), confirmed against auto/nu3d/ngc/numtl. The CrashWOC
+// (0x54) and OpenSaga PC layouts do not hold: `next` is at 0xB4.
 struct numtl_s {
+    u8 unknown00[0xA4];
+    u32 version : 16;
+    u32 used : 1;
+    u32 unknownA6Flags : 7;
+    u32 renderPlane : 8;
+    u8 unknownA8[0xC];
     struct numtl_s* next;
-    struct numtlattrib_s attrib;
-    struct nucolour3_s ambient, diffuse;
-    union { u32 words[4]; } fx1, fx2, fx3, fx4;
-    f32 power, alpha;
+    u8 unknownB8;
+    u8 unknownB9;
+    u8 unknownBA[3];
+    u8 unknownBD;
+    u8 unknownBE;
+    u8 unknownBF;
+    u8 unknownC0;
+    u8 unknownC1;
+    u8 unknownC2;
+    u8 unknownC3[4];
+    u8 unknownC7;
+    u8 unknownC8[8];
+    f32 unknownD0[3];
+    u8 unknownDC[0x14];
+    f32 unknownF0;
     s32 tid;
-    s16 alpha_sort;
-    u8 fxid, special_id;
-    s16 K;
-    u8 L;
-    u8 uanmmode : 4, vanmmode : 4;
-    f32 du, dv, su, sv;
+    u8 unknownF8[4];
+    f32 unknownFC[4];
+    u8 unknown10C[0x10];
 };
 
 // ----- Texture -----
@@ -142,29 +158,36 @@ struct nutex_s {
 
 // ----- Primitive -----
 
+// GC: only `next` and the two freed buffers at 0x10/0x14 are confirmed
+// (geometry destroy path); the donor puts `vid` at 0xC and `pln` at 0x10.
 struct nuprim_s {
     struct nuprim_s* next;
-    enum nuprimtype_e type;
-    u16 cnt, max;
-    u16* vid;
-    void* pln;
-    s32 idxbuff, cached;
-    s16 skinmtxlookup[16];
+    u8 unknown04[0xC];
+    void* unknown10;
+    void* unknown14;
 };
 
 // ----- Geometry -----
 
+// GC layout, confirmed by the geometry destroy path (fn_80024704, NuGobjInit).
+// The donor's 0x30 layout is 0x1C bytes short here.
 struct nugeom_s {
     struct nugeom_s* next;
-    struct numtl_s* mtl;
-    s32 mtl_id;
-    enum nuvtxtype_e vtxtype;
-    s32 vtxcnt, vtxmax, hVB;
-    void* basisvbptr;
+    u8 unknown04[0x24];
+    void* unknown28;
     struct nuprim_s* prim;
     struct nuskin_s* skin;
-    struct NUVTXSKININFO_s* vtxskininfo;
+    void* vtxskininfo;
+    u8 unknown38[0x10];
     struct NUBLENDGEOM_s* blendgeom;
+};
+
+struct nufaceongeom_s {
+    struct nufaceongeom_s* next;
+    u8 unknown04[0xC];
+    void* unknown10;
+    u8 unknown14[8];
+    void* unknown1C;
 };
 
 struct nugeomitem_s {
@@ -198,7 +221,11 @@ struct NUBLENDGEOM_s {
 // ----- Game Object -----
 
 struct nugobj_s {
-    u8 unknown00[0x14];
+    struct nugobj_s* sysnext;
+    struct nugobj_s* syslast;
+    enum gobjtype_s type;
+    struct nugeom_s* geom;
+    struct nufaceongeom_s* faceonGeom;
     f32 boundingRadiusFromOrigin;
     u8 unknown18[4];
     struct nuvec_s boundingBoxMin;
@@ -317,14 +344,23 @@ struct nuscene_s {
     struct nugscn_s* gscene;
 };
 
+// GC: tids/numtid/mtls/nummtl/texanims confirmed by auto/nu3d/ngc/nugscn
+// (material load and scene free); a scene tid entry is a word, not the
+// donor's s16.
 struct nugscn_s {
-    u8 unknown00[0x14];
+    s32* tids;
+    s32 numtid;
+    struct numtl_s** mtls;
+    s32 nummtl;
+    u8 unknown10[4];
     struct nugobj_s** gobjs;
     s32 numInstance;
     struct nuinstance_s* instances;
     s32 numSpecial;
     struct nuspecial_s* specials;
-    u8 unknown28[0x178];
+    u8 unknown28[0x58];
+    void* texanims;
+    u8 unknown84[0x11C];
     struct nudisplayscene_s* displayScene;
 };
 

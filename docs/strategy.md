@@ -455,6 +455,75 @@ The remaining plateau scores and next hypotheses are retained in the batch PR;
 raw hillclimb and task-pack artifacts stay local. Revisit a function only with a
 new source-shape hypothesis rather than repeating the same permutation space.
 
+#### Shared-header batch 2
+
+The second shared-header batch (`t3/phase3-nu2-headers-2`, engine lane) confirmed the
+GC `numtl_s` (0x11C), `nugeom_s`, `nuprim_s`, `nufaceongeom_s`, the `nugobj_s` list
+fields, the `nugscn_s` tid/material head and the animation data structs
+([evidence](nu2_engine_reference.md#lsw1-confirmed-engine-layouts-batch-2)). The CrashWOC
+(PS2) `numtl_s` and `nugeom_s` layouts and the OpenSaga (PC) `numtl_s` layout do not
+hold on GC. Scene tids are words, not `s16`.
+
+Results: 39 functions strictly match (`verify_fn.py --build --strict-symbols`) and one
+is parked.
+
+| Unit | Matched | Notes |
+|---|---:|---|
+| `auto/nu3d/nuanim_1` | 7 | timebar, pointer relocation and time-chunk helpers |
+| `auto/nu3d/nuanim_2` (new) | 11 | create, load and apply wrappers |
+| `nu3dx/nuanim` | 1 | `NuAnimData2CalcTime` (renamed from a non-symbol name) |
+| `auto/nu3d/ngc/numtl` | 5 | allocator, init, free and render plane; the unit is now 14/14 |
+| `auto/nu3d/ngc/nugobj` | 7 | geometry and object destroy path; **promoted** (1,060 bytes) |
+| `auto/nu3d/ngc/nugscn` | 5 | font load, material load and scene free |
+| `auto/nucore/nufile_3` (new) | 3 | memfile write, `NuFileEndBlockRead`, path collapse |
+
+`nugobj` passes `verify_unit.py` and the linked-range check, and the DOL is unchanged.
+`numtl` has every function matched, but it is not promoted: its float and string
+literals have no `.rodata` split range, and the batch did not change splits. Both
+`nuanim_1` and `nu3dx/nuanim` hit the same `.rodata` limit; `nuanim_2` and `nufile_3`
+still have unmatched functions.
+
+Parked: `fn_80005A4C` (`nufile_3`) is at 47/52 after about 9 attempts and 420 s of
+the permuter, which reached a best score of 215. Retail copies the handle into `r3`
+before the inlined write's range tests, as for an inlined parameter. Next: make the
+callee a separate static copy with its own parameter temporaries. Plateau notes are
+in `work/*/status.md`.
+
+Measurement (`work/headers2_timing.txt`):
+
+- The four delegated workers were rate-limited, and no matches came from them. Their
+  salvaged drafts seeded `nuanim_1`, `nugscn` and the nufile view.
+- Local acceptance ran from 21:47 to 22:05, plus a permuter tail (`fn_80005BC0`). That
+  is about 35 active minutes, or roughly 65 functions per active hour.
+- The rate is about 8 per hour if the whole wall-clock span counts, including the worker
+  wait and the earlier header analysis.
+
+The permuter solved 2 of 3 plateaus. `fn_800166C4` needed a `u16` index cast, and
+`fn_80005BC0` matched by comparing the back-scan against `src[3]` instead of a local.
+
+Failure modes new to this batch:
+
+- **Bitfield words.** A `u32 version:16; used:1; ...; renderPlane:8` word reproduces
+  `lhz`/`sth` for the counter, `lwz`/`ori`/`rlwinm` for the flag and `stb` for the plane.
+  Byte fields alone do not.
+- **Store order across aliasing.** Byte stores through a global pointer force a reload;
+  float stores do not. Order the float stores first in the source to get retail's
+  base-register reuse (`fn_800248CC`).
+- **Unprototyped calls.** `crset`/`crclr` before a call means no prototype. GPR and FPR
+  slots are then assigned independently, so the argument order in the source can differ
+  from the callee's signature (`fn_8002823C`).
+- **Inline helpers.** A `static inline` free-slot search and an `inline` writer both
+  reproduce retail. Without `inline`, `-O2` emits a call.
+
+The next structs to confirm are:
+
+- the instance-animation structs behind `NuAnimCurve2CalcVal` and `NuAnimCurveCalcVal2`,
+  which this batch did not reach;
+- the `nugscn_s` remainder (0x10, 0x28..0x80 and 0x84..0x1A0), through the large
+  `nugscn` loaders;
+- the `numtl_s` GX state (0x00..0xA4);
+- the nufile slot and device structs in `nufile_1`, which needs a configure entry.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
