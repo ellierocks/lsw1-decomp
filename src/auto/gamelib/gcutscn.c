@@ -463,3 +463,35 @@ void instNuGCutRigidSysRender(gcut_rigid_runtime* runtime, gcut_rigid_system* sy
             item->b = *((u8*)rigid + 0x58) & 1;
     }
 }
+
+typedef struct gcut_character_runtime_item { s32 value; u8 pad[20]; } gcut_character_runtime_item;
+typedef struct gcut_character_runtime { gcut_character_runtime_item* items; } gcut_character_runtime;
+extern s32 lbl_804081BC;
+void NuSetCutSceneCharacterRenderFn(gcut_instance_view* instance)
+{
+    s32 i;
+    gcut_character_runtime* runtime = *(gcut_character_runtime**)((u8*)instance + 0xa4);
+    gcut_character_system* system = (gcut_character_system*)((s32*)instance->scene)[6];
+    for (i = 0; i < system->count; i++) {
+        gcut_character_view* character = &system->characters[i];
+        gcut_character_runtime_item* item = &runtime->items[i];
+        if (item->value && lbl_804081BC)
+            ((void (*)(gcut_character_runtime_item*, gcut_character_view*))lbl_804081BC)(item, character);
+    }
+}
+
+extern s32 lbl_804081D4;
+void instNuGCutCharSysRender(gcut_instance_view* instance)
+{
+    s32 i;
+    gcut_character_runtime* runtime = *(gcut_character_runtime**)((u8*)instance + 0xa4);
+    gcut_character_system* system = (gcut_character_system*)((s32*)instance->scene)[6];
+    if (system && system->count) {
+        for (i = 0; i < system->count; i++) {
+            gcut_character_view* character = &system->characters[i];
+            gcut_character_runtime_item* item = &runtime->items[i];
+            if ((*((u8*)character + 0x5c) & 2) && lbl_804081D4)
+                ((void (*)(gcut_character_view*, gcut_character_runtime_item*))lbl_804081D4)(character, item);
+        }
+    }
+}
