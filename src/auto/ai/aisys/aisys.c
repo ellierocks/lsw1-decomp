@@ -836,3 +836,25 @@ void* fn_8008F0C8(u32* current, u32* end, u32 size)
     } else fn_80009948(lbl_8019C6DC, 0x3c1)(str_AISysBufferAlloc_NoBuffer);
     return (void*)result;
 }
+s32 fn_8008F294(u8* sys, char* name)
+{
+    char* selected = 0;
+    if (sys && *(u8**)(sys + 0xc)) {
+        if (name) {
+            s32 i;
+            for (i = 0; i < **(u8**)(sys + 0xc); i++) {
+                u8* level = *(u8**)(sys + 0xc);
+                char** names = *(char***)(level + 4);
+                if (NuStrICmp(names[i], name) == 0) {
+                    selected = (*(char***)(*(u8**)(sys + 0xc) + 4))[i];
+                    break;
+                }
+            }
+        } else selected = **(char****)(*(u8**)(sys + 0xc) + 4);
+        if (selected && selected != *(char**)(*(u8**)(sys + 0xc) + 8)) {
+            *(char**)(*(u8**)(sys + 0xc) + 8) = selected;
+            return 1;
+        }
+    }
+    return 0;
+}
