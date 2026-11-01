@@ -110,3 +110,16 @@ u8* fn_80109128(u8* scene, const char* name)
     }
     return 0;
 }
+
+s32 fn_8010B6FC(u8* table, const char* name)
+{
+    s32 i;
+    if (table) {
+        for (i = *(s32*)table; i < *(s32*)(table + 4); i++) {
+            u8* entries = *(u8**)(table + 8);
+            if (NuStrICmp(name, (char*)(entries + i * 0x14 + 4)) == 0)
+                return *(s32*)(*(u8**)(table + 8) + i * 0x14);
+        }
+    }
+    return -1;
+}
