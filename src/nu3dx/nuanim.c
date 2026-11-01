@@ -4,72 +4,54 @@
 extern u8 ObjectAnim[256];
 extern f32 fn_8000B264(f32);
 
-void fn_80016A98(void* data, struct nuanimtime_s* out, f32 time)
+struct nuani4hdr_s {
+    s32 magic;
+    u8 unknown04[6];
+    u16 nframes;
+};
+
+void NuAnimData2CalcTime(struct nuanimdata2_s* data, struct nuanimtime_s* out, f32 time)
 {
-    f32 f0;
-    s32 nchunks, tmp, chunk;
-    f0 = 1.0f;
+    s32 tmp;
+    s32 byte;
+
     if (*(s32*)data == 0x414E4934) {
-        if (time >= f0) {
-            nchunks = *(s16*)((s8*)data + 0x0A);
-            if (time > (f32)nchunks) {
-                out->time = (f32)(*(u16*)((s8*)data + 0x0A)) - 0.01f;
-            } else {
-                out->time = time;
-            }
-            chunk = ((s32)(out->time - 1.0f) >> 5);
-            out->chunk = chunk;
-            nchunks = *(s16*)((s8*)data + 0x08);
-            if (chunk >= nchunks) {
-                out->chunk = nchunks - 1;
-            }
-            f0 = out->time;
-            f0 -= (f32)(out->chunk * 32);
-            out->time_offset = f0;
-            tmp = (s32)fn_8000B264(f0);
-            out->unk14 = tmp - 1;
-            tmp = out->unk14;
-            if (tmp < 0) tmp += 7;
-            out->time_byte = (u8)(tmp >> 3);
-            out->time_mask = (u8)((1 << (out->unk14 - (out->time_byte << 3) + 1)) - 1);
+        if (time < 1.0f) {
+            out->time = 1.0f;
         } else {
-            out->time = f0;
-        }
-    } else {
-        f32 endframe;
-        endframe = *(f32*)data;
-        if (time >= endframe) {
-            if (endframe == 0.0f) {
-                out->time = 0.0f;
-                out->chunk = 0;
-                out->time_mask = 1;
-                out->unk14 = 0;
-            } else {
-                out->time = endframe - 1.0f;
-                goto common;
-            }
-        } else {
-            if (time < 1.0f) {
-                out->time = 1.0f;
+            u32 n = ((struct nuani4hdr_s*)data)->nframes;
+            if (time >= (f32)(s32)n) {
+                out->time = (f32)n - 0.01f;
             } else {
                 out->time = time;
             }
         }
-common:;
-        chunk = ((s32)(out->time - 1.0f) >> 5);
-        out->chunk = chunk;
-        nchunks = *(s16*)((s8*)data + 0x08);
-        if (chunk >= nchunks) out->chunk = nchunks - 1;
-        f0 = out->time;
-        f0 -= (f32)(out->chunk * 32);
-        out->time_offset = f0;
-        tmp = (s32)fn_8000B264(f0);
-        out->unk14 = tmp - 1;
-        tmp = out->unk14;
-        if (tmp < 0) tmp += 7;
-        out->time_byte = (u8)(tmp >> 3);
-        out->time_mask = (u8)((1 << (out->unk14 - (out->time_byte << 3) + 1)) - 1);
+        return;
     }
+    if (time >= data->endframe) {
+        if (data->endframe == 1.0f) {
+            out->time = 1.0f;
+            out->chunk = 0;
+            out->time_byte = 0;
+            out->time_mask = 1;
+            return;
+        }
+        out->time = data->endframe - 0.01f;
+    } else if (time < 1.0f) {
+        out->time = 1.0f;
+    } else {
+        out->time = time;
+    }
+    out->chunk = ((s32)out->time - 1) >> 5;
+    if (out->chunk >= data->nchunks) {
+        out->chunk = data->nchunks - 1;
+    }
+    out->time_offset = out->time - (f32)(out->chunk * 32);
+    tmp = (s32)fn_8000B264(out->time_offset) - 1;
+    out->unk14 = tmp;
+    byte = tmp / 8;
+    out->time_byte = (u8)byte;
+    out->time_mask = (u8)((1 << (tmp - byte * 8 + 1)) - 1);
 }
 
 f32 NuAnimCurveCalcVal2(struct nuanimcurve_s* curve, struct nuanimtime_s* time)
