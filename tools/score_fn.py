@@ -12,7 +12,14 @@ keeping and `verify_fn.py --build --strict-symbols` for acceptance.
     python3 tools/score_fn.py NuVecScale scratch.c --compile-only -o out.o   # permuter compile step
 
 Output is one line: verdict, score (lower is better, same order as
-hillclimb.py), exact instructions and the first difference. `--json` prints
+hillclimb.py), exact instructions and the first difference. `--diff` adds the
+side-by-side TARGET/MINE listing (mismatched rows marked `!!`). `--body FILE`
+scores FILE in place of NAME's definition without editing SOURCE (`--apply`
+writes it back on a strict MATCH), so one unit source can host many trials:
+
+    python3 tools/score_fn.py fn_X src/auto/u.c --body /tmp/try.c --diff --apply
+
+`--json` prints
 the full verifier report with the score added. Exit codes follow verify_fn.py:
 0 match, 1 mismatch, 2 error, 3 code match with unverified references.
 
@@ -94,6 +101,13 @@ def main(argv=None) -> int:
     ap.add_argument("--compile-only", action="store_true", help="only compile (needs -o)")
     ap.add_argument("-o", type=Path, help="keep the object here")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--body", type=Path, metavar="FILE",
+                    help="score FILE (a full definition of NAME, plus any new externs above it) in place of "
+                         "NAME's definition in SOURCE; SOURCE itself is not edited unless --apply")
+    ap.add_argument("--apply", action="store_true",
+                    help="with --body: write the replacement into SOURCE when the result is a strict MATCH")
+    ap.add_argument("--diff", action="store_true",
+                    help="also print the verifier's side-by-side listing (mismatched rows plus context)")
     ap.add_argument("--diagnostics-dir", type=Path, help="new directory for ProDG RTL dumps and logs")
     ap.add_argument("--cc1-native", type=Path,
                     help="evaluate a source-built cc1 (tools/sn-gcc/build.sh); with GDBG=1/LADBG=1 and "
@@ -104,6 +118,10 @@ def main(argv=None) -> int:
         ap.error("--compile-only needs -o")
     if (args.diagnostics_dir or args.cc1_native) and args.compiler != "prodg":
         ap.error("--diagnostics-dir and --cc1-native require --compiler prodg")
+    if args.apply and not args.body:
+        ap.error("--apply needs --body")
+    if args.body and not args.body.is_file():
+        ap.error(f"--body file not found: {args.body}")
     missing = missing_toolchain(args.compiler)
     if missing:
         names = ", ".join(str(p) for p in missing)
@@ -112,7 +130,20 @@ def main(argv=None) -> int:
         return vf.EXIT_ERROR
     with tempfile.TemporaryDirectory(prefix="score_fn_") as tmp:
         obj = args.o.resolve() if args.o else Path(tmp) / "candidate.o"
-        err = compile_source(args.source.resolve(), obj, args.compiler, extra,
+        source = args.source.resolve()
+        replaced = None
+        if args.body:
+            from variant_search import VariantError, find_function
+            text = source.read_text()
+            try:
+                fn = find_function(text, args.compiled_symbol or args.name)
+            except VariantError as e:
+                print(f"error: {e} in {args.source}", file=sys.stderr)
+                return vf.EXIT_ERROR
+            replaced = fn.before + args.body.read_text().strip("\n") + fn.tail[1:]
+            source = Path(tmp) / source.name
+            source.write_text(replaced)
+        err = compile_source(source, obj, args.compiler, extra,
                              args.diagnostics_dir.resolve() if args.diagnostics_dir else None,
                              args.cc1_native.resolve() if args.cc1_native else None)
         if err:
@@ -126,6 +157,15 @@ def main(argv=None) -> int:
             vargs += ["--compiled-symbol", args.compiled_symbol]
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
             code = vf.main(vargs)
+        listing = ""
+        if args.diff and not args.json:
+            lbuf = io.StringIO()
+            with contextlib.redirect_stdout(lbuf), contextlib.redirect_stderr(io.StringIO()):
+                vf.main([a for a in vargs if a != "--json"])
+            # Keep the TARGET/MINE rows; the summary line below replaces the hex tail.
+            lines = lbuf.getvalue().splitlines()
+            keep = [ln for ln in lines if ln.startswith(("   ", "!!"))]
+            listing = "\n".join(keep)
     rep = json.loads(buf.getvalue())
     if rep.get("verdict") == "ERROR":
         print(f"error: {rep.get('error')}", file=sys.stderr)
@@ -138,6 +178,11 @@ def main(argv=None) -> int:
     detail = f"  first: {first['kind']} @{first.get('index_t')}: {first.get('detail', '')}" if first else ""
     print(f"{rep['verdict']}  score={rep['score']}  exact={rep['exact_insns']}/{rep['target_insns']}"
           f"  mine_insns={rep['mine_insns']}{detail}")
+    if listing and code != 0:
+        print(listing)
+    if args.apply and code == 0:
+        args.source.write_text(replaced)
+        print(f"applied to {args.source}")
     return code
 
 

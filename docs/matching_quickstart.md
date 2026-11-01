@@ -89,7 +89,14 @@ python3 tools/score_fn.py NAME src/UNIT.c
 
 It takes well under a second and prints the verdict, score, exact instructions
 and the first difference. Change one source choice per attempt, guided by that
-first difference.
+first difference. `--diff` adds the disassembled TARGET/MINE listing (mismatched rows
+marked `!!`) instead of hex words. `--body try.c` scores `try.c`, one full definition
+of NAME plus any new externs, in place of NAME in the unit source without editing it.
+`--apply` writes it in only on a strict MATCH:
+
+```sh
+python3 tools/score_fn.py NAME src/UNIT.c --body /tmp/try.c --diff --apply
+```
 
 When the draft is close, try the known cheap rewrites in one run (declaration order of
 locals, ternary against if/else, `s32`/`u32` for each integer, at most two changes at once):
