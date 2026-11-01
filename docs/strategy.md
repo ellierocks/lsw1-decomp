@@ -141,6 +141,12 @@ record the corrected parser layout and the next small-target queue. The
 string/math helpers, AI conditions, accessors and cutscene helpers, with
 explicit exclusions for changed TCS behavior.
 
+#### Unit completion: AI and cutscene
+
+The cutscene and AI units are being matched from GameCube assembly, with strict
+function verification before promotion. Unit promotion still requires matching
+sections, relocations, and linked retail ranges. The retail DOL remains the oracle.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
