@@ -113,7 +113,7 @@ the binary; donor projects supply evidence.
 | [Matching quickstart](docs/matching_quickstart.md) | Bootstrap, pick a target, score, record and verify in six steps |
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
 | [Compiler evaluation](docs/compiler_evaluation.md) | ProDG audit, RTL diagnostics and SN GCC v1.79 results |
-| [Research](docs/research.md) | Symbol recovery, donor mining, Ghidra, RAM dumps and evidence provenance |
+| [Research](docs/research.md) | Symbol recovery, donor mining, Ghidra and REA, RAM dumps and evidence provenance |
 | [Build configuration](docs/build_config.md) | Symbols, splits, compiler wiring and target-specific DTK constraints |
 | [Development workflow](docs/development_workflow.md) | Checks, PRs, CI, progress artifacts and secrets maintenance |
 | [Nu2 reference](docs/nu2_engine_reference.md) | Layout sketches, SDK evidence, file calls and camera state |

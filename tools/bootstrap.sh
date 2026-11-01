@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fetch the compilers and tools that tools/score_fn.py needs, without splitting or compiling the DOL.
-# Run once per checkout; build.sh does the same and more.
+# Run once per checkout; build.sh does the same and more. With Ghidra installed it also builds the
+# reference project for tools/draft_fn.py (tools/ghidra_decompile.py setup; LSW1_NO_GHIDRA=1 skips).
 #
 # Worktrees share one toolchain: build/tools, build/compilers and build/binutils are symlinks into
 # $LSW1_CACHE/toolchain (default ~/.cache/lsw1/toolchain), populated by the first checkout that builds
@@ -74,5 +75,10 @@ bash tools/fetch_permuter.sh >/dev/null 2>&1 || echo 'note: decomp-permuter not 
 bash tools/fetch_m2c.sh >/dev/null 2>&1 || echo 'note: m2c not fetched; run tools/fetch_m2c.sh when online' >&2
 if [[ -z ${LSW1_NO_OPENSAGA:-} ]]; then
     python3 tools/opensaga.py fetch || echo 'note: OpenSaga unavailable; record this limit or rerun tools/opensaga.py fetch' >&2
+fi
+# Ghidra reference project (about a minute, once per checkout); LSW1_NO_GHIDRA=1 skips it.
+if [[ -z ${LSW1_NO_GHIDRA:-} && -f orig/GL5E4F/sys/main.dol ]]; then
+    python3 tools/ghidra_decompile.py setup --if-missing \
+        || echo 'note: Ghidra setup failed; rerun python3 tools/ghidra_decompile.py setup' >&2
 fi
 echo 'Toolchain ready. Next: python3 tools/next_target.py'

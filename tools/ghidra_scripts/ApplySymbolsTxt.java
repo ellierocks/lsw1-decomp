@@ -5,6 +5,7 @@ import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.symbol.SourceType;
+import ghidra.program.model.symbol.Symbol;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -51,18 +52,33 @@ public class ApplySymbolsTxt extends GhidraScript {
                     .getAddress(offset);
 
                 try {
+                    Symbol existing = null;
+                    for (Symbol s : currentProgram.getSymbolTable().getSymbols(address)) {
+                        if (s.getName().equals(name)) {
+                            existing = s;
+                        }
+                    }
                     if ("function".equals(type)) {
                         Function function = getFunctionAt(address);
                         if (function == null) {
                             disassemble(address);
-                            function = createFunction(address, name);
+                            function = createFunction(address, null);
                         }
-                        if (function != null) {
-                            function.setName(name, SourceType.USER_DEFINED);
+                        if (function != null && !function.getName().equals(name)) {
+                            if (existing != null) {
+                                existing.delete();  // alias label blocks the rename; the function symbol takes the name
+                                function.setName(name, SourceType.USER_DEFINED);
+                            } else {
+                                function.setName(name, SourceType.USER_DEFINED);
+                            }
                             functionCount++;
                         }
                     } else {
-                        createLabel(address, name, true, SourceType.USER_DEFINED);
+                        if (existing != null) {
+                            continue;  // already applied (ELF import or an earlier sync)
+                        }
+                        // A primary label at a function entry would rename the function.
+                        createLabel(address, name, getFunctionAt(address) == null, SourceType.USER_DEFINED);
                         labelCount++;
                     }
                 } catch (Exception ex) {
