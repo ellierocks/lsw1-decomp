@@ -626,3 +626,22 @@ void fn_800406C8(gcut_instance_view* instance, f32 frame)
         }
     }
 }
+
+extern s32 lbl_8040810C;
+void NuGCutCharAnimProcess(gcut_instance_view* instance, f32 frame)
+{
+    s32 i;
+    gcut_scene_view* scene = instance->scene;
+    gcut_character_runtime* runtime = *(gcut_character_runtime**)((u8*)instance + 0xa4);
+    gcut_character_system* system = (gcut_character_system*)((s32*)scene)[6];
+    for (i = 0; i < system->count; i++) {
+        gcut_character_view* character = &system->characters[i];
+        gcut_character_runtime_item* item = &runtime->items[i];
+        if (item->value) {
+            if (!(*((u8*)character + 0x5c) & 2) && lbl_804081C0)
+                ((void (*)(gcut_instance_view*, gcut_scene_view*, gcut_character_runtime_item*, gcut_character_view*, f32))lbl_804081C0)(instance, scene, item, character, frame);
+            if (!lbl_8040810C && lbl_804081BC)
+                ((void (*)(gcut_character_runtime_item*, gcut_character_view*))lbl_804081BC)(item, character);
+        }
+    }
+}
