@@ -26,3 +26,33 @@ s32 fn_80071D90(s32 a)
     lbl_804087E4 = a;
     return t0;
 }
+
+extern void* lbl_804087D8;
+extern s32 lbl_804087DC;
+extern u8* fn_80040DE8(void*, s32);
+
+struct RtlVec { u32 x, y, z; };
+
+s32 fn_80071AEC(s32 index, struct RtlVec* value)
+{
+    struct RtlVec* p;
+    if (lbl_804087D8 && index >= 0 && index < lbl_804087DC &&
+        (p = (struct RtlVec*)fn_80040DE8(lbl_804087D8, index)) && value) {
+        *p = *value;
+        return 1;
+    }
+    return 0;
+}
+
+s32 fn_80071B78(s32 index, f32 a, f32 b)
+{
+    u8* p;
+    if (lbl_804087D8 && index >= 0 && index < lbl_804087DC &&
+        (p = fn_80040DE8(lbl_804087D8, index))) {
+        *(f32*)(p + 0x3c) = a;
+        if (a > b) *(f32*)(p + 0x40) = a;
+        else *(f32*)(p + 0x40) = b;
+        return 1;
+    }
+    return 0;
+}
