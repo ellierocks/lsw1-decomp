@@ -752,3 +752,18 @@ f32 Condition_PlayerInLevelNode(u8* sys, void* process, void* packet, char* para
     }
     return lbl_8019C5B8[0];
 }
+
+void fn_800838EC(u8* process, u8* script)
+{
+    void* state;
+    if (process && script) {
+        *(u8**)(process + 8) = script;
+        *(void**)(process + 0xc) = 0;
+        *(void**)(process + 0x10) = 0;
+        state = fn_800076C4(script + 0x10);
+        if (state) {
+            *(void**)(process + 0xc) = state;
+            *(u32*)(process + 0x3c) |= 0x80000000;
+        } else *(void**)(process + 0xc) = state;
+    }
+}
