@@ -164,3 +164,21 @@ void fn_800790C8(u8* menu)
     else if (!lbl_8040822C || !lbl_80408230)
         Menu_Open(0x3ed, -1, -1);
 }
+
+extern s32 lbl_80408A54;
+extern char *lbl_80408B7C;
+extern void fn_8007B298(char*, s32, s32, s32, s32, s32, s32, s32, s32, f32, f32, f32, f32, f32, f32, f32);
+
+void fn_80079434(u8* menu)
+{
+    fn_8007B298(lbl_80408B7C, 0, 255, 127, 0, 3, 0, 0, lbl_80408A54,
+                0.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.5f, 1.5f);
+    {
+        f32 time = lbl_8040AF18;
+        f32 offset = lbl_80408A84;
+        s32 action = lbl_80408AA0;
+        *(f32*)(menu + 0x9c) = time - offset;
+        fn_800769B4(menu, action, lbl_80408A57);
+    }
+    fn_800769B4(menu, lbl_80408AA4, lbl_80408A57);
+}
