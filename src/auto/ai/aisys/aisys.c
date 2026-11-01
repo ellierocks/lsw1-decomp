@@ -696,3 +696,17 @@ extern f32 lbl_8019C674[], lbl_8019C678[];f32 Condition_IAm(void* sys, void* pro
     else result = lbl_8019C678[0];
     return result;
 }
+
+extern void* fn_8008386C(char*, void*);
+s32 fn_8008F35C(u8* process, u32 priority, u32 id, char* name, f32 value)
+{
+    void* script;
+    if (priority >= process[0x44] && (script = fn_8008386C(name, *(void**)(process + 4)))) {
+        process[0x44] = priority;
+        process[0x45] = id;
+        *(f32*)(process + 0x48) = value;
+        *(void**)(process + 0x4c) = script;
+        return 1;
+    }
+    return 0;
+}
