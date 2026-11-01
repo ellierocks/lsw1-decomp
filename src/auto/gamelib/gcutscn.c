@@ -495,3 +495,27 @@ void instNuGCutCharSysRender(gcut_instance_view* instance)
         }
     }
 }
+
+
+extern void fn_80013200(gcut_rigid_runtime_item*, s32);
+extern void fn_80013454(gcut_rigid_runtime_item*, gcut_rigid_view*);
+void instNuGCutRigidSysUpdate(gcut_rigid_runtime* runtime, gcut_rigid_system* system)
+{
+    u32 i;
+    for (i = 0; i < system->count; i++) {
+        gcut_rigid_view* rigid = &system->rigids[i];
+        gcut_rigid_runtime_item* item = &runtime->items[i];
+        item->a = 0;
+        if (*((u8*)rigid + 0x58) & 4) {
+            if (*((u8*)rigid + 0x58) & 2)
+                item->b = *((u8*)rigid + 0x58) & 1;
+            else {
+                if (*((u8*)rigid + 0x58) & 1)
+                    fn_80013200(item, 1);
+                else
+                    fn_80013200(item, 0);
+                fn_80013454(item, rigid);
+            }
+        }
+    }
+}
