@@ -827,3 +827,31 @@ s32 instNuGCutSceneClipTest(gcut_locator_record* locator, void* time, f32* scale
     }
     return visible;
 }
+
+extern void instNuGCutRigidSysStart(gcut_instance_view*, f32);
+void fn_8003B310(gcut_instance_view* instance)
+{
+    s32* words = (s32*)instance;
+    s32 flags = words[0x88/4];
+    s32* scene = (s32*)instance->scene;
+    words[0x88/4] = flags & ~0x40000000;
+    words[0x88/4] &= ~0x80000;
+    *(f32*)((u8*)instance + 0x90) = 1.0f;
+    words[0x8c/4] &= ~0x2000000;
+    *(f32*)((u8*)instance + 0x94) = 1.0f;
+    if (flags & 0x2000) {
+        if (scene[5])
+            instNuGCutRigidSysStart(instance, *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x90));
+        if (words[0xa4/4])
+            NuGCutCharAnimProcess(instance, *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x90));
+        if (words[0xa8/4])
+            ((void (*)(gcut_float_array*, gcut_count8*, f32))NuGCutLocatorCalcMtx)((gcut_float_array*)words[0xa8/4], (gcut_count8*)scene[7], *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x90));
+    } else {
+        if (scene[5])
+            instNuGCutRigidSysStart(instance, *(f32*)((u8*)instance + 0x90));
+        if (words[0xa4/4])
+            NuGCutCharAnimProcess(instance, *(f32*)((u8*)instance + 0x90));
+        if (words[0xa8/4])
+            ((void (*)(gcut_float_array*, gcut_count8*, f32))NuGCutLocatorCalcMtx)((gcut_float_array*)words[0xa8/4], (gcut_count8*)scene[7], *(f32*)((u8*)instance + 0x90));
+    }
+}
