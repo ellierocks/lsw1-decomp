@@ -787,3 +787,43 @@ void NuGCutRigidSysFixUp(s32* scene, s32 lookup)
         }
     }
 }
+
+typedef struct gcut_anim { s32 magic; u8 pad[8]; f32* curves; s8* types; } gcut_anim;
+extern f32* fn_8001BFC4(gcut_anim*, s32);
+extern f32 NuAnimCurve2CalcVal(f32*, void*, s32);
+s32 instNuGCutSceneClipTest(gcut_locator_record* locator, void* time, f32* scale)
+{
+    gcut_anim* anim = *(gcut_anim**)((u8*)locator + 0x50);
+    s32 visible;
+    if (anim) {
+        if (anim->magic == 0x414e4934) {
+            f32* values = fn_8001BFC4(anim, 0);
+            s32 result = (s32)values[7];
+            if (result) {
+                if (scale)
+                    *scale = values[6];
+            }
+            return result;
+        } else {
+            s8* types = anim->types;
+            f32* curves = anim->curves;
+            if (types[7] == 0)
+                visible = (s32)curves[7];
+            else
+                visible = (s32)NuAnimCurve2CalcVal(&curves[7], time, types[7]);
+            if (visible && scale) {
+                f32 value;
+                if (types[6] == 0)
+                    value = curves[6];
+                else
+                    value = NuAnimCurve2CalcVal(&curves[6], time, types[6]);
+                *scale = value;
+            }
+        }
+    } else {
+        visible = *((u8*)locator + 0x58) & 8;
+        if (visible && scale)
+            *scale = *(f32*)((u8*)locator + 0x4c);
+    }
+    return visible;
+}
