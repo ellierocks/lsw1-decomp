@@ -609,3 +609,20 @@ void fn_8003EF38(gcut_instance_view* instance)
         }
     }
 }
+
+void fn_800406C8(gcut_instance_view* instance, f32 frame)
+{
+    gcut_trigger_system* system = (gcut_trigger_system*)((s32*)instance->scene)[9];
+    gcut_trigger_runtime* runtime = *(gcut_trigger_runtime**)((u8*)instance + 0xac);
+    s32 i;
+    for (i = 0; i < system->count; i++) {
+        u8 value;
+        gcut_trigger_event* event = &system->events[i];
+        if (event->anim && fn_800407F4(event->anim, &runtime->states[i], &value, frame)) {
+            if (value)
+                runtime->scene->flags[*(s16*)event].flags |= 1;
+            else
+                runtime->scene->flags[*(s16*)event].flags &= ~1;
+        }
+    }
+}
