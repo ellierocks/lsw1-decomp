@@ -34,6 +34,11 @@ class NextTargetTests(unittest.TestCase):
         source = "s32 Proto(s32 a);\ns32 Defined(s32 a)\n{\n    return a;\n}\n"
         self.assertEqual(set(nt.DEFINITION_RE.findall(source)), {"Defined"})
 
+    def test_unit_prefixes_filter_and_empty_means_all(self):
+        self.assertTrue(nt.in_units("auto/game/cut", []))
+        self.assertTrue(nt.in_units("auto/game/cut", ["auto/ai/", "auto/game/"]))
+        self.assertFalse(nt.in_units("auto/gamelib/glutils", ["auto/game/"]))
+
 
 class ScoreFnPreflightTests(unittest.TestCase):
     def test_missing_toolchain_names_each_absent_prodg_tool(self):
