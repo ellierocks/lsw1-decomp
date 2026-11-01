@@ -534,3 +534,95 @@ void* Condition_OpponentInTriggerAreaInit(void* sys, char* arg)
         return fn_8008F7A0(sys, arg);
     return 0;
 }
+
+extern f32 lbl_8019C608[], lbl_8019C60C[], lbl_8019C670[];
+extern f32 lbl_8019C5E8[], lbl_8019C5EC[], lbl_8019C5F0[], lbl_8019C5F4[];
+extern void* (*lbl_80408DA4)(void*, char*);
+extern void* fn_8008F8B4(void*, void*, char*);
+
+f32 Condition_OpponentIsAThreat(void* sys, void* process, struct NUAIPACKET_s* packet)
+{
+    if (packet && packet->opponent && (packet->movementFlags & 0x100000))
+        return lbl_8019C608[0];
+    return lbl_8019C60C[0];
+}
+
+void fn_8008F090(u8* p)
+{
+    if (p[0x49] & 1)
+        memset(p, 0, 0x4c);
+}
+
+void* Condition_IAmInit(void* sys, char* arg)
+{
+    if (arg && lbl_80408DA4)
+        return lbl_80408DA4(sys, arg);
+    return 0;
+}
+
+f32 Condition_BaddyInTriggerArea(void* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+    if (inputArea) area = inputArea;
+    else if (packet) area = *(u8**)(packet + 0xf8);
+    if (area && (area[0x2a] & 4)) return lbl_8019C5E8[0];
+    return lbl_8019C5EC[0];
+}
+
+f32 Condition_GoodyInTriggerArea(void* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+    if (inputArea) area = inputArea;
+    else if (packet) area = *(u8**)(packet + 0xf8);
+    if (area && (area[0x2a] & 2)) return lbl_8019C5F0[0];
+    return lbl_8019C5F4[0];
+}
+
+void* Condition_InLevelNodeInit(u8* sys, char* arg)
+{
+    u8* level;
+    if (sys && (level = *(u8**)(sys + 0xc)) && *level)
+        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+    return 0;
+}
+
+void* Condition_PlayerInLevelNodeInit(u8* sys, char* arg)
+{
+    u8* level;
+    if (sys && (level = *(u8**)(sys + 0xc)) && *level)
+        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+    return 0;
+}
+
+void* fn_80084058(u8* sys, char* arg)
+{
+    u8* level;
+    if (sys && (level = *(u8**)(sys + 0xc)) && *level)
+        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+    return 0;
+}
+
+extern f32 lbl_8019C650[], lbl_8019C630[], lbl_8019C634[], lbl_8019C638[];
+extern f32 lbl_8019C610[], lbl_8019C614[];
+
+f32 Condition_OpponentBelow(void* sys, void* process, u8* packet)
+{
+    u8* opponent;
+    if (packet && (opponent = *(u8**)(packet + 0x64))) {
+        u8* owner = *(u8**)(packet + 0x50);
+        if (*(f32*)(opponent + 0x70) < *(f32*)(owner + 0x70) - lbl_8019C630[0])
+            return lbl_8019C634[0];
+    }
+    return lbl_8019C638[0];
+}
+
+f32 Condition_OpponentOnSamePath(void* sys, void* process, u8* packet)
+{
+    u8* opponent;
+    u8* otherPacket;
+    void* path;
+    if (packet && (opponent = *(u8**)(packet + 0x64)) && (path = *(void**)(packet + 0x10c)) &&
+        (otherPacket = *(u8**)(opponent + 4)) && path == *(void**)(otherPacket + 0x10c))
+        return lbl_8019C610[0];
+    return lbl_8019C614[0];
+}
