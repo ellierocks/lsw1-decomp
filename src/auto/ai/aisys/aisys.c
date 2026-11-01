@@ -697,7 +697,7 @@ extern f32 lbl_8019C674[], lbl_8019C678[];f32 Condition_IAm(void* sys, void* pro
     return result;
 }
 
-extern void* fn_8008386C(char*, void*);
+extern void* fn_8008386C(char*, u8*);
 s32 fn_8008F35C(u8* process, u32 priority, u32 id, char* name, f32 value)
 {
     void* script;
@@ -880,4 +880,13 @@ s32 Action_PathConnectionObstacle(void* sys, void* process, void* packet, char**
         }
     }
     return 1;
+}
+
+void* fn_8008386C(char* name, u8* script)
+{
+    u8* entry = fn_800076C4(script + 0x10);
+    if (!name) return 0;
+    for (; entry; entry = fn_800076CC(script + 0x10, entry))
+        if (!NuStrICmp(name, *(char**)(entry + 0x18))) return entry;
+    return 0;
 }
