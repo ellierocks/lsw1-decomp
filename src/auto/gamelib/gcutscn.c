@@ -1259,3 +1259,48 @@ void copyAnims(s32* dest, s32* src)
     }
     *(f32*)&dest[2] = *(f32*)&src[2];
 }
+
+extern s32 lbl_804081A8;
+extern void fn_8003AEA4(gcut_instance_view*);
+void fn_8003B874(gcut_instance_view* instance, f32 delta)
+{
+    s32* words = (s32*)instance;
+    if (*((u8*)instance + 0xdf) == *((u8*)instance->scene + 0x40))
+        *(f32*)((u8*)instance + 0x90) = *(f32*)((u8*)instance->scene + 8) - 1.0f;
+    {
+    s32 pending = lbl_804081A8;
+    *(f32*)((u8*)instance + 0x90) -= *(f32*)((u8*)instance + 0x98) * delta;
+    if (!pending) {
+        if (*((u8*)instance + 0xdf) == *((u8*)instance->scene + 0x40) - 1) {
+            if (words[0x8c/4] & 0x1000000) {
+                fn_80009984(lbl_8019308C, 0x8aa)(lbl_804081B4, lbl_801932BC, ((s32*)instance->scene)[11]);
+            } else if (words[0xe4/4]) {
+                fn_80009984(lbl_8019308C, 0x8b1)(lbl_804081B4, lbl_801932FC, ((s32*)instance->scene)[11]);
+            } else {
+                if (instance->flags & 8) {
+                    words[0xe4/4] = words[0xc0/4];
+                    instance->flags &= ~8;
+                } else {
+                    words[0xe4/4] = words[0xbc/4];
+                    instance->flags |= 8;
+                }
+                fn_80009984(lbl_8019308C, 0x8c1)(lbl_804081B4, lbl_80193344, ((s32*)instance->scene)[11]);
+            }
+            if (instance->flags & 8)
+                copyAnims((s32*)instance->scene, (s32*)words[0xc0/4]);
+            else
+                copyAnims((s32*)instance->scene, (s32*)words[0xbc/4]);
+            *((u8*)instance + 0xdf) = *((u8*)instance->scene + 0x40);
+            fn_8003AEA4(instance);
+            *(f32*)((u8*)instance + 0x90) = *(f32*)((u8*)instance->scene + 8) - 1.0f;
+        } else {
+            *((u8*)instance + 0xdf) = *((u8*)instance->scene + 0x40) - 1;
+            if (instance->flags & 8)
+                words[0xe4/4] = words[0xbc/4];
+            else
+                words[0xe4/4] = words[0xc0/4];
+            lbl_804081A8 = (s32)instance;
+        }
+    }
+ }
+}
