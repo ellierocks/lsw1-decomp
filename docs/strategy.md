@@ -120,7 +120,7 @@ failure modes from the earlier multi-unit batches are in
 
 For each queued function:
 
-1. **Draft.** Combine m2c (PPC) output, the Ghidra output, CrashWOC/Nu2 donor
+1. **Draft.** Combine m2c (PPC) output, the Ghidra output (`work/NAME/ghidra.c` from `draft_fn.py`), CrashWOC/Nu2 donor
    C and context from shared headers.
 2. **Agent search.** Iterate with `score_fn.py`, recording candidates worth
    keeping through `hillclimb.py try`.

@@ -40,6 +40,10 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
    queue in the first message of the thread.
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
    to record the objdiff figures, the strict-only count and the DOL hash.
+4. Run `python3 tools/ghidra_decompile.py decompile FN1 ... FN10` to write `work/FN/ghidra.c`
+   for the queue in one run, and read it next to each m2c draft. The bootstrap creates the
+   project; if `status` says it is missing, run `setup` first (about a minute). See
+   [Ghidra and REA](research.md#ghidra-and-rea).
 
 Do not read the batch history or the whole C matching guide up front. When a mismatch
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
@@ -49,7 +53,7 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
 | Step | Limit |
 |---|---|
-| Draft: `tools/draft_fn.py NAME` for an m2c start, then fast `score_fn.py` attempts | 8 attempts without improvement |
+| Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement |
 | Each attempt: `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, and writes it into the unit only on a strict MATCH |
 | `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
 | `order_search.py`, if only the order differs | one run |

@@ -120,6 +120,8 @@ def main(argv=None) -> int:
         ap.error("--diagnostics-dir and --cc1-native require --compiler prodg")
     if args.apply and not args.body:
         ap.error("--apply needs --body")
+    if args.body and not args.body.is_file():
+        ap.error(f"--body file not found: {args.body}")
     missing = missing_toolchain(args.compiler)
     if missing:
         names = ", ".join(str(p) for p in missing)
