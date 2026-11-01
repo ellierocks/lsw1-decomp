@@ -1476,3 +1476,56 @@ void fn_8003E6EC(u8* object, gcut_matrix* matrix, s32* visible, s32* id, f32* x,
         }
     }
 }
+
+extern void NuAnimData2CalcTime(gcut_anim*, void*, f32);
+#define GCUT_SAMPLE(dst, n) ((dst) = types[n] == 0 ? curves[n] : NuAnimCurve2CalcVal(&curves[n], time, types[n]))
+void instNuGCutRigidSysEnd(gcut_rigid_view* rigid, f32 frame, gcut_matrix* matrix)
+{
+    gcut_anim* anim = (gcut_anim*)rigid->anim;
+    if (anim) {
+        if (anim->magic == 0x414e4934) {
+            instNuGCutRigidSysReset(rigid, matrix);
+        } else {
+            f32* curves = anim->curves;
+            s8* types = anim->types;
+            s8 flags = **(s8**)((u8*)anim + 0x14);
+            u8 time[24];
+            f32 translate[3];
+            f32 angles[3];
+            s32 rotation[3];
+            f32 scale[3];
+            NuAnimData2CalcTime(anim, time, frame);
+            if (flags & 1) {
+                GCUT_SAMPLE(angles[0], 3);
+                GCUT_SAMPLE(angles[1], 4);
+                GCUT_SAMPLE(angles[2], 5);
+                rotation[0] = (s32)(angles[0] * 10430.3779296875f);
+                rotation[1] = (s32)(angles[1] * 10430.3779296875f);
+                rotation[2] = (s32)(angles[2] * 10430.3779296875f);
+                fn_8000D010(matrix, rotation);
+            } else {
+                fn_8000DC10(matrix);
+            }
+            if (flags & 8) {
+                GCUT_SAMPLE(scale[0], 6);
+                GCUT_SAMPLE(scale[1], 7);
+                GCUT_SAMPLE(scale[2], 8);
+                NuMtxPreScale(matrix, scale);
+            }
+            GCUT_SAMPLE(translate[0], 0);
+            GCUT_SAMPLE(translate[1], 1);
+            GCUT_SAMPLE(translate[2], 2);
+            NuMtxTranslate(matrix, translate);
+            matrix->m[2] = -matrix->m[2];
+            matrix->m[6] = -matrix->m[6];
+            matrix->m[8] = -matrix->m[8];
+            matrix->m[9] = -matrix->m[9];
+            matrix->m[11] = -matrix->m[11];
+            matrix->m[14] = -matrix->m[14];
+            NuMtxTranslate(matrix, (f32*)((u8*)rigid + 0x30));
+        }
+    } else {
+        *matrix = *(gcut_matrix*)rigid;
+    }
+}
+#undef GCUT_SAMPLE
