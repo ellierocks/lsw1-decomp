@@ -401,11 +401,11 @@ void NuGCutSceneDestroy(s32* scene)
     if (scene[6])
         NuGCutCharSysDestroy(scene);
 }
-extern void NuGCutRigidCalcMtx(s32*);
-void instNuGCutSceneCreate(s32* scene)
+extern void NuGCutRigidCalcMtx(s32*, void*);
+void instNuGCutSceneCreate(s32* scene, void* lookup)
 {
     if (scene && scene[5])
-        NuGCutRigidCalcMtx(scene);
+        NuGCutRigidCalcMtx(scene, lookup);
 }
 void* StateAnimFixPtrs(void* state, s32 delta)
 {
@@ -675,6 +675,35 @@ void NuSetCutSceneFindCharactersFn(gcut_instance_view* instance, f32 frame, s32 
             gcut_character_runtime_item* item = &runtime->items[i];
             if (item->value)
                 ((void (*)(gcut_instance_view*, gcut_scene_view*, gcut_character_runtime_item*, gcut_character_view*, f32, s32))lbl_804081B8)(instance, scene, item, character, frame, arg);
+        }
+    }
+}
+
+typedef struct gcut_special_result { s32 a, b, c; } gcut_special_result;
+extern s32 NuSpecialFind(void*, gcut_special_result*, char*, s32);
+extern char str_NuGCutRigidSysFixUp_CannotFixupRigid[];
+extern void (*fn_80009970(char*, s32))(char*, ...);
+void NuGCutRigidCalcMtx(s32* scene, void* lookup)
+{
+    gcut_rigid_system* system = (gcut_rigid_system*)scene[5];
+    s32 i;
+    if (lookup) {
+        for (i = 0; i < system->count; i++) {
+            gcut_special_result special;
+            gcut_rigid_view* rigid = &system->rigids[i];
+            if (!(*((u8*)rigid + 0x58) & 4)) {
+                if (NuSpecialFind(lookup, &special, (char*)rigid->name, 1)) {
+                    *((u8*)rigid + 0x58) |= 4;
+                    *(s32*)((u8*)rigid + 0x44) = special.a;
+                    if (special.c) {
+                        *(s32*)((u8*)rigid + 0x48) = special.c;
+                        continue;
+                    }
+                    *(s32*)((u8*)rigid + 0x48) = special.b;
+                } else {
+                    fn_80009970(lbl_8019308C, 0xee7)(str_NuGCutRigidSysFixUp_CannotFixupRigid, rigid->name);
+                }
+            }
         }
     }
 }
