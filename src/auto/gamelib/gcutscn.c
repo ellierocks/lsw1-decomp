@@ -1092,3 +1092,45 @@ void instNuGCutLocatorUpdate(u32 axis, gcut_matrix* matrix, f32* vector)
     if (rotate)
         NuVecMtxRotate(vector, vector, matrix);
 }
+
+extern void fn_8000D010(gcut_matrix*, s32*);
+extern void fn_8000DC10(gcut_matrix*);
+extern void NuMtxPreScale(gcut_matrix*, f32*);
+extern void NuMtxTranslate(gcut_matrix*, f32*);
+void instNuGCutRigidSysReset(gcut_rigid_view* rigid, gcut_matrix* matrix)
+{
+    f32* values = fn_8001BFC4((gcut_anim*)rigid->anim, 0);
+    u8 flags = **(u8**)((u8*)rigid->anim + 0x34);
+    f32 translation[9];
+    f32 angles[3];
+    s32 rotation[3];
+    f32 scale[3];
+    if (flags & 1) {
+        angles[0] = values[3];
+        angles[1] = values[4];
+        angles[2] = values[5];
+        rotation[0] = (s32)(angles[0] * 10430.3779296875f);
+        rotation[1] = (s32)(angles[1] * 10430.3779296875f);
+        rotation[2] = (s32)(angles[2] * 10430.3779296875f);
+        fn_8000D010(matrix, rotation);
+    } else {
+        fn_8000DC10(matrix);
+    }
+    if (flags & 8) {
+        scale[0] = values[6];
+        scale[1] = values[7];
+        scale[2] = values[8];
+        NuMtxPreScale(matrix, scale);
+    }
+    translation[6] = values[0];
+    translation[7] = values[1];
+    translation[8] = values[2];
+    NuMtxTranslate(matrix, &translation[6]);
+    matrix->m[2] = -matrix->m[2];
+    matrix->m[6] = -matrix->m[6];
+    matrix->m[8] = -matrix->m[8];
+    matrix->m[9] = -matrix->m[9];
+    matrix->m[11] = -matrix->m[11];
+    matrix->m[14] = -matrix->m[14];
+    NuMtxTranslate(matrix, (f32*)((u8*)rigid + 0x30));
+}
