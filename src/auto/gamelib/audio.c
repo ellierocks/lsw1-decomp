@@ -74,3 +74,18 @@ void fn_8006E370(f32 x)
 {
     lbl_801BB460[0] = x;
 }
+
+extern s32 fn_800076E4(const char*, const char*, s32);
+
+s32 fn_80069900(const char* name)
+{
+    s32 i;
+    if (lbl_804085C0) {
+        for (i = 0; i < *(s32*)((u8*)lbl_804085C0 + 0x20); i++) {
+            u8* entries = *(u8**)((u8*)lbl_804085C0 + 0x24);
+            if (fn_800076E4(*(const char**)(entries + i * 0x50 + 0x44), name, 0x13) == 0)
+                return i;
+        }
+    }
+    return -1;
+}
