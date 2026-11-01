@@ -153,6 +153,51 @@ pointer counted from NULL in 0xD0 steps when `displayScene` is set; the donor st
 NULL. Two `symbols.txt` names are wrong by body: `NuSpecialFindMultiWC` is DrawAt and
 `NuSpecialGetInstAnim` is GetName. They are not renamed yet.
 
+### LSW1-confirmed engine layouts (batch 2)
+
+The second shared-header batch confirmed these engine structs. The material, geometry and
+scene layouts are in [`nu3dx/nu3dx.h`](../src/nu3dx/nu3dx.h). The animation layouts were
+already in [`nu3dx/nuanim.h`](../src/nu3dx/nuanim.h), and this batch confirmed them
+unchanged. The file layouts are in [`nucore/nufile.h`](../src/nucore/nufile.h). Every kept
+field has an LSW1 access of the stated width in a strictly matched function. As in the
+first batch, the CrashWOC (PS2) layouts for `numtl_s` and `nugeom_s` do not hold on GC,
+and neither does the OpenSaga (PC) layout for `numtl_s`.
+
+| Struct | Size | Field (offset, access) | Evidence |
+|---|---|---|---|
+| `numtl_s` | 0x11C | bitfield word 0xA4: `version` u16 (`lhz`/`sth`), `used` bit 0x8000 (`lwz`/`ori`, cleared with `rlwinm 0,17,15`), `renderPlane` byte 0xA7 (`stb`); `next` 0xB4; bytes 0xB8, 0xB9, 0xBD..0xC0, 0xC2, 0xC7; f32 0xD0..0xD8, 0xF0, 0xFC..0x108; `tid` 0xF4 | `fn_80024A34` (pool of 100 at `lbl_8020E9B4`, `memset` 0x11C), `fn_800248CC`, `fn_80024C64`, `fn_80024CD4`, `fn_800282E8` |
+| `nugeom_s` | ≥ 0x4C | `next` 0x00; freed buffer 0x28; `prim` 0x2C (list); `skin` 0x30 (list); `vtxskininfo` 0x34; `blendgeom` 0x48 | `fn_80024704`, `NuGobjInit` |
+| `nuprim_s` | ≥ 0x18 | `next` 0x00; freed buffers 0x10, 0x14 | `fn_80024854` |
+| `nuskin_s` | 0x18 | donor layout holds: `next` 0x00, `mtxid` 0x10, `weights` 0x14 | `fn_80024704` |
+| `NUBLENDGEOM_s` | — | donor layout holds: `blend_offsets` 0x4, `ix` 0x8, `offsets` 0xC | `NuGobjInit` |
+| `nufaceongeom_s` | ≥ 0x20 | `next` 0x00; freed buffers 0x10, 0x1C | `NuGobjInit`, `fn_800247FC` |
+| `nugobj_s` | ≥ 0x50 | adds `sysnext` 0x00, `syslast` 0x04 (list head `lbl_80407D0C`), `geom` 0x0C, `faceonGeom` 0x10 | `NuGobjInit`, `NuGobjClose` |
+| `nugscn_s` | ≥ 0x1A4 | adds `tids` 0x00 (**words**, not the donor's `s16`), `numtid` 0x04, `mtls` 0x08, `nummtl` 0x0C, `texanims` 0x80 | `fn_800282E8`, `fn_8002A3A8` |
+| `nuanimdata2_s` | — | `endframe` 0x0 `lfs`; `nnodes` 0x4, `ncurves` 0x6, `nchunks` 0x8 `lha`; `curves` 0xC; `curveflags` 0x10; `curvesetflags` 0x14 | `fn_8001678C`, `NuAnimData2CalcTime`, `NuAnimData2LoadBuff` |
+| `nuanimcurvedata_s` | 0xC | `mask` 0x0; `key_ixs` 0x4; `key_array` 0x8 | `fn_8001678C` (pointer relocation) |
+| `nuanimtime_s` | 0x18 | `time` 0x0; `time_offset` 0x4; `chunk` 0x8; `time_mask` 0xC; `time_byte` 0x10 | `fn_80016944`, `NuAnimData2CalcTime` |
+| `nuanimdata_s` / `nuanimdatachunk_s` / `nuanimcurveset_s` / `nuanimcurve_s` | 0x10 / 0x14 / 0x10 / 0x10 | `time` 0, `nchunks` 8, `chunks` 0xC; `numnodes` 0, `animcurvesets` 8; `constants` 4, `set` 8, `ncurves` 0xC `stb`; `animkeys` 4, `numkeys` 8 (key stride 0x10) | `NuAnimDataCreate`, `NuAnimDataChunkCreate`, `NuAnimCurveSetCreate`, `NuAnimCurveCreate` |
+| `numemfile_s` | 0x14 | donor layout holds: `start` 0, `end` 4, `curr` 8 (`lwzx` with 0x14 stride) | `fn_800059A0` |
+| `BlockInfo` | 0xC | `hdr.size` 0x4, `pos` 0x8 (block stack `lbl_801FD080`, depth `lbl_80407A40`) | `NuFileEndBlockRead` |
+
+Some of these structs appear only through local views, because no shared header owns them
+yet:
+
+- **Timebar** (`nuanim_1`). The view is `vals[16][2]` at 0x4, `start[16]` at 0x84,
+  `which[16]` at 0x144 and `active[16]` at 0x1C4 (bytes).
+- **Animation file header** (`nuanim_2`). The header is `{version, base, data}`, and the
+  loader rebases `data` by `*buf - base`.
+- **ANI4 header** (`nu3dx/nuanim`). It has a `u16` frame count at 0xA (`lhz`).
+- **File device** (`nufile_3`). The directory separator is a byte at 0x10.
+- **Glass state** (`nugobj`). Two 0x40-byte blocks at `lbl_8020E934` and `lbl_8020E974`;
+  `NuGlassClose` struct-copies the second into its argument.
+
+`fn_80024A34` is the material allocator. It takes the first entry whose `used` bit is
+clear, clears it, and sets the defaults listed above; it also sets the same
+`renderPlane` that it passes to `fn_80024DB8`. `fn_800248CC` is the material-system
+init and builds the three default materials (`lbl_80407D50`, `lbl_80407D4C` and
+`lbl_80407D54`).
+
 ### `nusound/` — Sound
 
 ```c
