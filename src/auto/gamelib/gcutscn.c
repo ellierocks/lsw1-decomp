@@ -447,3 +447,19 @@ void instNuGCutCamSysStart(gcut_cam_runtime* runtime, gcut_cam_data* data)
         state->value = 0;
     }
 }
+
+typedef struct gcut_rigid_runtime_item { u8 pad[12]; u8 a; u8 b; u8 pad2[2]; } gcut_rigid_runtime_item;
+typedef struct gcut_rigid_runtime { gcut_rigid_runtime_item* items; } gcut_rigid_runtime;
+void instNuGCutRigidSysRender(gcut_rigid_runtime* runtime, gcut_rigid_system* system)
+{
+    u32 i;
+    for (i = 0; i < system->count; i++) {
+        gcut_rigid_view* rigid = &system->rigids[i];
+        gcut_rigid_runtime_item* item = &runtime->items[i];
+        u32 flags;
+        item->a = 0;
+        flags = *(u32*)((u8*)rigid + 0x58);
+        if ((flags & 0x06000000) == 0x06000000)
+            item->b = *((u8*)rigid + 0x58) & 1;
+    }
+}
