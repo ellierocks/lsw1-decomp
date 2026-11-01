@@ -727,3 +727,28 @@ s32 Action_ClearInterrupt(void* sys, void* process, void* packet, char** args, s
     }
     return 1;
 }
+
+struct ai_level_node { u8 bytes[0x58]; };
+extern f32 lbl_8019C5AC[], lbl_8019C5B0[], lbl_8019C5B4[], lbl_8019C5B8[];
+f32 Condition_InLevelNode(u8* sys, void* process, u8* packet, char* params, struct ai_level_node* node)
+{
+    if (packet && node && sys) {
+        u8* level = *(u8**)(sys + 0xc);
+        u8* data = *(u8**)(level + 8);
+        if (*(s16*)(packet + 0xa0) == node - *(struct ai_level_node**)(data + 0x78))
+            return lbl_8019C5AC[0];
+    }
+    return lbl_8019C5B0[0];
+}
+f32 Condition_PlayerInLevelNode(u8* sys, void* process, void* packet, char* params, struct ai_level_node* node)
+{
+    u8* player;
+    if (sys && (player = *(u8**)(sys + 0x1380)) && node) {
+        u8* level = *(u8**)(sys + 0xc);
+        u8* data = *(u8**)(level + 8);
+        u8* ai = *(u8**)(player + 4);
+        if (*(s16*)(ai + 0xa0) == node - *(struct ai_level_node**)(data + 0x78))
+            return lbl_8019C5B4[0];
+    }
+    return lbl_8019C5B8[0];
+}
