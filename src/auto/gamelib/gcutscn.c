@@ -1365,3 +1365,50 @@ gcut_rigid_runtime* instNuCGutRigidSysCreate(s32* scene, gcut_model* model, u32*
     }
     return result;
 }
+
+extern s32 lbl_804081F0;
+extern void fn_80044D10(s32,s32,s32,s32,s32,s32,s32,s32,s32);
+extern void fn_80044D18(s32,s32,s32);
+extern void fn_80044D48(void);
+typedef struct { unsigned int high:4; unsigned int rest:28; } gcut_high_nibble;
+void fn_8003AEA4(gcut_instance_view* instance)
+{
+    s32* words = (s32*)instance;
+    *(f32*)((u8*)instance + 0x90) = 1.0f;
+    *(f32*)((u8*)instance + 0x94) = 1.0f;
+    {
+    instance->flags |= 0x40000000;
+    instance->flags &= ~0x80000000;
+    instance->flags &= ~0x80000;
+    }
+    words[0x8c/4] &= ~0x80000;
+    if (*(f32*)((u8*)instance + 0x98) < 0.0f)
+        *(f32*)((u8*)instance + 0x98) = -*(f32*)((u8*)instance + 0x98);
+    if (words[0x9c/4])
+        instNuGCutCamSysStart((gcut_cam_runtime*)words[0x9c/4], (gcut_cam_data*)((s32*)instance->scene)[4]);
+    if (words[0xa0/4])
+        instNuGCutRigidSysRender((gcut_rigid_runtime*)words[0xa0/4], (gcut_rigid_system*)((s32*)instance->scene)[5]);
+    if (words[0xa8/4])
+        NuGCutLocatorIsVisble((gcut_float_array*)words[0xa8/4], (gcut_count8*)((s32*)instance->scene)[7]);
+    if (words[0xac/4])
+        fn_800407B0(instance);
+    if (*(s16*)((u8*)instance + 0xd8) && !*((u8*)instance + 0xdf)) {
+        instance->flags |= 2;
+        ((gcut_high_nibble*)((u8*)instance + 0x8c))->high = 10;
+        if (*(s16*)((u8*)instance + 0xda)) {
+            fn_80044D10(*(s16*)((u8*)instance + 0xd8), *(s8*)((u8*)instance + 0xde), *(s8*)((u8*)instance + 0xde), lbl_804081F0 * 16383 / 100, 0, 0, 1, 0, 16);
+            fn_80044D10(*(s16*)((u8*)instance + 0xda), *(s8*)((u8*)instance + 0xde) + 1, *(s8*)((u8*)instance + 0xde) + 1, 0, lbl_804081F0 * 16383 / 100, 0, 1, 0, 16);
+            lbl_80346FFC[*(s8*)((u8*)instance + 0xde)] = *(s16*)((u8*)instance + 0xd8);
+            lbl_80346FFC[*(s8*)((u8*)instance + 0xde) + 1] = *(s16*)((u8*)instance + 0xda);
+            fn_80044D18(*(s8*)((u8*)instance + 0xde), *(s8*)((u8*)instance + 0xde) + 1, *(s16*)((u8*)instance + 0xd4));
+            if (!(words[0x8c/4] & 0x100000)) {
+                fn_80044D48();
+                words[0x8c/4] |= 0x100000;
+            }
+        } else {
+            s32 volume = lbl_804081F0 * 16383 / 100;
+            fn_80044D10(*(s16*)((u8*)instance + 0xd8), *(s8*)((u8*)instance + 0xde), *(s8*)((u8*)instance + 0xde), volume, volume, *(s16*)((u8*)instance + 0xd4), 1, 0, 16);
+            lbl_80346FFC[*(s8*)((u8*)instance + 0xde)] = *(s16*)((u8*)instance + 0xd8);
+        }
+    }
+}
