@@ -416,6 +416,45 @@ Next: match the pickup group initializer by reshaping its loop and float-load
 lifetime; prove more character-data and turret-entry fields with consumers,
 and establish the relationship between turret entries and the allocation.
 
+#### Mid-size batch C
+
+Batch C attempted 60 game-code targets and strictly verified 46 functions, totaling
+7,996 bytes. The initial report was 1,366 functions and 193,348 code bytes; after
+rebasing on main, the integrated report was 1,403 functions and 199,716 bytes
+(+37 and +6,368 in objdiff). Those report deltas include any intervening main
+changes and differ from the strict function total. No unit finished; whole-image
+comparison reported zero differing bytes. All 46 functions were rechecked after the
+rebase with `verify_fn.py --build --strict-symbols`.
+
+The local `work/midC_timing.txt` records baseline start at 04:56:47 UTC and the
+end of matching at 05:21:32 UTC on 2026-11-01. The 1,485-second interval includes
+baseline and searches, yielding about 19,384 strict bytes per active hour; final
+integration and CI are outside that interval. This is a short, family-heavy sample,
+not a projection. Eight non-matching permuter seeds produced three zero-score hits
+(37.5%); one was also solved independently. OpenSaga had no direct name hits for
+these anonymous targets; GC assembly and retail data supplied the accepted facts.
+
+Useful observations:
+
+- An inline scene-search helper reproduced an otherwise missing pair of return-path
+  instructions and fixed register allocation in both obstacle flag handlers.
+- A float local declared before title selection moved a shared constant load ahead
+  of the branch. In other prompt functions, loading the action local before the
+  timer store reproduced retail scheduling.
+- An explicit positive pool branch and separate free-list store ordering reproduced
+  allocation and release. A chain assignment had the correct values but the wrong
+  store order.
+- The RTL byte-reversal family plateaued at 56/60 and 54/60 instructions despite
+  576 order-search variants and a permuter run: register lifetimes remain the issue.
+- Two quoted-name parser bodies reached 36/49; inlining the reader improved the
+  result, but loop rotation and pointer allocation still differ. The related
+  prompt renderer reached 43/47 after a 720-variant argument-order search without
+  changing the remaining float scheduling.
+
+The remaining plateau scores and next hypotheses are retained in the batch PR;
+raw hillclimb and task-pack artifacts stay local. Revisit a function only with a
+new source-shape hypothesis rather than repeating the same permutation space.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.

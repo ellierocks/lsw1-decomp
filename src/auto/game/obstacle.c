@@ -79,3 +79,37 @@ void fn_80108700(u8* a)
     *(s32*)(a + 16) = 0;
     *(s32*)(a + 20) = 0;
 }
+
+extern u8* lbl_80409410;
+extern s32 NuStrICmp(const char*, const char*);
+
+static inline u8* scene_find(u8* scene, const char* name)
+{
+    u8* entry = *(u8**)(scene + 0x238);
+    s32 i;
+    if (entry) {
+        for (i = 0; i < *(s32*)(scene + 0x23c); i++) {
+            if (NuStrICmp((char*)entry, name) == 0) return entry;
+            entry += *(u16*)(entry + 0x1c);
+        }
+    }
+    return 0;
+}
+
+void fn_80108710(const char* name, u8* entry)
+{
+    if (entry) *(u32*)(entry + 0x18) |= 8;
+    else if (name) {
+        entry = scene_find(lbl_80409410, name);
+        if (entry) *(u32*)(entry + 0x18) |= 8;
+    }
+}
+
+void fn_801087C4(const char* name, u8* entry)
+{
+    if (entry) *(u32*)(entry + 0x18) &= ~8;
+    else if (name) {
+        entry = scene_find(lbl_80409410, name);
+        if (entry) *(u32*)(entry + 0x18) &= ~8;
+    }
+}
