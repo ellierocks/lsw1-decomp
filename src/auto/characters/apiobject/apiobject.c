@@ -135,3 +135,46 @@ void fn_8008F968(struct object_pool* pool)
             fn_80007610(pool->list, &pool->entries[i]);
     }
 }
+
+#include "game/apiobject.h"
+extern f32 fn_8000C038(void);
+extern f32 NuAngDiff(s32);
+extern f32 NuASin(s32);
+extern f32 lbl_8019DE4C[];
+extern f32 lbl_8019DE50[];
+
+void fn_8009083C(struct NUAPIOBJECT_s* a, struct NUAPIOBJECT_s* b)
+{
+    u16 angle = (s32)(fn_8000C038() * lbl_8019DE4C[0]);
+    if (a->flags20C & 0x40000000) {
+        if (!(b->flags20C & 0x40000000)) {
+            f32 x = NuAngDiff(angle);
+            f32 scale = lbl_8019DE50[0];
+            b->velocityX = x * scale;
+            b->velocityZ = NuASin(angle) * scale;
+            b->responseX = b->velocityX;
+            b->responseZ = b->velocityZ;
+            a->responseX = a->velocityX;
+            a->responseZ = a->velocityZ;
+            return;
+        }
+    } else if (b->flags20C & 0x40000000) {
+        f32 x = NuAngDiff(angle);
+        f32 scale = lbl_8019DE50[0];
+        a->velocityX = x * scale;
+        a->velocityZ = NuASin(angle) * scale;
+        a->responseX = a->velocityX;
+        a->responseZ = a->velocityZ;
+        b->responseX = b->velocityX;
+        b->responseZ = b->velocityZ;
+        return;
+    }
+    a->velocityX = NuAngDiff(angle) * 2.0f;
+    a->velocityZ = NuASin(angle) * 2.0f;
+    a->responseX = a->velocityX;
+    a->responseZ = a->velocityZ;
+    b->velocityX = -a->velocityX;
+    b->velocityZ = -a->velocityZ;
+    b->responseX = b->velocityX;
+    b->responseZ = b->velocityZ;
+}

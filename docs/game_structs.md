@@ -114,3 +114,23 @@ Strict verification checks the referenced bytes; the two measures stay separate.
 Next: API-object position/flags and its relation to the creature prefix, character
 data extents, then the pickup and turret records; prove each with additional
 consumers before expanding these views.
+
+## Round 2: API-object prefix
+
+The GC collision routines `fn_80090FB0` and `fn_8009083C` use the same
+object view. `fn_80090FB0` reads three floats at `+0x90`, `+0x94`, `+0x98`
+for the collision separation, floats at `+0x1EC` and `+0x1F0` for its
+radius/height calculation, and two 32-bit mask words each at `+0x1F8` and
+`+0x200` (including the adjacent words). `fn_8009083C` reads the 32-bit
+flags at `+0x20C` and reads/writes floats at `+0x78`, `+0x80`, `+0x210`
+and `+0x218`; its typed C strictly matches 84/84 instructions. The middle
+velocity word at `+0x7C` is read by `fn_800902C0`. These facts add the sparse
+`NUAPIOBJECT_s` fields; other bytes remain opaque.
+
+`fn_800A3224` accesses character model and data at `+0x60` and `+0x64`,
+`motionFlags` at `+0x208`, the float at `+0x1E8`, and flags at `+0x20C`
+on the same creature pointer. Together with the matching offsets and the
+collision consumers, this supports a shared prefix. The two types remain
+separate views pending proof of the allocation and embedding relationship.
+OpenSaga's similarly named fields lie at different offsets; GC accesses
+control this layout.
