@@ -441,3 +441,562 @@ f32 Condition_PlayerInTriggerArea(u8* sys, void* process, u8* packet, char* para
     }
     return lbl_8019C5D4[0];
 }
+
+extern f32 fn_8000C038(void);
+extern void NuFParPopCom(void*);
+f32 Condition_Random(void)
+{
+    return fn_8000C038();
+}
+void fn_80083A4C(void* parser)
+{
+    NuFParPopCom(parser);
+}
+
+extern f32 lbl_8019C594[];
+extern f32 lbl_8019C598[];
+extern void* fn_8008F720(void*, char*);
+extern void* fn_8008F7A0(void*, char*);
+extern void* memset(void*, ...);
+
+f32 Condition_CurrentLocatorIs(void* sys, void* process, struct NUAIPACKET_s* packet, char* params, void* locator)
+{
+    if (locator && packet && packet->locator == locator)
+        return lbl_8019C594[0];
+    return lbl_8019C598[0];
+}
+
+void fn_8008F1F0(void* packet)
+{
+    if (packet)
+        memset(packet, 0, 0x134);
+}
+
+void* Condition_CurrentLocatorIsInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_OpponentToLocatorInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_PlayerToLocatorInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_LocatorRangeInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_InTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_PlayerInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_BaddyInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_GoodyInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_OpponentInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+extern f32 lbl_8019C608[], lbl_8019C60C[], lbl_8019C670[];
+extern f32 lbl_8019C5E8[], lbl_8019C5EC[], lbl_8019C5F0[], lbl_8019C5F4[];
+extern void* (*lbl_80408DA4)(void*, char*);
+extern void* fn_8008F8B4(void*, void*, char*);
+
+f32 Condition_OpponentIsAThreat(void* sys, void* process, struct NUAIPACKET_s* packet)
+{
+    if (packet && packet->opponent && (packet->movementFlags & 0x100000))
+        return lbl_8019C608[0];
+    return lbl_8019C60C[0];
+}
+
+void fn_8008F090(u8* p)
+{
+    if (p[0x49] & 1)
+        memset(p, 0, 0x4c);
+}
+
+void* Condition_IAmInit(void* sys, char* arg)
+{
+    if (arg && lbl_80408DA4)
+        return lbl_80408DA4(sys, arg);
+    return 0;
+}
+
+f32 Condition_BaddyInTriggerArea(void* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+    if (inputArea) area = inputArea;
+    else if (packet) area = *(u8**)(packet + 0xf8);
+    if (area && (area[0x2a] & 4)) return lbl_8019C5E8[0];
+    return lbl_8019C5EC[0];
+}
+
+f32 Condition_GoodyInTriggerArea(void* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+    if (inputArea) area = inputArea;
+    else if (packet) area = *(u8**)(packet + 0xf8);
+    if (area && (area[0x2a] & 2)) return lbl_8019C5F0[0];
+    return lbl_8019C5F4[0];
+}
+
+void* Condition_InLevelNodeInit(u8* sys, char* arg)
+{
+    u8* level;
+    if (sys && (level = *(u8**)(sys + 0xc)) && *level)
+        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+    return 0;
+}
+
+void* Condition_PlayerInLevelNodeInit(u8* sys, char* arg)
+{
+    u8* level;
+    if (sys && (level = *(u8**)(sys + 0xc)) && *level)
+        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+    return 0;
+}
+
+void* fn_80084058(u8* sys, char* arg)
+{
+    u8* level;
+    if (sys && (level = *(u8**)(sys + 0xc)) && *level)
+        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+    return 0;
+}
+
+extern f32 lbl_8019C650[], lbl_8019C630[], lbl_8019C634[], lbl_8019C638[];
+extern f32 lbl_8019C610[], lbl_8019C614[];
+
+f32 Condition_OpponentBelow(void* sys, void* process, u8* packet)
+{
+    u8* opponent;
+    if (packet && (opponent = *(u8**)(packet + 0x64))) {
+        u8* owner = *(u8**)(packet + 0x50);
+        if (*(f32*)(opponent + 0x70) < *(f32*)(owner + 0x70) - lbl_8019C630[0])
+            return lbl_8019C634[0];
+    }
+    return lbl_8019C638[0];
+}
+
+f32 Condition_OpponentOnSamePath(void* sys, void* process, u8* packet)
+{
+    u8* opponent;
+    u8* otherPacket;
+    void* path;
+    if (packet && (opponent = *(u8**)(packet + 0x64)) && (path = *(void**)(packet + 0x10c)) &&
+        (otherPacket = *(u8**)(opponent + 4)) && path == *(void**)(otherPacket + 0x10c))
+        return lbl_8019C610[0];
+    return lbl_8019C614[0];
+}
+
+
+extern f32 fn_8000CCA4(void*, void*, void*);
+extern f32 fn_8000CD68(void*, void*, void*);
+extern f32 lbl_8019C5C4[], lbl_8019C5A4[], lbl_8019C578[], lbl_8019C57C[], lbl_8019C648[], lbl_8019C64C[];
+
+f32 Condition_NodeRange(void* sys, void* process, u8* packet, char* params, u8* node)
+{
+    u8* owner;
+    f32 out[3], result;
+    if (packet && (owner = *(u8**)(packet + 0x50)) && node)
+        result = fn_8000CCA4(node + 4, owner + 0x6c, out);
+    else result = lbl_8019C5C4[0];
+    return result;
+}
+
+f32 Condition_PlayerRange(u8* sys, void* process, u8* packet)
+{
+    u8* owner;
+    u8* player;
+    f32 out[3], result;
+    if (packet && (owner = *(u8**)(packet + 0x50)) && sys && (player = *(u8**)(sys + 0x1380)))
+        result = fn_8000CCA4(player + 0x6c, owner + 0x6c, out);
+    else result = lbl_8019C5A4[0];
+    return result;
+}
+
+
+extern f32 lbl_8019C63C[], lbl_8019C640[], lbl_8019C644[];
+f32 Condition_OriginRange(u8* sys, void* process, u8* packet)
+{
+    f32 out[3], result;
+    if (packet && *(void**)(packet + 0x50) && packet[0xa6] != 0xff && sys)
+        result = fn_8000CCA4(packet + 0x100, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+    else result = lbl_8019C63C[0];
+    return result;
+}
+f32 Condition_OpponentToOrigin(u8* sys, void* process, u8* packet)
+{
+    u8* opponent;
+    f32 out[3], result;
+    if (sys && packet && (opponent = *(u8**)(packet + 0x64)) && packet[0xa6] != 0xff)
+        result = fn_8000CCA4(opponent + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+    else result = lbl_8019C640[0];
+    return result;
+}
+f32 Condition_PlayerToOrigin(u8* sys, void* process, u8* packet)
+{
+    u8* player;
+    f32 out[3], result;
+    if (sys && packet && (player = *(u8**)(sys + 0x1380)) && packet[0xa6] != 0xff)
+        result = fn_8000CCA4(player + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+    else result = lbl_8019C644[0];
+    return result;
+}
+
+extern void* fn_800076C4(void*);
+extern void* fn_800076CC(void*, void*);
+extern s32 NuStrICmp(char*, char*);
+extern f32 lbl_8019C674[], lbl_8019C678[];f32 Condition_IAm(void* sys, void* process, u8* packet, char* name, void* actor)
+{
+    u8* owner;
+    u8* model;
+    f32 result;
+    if (packet && (owner = *(u8**)(packet + 0x50)) &&
+        (owner == actor || ((model = *(u8**)(owner + 0x64)) && *(char**)(model + 0xc) && NuStrICmp(*(char**)(model + 0xc), name) == 0)))
+        result = lbl_8019C674[0];
+    else result = lbl_8019C678[0];
+    return result;
+}
+
+extern void* fn_8008386C(char*, u8*);
+s32 fn_8008F35C(u8* process, u32 priority, u32 id, char* name, f32 value)
+{
+    void* script;
+    if (priority >= process[0x44] && (script = fn_8008386C(name, *(void**)(process + 4)))) {
+        process[0x44] = priority;
+        process[0x45] = id;
+        *(f32*)(process + 0x48) = value;
+        *(void**)(process + 0x4c) = script;
+        return 1;
+    }
+    return 0;
+}
+
+extern char lbl_8019BFCC[];
+extern char* NuStrIStr(char*, char*);
+extern void fn_8008F3D4(void*, char*);
+s32 Action_ClearInterrupt(void* sys, void* process, void* packet, char** args, s32 count, void* active)
+{
+    char* name = 0;
+    s32 i;
+    if (active && process) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(args[i], lbl_8019BFCC);
+            if (found) name = found + 6;
+        }
+        if (name) fn_8008F3D4(process, name);
+    }
+    return 1;
+}
+
+struct ai_level_node { u8 bytes[0x58]; };
+extern f32 lbl_8019C5AC[], lbl_8019C5B0[], lbl_8019C5B4[], lbl_8019C5B8[];
+f32 Condition_InLevelNode(u8* sys, void* process, u8* packet, char* params, struct ai_level_node* node)
+{
+    if (packet && node && sys) {
+        u8* level = *(u8**)(sys + 0xc);
+        u8* data = *(u8**)(level + 8);
+        if (*(s16*)(packet + 0xa0) == node - *(struct ai_level_node**)(data + 0x78))
+            return lbl_8019C5AC[0];
+    }
+    return lbl_8019C5B0[0];
+}
+f32 Condition_PlayerInLevelNode(u8* sys, void* process, void* packet, char* params, struct ai_level_node* node)
+{
+    u8* player;
+    if (sys && (player = *(u8**)(sys + 0x1380)) && node) {
+        u8* level = *(u8**)(sys + 0xc);
+        u8* data = *(u8**)(level + 8);
+        u8* ai = *(u8**)(player + 4);
+        if (*(s16*)(ai + 0xa0) == node - *(struct ai_level_node**)(data + 0x78))
+            return lbl_8019C5B4[0];
+    }
+    return lbl_8019C5B8[0];
+}
+
+void fn_800838EC(u8* process, u8* script)
+{
+    void* state;
+    if (process && script) {
+        *(u8**)(process + 8) = script;
+        *(void**)(process + 0xc) = 0;
+        *(void**)(process + 0x10) = 0;
+        state = fn_800076C4(script + 0x10);
+        if (state) {
+            *(void**)(process + 0xc) = state;
+            *(u32*)(process + 0x3c) |= 0x80000000;
+        } else *(void**)(process + 0xc) = state;
+    }
+}
+
+
+extern f32 lbl_8019C5D8[], lbl_8019C5DC[];
+f32 Condition_Player2InTriggerArea(u8* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+
+    if (sys != 0 && *(u8**)(sys + 0x1384) != 0) {
+        if (inputArea != 0) {
+            area = inputArea;
+        } else if (packet != 0) {
+            area = *(u8**)(packet + 0xf8);
+        }
+        if (area != 0) {
+            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, (*(u8**)(sys + 0x1384))[0x291])) != 0) {
+                return lbl_8019C5D8[0];
+            }
+        }
+    }
+    return lbl_8019C5DC[0];
+}
+
+extern f32 lbl_8019C5BC[], lbl_8019C5C0[];
+f32 Condition_EitherPlayerInLevelNode(u8* sys, void* process, void* packet, char* params, struct ai_level_node* node)
+{
+    u8* player;
+    if (sys && node) {
+        player = *(u8**)(sys + 0x1380);
+        if (player && *(s16*)(*(u8**)(player + 4) + 0xa0) == node - *(struct ai_level_node**)(*(u8**)(*(u8**)(sys + 0xc) + 8) + 0x78))
+            return lbl_8019C5BC[0];
+        player = *(u8**)(sys + 0x1384);
+        if (player && *(s16*)(*(u8**)(player + 4) + 0xa0) == node - *(struct ai_level_node**)(*(u8**)(*(u8**)(sys + 0xc) + 8) + 0x78))
+            return lbl_8019C5BC[0];
+    }
+    return lbl_8019C5C0[0];
+}
+extern f32 fn_8000CD08(void*, void*, void*);
+extern f32 NuFsqrt(f32);
+extern f32 lbl_8019C5A8[];
+f32 Condition_NearestPlayerRange(u8* sys, void* process, u8* packet)
+{
+    f32 distance = lbl_8019C5A8[0];
+    f32 out[3];
+    if (packet && *(u8**)(packet + 0x50) && sys) {
+        u8* player = *(u8**)(sys + 0x1380);
+        if (player)
+            distance = fn_8000CD08(player + 0x6c, *(u8**)(packet + 0x50) + 0x6c, out);
+        player = *(u8**)(sys + 0x1384);
+        if (player) {
+            f32 other = fn_8000CD08(player + 0x6c, *(u8**)(packet + 0x50) + 0x6c, out);
+            if (other < distance) distance = other;
+        }
+        if (distance != lbl_8019C5A8[0]) distance = NuFsqrt(distance);
+    }
+    return distance;
+}
+extern f32 lbl_8019C5E0[], lbl_8019C5E4[];extern void (*fn_80009948(char*, int))(char*, ...);
+extern char lbl_8019C6DC[], str_AISysBufferAlloc_LevelBufferTooSmall[], str_AISysBufferAlloc_NoBuffer[];
+void* fn_8008F0C8(u32* current, u32* end, u32 size)
+{
+    u32 result = 0;
+    if (current && end) {
+        if (*current + size < *end) {
+            result = (*current + 15) & ~15;
+            *current = result + size;
+        } else fn_80009948(lbl_8019C6DC, 0x3bd)(str_AISysBufferAlloc_LevelBufferTooSmall);
+    } else fn_80009948(lbl_8019C6DC, 0x3c1)(str_AISysBufferAlloc_NoBuffer);
+    return (void*)result;
+}
+s32 fn_8008F294(u8* sys, char* name)
+{
+    char* selected = 0;
+    if (sys && *(u8**)(sys + 0xc)) {
+        if (name) {
+            s32 i;
+            for (i = 0; i < **(u8**)(sys + 0xc); i++) {
+                u8* level = *(u8**)(sys + 0xc);
+                char** names = *(char***)(level + 4);
+                if (NuStrICmp(names[i], name) == 0) {
+                    selected = (*(char***)(*(u8**)(sys + 0xc) + 4))[i];
+                    break;
+                }
+            }
+        } else selected = **(char****)(*(u8**)(sys + 0xc) + 4);
+        if (selected && selected != *(char**)(*(u8**)(sys + 0xc) + 8)) {
+            *(char**)(*(u8**)(sys + 0xc) + 8) = selected;
+            return 1;
+        }
+    }
+    return 0;
+}
+extern char lbl_8019BF88[], lbl_8019BF90[], lbl_8019BFB4[];
+extern u8* fn_8008A6D4(void*, void*, char*, char*, s32*);
+s32 Action_PathConnectionObstacle(void* sys, void* process, void* packet, char** args, s32 count, void* active)
+{
+    s32 enabled = 0;
+    s32 unused = 0;
+    char* from = 0;
+    char* to = 0;
+    s32 i;
+    if (sys && active) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(args[i], lbl_8019BF88);
+            if (found) from = found + 5;
+            else if ((found = NuStrIStr(args[i], lbl_8019BF90))) to = found + 3;
+            else if (!NuStrICmp(args[i], lbl_8019BFB4)) enabled = 1;
+        }
+        if (from && to) {
+            u8* connection = fn_8008A6D4(sys, 0, from, to, &unused);
+            if (connection && (*(u32*)(connection + 4) & 0x20000000)) connection[0x21] = enabled;
+        }
+    }
+    return 1;
+}
+
+void* fn_8008386C(char* name, u8* script)
+{
+    u8* entry = fn_800076C4(script + 0x10);
+    if (!name) return 0;
+    for (; entry; entry = fn_800076CC(script + 0x10, entry))
+        if (!NuStrICmp(name, *(char**)(entry + 0x18))) return entry;
+    return 0;
+}
+f32 Condition_InterruptID(void* sys, u8* process)
+{
+    if (process) return (f32)process[0x45];
+    return lbl_8019C670[0];
+}
+
+f32 Condition_OpponentToLocatorY(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* opponent;
+    u8* locator;
+    if (packet && (opponent = *(u8**)(packet + 0x64))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) return *(f32*)(opponent + 0x70) - *(f32*)(locator + 0x14);
+    }
+    return lbl_8019C650[0];
+}
+
+f32 Condition_LocatorRange(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x50))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CCA4(packet + 0x100, locator + 0x10, out);
+        else result = lbl_8019C578[0];
+    } else result = lbl_8019C578[0];
+    return result;
+}
+
+f32 Condition_LocatorRangeXZ(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x50))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CD68(packet + 0x100, locator + 0x10, out);
+        else result = lbl_8019C57C[0];
+    } else result = lbl_8019C57C[0];
+    return result;
+}
+
+f32 Condition_OpponentToLocator(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x64))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CCA4(object + 0x6c, locator + 0x10, out);
+        else result = lbl_8019C648[0];
+    } else result = lbl_8019C648[0];
+    return result;
+}
+
+f32 Condition_OpponentToLocatorXZ(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x64))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CD68(object + 0x6c, locator + 0x10, out);
+        else result = lbl_8019C64C[0];
+    } else result = lbl_8019C64C[0];
+    return result;
+}
+
+extern f32 lbl_8019C658[];
+f32 Condition_NearestPlayerToLocator(u8* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    f32 distance = lbl_8019C658[0];
+    f32 out[3];
+    if (packet && sys) {
+        u8* locator;
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) {
+            u8* player = *(u8**)(sys + 0x1380);
+            if (player) distance = fn_8000CD08(player + 0x6c, locator + 0x10, out);
+            player = *(u8**)(sys + 0x1384);
+            if (player) {
+                f32 other = fn_8000CD08(player + 0x6c, locator + 0x10, out);
+                if (other < distance) distance = other;
+            }
+        }
+        if (distance != lbl_8019C658[0]) distance = NuFsqrt(distance);
+    }
+    return distance;
+}
+extern f32 lbl_8019C654[];
+f32 Condition_PlayerToLocator(u8* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* player;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && sys && (player = *(u8**)(sys + 0x1380))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CCA4(player + 0x6c, locator + 0x10, out);
+        else result = lbl_8019C654[0];
+    } else result = lbl_8019C654[0];
+    return result;
+}
