@@ -3,8 +3,8 @@
 The first Phase 3 game-header batch uses sparse GC layouts under
 [`include/game`](../include/game). Engine headers remain independently owned.
 Names describe the checked consumers; unknown bytes remain `char unk[N]`.
-Except for the game-object array stride, `sizeof` is only the extent of the
-confirmed view, not an allocation size. Do not use the other views for arrays.
+Only explicitly documented strides or allocation sizes establish full extents;
+other `sizeof` values describe confirmed views and must not be used for arrays.
 
 ## Selection and access ranking
 
@@ -150,3 +150,29 @@ The confirmed view extends through `0x44`; no allocation size or array stride
 has been established. OpenSaga's `0x4C` character record is not GC size
 proof, and its callback is at `0x20`, four bytes later than GC. Determining
 full extent remains open.
+
+### Pickup records
+
+`fn_8013C620` iterates six groups, loading pointers at `+0x71C` and
+counts at `+0x734` from the pool and stepping each record by `0x40`. It
+stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
+`fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`. The group
+initialization draft is parked at 41/51: loop register allocation and float
+load placement differ. Next, reshape the group loop to preserve the loop index
+in r11 and defer the float load until after the count check.
+
+A separate callback record has a float at `+0x100` and a signed halfword at
+`+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
+Both consumers strictly match. Its full size is unknown. OpenSaga lookup found
+no same-name hits and a pickup search did not establish an equivalent.
+
+### Turret records
+
+`fn_8014068C` aligns and clears an allocation of `0xF08` bytes and stores
+the incoming word at `+0xF04`; its typed allocation consumer strictly matches.
+`fn_801403BC` walks a separate record at stride `0x78`, copying halfwords
+`+0x70` to `+0x6E` and bytes `+0x74` to `+0x73`; `fn_80140504` loads and
+modifies `+0x6E` as a halfword flag field and `+0x73` as a byte counter.
+The relationship between this array and the allocated turret record remains
+unconfirmed. OpenSaga lookup found no same-name hit and a turret search did not
+establish an equivalent.
