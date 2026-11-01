@@ -663,3 +663,18 @@ void instNuGCutLocatorSysUpdate(gcut_instance_view* instance, f32 frame, s32 ski
         }
     }
 }
+void NuSetCutSceneFindCharactersFn(gcut_instance_view* instance, f32 frame, s32 arg)
+{
+    s32 i;
+    gcut_character_runtime* runtime = *(gcut_character_runtime**)((u8*)instance + 0xa4);
+    gcut_scene_view* scene = instance->scene;
+    gcut_character_system* system = (gcut_character_system*)((s32*)scene)[6];
+    if (lbl_804081B8) {
+        for (i = 0; i < system->count; i++) {
+            gcut_character_view* character = &system->characters[i];
+            gcut_character_runtime_item* item = &runtime->items[i];
+            if (item->value)
+                ((void (*)(gcut_instance_view*, gcut_scene_view*, gcut_character_runtime_item*, gcut_character_view*, f32, s32))lbl_804081B8)(instance, scene, item, character, frame, arg);
+        }
+    }
+}
