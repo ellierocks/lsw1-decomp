@@ -201,3 +201,25 @@ void fn_80079EBC(void)
     if (lbl_80408C38 <= 0.0f)
         Menu_CloseCurrent();
 }
+
+extern char *lbl_80408B78, *lbl_80408B84, *lbl_80408B34;
+extern s32 lbl_80408AB0;
+
+void fn_8007922C(u8* menu)
+{
+    char* title;
+    f32 half = 0.5f;
+    if (lbl_8040821C == 1) title = lbl_80408B78;
+    else if (lbl_8040821C == 3) title = lbl_80408B84;
+    else title = lbl_80408B34;
+    fn_8007B298(title, 0, 255, 127, 0, 2, 0, 0, lbl_80408A54,
+                0.0f, 0.3f, 1.0f, half, half, half, 1.5f);
+    {
+        f32 time = lbl_8040AF18;
+        f32 offset = lbl_80408A84;
+        s32 action = lbl_80408AB0;
+        *(f32*)(menu + 0x9c) = time - offset;
+        fn_800769B4(menu, action, lbl_80408A57);
+    }
+    fn_800769B4(menu, lbl_80408AAC, lbl_80408A57);
+}
