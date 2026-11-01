@@ -147,13 +147,6 @@ The cutscene and AI units are being matched from GameCube assembly, with strict
 function verification before promotion. Unit promotion still requires matching
 sections, relocations, and linked retail ranges. The retail DOL remains the oracle.
 
-#### Unit completion: AI and cutscene
-
-The cutscene unit is being matched from GameCube assembly, smallest functions first.
-Strict function matches remain unpromoted until the entire unit and its sections,
-relocations, and linked retail ranges match. Work on `aisys` and `gameaiscript`
-remains queued behind the cutscene unit. The retail DOL remains the oracle.
-
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
