@@ -343,3 +343,16 @@ void instNuGCutSceneStart(gcut_instance_view* instance, s32 value)
 {
     ((gcut_flag_bits*)&instance->flags)->flag = value;
 }
+
+extern s32 lbl_804081C8;
+void NuGCutCharSysFixUp(s32* scene)
+{
+    if (lbl_804081C4)
+        ((void (*)(s32*))lbl_804081C4)(scene);
+}
+
+void NuGCutCharSysDestroy(s32* scene)
+{
+    if (lbl_804081C8)
+        ((void (*)(s32*))lbl_804081C8)(scene);
+}
