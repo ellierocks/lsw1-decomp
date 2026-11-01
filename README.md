@@ -108,6 +108,8 @@ the binary; donor projects supply evidence.
 | Guide | Use |
 |---|---|
 | [Strategy](docs/strategy.md) | Phases and lanes: SDK import, whole-binary splits, agent draft-and-climb |
+| [Sprint workflow](docs/sprint_workflow.md) | Phase 3 one-unit sprints: scope, budget, finish and PR template |
+| [Phase 3 batch history](docs/phase3_batches.md) | Results and failure modes from the earlier multi-unit batches |
 | [Matching quickstart](docs/matching_quickstart.md) | Bootstrap, pick a target, score, record and verify in six steps |
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
 | [Compiler evaluation](docs/compiler_evaluation.md) | ProDG audit, RTL diagnostics and SN GCC v1.79 results |

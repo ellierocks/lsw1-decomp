@@ -14,6 +14,7 @@ sizes come from the retail DOL. Read-only; nothing is written.
     python3 tools/next_target.py
     python3 tools/next_target.py --max-size 0x80 --limit 30 --json
     python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
+    python3 tools/next_target.py --by-unit --max-size 0x200 --limit 20
 """
 from __future__ import annotations
 
@@ -92,6 +93,32 @@ def in_units(unit: str, prefixes: list[str]) -> bool:
     return not prefixes or any(unit.startswith(p) for p in prefixes)
 
 
+def print_by_unit(rows, args) -> int:
+    """One line per unit: ready targets, their bytes and size range."""
+    units = {}
+    for r in rows:
+        if r["claimed"]:
+            continue
+        units.setdefault(r["unit"], []).append(r)
+    order = sorted(units.items(), key=lambda kv: (-len(kv[1]), sum(r["size"] for r in kv[1]), kv[0]))
+    order = order[:args.limit]
+    if args.json:
+        print(json.dumps([{"unit": u, "ready": len(rs), "bytes": sum(r["size"] for r in rs),
+                           "min_size": min(r["size"] for r in rs), "max_size": max(r["size"] for r in rs),
+                           "source": rs[0]["source"], "names": [r["name"] for r in rs]}
+                          for u, rs in order], indent=2))
+        return 0
+    print(f"{'unit':<34}{'ready':>6}{'bytes':>8}  {'sizes':<14}source")
+    for unit, rs in order:
+        sizes = sorted(r["size"] for r in rs)
+        print(f"{unit:<34}{len(rs):>6}{sum(sizes):>#8x}  {f'{sizes[0]:#x}..{sizes[-1]:#x}':<14}"
+              f"{rs[0]['source'] or '(new file)'}")
+    if order:
+        print(f"\nSprint queue for the first unit:\n  python3 tools/next_target.py --unit {order[0][0]} "
+              f"--max-size {args.max_size:#x} --limit 10")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--max-size", type=lambda s: int(s, 0), default=0x200, help="largest size in bytes (default 0x200)")
@@ -100,6 +127,8 @@ def main(argv=None) -> int:
                     help="only units starting with PREFIX, e.g. auto/game/ (repeatable)")
     ap.add_argument("--limit", type=int, default=15)
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--by-unit", action="store_true",
+                    help="summarize ready targets per unit to scope a sprint (sorted by ready count)")
     args = ap.parse_args(argv)
 
     dol = vf.load_dol(vf.DOL_PATH, [])
@@ -138,6 +167,8 @@ def main(argv=None) -> int:
         })
     rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["address"]))
     rows_all = rows
+    if args.by_unit:
+        return print_by_unit(rows_all, args)
     rows = rows[:args.limit]
 
     if args.json:
