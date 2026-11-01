@@ -134,3 +134,19 @@ collision consumers, this supports a shared prefix. The two types remain
 separate views pending proof of the allocation and embedding relationship.
 OpenSaga's similarly named fields lie at different offsets; GC accesses
 control this layout.
+
+### Character-data view
+
+| Offset | Width | GC access evidence |
+| --- | --- | --- |
+| `0x04` | word flags | `fn_800A2A9C` and `fn_800A3650` load and mask it |
+| `0x1C` | callback pointer | `fn_800AA92C` loads and calls it; strict match retained |
+| `0x20` | pointer | `fn_800A474C` loads it and accesses the pointed-to data |
+| `0x2C` | float | `fn_800A2498` and `fn_800A41D8` use `lfs` |
+| `0x38` | float | `fn_800A39A8` and `fn_800A41D8` use `lfs` |
+| `0x40` | word flags | `fn_800A3650` loads it and combines flag masks |
+
+The confirmed view extends through `0x44`; no allocation size or array stride
+has been established. OpenSaga's `0x4C` character record is not GC size
+proof, and its callback is at `0x20`, four bytes later than GC. Determining
+full extent remains open.
