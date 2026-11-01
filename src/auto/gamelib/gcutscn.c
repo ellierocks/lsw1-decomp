@@ -185,7 +185,7 @@ gcut_trigger_instance* instNuCGutTriggerSysCreate(s32* scene, void* instance, u3
     memset(result->states, 0, count * 4);
     return result;
 }
-extern void NuGCutRigidSysFixUp(s32*);
+extern void NuGCutRigidSysFixUp(s32*, s32);
 extern void NuGCutCharSysFixUp(s32*);
 extern void NuGCutLocatorSysFixUp(s32*, s32);
 extern void NuGCutTriggerSysFixUp(s32*, s32);
@@ -197,7 +197,7 @@ void NuGCutSceneFixUp(s32* scene, s32 area, s32 flags, s32 id)
             scene[18] = flags;
         }
         if (scene[5]) {
-            NuGCutRigidSysFixUp(scene);
+            NuGCutRigidSysFixUp(scene, area);
         }
         if (scene[6]) {
             NuGCutCharSysFixUp(scene);
@@ -756,4 +756,34 @@ s32 fn_80040974(gcut_instance_view* instance, s32 arg)
     }
     fn_80009984(lbl_8019308C, 0x8c1)(lbl_804081B4, lbl_80193344, ((s32*)instance->scene)[11]);
     return 1;
+}
+
+void NuGCutRigidSysFixUp(s32* scene, s32 lookup)
+{
+    gcut_rigid_system* system = (gcut_rigid_system*)scene[5];
+    gcut_locator_system* locators = (gcut_locator_system*)scene[7];
+    s32 i;
+    if (lookup) {
+        for (i = 0; i < system->count; i++) {
+            gcut_special_result special;
+            gcut_rigid_view* rigid = &system->rigids[i];
+            u8* bytes = (u8*)rigid;
+            if (NuSpecialFind((void*)lookup, &special, (char*)rigid->name, 1)) {
+                bytes[0x58] |= 4;
+                *(s32*)(bytes + 0x44) = special.a;
+                if (special.c)
+                    *(s32*)(bytes + 0x48) = special.c;
+                else
+                    *(s32*)(bytes + 0x48) = special.b;
+            } else {
+                fn_80009970(lbl_8019308C, 0xeb7)(str_NuGCutRigidSysFixUp_CannotFixupRigid, rigid->name);
+            }
+            if (bytes[0x59] && *(s32*)(bytes + 0x54) <= 0xfe) {
+                bytes[0x5a] = bytes[0x57];
+                *(s32*)(bytes + 0x54) = (s32)&locators->records[*(s32*)(bytes + 0x54)];
+            } else {
+                bytes[0x5a] = 0xff;
+            }
+        }
+    }
 }
