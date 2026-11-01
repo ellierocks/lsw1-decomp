@@ -519,3 +519,26 @@ void instNuGCutRigidSysUpdate(gcut_rigid_runtime* runtime, gcut_rigid_system* sy
         }
     }
 }
+
+typedef struct gcut_locator_record { u8 pad[0x59]; u8 event; u8 pad2[10]; } gcut_locator_record;
+typedef struct gcut_locator_event { u8 pad[4]; u8 flags; u8 pad5; u16 index; u8 pad8[4]; } gcut_locator_event;
+typedef struct gcut_locator_system { gcut_locator_record* records; gcut_locator_event* events; u8 count; } gcut_locator_system;
+typedef struct gcut_locator_runtime_item { u8 pad[8]; } gcut_locator_runtime_item;
+typedef struct gcut_locator_runtime { gcut_locator_runtime_item* items; } gcut_locator_runtime;
+typedef struct gcut_event_callback { u8 pad[8]; s32 callback; u8 pad2[8]; } gcut_event_callback;
+void instNuGCutLocatorSysStart(gcut_instance_view* instance)
+{
+    u32 i;
+    gcut_locator_system* system = (gcut_locator_system*)((s32*)instance->scene)[7];
+    gcut_locator_runtime* runtime = *(gcut_locator_runtime**)((u8*)instance + 0xa8);
+    for (i = 0; i < system->count; i++) {
+        gcut_locator_runtime_item* item = &runtime->items[i];
+        gcut_locator_record* record = &system->records[i];
+        gcut_locator_event* event = &system->events[record->event];
+        if ((event->flags & 2) && event->index != 0xffff) {
+            s32 callback = ((gcut_event_callback*)lbl_804081EC)[event->index].callback;
+            if (callback)
+                ((void (*)(gcut_instance_view*, gcut_locator_system*, gcut_locator_runtime_item*, gcut_locator_record*))callback)(instance, system, item, record);
+        }
+    }
+}
