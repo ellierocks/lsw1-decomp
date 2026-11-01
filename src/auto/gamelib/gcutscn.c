@@ -327,3 +327,19 @@ void NuGCutCharSysFixPtrs(s32* scene, s32 delta, s32 animDelta)
         }
     }
 }
+
+s32 instNuGCutSceneDestroy(gcut_instance_view* instance)
+{
+    return (instance->flags << 12) >> 31;
+}
+
+typedef struct gcut_flag_bits {
+    unsigned int unused : 2;
+    unsigned int flag : 1;
+    unsigned int rest : 29;
+} gcut_flag_bits;
+
+void instNuGCutSceneStart(gcut_instance_view* instance, s32 value)
+{
+    ((gcut_flag_bits*)&instance->flags)->flag = value;
+}
