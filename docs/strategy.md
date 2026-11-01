@@ -334,6 +334,8 @@ branches, loops, calls and floats from `auto/ai`, `auto/game`, `auto/gamelib`,
 `auto/characters` and `auto/camera`. It strictly matched 47 functions
 (`verify_fn.py --build --strict-symbols`, 7,288 bytes), moving the report from 1,322 to
 1,365 functions (+43 in objdiff) and from 186,400 to 193,092 code bytes (12.30%).
+After rebasing, unrelated main changes add another function and 256 bytes: the final
+integrated report is 1,366 functions and 193,348 bytes. Batch deltas above exclude those.
 No unit was promoted: every touched unit still holds unmatched bodies. The relinked DOL is
 byte-identical (`sha1 95cca08a19224775d1a8d6cc64601fb7d0080981`).
 
