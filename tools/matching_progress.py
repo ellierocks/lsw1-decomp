@@ -6,6 +6,7 @@ Usage:
   python3 tools/matching_progress.py
   python3 tools/matching_progress.py --report
   python3 tools/matching_progress.py --json
+  python3 tools/matching_progress.py --strict-gap   # add strict-verified functions objdiff scores <100%
 """
 
 import argparse
@@ -73,6 +74,12 @@ def main() -> None:
         action="store_true",
         help="Emit matching progress as JSON",
     )
+    parser.add_argument(
+        "--strict-gap",
+        action="store_true",
+        help="Also count functions that pass verify_fn.py --strict-symbols but sit below 100%% in objdiff "
+             "(literal relocs on section symbols). Reported separately; the objdiff figures are unchanged.",
+    )
     args = parser.parse_args()
 
     if args.report and not progress.generate_report():
@@ -88,6 +95,13 @@ def main() -> None:
     source_backed_units = source_backed_unit_count()
     source_files = decompiled_source_count()
     has_object_splits = split_file_has_objects()
+
+    gap = None
+    if args.strict_gap:
+        import strict_gap
+        passed = [r for r in strict_gap.candidates(json.loads(Path(progress.REPORT_PATH).read_text()), 90.0)
+                  if strict_gap.strict_match(r["name"])]
+        gap = {"functions": len(passed), "bytes": sum(r["size"] for r in passed)}
 
     if args.json:
         payload = {
@@ -109,6 +123,8 @@ def main() -> None:
             "decompiled_source_files": source_files,
             "has_object_splits": has_object_splits,
         }
+        if gap is not None:
+            payload["strict_only"] = gap
         print(json.dumps(payload, indent=2))
         return
 
@@ -124,6 +140,10 @@ def main() -> None:
     print()
 
     progress.print_matching_progress(matching)
+    if gap is not None:
+        print()
+        print(f"  Strict-verified but below 100% in objdiff: {gap['functions']:,} functions, "
+              f"{gap['bytes']:,} bytes (not in the figures above)")
 
 
 if __name__ == "__main__":

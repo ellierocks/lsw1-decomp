@@ -70,6 +70,11 @@ Read the donor evidence, inspect listed source and relevant callees/keywords
 against GC, and record what transfers or the no-hit/unavailable limit. Check
 `symbol_donors/rejected_renames.tsv` before using a name.
 
+For a first draft, `python3 tools/draft_fn.py NAME` writes `work/NAME/draft_m2c.c` from the
+pinned [m2c](https://github.com/matt-kempster/m2c) (`tools/fetch_m2c.sh`, run by the
+bootstrap). It does not compile until the arguments have real struct types; use it for the
+control flow and the offsets.
+
 ## 4. Score candidates (fast loop)
 
 ```sh
@@ -79,6 +84,13 @@ python3 tools/score_fn.py NAME src/UNIT.c
 It takes well under a second and prints the verdict, score, exact instructions
 and the first difference. Change one source choice per attempt, guided by that
 first difference.
+
+When the draft is close, try the known cheap rewrites in one run (declaration order of
+locals, ternary against if/else, `s32`/`u32` for each integer, at most two changes at once):
+
+```sh
+python3 tools/variant_search.py NAME src/UNIT.c -j 8
+```
 
 If only the order of independent stores or loads differs, mark those statements
 with `/* order: begin */` and `/* order: end */` in a scratch copy and search every

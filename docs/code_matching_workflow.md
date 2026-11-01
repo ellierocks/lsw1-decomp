@@ -153,6 +153,23 @@ variants (default 7! = 5040, about two minutes with `-j 8`). `--dry-run` prints 
 count. The best variant goes to `work/order_search/NAME/best.c`; port it into the
 unit source and accept it with `verify_fn.py --build --strict-symbols`.
 
+### Variant search
+
+For a draft within about ten instructions, `variant_search.py` tries the rewrites that solved
+most plateaus without markers: the declaration order of the leading locals (stack layout and
+register order), `x = c ? a : b;` against an explicit if/else, and `s32`/`u32` (also 16 and 8
+bit) for each parameter and local. It varies only the named function in the unit source:
+
+```sh
+python3 tools/variant_search.py NAME src/UNIT.c -j 8 [--dry-run] [--max-changes 2]
+```
+
+Variants are tried fewest-changes first and the search stops at the first strict `MATCH`. A
+whole declaration permutation, or all ternaries together, count as one change. The best
+variant goes to `work/variant_search/NAME/best.c`; port it and accept it with
+`verify_fn.py --build --strict-symbols`. It reproduced both the `Curve2` local-order fix and the
+ternary/if-else fix from the `nuanim_2` sprint within the first 32 compiles.
+
 ### decomp-permuter
 
 For a close plateau that is not just an ordering problem, run the pinned
