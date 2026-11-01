@@ -177,6 +177,7 @@ and neither does the OpenSaga (PC) layout for `numtl_s`.
 | `nuanimcurvedata_s` | 0xC | `mask` 0x0; `key_ixs` 0x4; `key_array` 0x8 | `fn_8001678C` (pointer relocation) |
 | `nuanimtime_s` | 0x18 | `time` 0x0; `time_offset` 0x4; `chunk` 0x8; `time_mask` 0xC; `time_byte` 0x10 | `fn_80016944`, `NuAnimData2CalcTime` |
 | `nuanimdata_s` / `nuanimdatachunk_s` / `nuanimcurveset_s` / `nuanimcurve_s` | 0x10 / 0x14 / 0x10 / 0x10 | `time` 0, `nchunks` 8, `chunks` 0xC; `numnodes` 0, `animcurvesets` 8; `constants` 4, `set` 8, `ncurves` 0xC `stb`; `animkeys` 4, `numkeys` 8 (key stride 0x10) | `NuAnimDataCreate`, `NuAnimDataChunkCreate`, `NuAnimCurveSetCreate`, `NuAnimCurveCreate` |
+| curve-set slot order | — | Both apply-to-matrix functions use nine slots: 0-2 translation, 3-5 rotation (radians, scaled by 65536/2π into `s32` angles), 6-8 scale. `flags` bit 0 selects rotation, bit 3 scale. A zero `set[i]` (or `curveflags[i]`) means use `constants[i]`. Z-related matrix entries (`_02 _12 _20 _21 _23 _32`) are negated last | `NuAnimCurveSetApplyToMatrix`, `NuAnimCurve2SetApplyToMatrix` |
 | `numemfile_s` | 0x14 | donor layout holds: `start` 0, `end` 4, `curr` 8 (`lwzx` with 0x14 stride) | `fn_800059A0` |
 | `BlockInfo` | 0xC | `hdr.size` 0x4, `pos` 0x8 (block stack `lbl_801FD080`, depth `lbl_80407A40`) | `NuFileEndBlockRead` |
 
