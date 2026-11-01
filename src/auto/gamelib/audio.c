@@ -137,7 +137,7 @@ void fn_8006E094(void)
     }
 }
 
-struct AudioNameEntry { const char* name; u8 rest[0x3c]; };
+struct AudioNameEntry { const char* name; u8 pad[0x10]; s16 linked; u8 rest[0x2a]; };
 extern struct AudioNameEntry lbl_803B6E04[];
 extern char lbl_8019854C[], lbl_8019857C[];
 extern void (*fn_80009970(char*, s32))();
@@ -168,4 +168,26 @@ s32 fn_8006CECC(void)
         return 0;
     if (fn_80044C78(index) == 2) return 0;
     return 1;
+}
+
+extern s32 fn_8006E37C(s32);
+extern s32 fn_8006E394(s32, s32);
+
+void fn_8006DC1C(s32* list, void (*callback)(s32))
+{
+    s32 value = *list++;
+    while (value != -1) {
+        if (value >= 0) {
+            s32 linked;
+            callback(value);
+            linked = lbl_803B6E04[value].linked;
+            if (linked != -1) {
+                s32 i;
+                s32 count = fn_8006E37C(linked);
+                for (i = 0; i < count; i++)
+                    callback(fn_8006E394(linked, i));
+            }
+        }
+        value = *list++;
+    }
 }
