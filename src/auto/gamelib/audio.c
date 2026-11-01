@@ -153,3 +153,19 @@ s32 fn_8006DDC4(const char* name, s32 length)
     (*fn_80009970(lbl_8019854C, 0x3ef))(lbl_8019857C, name);
     return -1;
 }
+
+extern s32 fn_80044C78(s32);
+
+s32 fn_8006CECC(void)
+{
+    s32 index = 1 - lbl_801BB44C[2];
+    u8* pending = (u8*)lbl_801BB44C + 0x12;
+    if (pending[index]) {
+        pending[index]--;
+        return 0;
+    }
+    if (lbl_804086E8 || lbl_804086EC)
+        return 0;
+    if (fn_80044C78(index) == 2) return 0;
+    return 1;
+}
