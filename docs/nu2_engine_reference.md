@@ -4,6 +4,9 @@ Confirmed OpenSaga GC parser fields live in
 [`nucore/nufpar.h`](../src/nucore/nufpar.h); see the
 [layout evidence and limits](symbol_donors/opensaga_matching.md#shared-gc-layouts).
 
+Game-side character, creature, API-object and AI packet layouts are documented
+in [LSW1 game struct headers](game_structs.md).
+
 ## Source
 
 Crash: Wrath of Cortex GameCube decomp: https://github.com/denzi-gh/crashwoc-decomp

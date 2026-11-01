@@ -1,4 +1,4 @@
-#include "types.h"
+#include "game/ai.h"
 
 extern s32 lbl_80408CC8;
 extern s32 lbl_80408CCC;
@@ -97,7 +97,71 @@ void fn_8008F28C(s32 a)
     lbl_80408D4C = a;
 }
 
-f32 Condition_Timer(s32 unused3, u8* a)
+f32 Condition_Timer(s32 unused3, struct NUAISCRIPTPROCESS_s* a)
 {
-    return *(f32*)(a + 36);
+    return a->timer;
+}
+
+f32 Condition_GotLocator(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && p->locator) return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_GotTriggerArea(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && p->triggerArea) return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_GotOpponent(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && p->opponent) return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_OnPath(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && (p->pathFlags & 0x8000)) return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_PathBlocked(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && (p->movementFlags & 0x100)) return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_TimeOffPath(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (!p) return 0.0f;
+    /* The redundant guard preserves retail null-path block placement. */
+    if (p) return p->timeOffPath;
+    return p->timeOffPath;
+}
+
+f32 Condition_OpponentRange(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && p->opponent) return p->opponentRange;
+    return 3.402823466e+38f;
+}
+
+f32 Condition_NearestOpponentRange(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    if (p && p->nearestOpponent) return p->nearestOpponentRange;
+    return 3.402823466e+38f;
+}
+
+f32 Condition_StuckTime(void* sys, void* proc, struct NUAIPACKET_s* p)
+{
+    struct NUAPIOBJECT_s* owner;
+    if (p && (owner = p->owner)) return owner->stuckTime;
+    return 0.0f;
+}
+
+s32 Action_ResetTimer(void* sys, struct NUAISCRIPTPROCESS_s* proc,
+    struct NUAIPACKET_s* packet, void* params, s32 count, s32 start)
+{
+    if (start) proc->timer = 0.0f;
+    return 1;
 }
