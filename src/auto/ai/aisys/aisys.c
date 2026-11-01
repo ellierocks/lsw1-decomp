@@ -165,3 +165,279 @@ s32 Action_ResetTimer(void* sys, struct NUAISCRIPTPROCESS_s* proc,
     if (start) proc->timer = 0.0f;
     return 1;
 }
+
+extern s32 NuStrICmp(char*, char*);
+extern char lbl_8019BEA0[];
+
+struct ai_action_owner_s {
+    u8 pad0[0x208];
+    u32 flags208;
+    u32 flags20c;
+};
+
+struct ai_action_packet_s {
+    u8 pad0[0x50];
+    struct ai_action_owner_s* owner;
+    u8 pad54[0x14c];
+    u32 flags1a0;
+};
+
+s32 Action_IgnoreWallSplines(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && firstTime != 0) {
+        packet->flags1a0 |= 0x01000000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->flags1a0 &= ~0x01000000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_CheckWallSplines(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && firstTime != 0) {
+        packet->flags1a0 |= 0x00800000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->flags1a0 &= ~0x00800000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_RequiresLOS(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && firstTime != 0) {
+        packet->flags1a0 |= 0x00002000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->flags1a0 &= ~0x00002000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_NoTerrain(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x04000000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x04000000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_NoLosCheck(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x00200000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x00200000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_FlatTerrain(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x08000000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x08000000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_ShadowTerrain(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x10000000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x10000000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_DontUseShadowTerrain(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x02000000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x02000000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_CanSeeBehind(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x00100000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x00100000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_SetFullPathSearch(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c &= ~0x00002000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c |= 0x00002000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_NoShadows(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && firstTime != 0 && packet->owner != 0) {
+        packet->owner->flags208 |= 0x00002000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags208 &= ~0x00002000;
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_DontPush(void* sys, void* process, struct ai_action_packet_s* packet,
+                           char** params, s32 count, s32 firstTime, f32 time)
+{
+    s32 index;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        packet->owner->flags20c |= 0x40000000;
+        for (index = 0; index < count; index++) {
+            if (NuStrICmp(params[index], lbl_8019BEA0) == 0) {
+                packet->owner->flags20c &= ~0x40000000;
+            }
+        }
+    }
+    return 1;
+}
+
+extern u64 UI_DrawText();
+extern f32 lbl_8019C59C[];
+extern f32 lbl_8019C5A0[];
+
+f32 Condition_InTriggerArea(void* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* owner;
+    u8* area;
+
+    if (packet != 0 && (owner = *(u8**)(packet + 0x50)) != 0) {
+        if (inputArea == 0) {
+            area = *(u8**)(packet + 0xf8);
+        } else {
+            area = inputArea;
+        }
+        if (area != 0) {
+            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, owner[0x291])) != 0) {
+                return lbl_8019C59C[0];
+            }
+        }
+    }
+    return lbl_8019C5A0[0];
+}
+
+extern f32 lbl_8019C5F8[];
+extern f32 lbl_8019C5FC[];
+f32 Condition_OpponentInTriggerArea(void* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* owner;
+    u8* area;
+
+    if (packet != 0 && (owner = *(u8**)(packet + 0x64)) != 0 && *(u8**)(packet + 0x50) != 0) {
+        if (inputArea == 0) {
+            area = *(u8**)(packet + 0xf8);
+        } else {
+            area = inputArea;
+        }
+        if (area != 0) {
+            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, owner[0x291])) != 0) {
+                return lbl_8019C5F8[0];
+            }
+        }
+    }
+    return lbl_8019C5FC[0];
+}
+
+extern f32 lbl_8019C5D0[];
+extern f32 lbl_8019C5D4[];
+
+f32 Condition_PlayerInTriggerArea(u8* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+
+    if (sys != 0 && *(u8**)(sys + 0x1380) != 0) {
+        if (inputArea != 0) {
+            area = inputArea;
+        } else if (packet != 0) {
+            area = *(u8**)(packet + 0xf8);
+        }
+        if (area != 0) {
+            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, (*(u8**)(sys + 0x1380))[0x291])) != 0) {
+                return lbl_8019C5D0[0];
+            }
+        }
+    }
+    return lbl_8019C5D4[0];
+}
