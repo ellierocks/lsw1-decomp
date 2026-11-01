@@ -2,6 +2,10 @@
 # Bootstrap tools, split the retail DOL and compile the comparison report.
 set -euo pipefail
 cd "$(dirname "$(realpath "$0")")"
+# A fresh worktree has no retail DOL; bootstrap links it and the shared toolchain from the primary checkout.
+if [[ ! -e orig/GL5E4F/sys/main.dol ]]; then
+    bash tools/bootstrap.sh
+fi
 if [[ ! -f orig/GL5E4F/sys/main.dol ]]; then
     echo 'Missing orig/GL5E4F/sys/main.dol; see README.md for extraction.' >&2
     exit 1

@@ -13,6 +13,7 @@ sizes come from the retail DOL. Read-only; nothing is written.
 
     python3 tools/next_target.py
     python3 tools/next_target.py --max-size 0x80 --limit 30 --json
+    python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
 """
 from __future__ import annotations
 
@@ -87,9 +88,16 @@ def direct_callees(code: bytes, addr: int) -> set[int]:
     return targets
 
 
+def in_units(unit: str, prefixes: list[str]) -> bool:
+    return not prefixes or any(unit.startswith(p) for p in prefixes)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--max-size", type=lambda s: int(s, 0), default=0x200, help="largest size in bytes (default 0x200)")
+    ap.add_argument("--min-size", type=lambda s: int(s, 0), default=0, help="smallest size in bytes (default 0)")
+    ap.add_argument("--unit", action="append", default=[], metavar="PREFIX",
+                    help="only units starting with PREFIX, e.g. auto/game/ (repeatable)")
     ap.add_argument("--limit", type=int, default=15)
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
@@ -107,11 +115,13 @@ def main(argv=None) -> int:
 
     rows, skipped_unit = [], 0
     for name, addr, size in symbols:
-        if not size or size > args.max_size or name in done or name in verified:
+        if not size or size > args.max_size or size < args.min_size or name in done or name in verified:
             continue
         unit = vf.lookup_unit(addr)
         if unit is None:
             skipped_unit += 1
+            continue
+        if not in_units(unit, args.unit):
             continue
         code = dol.read(addr, size)
         if code is None:
@@ -123,6 +133,7 @@ def main(argv=None) -> int:
             "name": name, "address": f"0x{addr:08X}", "size": size, "unit": unit,
             "callees": len(callees), "callee_names": sorted(names_at.get(t, f"0x{t:08X}") for t in callees),
             "source": str(source.relative_to(ROOT)) if source else None,
+            "source_path": str(source.relative_to(ROOT)) if source else f"src/{unit}.c",
             "claimed": name in claimed, "attempts": attempts.get(name, 0),
         })
     rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["address"]))

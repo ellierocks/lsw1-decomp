@@ -38,12 +38,20 @@ For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
 
 ```sh
 python3 tools/next_target.py
+python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
 ```
 
 It lists undone functions inside split units, sorted by direct callee count and
 then size, with their unit, source and OpenSaga lookup state. Donor name leads
 break otherwise equal ranking ties. Choose a `ready` row that is not `claimed`. An empty list does not mean the work is finished:
 most game code lies outside split units (Phase 2 in [strategy](strategy.md)).
+The default shows only the 15 smallest rows, so a lane of mid-size targets needs
+`--min-size`, `--unit` (repeatable prefix) and a larger `--limit`. A `(new file)`
+source means the unit has no C yet: create the `source_path` it names
+(`src/<unit>.c`) and draft into it. If `configure.py` has no entry for the unit
+yet (for example `auto/game/pickups`), add one beside the other `auto/` entries:
+`Object(NonMatching, "auto/game/pickups.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg)`.
+A unit missing from `src/` is work to start, not a blocker.
 
 For game/Nu2 candidates, read the [OpenSaga lane](symbol_donors/opensaga_matching.md)
 and its [remaining queue](symbol_donors/opensaga_audit.md#remaining-matching-queue).
