@@ -626,3 +626,29 @@ f32 Condition_OpponentOnSamePath(void* sys, void* process, u8* packet)
         return lbl_8019C610[0];
     return lbl_8019C614[0];
 }
+
+
+extern f32 fn_8000CCA4(void*, void*, void*);
+extern f32 fn_8000CD68(void*, void*, void*);
+extern f32 lbl_8019C5C4[], lbl_8019C5A4[], lbl_8019C578[], lbl_8019C57C[], lbl_8019C648[], lbl_8019C64C[];
+
+f32 Condition_NodeRange(void* sys, void* process, u8* packet, char* params, u8* node)
+{
+    u8* owner;
+    f32 out[3], result;
+    if (packet && (owner = *(u8**)(packet + 0x50)) && node)
+        result = fn_8000CCA4(node + 4, owner + 0x6c, out);
+    else result = lbl_8019C5C4[0];
+    return result;
+}
+
+f32 Condition_PlayerRange(u8* sys, void* process, u8* packet)
+{
+    u8* owner;
+    u8* player;
+    f32 out[3], result;
+    if (packet && (owner = *(u8**)(packet + 0x50)) && sys && (player = *(u8**)(sys + 0x1380)))
+        result = fn_8000CCA4(player + 0x6c, owner + 0x6c, out);
+    else result = lbl_8019C5A4[0];
+    return result;
+}
