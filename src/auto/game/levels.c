@@ -108,3 +108,20 @@ void fn_800CF198(void)
     lbl_803ED35C[0].f58 = lbl_801A4F18[0];
     lbl_803ED35C[0].h52 = lbl_803ED35C[0].h52 - 1;
 }
+
+extern void fn_8006DF68(f32);
+extern void fn_8006DEB0(f32);
+
+f32 fn_800B9D44(u8* settings)
+{
+    f32 volume = ((f32)settings[3] / 10.0f) * ((f32)settings[4] / 10.0f);
+    fn_8006DF68(volume);
+    return volume;
+}
+
+f32 fn_800B9DC8(u8* settings)
+{
+    f32 volume = ((f32)settings[2] / 10.0f) * ((f32)settings[4] / 10.0f);
+    fn_8006DEB0(volume);
+    return volume;
+}
