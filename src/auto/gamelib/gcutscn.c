@@ -356,3 +356,42 @@ void NuGCutCharSysDestroy(s32* scene)
     if (lbl_804081C8)
         ((void (*)(s32*))lbl_804081C8)(scene);
 }
+
+typedef struct gcut_float_pair { f32 value; f32 other; } gcut_float_pair;
+typedef struct gcut_float_array { gcut_float_pair* values; } gcut_float_array;
+typedef struct gcut_count8 { u8 pad[8]; u8 count; } gcut_count8;
+void NuGCutLocatorCalcMtx(gcut_float_array* out, gcut_count8* count)
+{
+    u32 i;
+    gcut_float_pair* values;
+    f32* dest;
+    for (i = 0; i < count->count; i++) {
+        values = out->values;
+        *(dest = (f32*)((u32)values + i * 8)) = 0.0f;
+    }
+}
+void NuGCutLocatorIsVisble(gcut_float_array* out, gcut_count8* count)
+{
+    u32 i;
+    gcut_float_pair* values;
+    f32* dest;
+    for (i = 0; i < count->count; i++) {
+        values = out->values;
+        *(dest = (f32*)((u32)values + i * 8)) = 0.0f;
+    }
+}
+
+typedef struct gcut_trigger_byte { u8 value; u8 pad[3]; } gcut_trigger_byte;
+typedef struct gcut_trigger_state { void* unused; gcut_trigger_byte* values; } gcut_trigger_state;
+void fn_800407B0(gcut_instance_view* instance)
+{
+    s32 i;
+    s32* system = (s32*)instance->scene;
+    s32* trigger = (s32*)system[9];
+    gcut_trigger_state* state = *(gcut_trigger_state**)((u8*)instance + 0xac);
+    for (i = 0; i < *trigger; i++) {
+        gcut_trigger_byte* values = state->values;
+        u8* dest;
+        *(dest = (u8*)((u32)values + i * 4)) = 0;
+    }
+}
