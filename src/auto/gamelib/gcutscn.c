@@ -547,7 +547,7 @@ extern s32 lbl_804081E4;
 extern void instNuGCutDebrisLocatorUpdate(gcut_locator_system*, gcut_locator_runtime_item*, gcut_locator_record*, s32, f32);
 void instNuGCutSceneUpdate(gcut_instance_view* instance, gcut_locator_system* system,
                           gcut_locator_runtime_item* item, gcut_locator_record* record,
-                          s32 arg, s32 skip, f32 frame)
+                          f32 frame, s32 arg, s32 skip)
 {
     gcut_locator_event* event = &system->events[record->event];
     if (event->flags & 1) {
@@ -642,6 +642,24 @@ void NuGCutCharAnimProcess(gcut_instance_view* instance, f32 frame)
                 ((void (*)(gcut_instance_view*, gcut_scene_view*, gcut_character_runtime_item*, gcut_character_view*, f32))lbl_804081C0)(instance, scene, item, character, frame);
             if (!lbl_8040810C && lbl_804081BC)
                 ((void (*)(gcut_character_runtime_item*, gcut_character_view*))lbl_804081BC)(item, character);
+        }
+    }
+}
+
+void instNuGCutLocatorSysUpdate(gcut_instance_view* instance, f32 frame, s32 skip)
+{
+    u32 i;
+    gcut_locator_system* system = (gcut_locator_system*)((s32*)instance->scene)[7];
+    gcut_locator_runtime* runtime = *(gcut_locator_runtime**)((u8*)instance + 0xa8);
+    for (i = 0; i < system->count; i++) {
+        gcut_locator_record* record = &system->records[i];
+        if (*((u8*)record + 0x58) & 1) continue;
+        if (*((u8*)record + 0x58) & 2) continue;
+        {
+            if (instance->flags & 0x1000000)
+                instNuGCutSceneUpdate(instance, system, &runtime->items[i], record, frame, (s32)&instance->matrix, skip);
+            else
+                instNuGCutSceneUpdate(instance, system, &runtime->items[i], record, frame, 0, skip);
         }
     }
 }
