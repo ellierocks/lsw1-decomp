@@ -174,3 +174,30 @@ void fn_8006F7E8(u8* dest, s32 remaining)
         }
     }
 }
+
+extern s32 lbl_804087D0;
+extern s32 fn_800059A0(s32, void*, s32);
+extern s32 fn_80005764(s32);
+
+s32 fn_8006F1D8(void)
+{
+    if (lbl_804087CC != -1) {
+        if (lbl_804087D0 && lbl_8040AEF8) {
+            switch (lbl_804087C8) {
+            case 0: break;
+            case 1: fn_800059A0(lbl_804087CC, lbl_803D4680, lbl_8040AEF8);
+            case 2: lbl_8040AEF8 = 0; break;
+            }
+        }
+        switch (lbl_804087C8) {
+        case 1:
+            fn_80005764(lbl_804087CC);
+            lbl_804087CC = -1;
+            lbl_804087C8 = 0;
+            return 1;
+        case 0: return 0;
+        case 2: return 0;
+        }
+    }
+    return 0;
+}
