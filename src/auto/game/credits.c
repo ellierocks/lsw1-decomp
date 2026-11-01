@@ -80,3 +80,33 @@ void fn_80109314(u8* scene)
         }
     }
 }
+
+u8* fn_80108E6C(u8* scene, const char* name)
+{
+    u8* entry = *(u8**)(scene + 0x238);
+    s32 i;
+    if (entry) {
+        for (i = 0; i < *(s32*)(scene + 0x23c); i++) {
+            if (NuStrICmp((char*)entry, name) == 0)
+                return entry;
+            entry += *(u16*)(entry + 0x1c);
+        }
+    }
+    return 0;
+}
+
+u8* fn_80109128(u8* scene, const char* name)
+{
+    u8* entry;
+    s32 i;
+    if (scene) {
+        entry = *(u8**)(scene + 0x248);
+        for (i = 0; i < *(s32*)(scene + 0x24c); i++) {
+            const char* entry_name = *(const char**)entry;
+            if (entry_name && NuStrICmp(name, entry_name) == 0)
+                return entry;
+            entry += *(u16*)(entry + 4);
+        }
+    }
+    return 0;
+}
