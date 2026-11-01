@@ -977,3 +977,28 @@ s32 fn_800407F4(void* events_ptr, gcut_trigger_byte* state, u8* output, f32 fram
     }
     return changed;
 }
+
+extern void fn_80044D0C(void);
+void fn_8003ABC4(gcut_instance_view* instance)
+{
+    s32 flags = instance->flags;
+    instance->flags &= ~0x60000000;
+    instance->flags &= ~0x80000;
+    if (flags & 0x2000) {
+        if (*(s32*)((u8*)instance + 0xa4))
+            ((void (*)(gcut_instance_view*, f32))NuSetCutSceneCharacterRenderFn)(instance, *(f32*)((u8*)instance->scene + 8) - *(f32*)((u8*)instance + 0x94));
+    } else {
+        if (*(s32*)((u8*)instance + 0xa4))
+            ((void (*)(gcut_instance_view*, f32))NuSetCutSceneCharacterRenderFn)(instance, *(f32*)((u8*)instance + 0x94));
+    }
+    if (*(s16*)((u8*)instance + 0xd8)) {
+        if (lbl_80346FFC[*(s8*)((u8*)instance + 0xde)] == *(s16*)((u8*)instance + 0xd8) && fn_80044AE8(*(s8*)((u8*)instance + 0xde)) == *(s16*)((u8*)instance + 0xd8))
+            fn_80044AF0(*(s8*)((u8*)instance + 0xde));
+        if (*(s16*)((u8*)instance + 0xda) && lbl_80346FFC[*(s8*)((u8*)instance + 0xde) + 1] == *(s16*)((u8*)instance + 0xda) && fn_80044AE8(*(s8*)((u8*)instance + 0xde) + 1) == *(s16*)((u8*)instance + 0xda))
+            fn_80044AF0(*(s8*)((u8*)instance + 0xde) + 1);
+        if (!*(u8*)((u8*)instance + 0xde) && (*(s32*)((u8*)instance + 0x8c) & 0x100000)) {
+            fn_80044D0C();
+            *(s32*)((u8*)instance + 0x8c) &= ~0x100000;
+        }
+    }
+}
