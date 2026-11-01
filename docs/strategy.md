@@ -455,6 +455,13 @@ The remaining plateau scores and next hypotheses are retained in the batch PR;
 raw hillclimb and task-pack artifacts stay local. Revisit a function only with a
 new source-shape hypothesis rather than repeating the same permutation space.
 
+#### Unit completion: AI and cutscene
+
+The cutscene unit is being matched from GameCube assembly, smallest functions first.
+Strict function matches remain unpromoted until the entire unit and its sections,
+relocations, and linked retail ranges match. Work on `aisys` and `gameaiscript`
+remains queued behind the cutscene unit. The retail DOL remains the oracle.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
