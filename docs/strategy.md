@@ -298,6 +298,23 @@ Failure modes, in order of cost:
 - **TUs with other flags.** The podrace parks show that not every provisional unit
   compiles with the shared `cflags_prodg`.
 
+#### Game struct headers
+
+The first game-side batch confirms sparse `NUCHARACTERDATA_s`, `NUGAMEOBJECT_s`,
+`NUAPIOBJECT_s`, `NUAIPACKET_s` and `NUAISCRIPTPROCESS_s` in `include/game/`.
+[Layout evidence, access ranking and donor differences](game_structs.md) record
+all confirmed fields. Twelve consumers strictly match: eleven new functions and
+the existing `Condition_Timer` converted to the shared type. Zero parked, zero
+promoted bytes; both units retain unfinished functions and remain NonMatching.
+The DOL remains byte-identical to retail.
+
+The measured active interval is approximately 4 minutes including confirmation,
+search and integration (timestamps in `work/gameheaders_timing.txt`), about 165
+new functions per active hour. This small sample includes simple AI accessors;
+it is not a forecast for larger game functions. Next: the API-object position
+and flag prefix and its relationship to creature objects, character-data extent,
+then pickup and turret structs. Engine headers remain in the parallel lane.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle.
