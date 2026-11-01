@@ -3,8 +3,8 @@
 The first Phase 3 game-header batch uses sparse GC layouts under
 [`include/game`](../include/game). Engine headers remain independently owned.
 Names describe the checked consumers; unknown bytes remain `char unk[N]`.
-Except for the game-object array stride, `sizeof` is only the extent of the
-confirmed view, not an allocation size. Do not use the other views for arrays.
+Only explicitly documented strides or allocation sizes establish full extents;
+other `sizeof` values describe confirmed views and must not be used for arrays.
 
 ## Selection and access ranking
 
@@ -49,7 +49,7 @@ no embedding or cast between `NUGAMEOBJECT_s` and `NUAPIOBJECT_s` is declared.
 
 [`character.h`](../include/game/character.h), `NUCHARACTERDATA_s`: `drawFn`
 at `0x1C`, a function pointer taking the object and returning void, loaded and
-called by the same loop. No total character-data size is established.
+called by the same loop. The GC array stride is `0x48`, established below.
 
 [`apiobject.h`](../include/game/apiobject.h), `NUAPIOBJECT_s`: `stuckTime`
 at `0x1E8`, `lfs` in `Condition_StuckTime` after loading the owner from the packet.
@@ -114,3 +114,88 @@ Strict verification checks the referenced bytes; the two measures stay separate.
 Next: API-object position/flags and its relation to the creature prefix, character
 data extents, then the pickup and turret records; prove each with additional
 consumers before expanding these views.
+
+## Round 2 access ranking
+
+The following counts are discovery ranks: number of functions in each retail
+unit containing a direct load or store at the offset, excluding stack and SDA
+bases. They are upper bounds for a particular struct because register provenance
+was not tracked, and miss indexed or rebased accesses. The field evidence below
+traces the relevant pointers before publishing a type.
+
+| Unit | Direct offsets, descending function count |
+| --- | --- |
+| apiobject | `+0x78` and `+0x20C`: 4 each; `+0x80`, `+0x1F8`, `+0x1FC`, `+0x200`, `+0x204`, `+0x208`, `+0x210`: 3 each; `+0x218`: 2; `+0x7C`, `+0x90`, `+0x1EC`, `+0x1F0`: 1 each |
+| pickups | `+0x39`, `+0x710`: 9 each; `+0x18`: 7; `+0x38`, `+0x122`: 6 each; `+0x1C`: 5; `+0x100`: 4; `+0x2C`, `+0x71C`: 3 each; `+0x734`: 1 |
+| turret | `+0x6E`: 3; `+0x73`: 2; `+0x70`, `+0x74`, `+0xF04`: 1 each |
+
+Character-data accesses were ranked by tracing the object `+0x64` load:
+`+0x20` occurs throughout creature processing; `+0x04` is used in at least
+six functions, and `+0x2C`, `+0x38`, `+0x40`, and `+0x1C` have the
+specific consumers listed below. These are conservative counts.
+
+## Round 2: API-object prefix
+
+The GC collision routines `fn_80090FB0` and `fn_8009083C` use the same
+object view. `fn_80090FB0` reads three floats at `+0x90`, `+0x94`, `+0x98`
+for the collision separation, floats at `+0x1EC` and `+0x1F0` for its
+radius/height calculation, and two 32-bit mask words each at `+0x1F8` and
+`+0x200` (including the adjacent words). `fn_8009083C` reads the 32-bit
+flags at `+0x20C` and reads/writes floats at `+0x78`, `+0x80`, `+0x210`
+and `+0x218`; its typed C strictly matches 84/84 instructions. The middle
+velocity word at `+0x7C` is read by `fn_800902C0`. These facts add the sparse
+`NUAPIOBJECT_s` fields; other bytes remain opaque.
+
+`fn_800A3224` accesses character model and data at `+0x60` and `+0x64`,
+`motionFlags` at `+0x208`, the float at `+0x1E8`, and flags at `+0x20C`
+on the same creature pointer. Together with the matching offsets and the
+collision consumers, this supports a shared prefix. The two types remain
+separate views pending proof of the allocation and embedding relationship.
+OpenSaga's similarly named fields lie at different offsets; GC accesses
+control this layout.
+
+### Character-data view
+
+| Offset | Width | GC access evidence |
+| --- | --- | --- |
+| `0x04` | word flags | `fn_800A2A9C` and `fn_800A3650` load and mask it |
+| `0x1C` | callback pointer | `fn_800AA92C` loads and calls it; strict match retained |
+| `0x20` | pointer | `fn_800A474C` loads it and accesses the pointed-to data |
+| `0x2C` | float | `fn_800A2498` and `fn_800A41D8` use `lfs` |
+| `0x38` | float | `fn_800A39A8` and `fn_800A41D8` use `lfs` |
+| `0x40` | word flags | `fn_800A3650` loads it and combines flag masks |
+
+`fn_800A41D8` multiplies the character index by `0x48`, adds it to the
+character-data array pointer, and stores the result at object `+0x64`
+(`0x800A4224` and `0x800A4274`–`0x800A4280`). `fn_800A55D4` repeats
+that indexing and then dereferences the resulting `+0x20` pointer. This
+establishes a GC array stride of `0x48`; the last four bytes stay opaque.
+OpenSaga uses a `0x4C` record and its callback is at `0x20`, four bytes later
+than GC, so those donor offsets do not transfer.
+
+### Pickup records
+
+`fn_8013C620` iterates six groups, loading pointers at `+0x71C` and
+counts at `+0x734` from the pool and stepping each record by `0x40`. It
+stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
+`fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`. The group
+initialization draft is parked at 41/51: loop register allocation and float
+load placement differ. A 45-second permuter run did not find a match.
+Next, reshape the group loop to preserve the loop index
+in r11 and defer the float load until after the count check.
+
+A separate callback record has a float at `+0x100` and a signed halfword at
+`+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
+Both consumers strictly match. Its full size is unknown. OpenSaga lookup found
+no same-name hits and a pickup search did not establish an equivalent.
+
+### Turret records
+
+`fn_8014068C` aligns and clears an allocation of `0xF08` bytes and stores
+the incoming word at `+0xF04`; its typed allocation consumer strictly matches.
+`fn_801403BC` walks a separate record at stride `0x78`, copying halfwords
+`+0x70` to `+0x6E` and bytes `+0x74` to `+0x73`; `fn_80140504` loads and
+modifies `+0x6E` as a halfword flag field and `+0x73` as a byte counter.
+The relationship between this array and the allocated turret record remains
+unconfirmed. OpenSaga lookup found no same-name hit and a turret search did not
+establish an equivalent.
