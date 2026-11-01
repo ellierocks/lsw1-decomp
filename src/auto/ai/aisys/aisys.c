@@ -441,3 +441,96 @@ f32 Condition_PlayerInTriggerArea(u8* sys, void* process, u8* packet, char* para
     }
     return lbl_8019C5D4[0];
 }
+
+extern f32 fn_8000C038(void);
+extern void NuFParPopCom(void*);
+f32 Condition_Random(void)
+{
+    return fn_8000C038();
+}
+void fn_80083A4C(void* parser)
+{
+    NuFParPopCom(parser);
+}
+
+extern f32 lbl_8019C594[];
+extern f32 lbl_8019C598[];
+extern void* fn_8008F720(void*, char*);
+extern void* fn_8008F7A0(void*, char*);
+extern void* memset(void*, ...);
+
+f32 Condition_CurrentLocatorIs(void* sys, void* process, struct NUAIPACKET_s* packet, char* params, void* locator)
+{
+    if (locator && packet && packet->locator == locator)
+        return lbl_8019C594[0];
+    return lbl_8019C598[0];
+}
+
+void fn_8008F1F0(void* packet)
+{
+    if (packet)
+        memset(packet, 0, 0x134);
+}
+
+void* Condition_CurrentLocatorIsInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_OpponentToLocatorInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_PlayerToLocatorInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_LocatorRangeInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F720(sys, arg);
+    return 0;
+}
+
+void* Condition_InTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_PlayerInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_BaddyInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_GoodyInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
+
+void* Condition_OpponentInTriggerAreaInit(void* sys, char* arg)
+{
+    if (arg)
+        return fn_8008F7A0(sys, arg);
+    return 0;
+}
