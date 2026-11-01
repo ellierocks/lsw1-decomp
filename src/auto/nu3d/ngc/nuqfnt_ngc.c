@@ -45,3 +45,16 @@ void fn_8002BE88(struct nuqfnt_cmd_s* c)
     c->op = 0x87;
     c->arg0 = z;
 }
+
+void fn_8002C240(void)
+{
+}
+
+void fn_8002C320(void)
+{
+}
+
+s32 fn_8002C244(void)
+{
+    return 0;
+}
