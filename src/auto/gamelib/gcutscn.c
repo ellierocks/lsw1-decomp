@@ -561,3 +561,28 @@ void instNuGCutSceneUpdate(gcut_instance_view* instance, gcut_locator_system* sy
         ((void (*)(gcut_locator_system*, gcut_locator_runtime_item*, gcut_locator_record*, s32, s32, f32))lbl_804081E4)(system, item, record, arg, skip, frame);
     }
 }
+
+typedef struct gcut_area_entry { char* name; u8 pad[0x30]; } gcut_area_entry;
+typedef struct gcut_area { u8 pad[8]; s32 count; gcut_area_entry* entries; } gcut_area;
+extern s32 lbl_80155DE8(char*, char*);
+extern char lbl_8019308C[];
+extern char str_NuGCutTriggerSysFixUp_TriggerNotFound[];
+extern void (*fn_80009948(char*, s32))(char*, ...);
+void NuGCutTriggerSysFixUp(s32* scene, s32 area_value)
+{
+    gcut_trigger_system* system = (gcut_trigger_system*)scene[9];
+    gcut_area* area = (gcut_area*)area_value;
+    s32 i, j;
+    for (i = 0; i < system->count; i++) {
+        gcut_trigger_event* event = &system->events[i];
+        for (j = 0; j < area->count; j++) {
+            *(s16*)event = -1;
+            if (lbl_80155DE8((char*)event->name, area->entries[j].name) == 0) {
+                *(s16*)event = j;
+                break;
+            }
+        }
+        if (*(s16*)event == -1)
+            fn_80009948(lbl_8019308C, 0x1345)(str_NuGCutTriggerSysFixUp_TriggerNotFound, event->name);
+    }
+}
