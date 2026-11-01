@@ -66,13 +66,12 @@ void fn_80005BC0(struct nufiledeviceview_s* dev, char* path)
     char* start = path;
     char* src = path;
     char* dst = path;
-    char sep;
 
     while (*src != 0) {
-        if (*src == dev->dirSeparator && src[1] == '.' && src[2] == '.' && (sep = src[3]) == *src) {
+        if (*src == dev->dirSeparator && src[1] == '.' && src[2] == '.' && src[3] == *src) {
             dst = src;
             while (dst > start) {
-                if (*--dst == sep) {
+                if (*--dst == src[3]) {
                     src += 3;
                     break;
                 }
