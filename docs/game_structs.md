@@ -49,7 +49,7 @@ no embedding or cast between `NUGAMEOBJECT_s` and `NUAPIOBJECT_s` is declared.
 
 [`character.h`](../include/game/character.h), `NUCHARACTERDATA_s`: `drawFn`
 at `0x1C`, a function pointer taking the object and returning void, loaded and
-called by the same loop. No total character-data size is established.
+called by the same loop. The GC array stride is `0x48`, established below.
 
 [`apiobject.h`](../include/game/apiobject.h), `NUAPIOBJECT_s`: `stuckTime`
 at `0x1E8`, `lfs` in `Condition_StuckTime` after loading the owner from the packet.
@@ -146,10 +146,13 @@ control this layout.
 | `0x38` | float | `fn_800A39A8` and `fn_800A41D8` use `lfs` |
 | `0x40` | word flags | `fn_800A3650` loads it and combines flag masks |
 
-The confirmed view extends through `0x44`; no allocation size or array stride
-has been established. OpenSaga's `0x4C` character record is not GC size
-proof, and its callback is at `0x20`, four bytes later than GC. Determining
-full extent remains open.
+`fn_800A41D8` multiplies the character index by `0x48`, adds it to the
+character-data array pointer, and stores the result at object `+0x64`
+(`0x800A4224` and `0x800A4274`–`0x800A4280`). `fn_800A55D4` repeats
+that indexing and then dereferences the resulting `+0x20` pointer. This
+establishes a GC array stride of `0x48`; the last four bytes stay opaque.
+OpenSaga uses a `0x4C` record and its callback is at `0x20`, four bytes later
+than GC, so those donor offsets do not transfer.
 
 ### Pickup records
 

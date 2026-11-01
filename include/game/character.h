@@ -17,6 +17,7 @@ struct NUCHARACTERDATA_s {
     f32 value38;
     char unk3C[4];
     u32 flags40;
+    char unk44[4];
 };
 
 #endif
