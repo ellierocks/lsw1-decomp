@@ -132,3 +132,45 @@ u16 fn_8006F63C(void)
     }
     return value;
 }
+
+s8 fn_8006F71C(void)
+{
+    s8 value;
+    u8* dest = (u8*)&value;
+    s32 remaining = 1;
+    do {
+        s32 n = 0x1000 - lbl_8040AEF8;
+        if (n > remaining) n = remaining;
+        memcpy(dest, lbl_803D4680 + lbl_8040AEF8, n);
+        dest += n;
+        remaining -= n;
+        lbl_8040AEF8 += n;
+        if (lbl_8040AEF8 == 0x1000 && lbl_804087CC != -1) {
+            switch (lbl_804087C8) {
+            case 0: break;
+            case 1: NuFileRead(lbl_804087CC, lbl_803D4680, 0x1000);
+            case 2: lbl_8040AEF8 = 0; break;
+            }
+        }
+    } while (remaining > 0);
+    return value;
+}
+
+void fn_8006F7E8(u8* dest, s32 remaining)
+{
+    while (remaining > 0) {
+        s32 n = 0x1000 - lbl_8040AEF8;
+        if (n > remaining) n = remaining;
+        memcpy(dest, lbl_803D4680 + lbl_8040AEF8, n);
+        dest += n;
+        remaining -= n;
+        lbl_8040AEF8 += n;
+        if (lbl_8040AEF8 == 0x1000 && lbl_804087CC != -1) {
+            switch (lbl_804087C8) {
+            case 0: break;
+            case 1: NuFileRead(lbl_804087CC, lbl_803D4680, 0x1000);
+            case 2: lbl_8040AEF8 = 0; break;
+            }
+        }
+    }
+}
