@@ -1412,3 +1412,67 @@ void fn_8003AEA4(gcut_instance_view* instance)
         }
     }
 }
+
+extern void NuMtxGetScale(f32*, gcut_matrix*);
+void fn_8003E6EC(u8* object, gcut_matrix* matrix, s32* visible, s32* id, f32* x, f32* y, f32* z, s32* extra)
+{
+    gcut_anim* anim = *(gcut_anim**)(object + 0x44);
+    f32* values = fn_8001BFC4(anim, 0);
+    u8 flags = **(u8**)((u8*)anim + 0x34);
+    u16 count = *(u16*)((u8*)anim + 0xc);
+    s32 rotation[9];
+    f32 scale[3];
+    if (count > 6)
+        *visible = (s32)(values[6] + 0.1f);
+    else
+        *visible = object[0x5c] & 1;
+    if (id) {
+        if (*(u16*)((u8*)anim + 0xc) > 7)
+            *id = (s32)(values[7] + 0.5f);
+        else
+            *id = object[0x5d];
+        if (z && *id && *id != 0xff) {
+            if (*(u16*)((u8*)anim + 0xc) > 10)
+                *z = values[10];
+            else
+                *z = (s8)object[0x63];
+        }
+    }
+    if (*visible) {
+        if (extra) {
+            if (*(u16*)((u8*)anim + 0xc) > 11)
+                *extra = (s32)values[11];
+            else
+                *extra = -1;
+        }
+        if (flags & 1) {
+            rotation[6] = (s32)(values[3] * 10430.3779296875f);
+            rotation[7] = (s32)(values[4] * 10430.3779296875f);
+            rotation[8] = (s32)(values[5] * 10430.3779296875f);
+            fn_8000D010(matrix, &rotation[6]);
+        } else {
+            fn_8000DC10(matrix);
+        }
+        NuMtxTranslate(matrix, values);
+        matrix->m[2] = -matrix->m[2];
+        matrix->m[6] = -matrix->m[6];
+        matrix->m[8] = -matrix->m[8];
+        matrix->m[9] = -matrix->m[9];
+        matrix->m[11] = -matrix->m[11];
+        matrix->m[14] = -matrix->m[14];
+        NuMtxGetScale(scale, (gcut_matrix*)object);
+        NuMtxPreScale(matrix, scale);
+        if (x) {
+            if (*(u16*)((u8*)anim + 0xc) > 9)
+                *x = values[9];
+            else
+                *x = *(f32*)(object + 0x58);
+        }
+        if (y) {
+            if (*(u16*)((u8*)anim + 0xc) > 8)
+                *y = values[8];
+            else
+                *y = object[0x61];
+        }
+    }
+}
