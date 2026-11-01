@@ -885,3 +885,35 @@ gcut_character_runtime* instNuCGutCharSysCreate(s32* scene, u32* memory)
     }
     return result;
 }
+
+extern s32 fn_800131B8(gcut_rigid_runtime_item*);
+extern void instNuGCutRigidSysEnd(gcut_rigid_view*, f32, gcut_matrix*);
+extern void fn_8000D134(gcut_matrix*, gcut_matrix*, gcut_matrix*);
+void instNuGCutRigidSysStart(gcut_instance_view* instance, f32 frame)
+{
+    gcut_rigid_system* system = (gcut_rigid_system*)((s32*)instance->scene)[5];
+    gcut_rigid_runtime* runtime = *(gcut_rigid_runtime**)((u8*)instance + 0xa0);
+    u8 visible;
+    gcut_matrix matrix;
+    s32 i;
+    for (i = 0; i < system->count; i++) {
+        gcut_rigid_view* rigid = &system->rigids[i];
+        gcut_rigid_runtime_item* item = &runtime->items[i];
+        if (*((u8*)rigid + 0x58) & 4) {
+          if (!(*((u8*)rigid + 0x58) & 2)) {
+            if (rigid->state && fn_800407F4(rigid->state, (gcut_trigger_byte*)&item->a, &visible, frame)) {
+                if (visible)
+                    fn_80013200(item, 1);
+                else
+                    fn_80013200(item, 0);
+            }
+            if (fn_800131B8(item)) {
+                instNuGCutRigidSysEnd(rigid, frame, &matrix);
+                if (instance->flags & 0x1000000)
+                    fn_8000D134(&matrix, &matrix, &instance->matrix);
+                fn_80013454(item, (gcut_rigid_view*)&matrix);
+            }
+          }
+        }
+    }
+}
