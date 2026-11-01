@@ -56,3 +56,15 @@ s32 fn_80071B78(s32 index, f32 a, f32 b)
     }
     return 0;
 }
+
+s32 fn_80071C04(s32 index, struct RtlVec* a, struct RtlVec* b)
+{
+    u8* p;
+    if (lbl_804087D8 && index >= 0 && index < lbl_804087DC &&
+        (p = fn_80040DE8(lbl_804087D8, index)) && (a || b)) {
+        if (a) *(struct RtlVec*)(p + 0x24) = *a;
+        if (b) *(struct RtlVec*)(p + 0x30) = *b;
+        return 1;
+    }
+    return 0;
+}
