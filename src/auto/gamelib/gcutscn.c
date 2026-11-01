@@ -586,3 +586,26 @@ void NuGCutTriggerSysFixUp(s32* scene, s32 area_value)
             fn_80009948(lbl_8019308C, 0x1345)(str_NuGCutTriggerSysFixUp_TriggerNotFound, event->name);
     }
 }
+
+typedef struct gcut_area_flag { u8 pad[2]; u8 flags; u8 pad3; } gcut_area_flag;
+typedef struct gcut_trigger_scene { u8 pad[12]; gcut_area_flag* flags; } gcut_trigger_scene;
+typedef struct gcut_trigger_runtime { gcut_trigger_scene* scene; gcut_trigger_byte* states; } gcut_trigger_runtime;
+extern s32 fn_800407F4(void*, gcut_trigger_byte*, u8*, f32);
+void fn_8003EF38(gcut_instance_view* instance)
+{
+    gcut_trigger_system* system = (gcut_trigger_system*)((s32*)instance->scene)[9];
+    gcut_trigger_runtime* runtime = *(gcut_trigger_runtime**)((u8*)instance + 0xac);
+    s32 i;
+    for (i = 0; i < system->count; i++) {
+        u8 value;
+        gcut_trigger_event* event = &system->events[i];
+        gcut_trigger_byte* state = &runtime->states[i];
+        state->value = 0;
+        if (fn_800407F4(event->anim, state, &value, 1.0f)) {
+            if (value)
+                runtime->scene->flags[*(s16*)event].flags |= 1;
+            else
+                runtime->scene->flags[*(s16*)event].flags &= ~1;
+        }
+    }
+}
