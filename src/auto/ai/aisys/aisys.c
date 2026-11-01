@@ -767,3 +767,39 @@ void fn_800838EC(u8* process, u8* script)
         } else *(void**)(process + 0xc) = state;
     }
 }
+
+
+extern f32 lbl_8019C5D8[], lbl_8019C5DC[];
+f32 Condition_Player2InTriggerArea(u8* sys, void* process, u8* packet, char* params, u8* inputArea)
+{
+    u8* area = 0;
+
+    if (sys != 0 && *(u8**)(sys + 0x1384) != 0) {
+        if (inputArea != 0) {
+            area = inputArea;
+        } else if (packet != 0) {
+            area = *(u8**)(packet + 0xf8);
+        }
+        if (area != 0) {
+            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, (*(u8**)(sys + 0x1384))[0x291])) != 0) {
+                return lbl_8019C5D8[0];
+            }
+        }
+    }
+    return lbl_8019C5DC[0];
+}
+
+extern f32 lbl_8019C5BC[], lbl_8019C5C0[];
+f32 Condition_EitherPlayerInLevelNode(u8* sys, void* process, void* packet, char* params, struct ai_level_node* node)
+{
+    u8* player;
+    if (sys && node) {
+        player = *(u8**)(sys + 0x1380);
+        if (player && *(s16*)(*(u8**)(player + 4) + 0xa0) == node - *(struct ai_level_node**)(*(u8**)(*(u8**)(sys + 0xc) + 8) + 0x78))
+            return lbl_8019C5BC[0];
+        player = *(u8**)(sys + 0x1384);
+        if (player && *(s16*)(*(u8**)(player + 4) + 0xa0) == node - *(struct ai_level_node**)(*(u8**)(*(u8**)(sys + 0xc) + 8) + 0x78))
+            return lbl_8019C5BC[0];
+    }
+    return lbl_8019C5C0[0];
+}
