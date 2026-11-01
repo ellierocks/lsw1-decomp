@@ -895,3 +895,108 @@ f32 Condition_InterruptID(void* sys, u8* process)
     if (process) return (f32)process[0x45];
     return lbl_8019C670[0];
 }
+
+f32 Condition_OpponentToLocatorY(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* opponent;
+    u8* locator;
+    if (packet && (opponent = *(u8**)(packet + 0x64))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) return *(f32*)(opponent + 0x70) - *(f32*)(locator + 0x14);
+    }
+    return lbl_8019C650[0];
+}
+
+f32 Condition_LocatorRange(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x50))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CCA4(packet + 0x100, locator + 0x10, out);
+        else result = lbl_8019C578[0];
+    } else result = lbl_8019C578[0];
+    return result;
+}
+
+f32 Condition_LocatorRangeXZ(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x50))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CD68(packet + 0x100, locator + 0x10, out);
+        else result = lbl_8019C57C[0];
+    } else result = lbl_8019C57C[0];
+    return result;
+}
+
+f32 Condition_OpponentToLocator(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x64))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CCA4(object + 0x6c, locator + 0x10, out);
+        else result = lbl_8019C648[0];
+    } else result = lbl_8019C648[0];
+    return result;
+}
+
+f32 Condition_OpponentToLocatorXZ(void* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* object;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && (object = *(u8**)(packet + 0x64))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CD68(object + 0x6c, locator + 0x10, out);
+        else result = lbl_8019C64C[0];
+    } else result = lbl_8019C64C[0];
+    return result;
+}
+
+extern f32 lbl_8019C658[];
+f32 Condition_NearestPlayerToLocator(u8* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    f32 distance = lbl_8019C658[0];
+    f32 out[3];
+    if (packet && sys) {
+        u8* locator;
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) {
+            u8* player = *(u8**)(sys + 0x1380);
+            if (player) distance = fn_8000CD08(player + 0x6c, locator + 0x10, out);
+            player = *(u8**)(sys + 0x1384);
+            if (player) {
+                f32 other = fn_8000CD08(player + 0x6c, locator + 0x10, out);
+                if (other < distance) distance = other;
+            }
+        }
+        if (distance != lbl_8019C658[0]) distance = NuFsqrt(distance);
+    }
+    return distance;
+}
+extern f32 lbl_8019C654[];
+f32 Condition_PlayerToLocator(u8* sys, void* process, u8* packet, char* params, u8* inputLocator)
+{
+    u8* player;
+    u8* locator;
+    f32 out[3], result;
+    if (packet && sys && (player = *(u8**)(sys + 0x1380))) {
+        if (inputLocator) locator = inputLocator;
+        else locator = *(u8**)(packet + 0xfc);
+        if (locator) result = fn_8000CCA4(player + 0x6c, locator + 0x10, out);
+        else result = lbl_8019C654[0];
+    } else result = lbl_8019C654[0];
+    return result;
+}
