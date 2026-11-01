@@ -823,3 +823,16 @@ f32 Condition_NearestPlayerRange(u8* sys, void* process, u8* packet)
     }
     return distance;
 }
+extern f32 lbl_8019C5E0[], lbl_8019C5E4[];extern void (*fn_80009948(char*, int))(char*, ...);
+extern char lbl_8019C6DC[], str_AISysBufferAlloc_LevelBufferTooSmall[], str_AISysBufferAlloc_NoBuffer[];
+void* fn_8008F0C8(u32* current, u32* end, u32 size)
+{
+    u32 result = 0;
+    if (current && end) {
+        if (*current + size < *end) {
+            result = (*current + 15) & ~15;
+            *current = result + size;
+        } else fn_80009948(lbl_8019C6DC, 0x3bd)(str_AISysBufferAlloc_LevelBufferTooSmall);
+    } else fn_80009948(lbl_8019C6DC, 0x3c1)(str_AISysBufferAlloc_NoBuffer);
+    return (void*)result;
+}
