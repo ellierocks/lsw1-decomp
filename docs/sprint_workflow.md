@@ -18,11 +18,13 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
   pair, setters, loop-per-parameter actions) beat unrelated bodies: draft one, then reuse
   its structure. Aim for 0x100 to 0x300 bytes per function; tiny accessors add few bytes
   and large unique bodies tend to plateau.
-- **Check open PRs first.** `--by-unit` asks `gh` for open `t3/sprint-*` PRs and skips the
-  units they own (`--no-remote` turns that off), and it lists units with 10 or fewer
-  functions left first (marked `*`). Branch names must follow `t3/sprint-<unit-leaf>` for
-  that to work. `work/` claim markers are local to each worktree, so other threads
-  cannot see them.
+- **Check active sprints first.** Run `git fetch` first. `--by-unit` then skips units owned by an open
+  `t3/sprint-*` PR (asked through `gh`; `--no-remote` turns that off) or by any local or
+  `origin` sprint branch not yet merged into `origin/main`. That covers a sprint that has
+  been pushed but has no PR yet. Units with 10 or fewer functions left are listed first
+  (marked `*`). Branch names must follow `t3/sprint-<unit-leaf>` and be pushed early for
+  this to work. `work/` claim markers are local to each worktree, so other threads cannot
+  see them.
 - **Headers come with their consumers.** Add a shared-header field only when a function
   in the queue reads or writes it, and confirm it in the same sprint. Keep everything else
   as `char unk[N]` or a local view. A sprint that only changes headers matches nothing.
@@ -48,6 +50,7 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 | Step | Limit |
 |---|---|
 | Draft: `tools/draft_fn.py NAME` for an m2c start, then fast `score_fn.py` attempts | 8 attempts without improvement |
+| Each attempt: `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, and writes it into the unit only on a strict MATCH |
 | `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
 | `order_search.py`, if only the order differs | one run |
 | Permuter, only at about 90% exact or better | one run of at most 180 s (`timeout 180`) |

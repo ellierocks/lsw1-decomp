@@ -99,8 +99,21 @@ def squash(text: str) -> str:
 
 
 def sprint_branches(remote: bool = True) -> set[str]:
-    """Names (without the `t3/sprint-` prefix) of open sprint PR branches, excluding the current one."""
+    """Names (without the `t3/sprint-` prefix) of active sprint branches, excluding the current one.
+
+    Active means an open PR (via `gh`) or a local/`origin` sprint branch not yet merged into
+    origin/main: a sprint that is pushed but has no PR yet, or lives in another local worktree,
+    still owns its unit. Run `git fetch` first for an up-to-date view of other machines.
+    """
     heads: set[str] = set()
+    try:
+        out = subprocess.run(["git", "branch", "-a", "--no-merged", "origin/main", "--format=%(refname:short)",
+                              "--list", SPRINT_PREFIX + "*", "origin/" + SPRINT_PREFIX + "*"],
+                             cwd=ROOT, capture_output=True, text=True, timeout=15)
+        if out.returncode == 0:
+            heads.update(h.removeprefix("origin/") for h in out.stdout.split())
+    except (OSError, subprocess.TimeoutExpired):
+        pass
     if remote:
         try:
             out = subprocess.run(["gh", "pr", "list", "--state", "open", "--json", "headRefName",
@@ -235,11 +248,13 @@ def main(argv=None) -> int:
     if args.json:
         print(json.dumps(rows, indent=2))
         return 0
-    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<18}{'source':<28}{'saga':<14}state")
+    uw = max([18] + [len(r["unit"]) + 2 for r in rows])
+    sw = max([28] + [len(r["source"] or "(new file)") + 2 for r in rows])
+    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<{uw}}{'source':<{sw}}{'saga':<14}state")
     for r in rows:
         state = "claimed" if r["claimed"] else ("attempted" if r["attempts"] else "ready")
-        print(f"{r['name']:<22}{r['address']:<12}{r['size']:>#6x} {r['callees']:>7}  {r['unit']:<18}"
-              f"{(r['source'] or '(new file)'):<28}{r['opensaga']['result']:<14}{state}")
+        print(f"{r['name']:<22}{r['address']:<12}{r['size']:>#6x} {r['callees']:>7}  {r['unit']:<{uw}}"
+              f"{(r['source'] or '(new file)'):<{sw}}{r['opensaga']['result']:<14}{state}")
     if rows:
         top = rows[0]
         src = top["source"] or f"src/{top['unit']}.c"
