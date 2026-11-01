@@ -223,3 +223,19 @@ void fn_8006EBC4(u8* item, s32 x, s32 y, s32 w, s32 h)
         fn_80027694(c, y, x + w, y + h, *(u32*)(item + 0x24), lbl_802C4EC8[lbl_80408758]);
     }
 }
+
+extern s32 lbl_804087E0;
+extern char lbl_801990A8[], lbl_801990D0[];
+extern void* fn_80040B4C(s32, s32, void*, void*, s32);
+extern void (*fn_80009948(char*, s32))();
+
+s32 fn_80071E0C(void* arg, s32* data, s32 count)
+{
+    s32 local = *data;
+    lbl_804087D8 = fn_80040B4C(count, 0x8c, arg, &local, 0x10);
+    if (!lbl_804087D8)
+        (*fn_80009948(lbl_801990A8, 0x26f))(lbl_801990D0, count);
+    lbl_804087E0 = 0;
+    lbl_804087DC = count;
+    return count;
+}
