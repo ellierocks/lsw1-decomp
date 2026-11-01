@@ -18,6 +18,11 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
   Read `donor_evidence.md` and record `hillclimb.py try --donor-note` once per
   target/donor revision; retain accepted facts, rejected transfers or an explicit
   no-hit/unavailable limit in the PR or plateau handoff.
+- Binary evidence: [Ghidra and REA](docs/research.md#ghidra-and-rea). Read
+  `work/NAME/ghidra.c` (from `draft_fn.py`) next to the m2c draft for control flow,
+  loops and switches. Before adding a header field or naming a global, run
+  `ghidra_decompile.py xrefs` on it. Use REA's MCP tools for callers, strings and data
+  tables. Skip both for paired-single code and confirm everything against target assembly.
 - Naming and research: [research](docs/research.md); check rejected renames first.
   [Nu2](docs/nu2_engine_reference.md), [menus](docs/menu_system.md) and
   [scripts](docs/scripts.md) hold subsystem evidence. Confirm donor types against LSW1 accesses.

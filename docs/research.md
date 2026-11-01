@@ -117,8 +117,8 @@ Both are optional control-flow references; the matching build needs neither. The
 output is never matching source, and it stays local because it is derived from the retail
 binary. Write C against the target assembly and verify it with ProDG.
 
-**Setup, once per checkout (about 50 s).** Ghidra 12.1 from PATH, `GHIDRA_INSTALL_DIR`
-or `/opt/ghidra`:
+**Setup, once per checkout (about 50 s).** `tools/bootstrap.sh` runs it when Ghidra 12.1 is
+on PATH, in `GHIDRA_INSTALL_DIR` or in `/opt/ghidra` (`LSW1_NO_GHIDRA=1` skips it):
 
 ```sh
 python3 tools/ghidra_decompile.py setup     # symbolized ELF + headless import + analysis
@@ -136,13 +136,15 @@ project paths that contain a `.`-prefixed element such as `.claude/worktrees`.
 
 ```sh
 python3 tools/ghidra_decompile.py decompile FN1 FN2 0x801486FC   # one JVM, work/FN/ghidra.c
-python3 tools/draft_fn.py NAME --ghidra                           # m2c draft + Ghidra view
+python3 tools/draft_fn.py NAME                                   # m2c draft + ghidra.c if missing
 python3 tools/ghidra_decompile.py xrefs lbl_80407A5C 0x80200080   # READ/WRITE sites by function
 python3 tools/ghidra_decompile.py sync                            # after symbols.txt changes
 ```
 
 `decompile` re-applies names automatically when `symbols.txt` has changed since the last
-sync. A Ghidra GUI holding the project open locks it; close the GUI first.
+sync. `draft_fn.py` writes `work/NAME/ghidra.c` whenever the project exists and the file
+is missing; `--ghidra` regenerates it and `--no-ghidra` skips it. A Ghidra GUI holding the
+project open locks it; close the GUI first.
 
 **REA (interactive).** The `rea` MCP server uses the same Ghidra install. Open the ELF that
 `status` prints with `open_binary` (`provider_id: "ghidra"`). The first query imports and

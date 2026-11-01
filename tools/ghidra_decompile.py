@@ -264,6 +264,14 @@ def check_location() -> None:
 
 
 def cmd_setup(args) -> int:
+    if args.if_missing:  # bootstrap: never fail the toolchain setup over an optional reference
+        if project_ready():
+            return 0
+        try:
+            find_analyze_headless()
+        except SystemExit:
+            print("note: Ghidra not installed; skipping the reference project (docs/research.md#ghidra-and-rea)")
+            return 0
     check_location()
     ensure_elf(force=True)
     if project_ready() and not args.force:
@@ -361,6 +369,8 @@ def main(argv=None) -> int:
     p.set_defaults(func=cmd_elf)
     p = sub.add_parser("setup", help="write the ELF, import and analyse it")
     p.add_argument("--force", action="store_true", help="discard and re-import an existing project")
+    p.add_argument("--if-missing", action="store_true",
+                   help="do nothing if the project exists or Ghidra is not installed (bootstrap)")
     p.add_argument("--analysis-timeout", type=int, default=1800, help="seconds")
     p.add_argument("--max-cpu", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     p.set_defaults(func=cmd_setup)

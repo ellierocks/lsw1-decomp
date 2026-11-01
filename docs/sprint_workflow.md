@@ -38,9 +38,10 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
    queue in the first message of the thread.
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
    to record the objdiff figures, the strict-only count and the DOL hash.
-4. Optional, about a minute: `python3 tools/ghidra_decompile.py setup`, then
-   `python3 tools/ghidra_decompile.py decompile FN1 ... FN10` writes `work/FN/ghidra.c` for
-   the queue in one run ([Ghidra and REA](research.md#ghidra-and-rea)).
+4. Run `python3 tools/ghidra_decompile.py decompile FN1 ... FN10` to write `work/FN/ghidra.c`
+   for the queue in one run, and read it next to each m2c draft. The bootstrap creates the
+   project; if `status` says it is missing, run `setup` first (about a minute). See
+   [Ghidra and REA](research.md#ghidra-and-rea).
 
 Do not read the batch history or the whole C matching guide up front. When a mismatch
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)

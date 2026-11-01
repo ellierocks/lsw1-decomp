@@ -388,6 +388,17 @@ first `hillclimb.py try`; retain that review in the PR or plateau handoff.
 Donor names and generated caller labels are hypotheses; check current evidence
 and rejected renames before using them as semantic facts.
 
+## Reference decompiles
+
+`tools/draft_fn.py {name}` writes `draft_m2c.c` and, when the Ghidra project exists,
+`ghidra.c`. Read both before drafting: m2c keeps the register and offset shape, while Ghidra
+shows named globals, loops and switches. Neither is matching source.
+- Before adding a struct field or naming a global, run
+  `python3 tools/ghidra_decompile.py xrefs <global>` and check the other READ/WRITE sites.
+- For callers, strings or data tables, use the REA MCP server (`open_binary` on the ELF that
+  `tools/ghidra_decompile.py status` prints, `provider_id: "ghidra"`).
+- Paired-single code (`psq_l`, `ps_*`) decompiles to `halt_baddata`; read the assembly.
+
 ## Constraints
 
 - Match the original SN Systems ProDG for GameCube (Gekko) compiler output exactly.
