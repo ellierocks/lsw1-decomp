@@ -436,3 +436,77 @@ s32 fn_800076E4(char* a, char* b, s32 n)
     } while (ca != 0 && cb != 0 && n != 0);
     return 0;
 }
+
+f32 fn_800077E8(char* s)
+{
+    f32 value = 0.0f;
+    f32 div = 1.0f;
+    s8 c = *s;
+    s++;
+    if (c == '-') {
+        div = -1.0f;
+        c = *s;
+        s++;
+    }
+    while (c >= '0' && c <= '9') {
+        value = value * 10.0f + (c - '0');
+        c = *s;
+        s++;
+    }
+    if (c == '.') {
+        c = *s;
+        s++;
+        while (c >= '0' && c <= '9') {
+            div = div * 10.0f;
+            value = value * 10.0f + (c - '0');
+            c = *s;
+            s++;
+        }
+    }
+    return value / div;
+}
+
+void (*fn_80009970(char* file, s32 line))();
+extern char lbl_8018D88C[];
+extern char str_NuHexStringToI_InvalidCharacter[];
+
+s32 NuHexStringToI(u8* s)
+{
+    s32 value = 0;
+    while (*s != 0) {
+        u8 c = NuToUpper(*s);
+        value <<= 4;
+        if ((u32)(c - '0') <= 9) {
+            value |= c - '0';
+        } else if ((u32)(c - 'A') <= 5) {
+            value |= c - 'A' + 10;
+        } else {
+            (*fn_80009970(lbl_8018D88C, 0x1E5))(str_NuHexStringToI_InvalidCharacter);
+            return 0;
+        }
+        s++;
+    }
+    return value;
+}
+
+void (*fn_80009948(char* file, s32 line))();
+extern char lbl_8018D910[];
+
+u8* fn_800081CC(u16* dst, u8* src)
+{
+    u16 c[3];
+    c[0] = *src++;
+    if (c[0] < 0x80) {
+        *dst = c[0];
+    } else if ((c[0] & 0xE0) == 0xC0) {
+        c[1] = *src++;
+        *dst = ((c[0] & 0x1F) << 6) | (c[1] & 0x3F);
+    } else if ((c[0] & 0xF0) == 0xE0) {
+        c[1] = *src++;
+        c[2] = *src++;
+        *dst = ((c[0] & 0xF) << 12) | ((c[1] & 0x3F) << 6) | (c[2] & 0x3F);
+    } else {
+        (*fn_80009948(lbl_8018D88C, 0x5D5))(lbl_8018D910);
+    }
+    return src;
+}

@@ -388,3 +388,53 @@ The next structs to confirm are:
   `nugscn` loaders;
 - the `numtl_s` GX state (0x00..0xA4);
 - the nufile slot and device structs in `nufile_1`, which needs a configure entry.
+
+## Mid-size batch A
+
+Batch A (`t3/phase3-mid-batch-a`, engine lane `auto/nucore`, `auto/numath`, `auto/nu3d`,
+`auto/nungc`, `auto/nusound3`) strictly verified 41 functions totaling 10,468 bytes
+(`verify_fn.py --build --strict-symbols`; 36 are in the 0x80 to 0x300 target band). They
+are 8 in `nugraph_4`, 19 in `nugraph_1`/`nugraph_3`, 11 in `nutrig` and 3 in
+`nustring`. All 41 were rechecked after rebasing; the whole image has zero differing
+bytes. No unit was promoted: each touched unit still has an unmatched function, and
+the float literals land in the object's anonymous `.rodata`, which `auto/` units do not
+own.
+
+The objdiff report moved only from 1,403 to 1,417 functions and from 199,716 to
+202,080 code bytes after the rebase. It scores float-literal functions at 97 to
+99.9% because their relocations target the unit's `.rodata` rather than the retail
+`lbl_8018E...` symbols; earlier verified functions such as `NuRandIntSeeded` show
+the same gap. Strict verification is the oracle. The report will catch up only once
+literal ownership is resolved.
+
+`work/midA_timing.txt` gives about 43 active minutes, with gaps over 15 minutes
+removed. That is a lower bound, because some `fn_8000B518` search time fell inside an
+excluded gap. The rate is therefore roughly 40 to 58 functions and 10,000 to 14,700
+strict bytes per active hour. Most targets were self-contained float math with 0 to
+4 callees, so expect less on struct-heavy code. Two permuter runs gave one zero hit
+(50%). Parked: `fn_8000D4DC` at 188/230, register allocation only, after the
+permuter ran 15 minutes and 27,183 iterations; `fn_8000BDD0` at 21/40. Skipped as
+out of budget or lacking a confirmed struct: `NuStrCatW` and `nuheap`'s
+`fn_80008A60`. OpenSaga had no name hits; every body was read from GC assembly.
+
+Useful observations:
+
+- **Per-component static inline helpers.** The quaternion spline bodies
+  (`fn_8000B5F4`, `fn_8000B8CC`) matched once each component was an inline call of
+  four scalars. The helper's statement order also fixed `.rodata` literal order.
+  A manually unrolled loop plateaued at 96/140.
+- **Inline helpers as scheduling hints.** `fn_8000B518` was stuck at 54/55 on
+  one `fsubs` slot. The permuter's hint was to route products through an inline
+  helper. A clean `q[i] * q[j]` helper matched.
+- **Store order follows column-major source.** The quaternion-to-matrix stores
+  matched when written `_00, _10, _20, _01, ...`. Chained zero stores emit the head
+  first, then the chain in reverse.
+- **Compare shapes.** `!(b < 0.0f)` gives a plain `bge`, but `>=` gives `cror`.
+  `(u32)(c - '0') <= 9` gives a bare `cmplwi`, while a `u8` cast adds `clrlwi`.
+  Single-exit or ternary returns avoid `mfcr` store-flag code.
+- **Register choice.** Reuse a variable (`len = NuFdiv(1.0f, len)`), or use a
+  fresh result local before a cast return, to get the retail FPR. Flat `m[i * 4 + j]`
+  indexing reproduces retail address arithmetic where `[i][j]` does not.
+- **Misnamed symbols.** `NuASin` computes cos, `NuAngDiff` sin, `NuMtxMulR` matrix
+  to quaternion, `NuMtlGet3dBuffer` closest points between lines, and
+  `NuTexSetTexture` a vec4 by matrix product. Names were left unchanged.
