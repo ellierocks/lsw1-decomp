@@ -92,7 +92,8 @@ and never print the key in logs. Rotation steps are in
 
 ## Matching evidence
 
-C matching sessions follow the bounded [matching loop](code_matching_workflow.md#measure-and-iterate). PRs
+C matching sessions follow the bounded [matching loop](code_matching_workflow.md#measure-and-iterate).
+Phase 3 sprint PRs use the [sprint template](sprint_workflow.md#records). PRs
 retain the baseline, best attempt, target addresses and exact verification
 commands, promoted bytes and remaining limits. Local experiment snapshots stay
 under ignored `work/`; include a

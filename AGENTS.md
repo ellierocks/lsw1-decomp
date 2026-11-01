@@ -7,7 +7,10 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 
 ## Task routing
 
-- Start with [strategy](docs/strategy.md) for the current phase; update it when a phase step lands.
+- Start with [strategy](docs/strategy.md) for the current phase; update it when the plan changes.
+- Phase 3 game/Nu2 matching runs as one-unit [sprints](docs/sprint_workflow.md): one
+  thread, at most 10 queued functions, one PR, no workers. Its kickoff, budget and
+  PR template replace per-batch strategy sections and timing files.
 - Matching: follow the [quickstart](docs/matching_quickstart.md) for bootstrap,
   target selection, scoring and handoff, and [C matching](docs/code_matching_workflow.md)
   for strict verification and promotion. SDK work uses [SDK import](docs/sdk_import.md#importing-a-unit-quickly).
