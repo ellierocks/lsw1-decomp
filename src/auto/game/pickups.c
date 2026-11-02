@@ -91,10 +91,10 @@ void fn_8013F050(s32 value)
 
 struct PickupMtx { f32 m[16]; };
 struct PickupVec { f32 x, y, z; };
-struct PickupLevelView { char unk0[0x19C]; s32 mode19C; };
+struct PickupGlobalView { char unk0[0x19C]; s32 mode19C; };
 extern f32 lbl_801AEC68[];
 extern f32 lbl_801AEC6C[];
-extern struct PickupLevelView* lbl_80409410;
+extern struct PickupGlobalView* lbl_80409410;
 extern f32 lbl_80409A10;
 extern f32 lbl_80409A1C;
 extern f32 lbl_80409A20;
