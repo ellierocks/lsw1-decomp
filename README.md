@@ -19,8 +19,8 @@ A work-in-progress decompilation of **LEGO Star Wars: The Video Game** for the N
 
 | Measure | Matched | Total | Progress |
 |---------|---------|-------|----------|
-| Code bytes | 224,084 | 1,569,652 | 14.28% |
-| Functions | 1,558 | 4,153 | 37.52% |
+| Code bytes | 224,364 | 1,569,652 | 14.29% |
+| Functions | 1,559 | 4,153 | 37.54% |
 
 **Symbol naming** (`config/GL5E4F/symbols.txt`):
 
