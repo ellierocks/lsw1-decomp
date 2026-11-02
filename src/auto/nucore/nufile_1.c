@@ -84,4 +84,3 @@ s32 NuFileBeginBlkRead(s32 file, s32 tag)
         fn_80009948(lbl_8018CB9C, 0xa3c)(str_NuFileBeginBlkRead_BlockHeaderMismatch);
     return lbl_801FD080[index].tag;
 }
-
