@@ -32,6 +32,16 @@ class SweepRewriteTest(unittest.TestCase):
                          "        lbl_X = 0xA;\n    }\n}\n")
         self.assertEqual(sweep.store_in_arms("x = 1;\n"), "x = 1;\n")
 
+    def test_const_rodata(self):
+        sweep._RODATA = {"lbl_801A4C2C"}
+        try:
+            out = sweep.const_rodata("extern f32 lbl_801A4C2C[];\nextern f32 lbl_8040A6BC[];\n"
+                                     "extern const f32 lbl_801A4C2C[];\n")
+        finally:
+            sweep._RODATA = None
+        self.assertEqual(out, "extern const f32 lbl_801A4C2C[];\nextern f32 lbl_8040A6BC[];\n"
+                              "extern const f32 lbl_801A4C2C[];\n")
+
     def test_fold_cror(self):
         asm = ("\tfcmpu cr0, f0, f31\n\tcror un, eq, lt\n\tbns .L_1\n"
                "\tfcmpu cr0, f1, f2\n\tcror un, eq, gt\n\tbsolr\n")

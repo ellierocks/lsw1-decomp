@@ -1934,3 +1934,63 @@ void fn_800CF1BC(void) {
         fn_80105500(lbl_80409410, (s8) (*(u8 *)((s8 *)(temp_r3) + (0x71))), 0, 0);
     }
 }
+
+void fn_8000CBF4(void *, void *, void *, void *);
+f32 fn_8000CCA4(void *, void *, s32);
+extern f32 lbl_801A4C28[];
+extern const f32 lbl_801A4C2C[];
+
+void fn_800C9490(void) {
+    struct lbl_80409410_240_s *a;
+    s32 i;
+    f32 d;
+    char *pts;
+
+    a = lbl_80409410->unk240;
+    if (a != NULL) {
+        for (i = 0; i < lbl_80409410->unk244; i++, a++) {
+            pts = a->spl->pts;
+            NuVecAdd(&a->centre, (struct nuvec_s *)pts, (struct nuvec_s *)(pts + a->spl->ptsize));
+            NuVecAdd(&a->centre, &a->centre, (struct nuvec_s *)(a->spl->pts + a->spl->ptsize * 2));
+            NuVecAdd(&a->centre, &a->centre, (struct nuvec_s *)(a->spl->pts + a->spl->ptsize * 3));
+            NuVecScale(&a->centre, &a->centre, lbl_801A4C28[0]);
+            a->radius = fn_8000CCA4(&a->centre, a->spl->pts, 0);
+            d = fn_8000CCA4(&a->centre, a->spl->pts + a->spl->ptsize, 0);
+            if (d > a->radius) {
+                a->radius = d;
+            }
+            d = fn_8000CCA4(&a->centre, a->spl->pts + a->spl->ptsize * 2, 0);
+            if (d > a->radius) {
+                a->radius = d;
+            }
+            d = fn_8000CCA4(&a->centre, a->spl->pts + a->spl->ptsize * 3, 0);
+            if (d > a->radius) {
+                a->radius = d;
+            }
+            a->radius *= lbl_801A4C2C[0];
+            fn_8000CBF4(a->unk74, a->spl->pts, a->spl->pts + a->spl->ptsize, a->spl->pts + a->spl->ptsize * 3);
+        }
+    }
+}
+
+extern const f32 lbl_8019FEE0[];
+extern f32 lbl_80408E9C;
+
+void fn_800ABF7C(void *arg0) {
+    f32 temp_f13;
+    f32 temp_f13_2;
+    u8 temp_r9;
+
+    temp_f13 = (*(f32 *)((s8 *)(arg0) + (0xC)));
+    if (temp_f13 > lbl_8019FEE0[0]) {
+        (*(f32 *)((s8 *)(arg0) + (0xC))) = (f32) (temp_f13 - lbl_80408E9C);
+    }
+    temp_f13_2 = (*(f32 *)((s8 *)(arg0) + (4)));
+    if (temp_f13_2 > lbl_8019FEE0[0]) {
+        (*(f32 *)((s8 *)(arg0) + (4))) = (f32) (temp_f13_2 - lbl_80408E9C);
+    }
+    temp_r9 = (*(u8 *)((s8 *)(arg0) + (0x10)));
+    if ((s32) temp_r9 != 0) {
+        (*(u8 *)((s8 *)(arg0) + (0x10))) = (u8) (temp_r9 - 1);
+    }
+}

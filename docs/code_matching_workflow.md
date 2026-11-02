@@ -120,6 +120,15 @@ python3 tools/score_fn.py NuVecScale scratch.c --compile-only -o out.o   # permu
 
 Its score has the same order as `hillclimb.py`.
 
+ProDG shapes that recur in near-misses (the sweep tries the first two as variants):
+
+- `v = A; if (f()) v = B; g = v;` hoists `A` into a callee-saved register before the
+  call. Retail usually stored in both arms: `if (f()) g = B; else g = A;`
+  (the `fn_800CCDE4` spline family in `auto/game/levels`).
+- A `.rodata` float read inside a loop that stores floats is reloaded every iteration
+  unless the extern is `const`; declared `const`, it is hoisted into `f31` after the
+  loop's entry test (`fn_800C9490`).
+
 ### Store and load order search
 
 When the only remaining difference is the order of independent stores or loads,

@@ -191,6 +191,33 @@ def store_in_arms(body: str) -> str:
     return out
 
 
+_RODATA: set[str] | None = None
+
+
+def rodata_symbols() -> set[str]:
+    """Names that config/GL5E4F/symbols.txt places in .rodata."""
+    global _RODATA
+    if _RODATA is None:
+        text = (ROOT / "config" / "GL5E4F" / "symbols.txt").read_text()
+        _RODATA = set(re.findall(r"^(\w+) = \.rodata:", text, flags=re.M))
+    return _RODATA
+
+
+def const_rodata(body: str) -> str:
+    """BODY with its .rodata externs declared const. ProDG keeps a load from a non-const
+    float array inside a loop that stores floats, but hoists it from a const one."""
+    rodata = rodata_symbols()
+    return re.sub(r"^extern (?!const )(\w[\w ]*?)\b(\w+)\[\];",
+                  lambda m: f"extern const {m[1]}{m[2]}[];" if m[2] in rodata else m[0], body, flags=re.M)
+
+
+def both_rewrites(body: str) -> str:
+    return const_rodata(store_in_arms(body))
+
+
+VARIANTS = (store_in_arms, const_rodata, both_rewrites)
+
+
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
                       r"previous declaration of [`'‘](\w+)")
 
@@ -248,10 +275,7 @@ def sweep_one(t: dict) -> dict:
         else:
             res, body = score_draft(name, source, body)
             res["context"] = context is not None
-            if res["verdict"] == "MISMATCH" and (alt := store_in_arms(body)) != body:
-                alt_res, alt = score_draft(name, source, alt)
-                if better(alt_res, res):
-                    res, body = {**alt_res, "context": context is not None, "rewrite": "store-in-arms"}, alt
+            res, body = try_variants(name, source, res, body)
         if best is None or better(res, best[0]):
             best = (res, body)
         if res["verdict"] == "MATCH":
@@ -263,6 +287,24 @@ def sweep_one(t: dict) -> dict:
     if res["verdict"] in ("COMPILE-ERROR", "ERROR") and err:
         res["error"] = err.splitlines()[-1][:200]
     return {**row, **res}
+
+
+def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, str]:
+    """Score each VARIANTS rewrite of a draft at least 80% exact; keep the best."""
+    if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
+        return res, body
+    seen = {body}
+    for variant in VARIANTS:
+        alt = variant(body)
+        if alt in seen:
+            continue
+        seen.add(alt)
+        alt_res, alt = score_draft(name, source, alt)
+        if better(alt_res, res):
+            res, body = {**alt_res, "context": res.get("context"), "rewrite": variant.__name__}, alt
+            if res["verdict"] == "MATCH":
+                break
+    return res, body
 
 
 def score_draft(name: str, source: str, body: str) -> tuple[dict, str]:

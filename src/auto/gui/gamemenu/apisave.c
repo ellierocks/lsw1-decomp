@@ -511,3 +511,15 @@ void fn_800795C0(void *arg0)
   *((f32 *) new_var2) = (f32) lbl_8040AF18;
   fn_800769B4(new_var, new_var4, lbl_80408A57);
 }
+
+extern s32 lbl_80408A38;
+
+void fn_8007907C(void) {
+    s32 var_r0;
+
+    var_r0 = lbl_8034705C[lbl_80408BB4];
+    if (var_r0 != 0) {
+        var_r0 = 1;
+    }
+    lbl_80408A38 = var_r0;
+}

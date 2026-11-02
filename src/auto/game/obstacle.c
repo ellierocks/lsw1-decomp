@@ -501,3 +501,31 @@ void fn_80104BB4(void *arg0)
   }
   fn_800F8618();
 }
+
+void fn_80104858(void *arg0) {
+    (*(s16 *)((s8 *)(arg0) + (0x4E))) = 1;
+    fn_800A5C64(arg0);
+}
+
+void fn_80104880(void *arg0) {
+    (*(s16 *)((s8 *)(arg0) + (0x4E))) = 1;
+    fn_800A5C64(arg0);
+}
+
+void fn_801048A8(void *arg0) {
+    s16 var_r0;
+    u8 temp_r0;
+
+    (*(s16 *)((s8 *)(arg0) + (0x4E))) = 1;
+    temp_r0 = (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF)));
+    if ((s8) temp_r0 == 0x29) {
+        var_r0 = 0x30;
+        goto block_4;
+    }
+    if ((s8) temp_r0 == 0x2A) {
+        var_r0 = 0x31;
+block_4:
+        (*(s16 *)((s8 *)(arg0) + (0x4E))) = var_r0;
+    }
+    fn_800A5C64(arg0);
+}

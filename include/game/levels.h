@@ -17,6 +17,16 @@ struct nugspline_s {
     char *pts;
 };
 
+/* One 0x94-byte entry of lbl_80409410->unk240 (unk244 entries). Consumer: fn_800C9490,
+ * which centres each 4-point spline and stores its largest point distance. */
+struct lbl_80409410_240_s {
+    u8 pad0[0x60];
+    struct nugspline_s *spl;
+    struct nuvec_s centre;
+    f32 radius;
+    u8 unk74[0x94 - 0x74];        /* first argument of fn_8000CBF4 */
+};
+
 /* Object behind the lbl_80409410 pointer (also read by pickups, obstacle and turret). */
 struct lbl_80409410_s {
     u8 pad0[0x198];
@@ -27,7 +37,10 @@ struct lbl_80409410_s {
     void *unk1AC;                 /* s32 at +0x18/+0x1C, pointer at +0x40 */
     u8 pad1B0[0x1C0 - 0x1B0];
     s32 unk1C0;                   /* scene handle: first argument of NuSpecialFind */
-    u8 pad1C4[0x1974 - 0x1C4];
+    u8 pad1C4[0x240 - 0x1C4];
+    struct lbl_80409410_240_s *unk240;
+    s32 unk244;
+    u8 pad248[0x1974 - 0x248];
     struct nugspline_s *unk1974;  /* fn_800CCDE4 family */
 };
 

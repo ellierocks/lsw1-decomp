@@ -74,3 +74,7 @@ void NuPs2CreateSkin(void) {
         NuAnimCurveSetApplyBlendToJoint2(lbl_803143BC, 0);
     }
 }
+
+void NuCameraCalcFrustrumPlanes(s32 *arg0) {
+    NuAnimCurveSetApplyBlendToJoint2(arg0, 0);
+}
