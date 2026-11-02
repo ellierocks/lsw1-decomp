@@ -71,7 +71,7 @@ class SprintOwnershipTests(unittest.TestCase):
         self.assertFalse(nt.owned_by_sprint("auto/game/turret", {"nuanim-2"}))
         self.assertFalse(nt.owned_by_sprint("auto/game/turret", set()))
 
-    def test_finishable_units_sort_ahead_of_larger_queues(self):
+    def test_larger_wave_beats_tiny_finishable_unit(self):
         def row(unit, left, size=0x20):
             return {"unit": unit, "unit_left": left, "size": size, "claimed": False, "source": f"src/{unit}.c",
                     "name": unit}
@@ -81,8 +81,21 @@ class SprintOwnershipTests(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             nt.print_by_unit(rows, args)
         listed = json.loads(buf.getvalue())
-        self.assertEqual([u["unit"] for u in listed], ["small", "big"])
-        self.assertTrue(listed[0]["finishable"])
+        self.assertEqual([u["unit"] for u in listed], ["big", "small"])
+        self.assertTrue(listed[1]["finishable"])
+
+    def test_backlog_beyond_first_wave_does_not_inflate_rank(self):
+        def row(unit, size):
+            return {"unit": unit, "unit_left": 100, "size": size,
+                    "claimed": False, "source": None, "name": unit}
+        rows = [row("backlog", 4)] * 100 + [row("useful", 64)] * 3
+        args = type("A", (), {"limit": 5, "json": True})()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            nt.print_by_unit(rows, args)
+        listed = json.loads(buf.getvalue())
+        self.assertEqual([u["unit"] for u in listed], ["useful", "backlog"])
+        self.assertEqual(listed[1]["wave_bytes"], 40)
 
     def test_owned_units_are_skipped(self):
         rows = [{"unit": "a", "unit_left": 3, "size": 4, "claimed": False, "source": None, "name": "x"}]

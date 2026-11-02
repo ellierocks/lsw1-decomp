@@ -165,9 +165,12 @@ explicit exclusions for changed TCS behavior.
    `python3 tools/next_target.py --by-unit`. Exclude active local worktrees as
    well as unmerged sprint branches and open PRs. Treat the ranking as a
    shortlist: prefer related function families with reusable code and types,
-   then units with few functions left. Inspect owned data sections before
-   assuming code completion permits promotion. A small finishable queue can
-   beat the unit with the most ready targets. Run one
+   and enough ready bytes for several waves. Use few functions left only as a
+   tie-breaker when there is a concrete completion advantage. Inspect owned data
+   sections before assuming code completion permits promotion. Do not pay the
+   full sprint setup/finish cost for a tiny queue merely because
+   it is nearly complete. The selector ranks first-wave bytes, not predicted
+   speed; inspect code shapes before choosing. Run one
    [sprint](sprint_workflow.md) in its own worktree branch, keeping the attempt
    budget so difficult targets do not consume the easy gains.
 3. Record a plateau in the task's `status.md` and the PR with its best score, its

@@ -24,8 +24,8 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 - **Check active sprints first.** Run `git fetch` first. `--by-unit` then skips units owned by an open
   `t3/sprint-*` PR (asked through `gh`; `--no-remote` turns that off) or by any local or
   `origin` sprint branch not yet merged into `origin/main`. That covers a sprint that has
-  been pushed but has no PR yet. Units with 10 or fewer functions left are listed first
-  (marked `*`). Branch names must follow `t3/sprint-<unit-leaf>` and be pushed early for
+  been pushed but has no PR yet. Units are ranked by bytes in their first ten ready targets;
+  `*` marks ten or fewer functions left, not promotion readiness. Branch names must follow `t3/sprint-<unit-leaf>` and be pushed early for
   this to work. `work/` claim markers are local to each worktree, so other threads cannot
   see them.
 - **Headers come with their consumers.** Add a shared-header field only when a function
@@ -33,8 +33,13 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
   as `char unk[N]` or a local view. A sprint that only changes headers matches nothing.
 - **No workers.** Do not start subagents or workers in a sprint. To run work in parallel,
   the maintainer launches separate threads on separate units.
-- **A finishable unit beats a large one.** If a unit has 10 or fewer functions left,
-  aim for the whole unit, because then it can be promoted.
+- **Amortize setup over useful code.** Prefer a unit with several waves of related,
+  tractable functions over a tiny queue. Inspect the first wave's assembly for
+  reusable shapes before committing to it; bytes alone do not measure difficulty.
+  Do not choose a three-function unit just because it is almost complete. A small
+  unit is preferable only with a concrete advantage, such as a proven promotion
+  path or a shared type that unlocks a larger family. Check all owned sections
+  before claiming that path; matching every function does not emit missing data.
 
 ## Kickoff (read only this much)
 
@@ -44,6 +49,12 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
    to record the objdiff figures, the strict-only count and the DOL hash. It refuses to run
    when the checkout is behind `origin/main`; rebase first so the docs and tools are current.
+
+Reuse the checkout's toolchain and build. Bootstrap only if prerequisites are missing;
+for matching setup use `LSW1_NO_GHIDRA=1 bash tools/bootstrap.sh` and request Ghidra
+separately when needed. Do not start decompilation while setup still owns its project.
+Generate m2c drafts with `--no-ghidra`, then request Ghidra for the wave in one call.
+This avoids launching a headless process separately for every draft.
 
 Ghidra is optional. For a function with loops, switches or nested conditions, run
 `python3 tools/ghidra_decompile.py decompile FN ...` for that wave and read `work/FN/ghidra.c`

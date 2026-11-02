@@ -91,6 +91,7 @@ def direct_callees(code: bytes, addr: int) -> set[int]:
 
 
 FINISHABLE = 10
+WAVE_SIZE = 10
 SPRINT_PREFIX = "t3/sprint-"
 
 
@@ -152,25 +153,28 @@ def print_by_unit(rows, args, owned=frozenset()) -> int:
 
     def key(kv):
         u, rs = kv
-        finish = rs[0]["unit_left"] <= FINISHABLE
-        return (not finish, -len(rs), sum(r["size"] for r in rs), u)
+        # Bound the opportunity to one wave, not the whole unit's backlog.
+        return (-sum(r["size"] for r in rs[:WAVE_SIZE]),
+                rs[0]["unit_left"], u)
 
     order = sorted(units.items(), key=key)[:args.limit]
     if args.json:
         print(json.dumps([{"unit": u, "ready": len(rs), "left": rs[0]["unit_left"],
-                           "finishable": rs[0]["unit_left"] <= FINISHABLE, "bytes": sum(r["size"] for r in rs),
+                           "finishable": rs[0]["unit_left"] <= FINISHABLE,
+                           "wave_bytes": sum(r["size"] for r in rs[:WAVE_SIZE]), "bytes": sum(r["size"] for r in rs),
                            "min_size": min(r["size"] for r in rs), "max_size": max(r["size"] for r in rs),
                            "source": rs[0]["source"], "names": [r["name"] for r in rs]}
                           for u, rs in order], indent=2))
         return 0
-    print(f"{'unit':<34}{'ready':>6}{'left':>6}{'bytes':>8}  {'sizes':<14}source")
+    print(f"{'unit':<34}{'ready':>6}{'left':>6}{'bytes':>8}{'wave':>8}  {'sizes':<14}source")
     for unit, rs in order:
         sizes = sorted(r["size"] for r in rs)
         left = rs[0]["unit_left"]
         mark = "*" if left <= FINISHABLE else " "
-        print(f"{unit:<34}{len(rs):>6}{left:>5}{mark}{sum(sizes):>#8x}  {f'{sizes[0]:#x}..{sizes[-1]:#x}':<14}"
+        print(f"{unit:<34}{len(rs):>6}{left:>5}{mark}{sum(sizes):>#8x}{sum(r["size"] for r in rs[:WAVE_SIZE]):>#8x}  {f'{sizes[0]:#x}..{sizes[-1]:#x}':<14}"
               f"{rs[0]['source'] or '(new file)'}")
-    print(f"\n* = {FINISHABLE} or fewer functions left in the unit (all sizes): finishing it allows promotion.")
+    print(f"\n* = {FINISHABLE} or fewer functions left in the unit (all sizes): code completion only; data and relocation gates still apply.")
+    print(f"Ranked by bytes in the first {WAVE_SIZE} ready targets; a yield shortlist, not a time estimate.")
     if skipped:
         print(f"Skipped (open sprint PR): {', '.join(skipped)}")
     if order:
@@ -188,8 +192,7 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int, default=15)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--by-unit", action="store_true",
-                    help="summarize ready targets per unit to scope a sprint (finishable units first, "
-                         "then by ready count; units owned by an open t3/sprint-* PR are skipped)")
+                    help="summarize ready targets per unit to scope a sprint (first-wave bytes descending; units owned by an open t3/sprint-* PR are skipped)")
     ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
     args = ap.parse_args(argv)
 
