@@ -86,7 +86,7 @@ On Linux and macOS, [wibo](https://github.com/decompals/wibo) (a minimal 32-bit 
    generates the objdiff report, links `main.dol` and checks promoted units against
    retail. It does not produce a fully matched, relinked game.
 
-Development happens on GitHub, and Codeberg is a read-only mirror. See
+Development happens on GitHub. See
 [development workflow](docs/development_workflow.md) for checks and PRs.
 
 ## Working on the decomp
