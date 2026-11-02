@@ -2560,3 +2560,9 @@ s32 fn_800D51E4(void *arg0, f32 *arg1) {
 done:
     return 0;
 }
+
+void fn_800CCBC0(void) {
+    if ((fn_800130F4(lbl_802DA264) != 0) && (fn_800131B8(lbl_802DA264) == 1) && ((s32) lbl_8040A658 != -1) && ((s32) lbl_8040A65C != 0)) {
+        fn_8006DE5C(lbl_8040A658, lbl_8040A65C);
+    }
+}
