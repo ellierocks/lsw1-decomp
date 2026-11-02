@@ -226,6 +226,13 @@ effect halfword at `+0x20`. The pool handles have a `0x10` stride from
 resolved the last three register differences. The effect creation helper
 returns a pointer, whose `+0x93` byte is set to five in mode 21.
 
+The strictly matched loader `fn_8013D550` confirms the secondary record
+pointer at pool `+0x714`, six group pointers at `+0x71C`, six counts at
+`+0x734`, and the secondary count at `+0x74C`. It reads records at stride
+`0x40`, reloads the data pointer after each reader call, and converts saved
+link indices after loading. A permuter-generated minimum-version local
+preserved the retail comparison against one. These remain local views.
+
 A separate callback record has a float at `+0x100` and a signed halfword at
 `+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
 Both consumers strictly match. Its full size is unknown. OpenSaga lookup found

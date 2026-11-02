@@ -211,7 +211,7 @@ void fn_8013D9FC(struct NUPICKUPPOOL_s *pool, s32 update)
 
 extern void (*fn_80009948(char *, s32))(char *, ...);
 extern char str_SourceFile_Pickups[], str_Assert_Pickups_BufferOverflow[];
-extern void fn_8013D550(struct NUPICKUPPOOL_s *);
+extern s32 fn_8013D550(struct NUPICKUPPOOL_s *);
 void fn_8013EF38(struct NUPICKUPPOOL_s *pool)
 {
     s32 base, next, end, overflow;
@@ -557,3 +557,116 @@ void fn_8013DF98(struct NUPICKUP_s *p, void *arg1, s32 award) {
             result->mode = 5;
     }
 }
+
+struct PickupLoadRecord {
+    struct PickupVec pos, oldPos;
+    s32 link18, link1C;
+    f32 baseY;
+    char unk24[0xe];
+    u16 room32, room34;
+    s16 room36;
+    u8 flags, active, value3a;
+    char unk3b[3];
+    s8 kind;
+    char unk3f;
+};
+struct PickupLoadPool {
+    char unk0[0x714];
+    struct PickupLoadRecord *data;
+    s32 buffer718;
+    struct NUPICKUP_s *groups[6];
+    s32 counts[6];
+    s32 count;
+};
+extern void *memset(void *, s32, u32);
+extern void NuStrCat(char *, char *);
+extern s32 fn_8006F0BC(char *, s32);
+extern void fn_8006F1D8(void);
+extern f32 fn_8006F28C(void);
+extern s32 fn_8006F37C(void);
+extern s16 fn_8006F55C(void);
+extern s8 fn_8006F71C(void);
+extern void fn_8006F7E0(s32);
+extern void fn_8006F8A8();
+extern char lbl_801AECCC[];
+#define PICKUP_LOAD_RECORD                                                     \
+    ((struct PickupLoadRecord *)(offset + (s32)pool->data))
+s32 fn_8013D550(struct NUPICKUPPOOL_s *arg0) {
+    s32 minimumVersion;
+    struct PickupLoadPool *pool = (void *)arg0;
+    char filename[0x8100];
+    s32 version = -1, i, offset;
+    s32 maximum = 0;
+    memset(pool->data, -1, 0x4000);
+    pool->count = maximum;
+    for (i = 0; i < 0x100; i++)
+        pool->groups[0][i].kind3E = -1;
+    filename[0] = 0;
+    NuStrCat(filename, (char *)pool + 0x80);
+    maximum = 0x100;
+    minimumVersion = 1;
+    NuStrCat(filename, lbl_801AECCC);
+    fn_8006F8A8(1);
+    fn_8006F7E0(1);
+    if (fn_8006F0BC(filename, 0)) {
+        version = fn_8006F37C();
+        if (version > 8) {
+            if (version < minimumVersion)
+                goto invalid;
+            if (version <= 9)
+                goto read_records;
+        invalid:
+            {
+                fn_8006F1D8();
+                fn_8006F8A8(0);
+                return -1;
+            }
+        read_records:
+            pool->count = fn_8006F37C();
+            if (pool->count > 0x100)
+                pool->count = maximum;
+            maximum = 0;
+            if (maximum < pool->count) {
+                offset = 0;
+                do {
+                    PICKUP_LOAD_RECORD->active = fn_8006F71C();
+                    PICKUP_LOAD_RECORD->kind = fn_8006F71C();
+                    PICKUP_LOAD_RECORD->value3a = fn_8006F71C();
+                    PICKUP_LOAD_RECORD->pos.x = fn_8006F28C();
+                    PICKUP_LOAD_RECORD->pos.y = fn_8006F28C();
+                    PICKUP_LOAD_RECORD->pos.z = fn_8006F28C();
+                    PICKUP_LOAD_RECORD->baseY = fn_8006F28C();
+                    PICKUP_LOAD_RECORD->room32 = fn_8006F55C();
+                    PICKUP_LOAD_RECORD->room34 = fn_8006F55C();
+                    PICKUP_LOAD_RECORD->link18 = fn_8006F37C();
+                    PICKUP_LOAD_RECORD->link1C = fn_8006F37C();
+                    PICKUP_LOAD_RECORD->room36 = fn_8006F55C();
+                    PICKUP_LOAD_RECORD->flags = fn_8006F71C();
+                    maximum++;
+                    offset += 0x40;
+                } while (maximum < pool->count);
+            }
+            fn_8013D438((void *)pool);
+        }
+        fn_8006F1D8();
+    }
+    offset = 0x10;
+    fn_8013D2F4(pool->groups[0], pool->counts[0], 0);
+    i = 2;
+    fn_8013D2F4(pool->groups[1], pool->counts[1], 0);
+    fn_8013D2F4(pool->groups[2], pool->counts[2], 0);
+    {
+        struct NUPICKUP_s **groups = pool->groups;
+        s32 *counts = pool->counts;
+        s32 offsets = version <= 7;
+
+        do {
+            fn_8013D2F4(*(struct NUPICKUP_s **)(offset + (s32)groups),
+                        *(s32 *)(offset + (s32)counts), offsets);
+            offset += 4;
+        } while (--i);
+    }
+    fn_8006F8A8(0);
+    return 1;
+}
+#undef PICKUP_LOAD_RECORD
