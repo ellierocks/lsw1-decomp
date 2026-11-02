@@ -113,7 +113,7 @@ not verify BSS.
 ### Phase 3: agent draft-and-climb for game code
 
 Throughput is the measure. Run Phase 3 as [sprints](sprint_workflow.md): one
-thread, one unit, an explicit queue, ten-minute active runs and a capped budget per function, and one
+thread, one unit, an explicit queue, measured active time and score-based limits per function, and one
 PR that merges as soon as CI passes. Parallel work means separate sprint threads on
 separate units, not workers inside a thread. Grow the shared `nu2` and game headers
 inside sprints: confirm a field when a queued function accesses it. Results and

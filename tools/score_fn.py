@@ -22,7 +22,8 @@ new function never needs a placeholder or a cleanup pass after a plateau:
     python3 tools/score_fn.py fn_X src/auto/u.c --body /tmp/try.c --diff --apply
 
 During a timed sprint (`work/sprint_timing.json` active) the result line ends
-with the remaining active budget, so no separate `--budget-status` call is needed.
+with the measured active seconds. A mismatch at 95% exact or better also prints
+NEAR MISS: those are finished with targeted changes, not parked on attempt count.
 
 `--json` prints
 the full verifier report with the score added. Exit codes follow verify_fn.py:
@@ -94,8 +95,8 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
     return err or run([str(BUILD / "tools" / "dtk_patched"), "elf", "fixup", str(raw), str(out)])
 
 
-def budget_suffix(timing: Path = ROOT / "work" / "sprint_timing.json") -> str:
-    """Remaining active budget of a running sprint timer, or nothing when none is running."""
+def timer_suffix(timing: Path = ROOT / "work" / "sprint_timing.json") -> str:
+    """Measured active seconds of a running sprint timer, or nothing when none is running."""
     try:
         state = json.loads(timing.read_text())
     except (OSError, ValueError):
@@ -103,11 +104,10 @@ def budget_suffix(timing: Path = ROOT / "work" / "sprint_timing.json") -> str:
     if state.get("active") in (None, "paused"):
         return ""
     import time
-    from sprint_metrics import budget_report
+    from sprint_metrics import active_seconds
     seconds = dict(state.get("seconds", {}))
     seconds[state["active"]] = seconds.get(state["active"], 0) + max(0.0, time.time() - state["since"])
-    rep = budget_report({"seconds": seconds})
-    return f"  [budget {rep['remaining_seconds']:.0f}s left{', FINISH DUE' if rep['finish_due'] else ''}]"
+    return f"  [active {active_seconds({'seconds': seconds}):.0f}s]"
 
 
 def main(argv=None) -> int:
@@ -199,7 +199,11 @@ def main(argv=None) -> int:
     first = rep["differences"][0] if rep["differences"] else None
     detail = f"  first: {first['kind']} @{first.get('index_t')}: {first.get('detail', '')}" if first else ""
     print(f"{rep['verdict']}  score={rep['score']}  exact={rep['exact_insns']}/{rep['target_insns']}"
-          f"  mine_insns={rep['mine_insns']}{detail}{budget_suffix()}")
+          f"  mine_insns={rep['mine_insns']}{detail}{timer_suffix()}")
+    from sprint_metrics import near_miss
+    if near_miss(rep["exact_insns"], rep["target_insns"]):
+        print("NEAR MISS: do not park on attempt count; target each remaining diff, then "
+              "variant_search.py once (docs/sprint_workflow.md#per-function-budget)")
     if listing and code != 0:
         print(listing)
     if args.apply and code == 0:

@@ -71,29 +71,31 @@ Do not read the batch history or the whole C matching guide up front. When a mis
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
 and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
-## Ten-minute active runs
+## Measured runs
 
-Each run has a **600-second active-work budget**, including setup, matching, tooling
-and finish. Reserve the last **90 seconds** for verification and handoff. Start with
-`python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and
-check the remaining budget before every new target or search. Every `score_fn.py`
-result line ends with `[budget Ns left]` while the timer runs, so a separate
-`--budget-status` call is needed only when no score has run recently. Cap a search by the smaller
-of its per-function limit and the time left before the finish reserve. At 510 active
-seconds, stop starting matching work and finish. Required correctness checks still run
-to completion; record an overrun rather than weakening or skipping them.
+Active time is **measured, not budgeted**. Start the timer with
+`python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and use
+`--phase paused` during user and CI waits. Every `score_fn.py` result line ends with
+`[active Ns]` while the timer runs. The finish record reports setup, matching, tooling
+and finish seconds beside the verified byte gain, so throughput can be compared across
+runs. Time never decides whether to keep working on a function; the per-function limits
+below do.
 
-Use `--phase paused` during user and CI waits and resume the appropriate phase when
-work resumes. This is explicitly bracketed active wall time, not CPU time or inferred
-human attention. Forgotten pauses invalidate efficiency claims. An interrupted run
-resumes its existing timer; do not reset it to gain another budget. A fresh sprint
-worktree starts a fresh run. The finish record includes active seconds, remaining budget
-and overruns. Missing historical measurements remain unknown.
+This replaces the 600-second budget used in
+[#53](https://github.com/ellierocks/lsw1-decomp/pull/53) to
+[#55](https://github.com/ellierocks/lsw1-decomp/pull/55). In #55 the countdown drove
+early parking (a 70/71 and a 72/80 near-miss were dropped to follow an attempt cap),
+an early switch to finish, and padding work to reach a deferral gate. That run verified
+280 bytes, against 656 in #53.
 
-At the measured finish cutoff, list unfinished queue entries with `--deferred FN ...`.
-They remain distinct from bounded plateaus and appear in the report; the accounting
-check rejects deferral before the cutoff. Context pressure alone remains a continuation
-checkpoint. The ten-minute budget, not a convenient number of easy matches, ends a run.
+The run ends when the queue is exhausted, the maintainer stops it, or context pressure
+forces a continuation checkpoint. List queue entries that were never attempted or left
+unfinished with `--deferred FN ...`; they stay distinct from measured `--parked`
+plateaus. This is bracketed wall time, not CPU time or inferred human attention.
+Forgotten pauses invalidate efficiency claims, and an interrupted run resumes its existing
+timer. Missing historical measurements remain unknown. `sprint_finish.py` gives every
+`git fetch` a 60-second timeout. If `--baseline` cannot fetch, it warns and checks
+freshness against the last fetched `origin/main`.
 
 ### Provider usage and cost
 
@@ -121,28 +123,33 @@ a queue, supply the full `--queue` at finish.
 
 ## Per-function budget
 
-Active time in a run is dominated by round trips, not compiles. In the first measured run
-([#53](https://github.com/ellierocks/lsw1-decomp/pull/53): 424 matching seconds, about
-45 tool calls), the four matches took 9 scoring attempts in total. Five of the other six
-functions it tried reached 85% to 99% exact but took about 27 attempts and three
-`variant_search` runs and gained no bytes. Most of the remaining mismatches were register
-numbers or one instruction scheduled differently. Ten-minute runs therefore use tighter
-limits:
+Spend effort where the bytes are closest. Each attempt's score decides what comes next:
 
 - Write new functions only through `score_fn.py --body try.c --apply`. A function that is
   not yet in SOURCE is appended for scoring, and SOURCE changes only on a strict MATCH,
   so parking needs no cleanup.
-- Park after **3 attempts without improvement**. Skip `variant_search.py` and
-  `order_search.py` when only register numbers or the schedule differ; they found
-  nothing in #53. Leave those near-misses for a dedicated longer run.
-- After a match, try its shape siblings next. In #53, `fn_8013F24C` matched on its first
-  attempt by reusing the shape of an earlier sibling.
+- **Near-misses are the priority.** At 95% exact or better, `score_fn.py` prints
+  `NEAR MISS`. Do not park it on an attempt count. Read the whole diff, then try one
+  targeted change per mismatch: expression order or operand order for a commutative
+  instruction, how a pointer is formed (`&a[i][j]`, `a[i] + j`, an explicit field),
+  declaration or initialisation placement, and inline helper boundaries. Then run
+  `variant_search.py` once and `order_search.py` once if only the order differs. In
+  #55, hoisting one `i = 0` moved `fn_8013D9FC` from 51/71 to 70/71.
+- Below 95%, park after **3 attempts without improvement**. Below about 60% after the
+  first attempt, check the structure against `ghidra.c` before trying again.
+- **Type the family's struct before drafting.** When several queued functions share one
+  object (a pool, a save block), run `ghidra_decompile.py xrefs` and add the fields those
+  functions access to the header at the start. Casts such as `*(s32*)((char*)p + 0x74c)`
+  slow every attempt and hide aliasing that changes the schedule.
+- **Order the queue by shared shape**, not by size. After a match, try its shape
+  siblings next. In #53, `fn_8013F24C` matched on its first attempt by reusing the shape
+  of an earlier sibling.
 
-The table below is the full limit for runs without the ten-minute budget.
+The table below caps the search for one function.
 
 | Step | Limit |
 |---|---|
-| Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement |
+| Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement (3 below 95%) |
 | Each attempt: `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, and writes it into the unit only on a strict MATCH |
 | `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
 | `order_search.py`, if only the order differs | one run |
@@ -164,8 +171,8 @@ queue and next command under `work/`, then resume the same unit and PR. Do not t
 it into a smaller final PR. Three consecutive bounded plateaus justify reassessing
 the remaining queue; they do not prove unattempted functions are exhausted.
 
-A completed wave is not automatically the end of the ten-minute run. Refresh the unit queue and
-continue related tractable work until the active-time cutoff or unit exhaustion. User-directed
+A completed wave is not automatically the end of the run. Refresh the unit queue and
+continue related tractable work until the unit is exhausted. User-directed
 stops take precedence; report partial results honestly rather than claiming completion.
 
 Do not start a second unit in the same thread; open the next sprint as a new thread.
