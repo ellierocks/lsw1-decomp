@@ -151,3 +151,36 @@ void fn_8013F24C(struct NUPICKUPVISUAL_s* visual)
         }
     }
 }
+
+extern void* memset();
+
+void fn_8013D438(struct NUPICKUPPOOL_s* pool)
+{
+    s32 i = 0;
+    s32 j;
+    struct NUPICKUP_s* p;
+
+    memset(pool->counts, 0, sizeof(pool->counts));
+    *(s32*)((char*)pool + 0x74c) = i;
+    for (; i < 0x100; i++) {
+        s8 kind = *(s8*)((char*)(*(struct NUPICKUP_s**)pool->unk714 + i) + 0x3e);
+        if (kind != -1) {
+            pool->counts[kind]++;
+            (*(s32*)((char*)pool + 0x74c))++;
+        }
+    }
+    *(s32*)((char*)pool + 0x728) = 0;
+    pool->groups[0] = *(struct NUPICKUP_s**)pool->unk714;
+    for (i = 0; i <= 5; i++) {
+        p = *(struct NUPICKUP_s**)pool->unk714;
+        j = 0;
+        while (*(s8*)((char*)p + 0x3e) != i && j < 0x100) {
+            p++;
+            j++;
+        }
+        if (j == 0x100 || p == NULL)
+            pool->groups[i] = NULL;
+        else
+            pool->groups[i] = p;
+    }
+}
