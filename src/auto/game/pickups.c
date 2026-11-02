@@ -319,3 +319,39 @@ struct NUPICKUP_s *fn_8013E190(struct PickupFindActor *actor, s32 entries, s32 n
     }
     return 0;
 }
+
+void fn_8013D2F4(struct NUPICKUP_s *base, s32 count, s32 offsets)
+{
+    s32 i = 0;
+    if (!offsets) {
+        for (; i < count; i++) {
+            struct NUPICKUP_s *p = &base[i];
+            if (p->link18 < 0) p->link18 = 0;
+            else p->link18 = (s32)&base[p->link18];
+            if (p->link1C < 0) p->link1C = 0;
+            else p->link1C = (s32)&base[p->link1C];
+        }
+    } else {
+        if (i < count) {
+            s32 zero = 0;
+            struct NUPICKUP_s *p = base;
+            do {
+                if (p->link18 < 0) p->link18 = zero;
+                else p->link18 += (s32)base;
+                if (p->link1C < 0) p->link1C = zero;
+                else p->link1C += (s32)base;
+                p++;
+            } while (++i < count);
+        }
+    }
+    if (base) {
+        if ((u8)base->kind3E <= 2) {
+            for (i = 0; i < count; i++, base++) {
+                base->previousY = base->y;
+                if (base->kind3E > 2) base->kind3E = 2;
+            }
+        } else {
+            for (i = 0; i < count; i++, base++) base->previousY = base->y;
+        }
+    }
+}
