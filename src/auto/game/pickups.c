@@ -355,3 +355,60 @@ void fn_8013D2F4(struct NUPICKUP_s *base, s32 count, s32 offsets)
         }
     }
 }
+
+struct PickupCollectDef { char unk0[0x1c]; s32 award; char unk20[2]; u8 flags; char unk23[0xd]; f32 radius; };
+struct PickupCollectOwner { char unk0[0x61c]; s32 *handle; };
+struct PickupCollectActor { char unk0[0xeec]; struct PickupCollectOwner *owner; };
+extern struct PickupCollectDef lbl_801E15E8[];
+extern f32 lbl_801AED54[];
+extern void fn_8013DF98(struct NUPICKUP_s *, void *, s32);
+extern void fn_8013E8F8(void *, struct NUPICKUP_s *);
+extern void fn_8014165C(struct NUPICKUP_s *);
+extern void fn_800AC020(s32, f32);
+static inline s32 pickup_collect(struct NUPICKUP_s *p, struct PickupFindActor *actor)
+{
+    s32 collected = 1;
+    switch (p->kind3E) {
+    case 0: case 1: case 2:
+        fn_8013DF98(p, actor, lbl_801E15E8[p->kind3E].award);
+        break;
+    case 4:
+        fn_8013E8F8(actor, p);
+        break;
+    case 5:
+        fn_8014165C(p);
+        fn_800AC020(*((struct PickupCollectActor *)actor)->owner->handle, lbl_801AED54[0]);
+        break;
+    }
+    return collected;
+}
+
+s32 fn_8013E34C(struct PickupFindActor *actor)
+{
+    struct NUPICKUPPOOL_s *pool = (void *)lbl_80409410;
+    s32 i;
+    struct NUPICKUP_s *p;
+    if (pool->state710 == 0) {
+        for (i = 0; i < 6; i++) {
+            p = fn_8013E190(actor,
+                (s32)((struct NUPICKUPPOOL_s *)lbl_80409410)->groups[i],
+                ((struct NUPICKUPPOOL_s *)lbl_80409410)->counts[i],
+                lbl_801E15E8[i].flags & 1, lbl_801E15E8[i].radius);
+            if (p) {
+                s32 collected = pickup_collect(p, actor);
+                if (collected) p->active39 = 0;
+                goto yes;
+            }
+        }
+        p = fn_8013E190(actor,
+            (s32)((struct NUPICKUPPOOL_s *)lbl_80409410)->buffers[1],
+            0x40, 0, lbl_801E15E8[0].radius);
+        if (p) goto final;
+    }
+    return 0;
+final:
+    p->active39 = 0;
+    fn_8013DF98(p, actor, lbl_801E15E8[p->kind3E].award);
+yes:
+    return 1;
+}
