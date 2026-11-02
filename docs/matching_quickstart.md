@@ -76,7 +76,8 @@ bootstrap). It does not compile until the arguments have real struct types; use 
 control flow and the offsets.
 
 It also writes `work/NAME/ghidra.c`, which shows named small-data globals, loops and
-switches that m2c leaves raw. Read both. The bootstrap creates the Ghidra project; without
+switches that m2c leaves raw. Read it for loops, switches and nested conditions; skip it
+for straight-line leaves. The bootstrap creates the Ghidra project; without
 it, run `tools/ghidra_decompile.py setup` once. For "who else reads or writes this global", run
 `tools/ghidra_decompile.py xrefs NAME`; REA covers callers, strings and tables interactively
 ([Ghidra and REA](research.md#ghidra-and-rea)).
@@ -131,7 +132,8 @@ python3 tools/verify_fn.py NAME --unit UNIT --build --strict-symbols
 ```
 
 The first game/Nu2 attempt requires `--donor-note`; later attempts inherit it
-for the same donor revision. Keep the review in the PR or plateau handoff. SDK
+for the same donor revision. When the pinned checkout has no name hit, `hillclimb.py`
+records that limit as the note itself. Keep the review in the PR or plateau handoff. SDK
 units use the Dolphin lane and are exempt.
 
 Record a candidate with `try` when it improves the best score or settles a

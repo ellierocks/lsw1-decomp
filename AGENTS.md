@@ -9,7 +9,7 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 
 - Start with [strategy](docs/strategy.md) for the current phase; update it when the plan changes.
 - Phase 3 game/Nu2 matching runs as one-unit [sprints](docs/sprint_workflow.md): one
-  thread, at most 10 queued functions, one PR, no workers. Its kickoff, budget and
+  thread, a queue sized by context (waves of about 10), one PR, no workers. Its kickoff, budget and
   PR template replace per-batch strategy sections and timing files.
 - Matching: follow the [quickstart](docs/matching_quickstart.md) for bootstrap,
   target selection, scoring and handoff, and [C matching](docs/code_matching_workflow.md)
@@ -17,7 +17,8 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 - Game/Nu2 donor review: follow the [OpenSaga workflow](docs/symbol_donors/opensaga_matching.md#end-to-end-workflow).
   Read `donor_evidence.md` and record `hillclimb.py try --donor-note` once per
   target/donor revision; retain accepted facts, rejected transfers or an explicit
-  no-hit/unavailable limit in the PR or plateau handoff.
+  no-hit/unavailable limit in the PR or plateau handoff. With no name hit, `hillclimb.py`
+  records the no-hit limit itself.
 - Binary evidence: [Ghidra and REA](docs/research.md#ghidra-and-rea). Read
   `work/NAME/ghidra.c` (from `draft_fn.py`) next to the m2c draft for control flow,
   loops and switches. Before adding a header field or naming a global, run
