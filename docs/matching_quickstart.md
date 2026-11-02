@@ -30,8 +30,9 @@ rather than a game function, skip to `tools/sdk_import_unit.py` in
 
 ## 2. Pick a target
 
-Follow the current phase in [strategy](strategy.md): SDK import first, then
-whole-binary splits, then agent draft-and-climb for game code. Claim one library,
+Follow the yield priorities in [strategy](strategy.md#choosing-a-task): match
+existing game/Nu2 units first, and resolve splits or data when they unblock a
+promising unit. The SDK donor queue is exhausted. Claim one library,
 TU or function per worktree branch. Phase 3 game code runs as one-unit
 [sprints](sprint_workflow.md): `python3 tools/next_target.py --by-unit` ranks units by
 ready targets. Naming and donor mining serve that target.
