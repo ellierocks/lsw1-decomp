@@ -178,11 +178,60 @@ than GC, so those donor offsets do not transfer.
 `fn_8013C620` iterates six groups, loading pointers at `+0x71C` and
 counts at `+0x734` from the pool and stepping each record by `0x40`. It
 stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
-`fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`. The group
-initialization draft is parked at 41/51: loop register allocation and float
-load placement differ. A 45-second permuter run did not find a match.
-Next, reshape the group loop to preserve the loop index
-in r11 and defer the float load until after the count check.
+`fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`.
+The strictly matched `fn_8013D2F4` converts negative links to null and
+nonnegative links from either record indices or byte offsets to addresses.
+It also saves Y and clamps signed kinds above two when the first record
+selects that kind family.
+The group initialization `fn_8013C620` remains parked at 41/51: loop
+register allocation and float-load placement differ. Its earlier 45-second
+permuter run found no match. The next hypothesis is to preserve the loop
+index in r11 and defer the float load until after the count check.
+
+The matched `fn_8013D9FC` confirms record floats at `+0x04` (current Y),
+`+0x20` (base Y) and `+0x24` (saved Y), and a signed kind byte at `+0x3E`.
+Its height table has a `0x34`-byte stride. The comparison stores the computed
+height for ordered values (`y <= height || y > height`); preserving its NaN
+behavior is necessary for the strict match.
+
+`fn_8013EF38` aligns pool `+0x184` to four bytes, checks the resulting end
+against `+0x188`, and reserves `0x4000` plus `0x1000` bytes. It records the
+buffer starts at `+0x714` and `+0x718` and clears the index at `+0x750`.
+`fn_8013F0AC` confirms the signed record halfword at `+0x36` and passes the
+pool pointer at `+0x1B8` to the pickup effect helper. Both functions strictly
+match; the full pool size remains unknown.
+
+The matched `fn_8013E190` requires both `+0x39` and `+0x3C` record bytes
+to be nonzero before collision testing. It filters the signed room ID at
+`+0x36`, copies the position to `+0x0C` and unlinks the record through
+`+0x18` and `+0x1C` on success. Its actor view has bounding vectors at
+`+0x188` and `+0x194`; this view is separate from the pool.
+
+`fn_8013E34C` strictly matches collection across the six groups and the
+secondary buffer. Its definition table has a `0x34` stride, a word award at
+`+0x1C`, flags at `+0x22`, and a float collision radius at `+0x30`. The
+collection switch handles signed kinds 0–2, 4 and 5; the local actor and
+definition views retain unknown fields.
+
+`fn_8013E8F8` strictly matches the heart award: it increments the signed
+held count at actor `+0x1085` only between zero and the unsigned total at
+`+0x1084`, and bounds the owner heart counter at `+0x7D7`. The owner is
+reached through actor `+0xEEC`; its floats at `+0x708` and `+0x730`
+control the projected effect vector.
+
+The strictly matched `fn_8013DF98` confirms the signed player byte at actor
+`+0x284`, the owner award word at `+0x140`, and the definition-table signed
+effect halfword at `+0x20`. The pool handles have a `0x10` stride from
+`+0x774`. A permuter-generated temporary for the reloaded signed kind
+resolved the last three register differences. The effect creation helper
+returns a pointer, whose `+0x93` byte is set to five in mode 21.
+
+The strictly matched loader `fn_8013D550` confirms the secondary record
+pointer at pool `+0x714`, six group pointers at `+0x71C`, six counts at
+`+0x734`, and the secondary count at `+0x74C`. It reads records at stride
+`0x40`, reloads the data pointer after each reader call, and converts saved
+link indices after loading. A permuter-generated minimum-version local
+preserved the retail comparison against one. These remain local views.
 
 A separate callback record has a float at `+0x100` and a signed halfword at
 `+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
