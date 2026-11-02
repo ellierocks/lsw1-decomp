@@ -31,14 +31,27 @@ class SprintFinishTests(unittest.TestCase):
             state = phase(path, 'finish', 505)
             self.assertEqual(state['seconds'], {'setup': 10, 'matching': 25})
 
-    def test_cutoff_defers_without_inventing_plateaus(self):
-        from tools.sprint_metrics import budget_report
-        self.assertFalse(budget_report({'seconds': {'matching': 509}})['finish_due'])
-        due = budget_report({'seconds': {'setup': 10, 'matching': 500}})['finish_due']
-        self.assertTrue(due)
-        validate_queue(['a', 'b'], ['a'], [], ['b'], due)
+    def test_deferral_needs_no_time_cutoff(self):
+        validate_queue(['a', 'b'], ['a'], [], ['b'])
         with self.assertRaises(ValueError):
-            validate_queue(['a', 'b'], ['a'], [], ['b'], False)
+            validate_queue(['a', 'b'], ['a'], ['b=1/2: regs; next: x'], ['b'])
+
+    def test_fetch_timeout_kills_child_processes(self):
+        import time
+        from tools.sprint_finish import fetch
+        start = time.monotonic()
+        self.assertFalse(fetch(0.5, ("sh", "-c", "sleep 30 & wait")))
+        self.assertLess(time.monotonic() - start, 5)
+        self.assertTrue(fetch(5, ("true",)))
+
+    def test_timing_is_reported_not_budgeted(self):
+        from tools.sprint_metrics import timing_report, near_miss
+        rep = timing_report({'seconds': {'setup': 10, 'matching': 900}})
+        self.assertEqual(rep['active_seconds'], 910)
+        self.assertNotIn('finish_due', rep)
+        self.assertTrue(near_miss(70, 71))
+        self.assertFalse(near_miss(54, 62))
+        self.assertFalse(near_miss(71, 71))
 
     def test_usage_reimport_does_not_double_count_or_invent_cost(self):
         from tools.sprint_metrics import record_usage

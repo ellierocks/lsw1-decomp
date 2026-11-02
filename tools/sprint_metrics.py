@@ -3,20 +3,22 @@ import json
 import math
 from pathlib import Path
 
-BUDGET_SECONDS = 600
-FINISH_RESERVE_SECONDS = 90
+NEAR_MISS_RATIO = 0.95
 
 
 def active_seconds(state):
     return sum(state.get('seconds', {}).values())
 
 
-def budget_report(state):
-    active = active_seconds(state)
-    return {'active_seconds': round(active, 1), 'budget_seconds': BUDGET_SECONDS,
-            'remaining_seconds': round(max(0, BUDGET_SECONDS - active), 1),
-            'overrun_seconds': round(max(0, active - BUDGET_SECONDS), 1),
-            'finish_due': active >= BUDGET_SECONDS - FINISH_RESERVE_SECONDS}
+def timing_report(state):
+    """Measured active seconds per phase. Time is reported, never used as a stop rule."""
+    return {'active_seconds': round(active_seconds(state), 1),
+            'phases': {k: round(v, 1) for k, v in state.get('seconds', {}).items()}}
+
+
+def near_miss(exact, target):
+    """True when a mismatch is close enough that it must not be parked on attempt count."""
+    return target > 0 and exact < target and exact / target >= NEAR_MISS_RATIO
 
 
 def record_usage(path: Path, record: dict):

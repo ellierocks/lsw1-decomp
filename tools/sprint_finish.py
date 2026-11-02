@@ -20,6 +20,8 @@ import contextlib
 import hashlib
 import io
 import json
+import os
+import signal
 import subprocess
 import sys
 import time
@@ -35,8 +37,27 @@ BASELINE = ROOT / "work" / "sprint_baseline.json"
 DOL = ROOT / "build" / "GL5E4F" / "main.dol"
 
 
+FETCH_TIMEOUT = 60
+
+
 def run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, **kw)
+
+
+def fetch(timeout: float = FETCH_TIMEOUT, cmd=("git", "fetch", "-q", "origin")) -> bool:
+    """`git fetch origin` with a timeout, so a stalled SSH connection cannot hang a sprint.
+
+    The fetch runs in its own process group with no pipes, so a timeout also kills the
+    `ssh` child that git spawns instead of waiting on its open output.
+    """
+    proc = subprocess.Popen(list(cmd), cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, start_new_session=True)
+    try:
+        return proc.wait(timeout=timeout) == 0
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.wait()
+        return False
 
 
 def snapshot() -> dict:
@@ -55,12 +76,10 @@ def verify(name: str) -> bool:
         return vf.main([name, "--strict-symbols", "--allow-stale", "--quiet"]) == 0
 
 
-def validate_queue(queue: list[str], matched: list[str], parked: list[str], deferred=None, finish_due=False) -> None:
+def validate_queue(queue: list[str], matched: list[str], parked: list[str], deferred=None) -> None:
     if not queue or len(queue) != len(set(queue)):
         raise ValueError("supply the complete, unique sprint queue with --queue (or save it at --baseline)")
     deferred = deferred or []
-    if deferred and not finish_due:
-        raise ValueError("--deferred requires the measured 10-minute run to reach its finish reserve")
     names = list(matched) + deferred
     for row in parked:
         name, sep, note = row.partition("=")
@@ -104,9 +123,9 @@ def main(argv=None) -> int:
     ap.add_argument("--queue", nargs="+", help="complete ordered sprint queue; saved with baseline")
     ap.add_argument("--phase", choices=["setup", "matching", "tooling", "finish", "paused"],
                     help="switch elapsed-time phase and exit; pause during user/CI waits")
-    ap.add_argument("--budget-status", action="store_true", help="report active time and finish cutoff")
+    ap.add_argument("--timing", "--budget-status", dest="budget_status", action="store_true", help="report measured active time per phase")
     ap.add_argument("--usage", type=Path, help="import provider-reported usage JSON for one run")
-    ap.add_argument("--deferred", nargs="*", default=[], help="unfinished targets at the measured time cutoff")
+    ap.add_argument("--deferred", nargs="*", default=[], help="queue entries not attempted or not finished this run")
     args = ap.parse_args(argv)
     timing = ROOT / "work" / "sprint_timing.json"
     usage_path = ROOT / "work" / "sprint_usage.json"
@@ -121,16 +140,18 @@ def main(argv=None) -> int:
             ap.error("start timing with --phase setup; historical active time is unknown")
         current = json.loads(timing.read_text())
         current = phase(timing, current["active"])
-        print(json.dumps(metrics.budget_report(current), indent=2))
+        print(json.dumps(metrics.timing_report(current), indent=2))
         return 0
     if args.phase:
         current = phase(timing, args.phase)
-        print(json.dumps({**current, **metrics.budget_report(current)}, indent=2))
+        print(json.dumps({**current, **metrics.timing_report(current)}, indent=2))
         return 0
 
     if args.baseline:
         if not args.allow_behind:
-            run(["git", "fetch", "-q", "origin"])
+            if not fetch():
+                print(f"warning: git fetch failed or exceeded {FETCH_TIMEOUT}s; checking freshness "
+                      "against the last fetched origin/main", file=sys.stderr)
             behind = run(["git", "rev-list", "--count", "HEAD..origin/main"]).stdout.strip()
             if behind not in ("", "0"):
                 print(f"error: HEAD is {behind} commits behind origin/main, so the workflow docs and "
@@ -151,11 +172,8 @@ def main(argv=None) -> int:
         ap.error("finish requires --unit and the complete --queue")
     if args.unit:
         try:
-            current = json.loads(timing.read_text()) if timing.exists() else {}
-            if current:
-                current = phase(timing, current["active"])
             validate_queue(args.queue or (base or {}).get("queue", []), args.functions, args.parked,
-                           args.deferred, metrics.budget_report(current)["finish_due"])
+                           args.deferred)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
@@ -163,7 +181,7 @@ def main(argv=None) -> int:
         phase(timing, "finish")
     failures: list[str] = []
     if args.rebase:
-        if run(["git", "fetch", "-q", "origin"]).returncode or run(["git", "rebase", "origin/main"]).returncode:
+        if not fetch() or run(["git", "rebase", "origin/main"]).returncode:
             print("error: rebase failed; resolve it, then rerun", file=sys.stderr)
             if timing.exists():
                 phase(timing, "paused")
@@ -194,7 +212,7 @@ def main(argv=None) -> int:
     for fn, note in parked:
         print(f"| {fn} | parked {note} |")
     for fn in args.deferred:
-        print(f"| {fn} | deferred: active-time cutoff; resume next run |")
+        print(f"| {fn} | deferred: not finished this run; resume next run |")
     print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
     if base:
         drift = " (includes main drift if rebased)" if args.rebase or base["head"] != snap["head"] else ""
@@ -211,7 +229,7 @@ def main(argv=None) -> int:
         print("- Recorded elapsed seconds: " + ", ".join(f"{k}={v:.1f}" for k, v in sorted(elapsed.items()))
               + "; unrecorded earlier effort is unknown, phases do not measure CPU time")
     if timing.exists():
-        print("- Active budget: " + json.dumps(metrics.budget_report(json.loads(timing.read_text()))))
+        print("- Active time: " + json.dumps(metrics.timing_report(json.loads(timing.read_text()))))
     print("- Provider usage: " + json.dumps(metrics.usage_report(
         json.loads(usage_path.read_text()) if usage_path.exists() else {})))
     if failures:

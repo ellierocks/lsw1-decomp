@@ -1,4 +1,4 @@
-"""Draft extern arrays, compact assembly and the score line's sprint budget suffix."""
+"""Draft extern arrays, compact assembly and the score line's sprint timer suffix."""
 import json
 from pathlib import Path
 import tempfile
@@ -26,22 +26,22 @@ class ArrayizeTest(unittest.TestCase):
         self.assertEqual(draft_fn.compact_asm(asm), "\tlwz r11, 0xeec(r3)\n.L_1:")
 
 
-class BudgetSuffixTest(unittest.TestCase):
+class TimerSuffixTest(unittest.TestCase):
     def suffix(self, state):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "timing.json"
             path.write_text(json.dumps(state))
-            return score_fn.budget_suffix(path)
+            return score_fn.timer_suffix(path)
 
-    def test_running_timer_reports_remaining_and_finish_due(self):
+    def test_running_timer_reports_active_seconds_without_a_countdown(self):
         self.assertEqual(self.suffix({"seconds": {"setup": 100}, "active": "matching",
-                                      "since": time.time() - 200}), "  [budget 300s left]")
-        self.assertIn("FINISH DUE", self.suffix({"seconds": {"matching": 520}, "active": "matching",
-                                                 "since": time.time()}))
+                                      "since": time.time() - 200}), "  [active 300s]")
+        self.assertEqual(self.suffix({"seconds": {"matching": 900}, "active": "matching",
+                                      "since": time.time()}), "  [active 900s]")
 
     def test_paused_or_missing_timer_is_silent(self):
         self.assertEqual(self.suffix({"seconds": {}, "active": "paused", "since": 0}), "")
-        self.assertEqual(score_fn.budget_suffix(Path("/nonexistent/timing.json")), "")
+        self.assertEqual(score_fn.timer_suffix(Path("/nonexistent/timing.json")), "")
 
 
 if __name__ == "__main__":
