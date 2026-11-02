@@ -4,6 +4,11 @@
     python3 tools/draft_fn.py NuAnimCurve2SetApplyToJointTransLoc
     python3 tools/draft_fn.py NAME --score          # also score the draft once
     python3 tools/draft_fn.py NAME --no-ghidra      # skip work/NAME/ghidra.c
+    python3 tools/draft_fn.py A B C --no-ghidra --print   # draft a wave; print drafts and asm
+
+Globals the target addresses with `@ha`/`@l` instead of `@sda21` are declared as arrays
+and read as `sym[0]`: ProDG puts scalar externs of 8 bytes or less in small data, so the
+scalar declaration m2c writes can never match those accesses.
 
 The draft goes to `work/NAME/draft_m2c.c` (ignored by git). m2c runs from the pinned checkout
 (`tools/fetch_m2c.sh`, default ~/.cache/lsw1/m2c; `M2C` overrides it) with the PPC GCC target.
@@ -35,32 +40,50 @@ def m2c_dir() -> Path:
     return Path(os.environ.get("M2C") or Path(os.environ.get("LSW1_CACHE", Path.home() / ".cache/lsw1")) / "m2c")
 
 
-def clean(text: str, name: str) -> str:
+def absolute_symbols(asm: str) -> set[str]:
+    """Symbols the target reaches through @ha/@l, i.e. outside small data."""
+    return set(re.findall(r"\b(\w+)@(?:ha|l)\b", asm))
+
+
+def arrayize(text: str, symbols: set[str]) -> str:
+    """Declare scalar externs of absolutely-addressed symbols as arrays and index them."""
+    for sym in sorted(symbols):
+        decl = re.compile(rf"^extern ([^;()\[\]]*?)\b{re.escape(sym)};", re.M)
+        if not decl.search(text):
+            continue
+        text = decl.sub(rf"extern \1{sym}[];", text)
+        head, sep, body = text.partition(f"{sym}[];")
+        # One pass: `&sym` becomes the array itself, a bare read becomes `sym[0]`.
+        body = re.sub(rf"(&?)(?<!\w){re.escape(sym)}\b(?!\s*\[)",
+                      lambda m: sym if m.group(1) else f"{sym}[0]", body)
+        text = head + sep + body
+    return text
+
+
+def clean(text: str, name: str, asm: str = "") -> str:
     """Make m2c output compile as C: no `?` types, no extern comments, a types.h include."""
     text = re.sub(r"^extern \? (\w+);", r"extern char \1[];", text, flags=re.M)
     text = re.sub(r"^\? (\w+)\(", r"void \1(", text, flags=re.M)
     text = re.sub(r"\s*/\* extern \*/", "", text)
     text = re.sub(r"\(\?(\s*\*?\w*)\)", r"(void\1)", text)
+    text = arrayize(text, absolute_symbols(asm))
     return f'#include "types.h"\n\n{text.strip()}\n'
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("name", help="function name in symbols.txt")
-    ap.add_argument("--score", action="store_true", help="score the draft once with score_fn.py")
-    ap.add_argument("--ghidra", action="store_true",
-                    help="regenerate work/NAME/ghidra.c even if it exists (default: write it when missing "
-                         "and the Ghidra project exists)")
-    ap.add_argument("--no-ghidra", action="store_true", help="skip the Ghidra reference")
-    ap.add_argument("--out-dir", type=Path, default=ROOT / "work")
-    args = ap.parse_args(argv)
-    task = args.out_dir / args.name
+def compact_asm(asm: str) -> str:
+    """Assembly without the address/offset/bytes comment column."""
+    return "\n".join(re.sub(r"^/\* [0-9A-F]+ [0-9A-F]+\s+(?:[0-9A-F]{2} ){4}\*/\s*", "\t", ln)
+                     for ln in asm.splitlines() if ln.strip() and not ln.startswith((".fn", ".endfn")))
+
+
+def draft_one(name: str, args) -> int:
+    task = args.out_dir / name
     asm = task / "asm.s"
     if not asm.is_file():
-        subprocess.run([sys.executable, str(ROOT / "tools" / "ls1_task_pack.py"), args.name,
+        subprocess.run([sys.executable, str(ROOT / "tools" / "ls1_task_pack.py"), name,
                         "--out-dir", str(args.out_dir)], cwd=ROOT, capture_output=True)
     if not asm.is_file() or not asm.read_text().strip():
-        print(f"error: no assembly for {args.name}; run bash build.sh, then tools/ls1_task_pack.py", file=sys.stderr)
+        print(f"error: no assembly for {name}; run bash build.sh, then tools/ls1_task_pack.py", file=sys.stderr)
         return 2
     m2c = m2c_dir()
     if not (m2c / "m2c.py").is_file():
@@ -69,17 +92,18 @@ def main(argv=None) -> int:
     r = subprocess.run([sys.executable, str(m2c / "m2c.py"), "-t", TARGET, str(asm.resolve())],
                        capture_output=True, text=True)
     if r.returncode or not r.stdout.strip():
-        print(f"error: m2c failed\n{(r.stdout + r.stderr).strip()[-800:]}", file=sys.stderr)
+        print(f"error: m2c failed for {name}\n{(r.stdout + r.stderr).strip()[-800:]}", file=sys.stderr)
         return 2
     out = task / "draft_m2c.c"
-    out.write_text(clean(r.stdout, args.name))
+    asm_text = asm.read_text()
+    out.write_text(clean(r.stdout, name, asm_text))
     print(f"wrote {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
     ghidra_out = task / "ghidra.c"
     want_ghidra = not args.no_ghidra and (args.ghidra or (not ghidra_out.is_file() and ghidra_decompile.project_ready()))
     if want_ghidra:
-        g = subprocess.run([sys.executable, str(ROOT / "tools" / "ghidra_decompile.py"), "decompile", args.name,
+        g = subprocess.run([sys.executable, str(ROOT / "tools" / "ghidra_decompile.py"), "decompile", name,
                             "--out-dir", str(task)], cwd=ROOT, capture_output=True, text=True)
-        produced = task / f"{args.name}.c"
+        produced = task / f"{name}.c"
         if g.returncode == 0 and produced.is_file():
             produced.replace(task / "ghidra.c")
             print(f"wrote {(task / 'ghidra.c').relative_to(ROOT) if task.is_relative_to(ROOT) else task / 'ghidra.c'}")
@@ -87,8 +111,10 @@ def main(argv=None) -> int:
             print(f"ghidra: {(g.stdout + g.stderr).strip()[-400:] or 'no output'}", file=sys.stderr)
     elif not args.no_ghidra and not ghidra_out.is_file():
         print("note: no Ghidra reference; run python3 tools/ghidra_decompile.py setup once", file=sys.stderr)
+    if args.print:
+        print(f"--- {name} draft ---\n{out.read_text().strip()}\n--- {name} asm ---\n{compact_asm(asm_text)}")
     if args.score:
-        s = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), args.name, str(out),
+        s = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), name, str(out),
                             "-I", "src"], cwd=ROOT, capture_output=True, text=True)
         first = (s.stdout or s.stderr).strip().splitlines()
         if s.returncode == 2:
@@ -98,6 +124,20 @@ def main(argv=None) -> int:
             print(first[0] if first else "no output")
     return 0
 
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("names", nargs="+", metavar="name", help="function names in symbols.txt")
+    ap.add_argument("--score", action="store_true", help="score each draft once with score_fn.py")
+    ap.add_argument("--ghidra", action="store_true",
+                    help="regenerate work/NAME/ghidra.c even if it exists (default: write it when missing "
+                         "and the Ghidra project exists)")
+    ap.add_argument("--no-ghidra", action="store_true", help="skip the Ghidra reference")
+    ap.add_argument("--print", action="store_true",
+                    help="print each draft and its assembly (without the byte column)")
+    ap.add_argument("--out-dir", type=Path, default=ROOT / "work")
+    args = ap.parse_args(argv)
+    return max(draft_one(name, args) for name in args.names)
 
 if __name__ == "__main__":
     sys.exit(main())

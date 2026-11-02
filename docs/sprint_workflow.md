@@ -53,8 +53,12 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 Reuse the checkout's toolchain and build. Bootstrap only if prerequisites are missing;
 for matching setup use `LSW1_NO_GHIDRA=1 bash tools/bootstrap.sh` and request Ghidra
 separately when needed. Do not start decompilation while setup still owns its project.
-Generate m2c drafts with `--no-ghidra`, then request Ghidra for the wave in one call.
-This avoids launching a headless process separately for every draft.
+Generate m2c drafts for the whole wave in one call with
+`python3 tools/draft_fn.py FN1 FN2 ... --no-ghidra --print`, which prints each draft and its
+assembly without the byte column. Then request Ghidra for the wave in one call. This avoids
+launching a headless process separately for every draft. Drafts already declare globals
+that the target reaches through `@ha/@l` as arrays read with `sym[0]`. ProDG puts scalar
+externs in small data, so a scalar declaration can never match those loads.
 
 Ghidra is optional. For a function with loops, switches or nested conditions, run
 `python3 tools/ghidra_decompile.py decompile FN ...` for that wave and read `work/FN/ghidra.c`
@@ -72,7 +76,9 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 Each run has a **600-second active-work budget**, including setup, matching, tooling
 and finish. Reserve the last **90 seconds** for verification and handoff. Start with
 `python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and
-run `--budget-status` before every new target or search. Cap a search by the smaller
+check the remaining budget before every new target or search. Every `score_fn.py`
+result line ends with `[budget Ns left]` while the timer runs, so a separate
+`--budget-status` call is needed only when no score has run recently. Cap a search by the smaller
 of its per-function limit and the time left before the finish reserve. At 510 active
 seconds, stop starting matching work and finish. Required correctness checks still run
 to completion; record an overrun rather than weakening or skipping them.
@@ -114,6 +120,25 @@ whole-project completion from one easy-function run. For an existing baseline wi
 a queue, supply the full `--queue` at finish.
 
 ## Per-function budget
+
+Active time in a run is dominated by round trips, not compiles. In the first measured run
+([#53](https://github.com/ellierocks/lsw1-decomp/pull/53): 424 matching seconds, about
+45 tool calls), the four matches took 9 scoring attempts in total. Five of the other six
+functions it tried reached 85% to 99% exact but took about 27 attempts and three
+`variant_search` runs and gained no bytes. Most of the remaining mismatches were register
+numbers or one instruction scheduled differently. Ten-minute runs therefore use tighter
+limits:
+
+- Write new functions only through `score_fn.py --body try.c --apply`. A function that is
+  not yet in SOURCE is appended for scoring, and SOURCE changes only on a strict MATCH,
+  so parking needs no cleanup.
+- Park after **3 attempts without improvement**. Skip `variant_search.py` and
+  `order_search.py` when only register numbers or the schedule differ; they found
+  nothing in #53. Leave those near-misses for a dedicated longer run.
+- After a match, try its shape siblings next. In #53, `fn_8013F24C` matched on its first
+  attempt by reusing the shape of an earlier sibling.
+
+The table below is the full limit for runs without the ten-minute budget.
 
 | Step | Limit |
 |---|---|
