@@ -178,7 +178,8 @@ than GC, so those donor offsets do not transfer.
 `fn_8013C620` iterates six groups, loading pointers at `+0x71C` and
 counts at `+0x734` from the pool and stepping each record by `0x40`. It
 stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
-`fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`. The matched `fn_8013D9FC` confirms record floats at `+0x04` (current Y),
+`fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`.
+The matched `fn_8013D9FC` confirms record floats at `+0x04` (current Y),
 `+0x20` (base Y) and `+0x24` (saved Y), and a signed kind byte at `+0x3E`.
 Its height table has a `0x34`-byte stride. The comparison stores the computed
 height for ordered values (`y <= height || y > height`); preserving its NaN
@@ -190,6 +191,12 @@ buffer starts at `+0x714` and `+0x718` and clears the index at `+0x750`.
 `fn_8013F0AC` confirms the signed record halfword at `+0x36` and passes the
 pool pointer at `+0x1B8` to the pickup effect helper. Both functions strictly
 match; the full pool size remains unknown.
+
+The matched `fn_8013E190` requires both `+0x39` and `+0x3C` record bytes
+to be nonzero before collision testing. It filters the signed room ID at
+`+0x36`, copies the position to `+0x0C` and unlinks the record through
+`+0x18` and `+0x1C` on success. Its actor view has bounding vectors at
+`+0x188` and `+0x194`; this view is separate from the pool.
 
 A separate callback record has a float at `+0x100` and a signed halfword at
 `+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
