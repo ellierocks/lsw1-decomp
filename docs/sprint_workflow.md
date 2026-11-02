@@ -1,7 +1,7 @@
 # Sprint workflow
 
 Phase 3 matching runs as **sprints**. A sprint is one thread, one unit and one PR, and it
-finishes inside a single context window. The queue is sized by context, not by a fixed
+continues across context windows when needed to complete the requested scope. The queue is sized by context, not by a fixed
 count: fixed setup and finish costs (build, baseline, rebase, CI, merge) are paid once, so a
 sprint should match as much as its context allows. It replaces the
 multi-unit batches recorded in [Phase 3 batch history](phase3_batches.md). Those batches
@@ -46,7 +46,7 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 1. AGENTS.md and this page.
 2. Run `python3 tools/next_target.py --unit UNIT --limit 40` and save the list as the
    queue in the first message of the thread.
-3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
+3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline --queue FN1 FN2 ...`
    to record the objdiff figures, the strict-only count and the DOL hash. It refuses to run
    when the checkout is behind `origin/main`; rebase first so the docs and tools are current.
 
@@ -67,6 +67,15 @@ Do not read the batch history or the whole C matching guide up front. When a mis
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
 and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
+## Elapsed effort
+
+Before setup, run `python3 tools/sprint_finish.py --phase setup`. Switch to `matching`,
+`tooling` or `finish` as the work changes; use `paused` during user and CI waits.
+This stores ignored local timing state and prints separate elapsed totals at finish.
+It does not measure CPU time. Missing historical measurements remain unknown: never
+backfill them from estimates or conflate overlapping searches with exclusive effort.
+For an existing baseline without a queue, supply the full `--queue` at finish.
+
 ## Per-function budget
 
 | Step | Limit |
@@ -85,11 +94,17 @@ a `work/NAME/status.md` note giving the best score, the remaining mismatch and t
 hypothesis.
 
 **After each wave**, commit the matches, then take the next wave from the same unit's list.
-**Stop the sprint** and finish when any of these holds:
+**Finish only after accounting for the complete selected queue.** `sprint_finish.py`
+rejects missing outcomes. A parked row needs a measured score, the remaining mismatch
+and a next hypothesis; it means an actual bounded search, not an unattempted function.
+Context pressure is a continuation checkpoint: save the current candidate, remaining
+queue and next command under `work/`, then resume the same unit and PR. Do not turn
+it into a smaller final PR. Three consecutive bounded plateaus justify reassessing
+the remaining queue; they do not prove unattempted functions are exhausted.
 
-- the unit has no ready functions left;
-- about 60% of the context window is used (finish, CI fixes and merge need the rest);
-- three functions in a row are parked (the rest of the unit is likely harder; leave it).
+A completed wave is not automatically a completed sprint. Refresh the unit queue and
+continue related tractable work when the requested scope is substantial. User-directed
+stops take precedence; report partial results honestly rather than claiming completion.
 
 Do not start a second unit in the same thread; open the next sprint as a new thread.
 
@@ -120,7 +135,7 @@ in the PR rather than building a separate baseline worktree. Run `verify_unit.py
 ## Records
 
 The PR body is the sprint record. Keep it to the template below. There is no per-sprint
-section in `strategy.md` and no timing file.
+section in `strategy.md` and no tracked timing file.
 
 ```markdown
 Sprint: `UNIT` (N matched, M parked)

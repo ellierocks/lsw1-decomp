@@ -22,6 +22,7 @@ import io
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -53,6 +54,40 @@ def verify(name: str) -> bool:
         return vf.main([name, "--strict-symbols", "--allow-stale", "--quiet"]) == 0
 
 
+def validate_queue(queue: list[str], matched: list[str], parked: list[str]) -> None:
+    if not queue or len(queue) != len(set(queue)):
+        raise ValueError("supply the complete, unique sprint queue with --queue (or save it at --baseline)")
+    names = list(matched)
+    for row in parked:
+        name, sep, note = row.partition("=")
+        if not sep or not note.strip() or "next:" not in note:
+            raise ValueError("--parked requires FN=score: mismatch; next: hypothesis")
+        names.append(name)
+    if len(names) != len(set(names)):
+        raise ValueError("a function cannot appear twice or be both matched and parked")
+    missing = sorted(set(queue) - set(names))
+    extra = sorted(set(names) - set(queue))
+    if missing or extra:
+        raise ValueError(f"queue accounting failed: unresolved={missing}, outside queue={extra}; "
+                         "continue matching or record bounded plateaus with --parked; "
+                         "context pressure requires a continuation, not an incomplete finish")
+
+
+def phase(path: Path, name: str, now: float | None = None) -> dict:
+    now = time.time() if now is None else now
+    state = json.loads(path.read_text()) if path.exists() else {"seconds": {}}
+    if "active" in state and state["active"] != "paused":
+        elapsed = now - state["since"]
+        if elapsed < 0:
+            raise ValueError("clock moved backwards; retain the timing file and correct the clock")
+        key = state["active"]
+        state["seconds"][key] = state["seconds"].get(key, 0) + elapsed
+    state.update(active=name, since=now)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2) + "\n")
+    return state
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("functions", nargs="*", help="functions matched in this sprint")
@@ -62,7 +97,14 @@ def main(argv=None) -> int:
     ap.add_argument("--unit", help="unit name for the record heading")
     ap.add_argument("--allow-behind", action="store_true",
                     help="record a baseline even when HEAD is behind origin/main")
+    ap.add_argument("--queue", nargs="+", help="complete ordered sprint queue; saved with baseline")
+    ap.add_argument("--phase", choices=["setup", "matching", "tooling", "finish", "paused"],
+                    help="switch elapsed-time phase and exit; pause during user/CI waits")
     args = ap.parse_args(argv)
+    timing = ROOT / "work" / "sprint_timing.json"
+    if args.phase:
+        print(json.dumps(phase(timing, args.phase), indent=2))
+        return 0
 
     if args.baseline:
         if not args.allow_behind:
@@ -73,6 +115,7 @@ def main(argv=None) -> int:
                       "tools may be stale; rebase onto origin/main (or pass --allow-behind)", file=sys.stderr)
                 return 2
         snap = snapshot()
+        snap["queue"] = args.queue or []
         BASELINE.parent.mkdir(exist_ok=True)
         BASELINE.write_text(json.dumps(snap, indent=2))
         print(f"baseline: {snap['functions']:,} functions, {snap['code']:,} bytes, "
@@ -82,6 +125,16 @@ def main(argv=None) -> int:
         ap.error("name the matched functions (or use --baseline)")
 
     base = json.loads(BASELINE.read_text()) if BASELINE.is_file() else None
+    if not args.unit:
+        ap.error("finish requires --unit and the complete --queue")
+    if args.unit:
+        try:
+            validate_queue(args.queue or (base or {}).get("queue", []), args.functions, args.parked)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+    if timing.exists():
+        phase(timing, "finish")
     failures: list[str] = []
     if args.rebase:
         if run(["git", "fetch", "-q", "origin"]).returncode or run(["git", "rebase", "origin/main"]).returncode:
@@ -110,7 +163,7 @@ def main(argv=None) -> int:
         print(f"| {fn} | {'VERIFIED' if ok else '**FAILED strict check**'} |")
     for fn, note in parked:
         print(f"| {fn} | parked {note} |")
-    print("\n- Promoted: none | UNIT (bytes), verify_unit and linked range clean")
+    print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
     if base:
         drift = " (includes main drift if rebased)" if args.rebase or base["head"] != snap["head"] else ""
         print(f"- Report: functions {base['functions']:,} → {snap['functions']:,}, code bytes "
@@ -121,6 +174,10 @@ def main(argv=None) -> int:
         print(f"- Report: functions {snap['functions']:,}, code bytes {snap['code']:,} (no baseline saved)")
     print(f"- DOL: {'byte-identical' if same_dol else 'CHANGED'} (sha1 {str(snap['dol_sha1'])[:8]}…)")
     print("- Donor: <one line, or \"no OpenSaga hits\">\n- Headers: <fields added with their consumer, or none>")
+    if timing.exists():
+        elapsed = phase(timing, "paused")["seconds"]
+        print("- Recorded elapsed seconds: " + ", ".join(f"{k}={v:.1f}" for k, v in sorted(elapsed.items()))
+              + "; unrecorded earlier effort is unknown, phases do not measure CPU time")
     if failures:
         print(f"\nFAILED: {', '.join(failures)}", file=sys.stderr)
         return 1
