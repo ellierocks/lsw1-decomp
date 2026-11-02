@@ -44,6 +44,7 @@ For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
 
 ```sh
 python3 tools/sweep.py --apply          # then bash build.sh and verify_fn.py on each match
+python3 tools/sweep_permute.py --apply  # permuter on the biggest near-misses, unattended
 python3 tools/next_target.py
 python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
 ```

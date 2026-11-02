@@ -491,3 +491,23 @@ void fn_8007ABA0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
     lbl_80408C68 = arg4;
     lbl_80408C70 = arg5;
 }
+
+s32 fn_80077038();
+extern u8 lbl_80408A57;
+extern s32 lbl_80408AA8;
+extern f32 lbl_8040AF18;
+
+void fn_800795C0(void *arg0)
+{
+  s8 *new_var3;
+  s32 new_var4;
+  s8 *new_var2;
+  void *new_var;
+  fn_80077038();
+  new_var4 = lbl_80408AA8;
+  new_var = arg0;
+  new_var3 = (s8 *) arg0;
+  new_var2 = new_var3 + 0x9C;
+  *((f32 *) new_var2) = (f32) lbl_8040AF18;
+  fn_800769B4(new_var, new_var4, lbl_80408A57);
+}

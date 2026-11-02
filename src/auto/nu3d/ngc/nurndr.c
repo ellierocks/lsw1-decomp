@@ -140,3 +140,16 @@ void NuRndrTriStrip3dClip(s32 a, s32 b, s32 c, s32 d)
 {
     fn_800262BC(&a, d, c, b);
 }
+
+s32 fn_80028138(s32, s32 *);
+s32 fn_8002CFF8(s32, s32);
+s32 fn_8002E538();
+
+void fn_8002746C(s32 arg0, s32 arg1, s32 *arg2)
+{
+  s32 sp8;
+  sp8 = *arg2;
+  fn_80028138(arg1, &sp8);
+ do { fn_8002CFF8(arg0, arg1); } while (0);
+  fn_8002E538();
+}

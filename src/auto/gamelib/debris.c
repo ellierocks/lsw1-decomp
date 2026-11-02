@@ -165,3 +165,63 @@ s32 fn_8005A8E4();
 void fn_80064CD4(void) {
     fn_8005A8E4();
 }
+
+s32 NuScratchAlloc32(s32);
+s32 NuScratchRelease();
+extern s32 lbl_8040A588;
+extern s32 lbl_8040A5A4;
+extern s32 lbl_8040A5C4;
+extern s32 lbl_8040A5E4;
+extern s32 lbl_8040A5E8;
+extern s32 lbl_8040AE4C;
+extern s32 lbl_8040AE5C;
+
+void fn_8005A560(void)
+{
+  int new_var;
+ do { lbl_8040A5E4 = 0; new_var = 0; lbl_8040A588 = new_var; lbl_8040A5E8 = new_var; lbl_8040A5A4 = 0; lbl_8040AE5C = NuScratchAlloc32(0x948); NuScratchRelease(); } while (0);
+  lbl_8040A5C4 = new_var;
+  lbl_8040AE4C = 0;
+}
+
+void fn_80064C54(void *arg0, void **arg1)
+{
+  void *temp_r9;
+  void *temp_r9_2;
+  void *temp_r11;
+  temp_r11 = *((void **) (((s8 *) arg0) + 0x14C));
+  if (temp_r11 == ((void *) 0))
+  {
+    temp_r9 = *((void **) (((s8 *) arg0) + 0x148));
+    *arg1 = temp_r9;
+    if (temp_r9 != ((void *) 0))
+    {
+      *((void **) (((s8 *) temp_r9) + 0x14C)) = temp_r11;
+    }
+  }
+  else
+  {
+    *((void **) (((s8 *) temp_r11) + 0x148)) = (void *) (*((void **) (((s8 *) arg0) + 0x148)));
+    temp_r9_2 = *((void **) (((s8 *) arg0) + 0x148));
+    if (temp_r9_2 != ((void *) 0))
+    {
+      *((void **) (((s8 *) temp_r9_2) + 0x14C)) = (void *) (*((void **) (((s8 *) arg0) + 0x14C)));
+    }
+  }
+  *((void **) (((s8 *) arg0) + 0x14C)) = (void *) 0;
+  *((void **) (((s8 *) arg0) + 0x148)) = (void *) 0;
+}
+
+extern f32 lbl_80195740[];
+extern s32 lbl_80408404;
+
+void fn_80064830(s32 arg0, f32 farg0, f32 farg1, f32 farg2)
+{
+  void *temp_r11;
+  if (arg0 != (-1))
+  {
+ do { temp_r11 = (arg0 * 0x2EC) + lbl_80408404; *((f32 *) (((s8 *) temp_r11) + 0x280)) = (f32) lbl_80195740[0]; *((f32 *) (((s8 *) temp_r11) + 0x110)) = farg0; } while (0);
+    *((f32 *) (((s8 *) temp_r11) + 0x114)) = farg1;
+    *((f32 *) (((s8 *) temp_r11) + 0x118)) = farg2;
+  }
+}
