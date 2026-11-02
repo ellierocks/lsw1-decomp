@@ -121,3 +121,33 @@ s32 fn_8013C6EC(struct NUPICKUPVISUAL_s* visual)
     }
     return 0;
 }
+
+extern f32 lbl_801AEDFC[];
+extern f32 lbl_801AEE00[];
+extern f32 lbl_801AEE04[];
+extern f32 lbl_801AEE08[];
+extern f32 lbl_80409A28;
+extern char str_Pickup_LegoSingle[];
+f32 fn_8000CB50(void* pos);
+void NuASin(s32 value);
+void fn_8006DD1C(char* name, void* pos);
+
+void fn_8013F24C(struct NUPICKUPVISUAL_s* visual)
+{
+    f32 minDist;
+    f32 dist;
+
+    if (lbl_80409410->mode19C != 10) {
+        minDist = lbl_801AEDFC[0];
+        if (lbl_80409A28 <= minDist) {
+            dist = fn_8000CB50(visual->unk0 + 0x80);
+            if (dist > minDist) {
+                if (dist > lbl_801AEE00[0])
+                    dist = lbl_801AEE00[0];
+                NuASin((s32)((lbl_801AEE00[0] - dist) * lbl_801AEE04[0]));
+                fn_8006DD1C(str_Pickup_LegoSingle, visual->unk0 + 0x30);
+                lbl_80409A28 = lbl_801AEE08[0];
+            }
+        }
+    }
+}
