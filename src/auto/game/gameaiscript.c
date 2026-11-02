@@ -262,3 +262,158 @@ f32 Condition_AngleFromPlayer2ToMe(void *sys, void *process,
     return (f32)fn_8000ABDC(*(f32 *)(owner + 0x6c) - *(f32 *)(player + 0x6c),
         *(f32 *)(owner + 0x74) - *(f32 *)(player + 0x74)) * lbl_801AEAA8[0];
 }
+
+s32 fn_800D9A60();
+
+s32 Action_CancelHint(void) {
+    fn_800D9A60();
+    return 1;
+}
+
+extern f32 lbl_801AEB58[];
+extern s32 lbl_803E0278[];
+
+f32 Condition_CameraYRot(void) {
+    return (f32) (f64) lbl_803E0278[0] * lbl_801AEB58[0];
+}
+
+s32 fn_800D99AC();
+
+f32 Condition_CurrentHintId(void) {
+    return (f32) (f64) fn_800D99AC();
+}
+
+s32 fn_80108E6C(s32);
+
+void Condition_DoorLockedInit(void) {
+    fn_80108E6C(lbl_80409410);
+}
+
+s32 fn_80108E6C(s32);
+
+void Condition_DoorOpenInit(void) {
+    fn_80108E6C(lbl_80409410);
+}
+
+s32 fn_80108E6C(s32);
+
+void Condition_DoorOpenedInit(void) {
+    fn_80108E6C(lbl_80409410);
+}
+
+extern s32 lbl_804091F8;
+
+f32 Condition_Freeplay(void) {
+    return (f32) (f64) lbl_804091F8;
+}
+
+s32 fn_80108E6C(s32);
+
+void Condition_GadgetActiveInit(void) {
+    fn_80108E6C(lbl_80409410);
+}
+
+extern s32 lbl_8040AFA8;
+
+f32 Condition_InMiniCut(void) {
+    return (f32) (f64) lbl_8040AFA8;
+}
+
+s32 fn_8008F720();
+
+void Condition_LocatorOnScreenInit(void) {
+    fn_8008F720();
+}
+
+s32 NuStrIStr(s32, s32 *);
+extern s32 str_Entity_InRange[];
+extern s32 str_Entity_Throwable[];
+
+s32 Condition_NumForceObjectsInit(s32 arg0, s32 arg1) {
+    s32 var_r31;
+
+    var_r31 = 0;
+    if ((arg1 != 0) && (arg0 != 0)) {
+        if (NuStrIStr(arg1, str_Entity_Throwable) != 0) {
+            var_r31 = 1;
+        }
+        if (NuStrIStr(arg1, str_Entity_InRange) != 0) {
+            var_r31 |= 2;
+        }
+    }
+    return var_r31;
+}
+
+s32 fn_80108E6C(s32);
+
+void Condition_ObstacleChainPhaseInit(void) {
+    fn_80108E6C(lbl_80409410);
+}
+
+s32 fn_80108E6C(s32);
+
+void Condition_ObstacleFinishedInit(void) {
+    fn_80108E6C(lbl_80409410);
+}
+
+extern f32 lbl_801AE990[];
+extern f32 lbl_801AE994[];
+
+f32 Condition_PlayerDeflectingPart(void) {
+    if (((void *) lbl_80409004 != NULL) && ((s32) (*(s32 *)((s8 *)((*(void **)((s8 *)(lbl_80409004) + (0xEEC)))) + (0x64C))) != 0)) {
+        return lbl_801AE990[0];
+    }
+    return lbl_801AE994[0];
+}
+
+extern f32 lbl_801AE9C0[];
+extern f32 lbl_801AE9C4[];
+
+f32 Condition_PlayerOnGround(void) {
+    if (((void *) lbl_80409004 != NULL) && ((*(s32 *)((s8 *)(lbl_80409004) + (0x284))) & 0xFFFF00)) {
+        return lbl_801AE9C0[0];
+    }
+    return lbl_801AE9C4[0];
+}
+
+extern s32 lbl_8040B108;
+
+f32 Condition_RaceLap(void) {
+    return (f32) (f64) lbl_8040B108;
+}
+
+s32 fn_80109294(s32);
+
+void Condition_TubeActiveInit(void) {
+    fn_80109294(lbl_80409410);
+}
+
+extern void *lbl_80408DF0;
+
+f32 fn_8012D1CC(s32 arg0) {
+    return (*(f32 *)((s8 *)((*(void **)((s8 *)(((arg0 * 0x48) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x20))))) + (0x20)))) + (0x84)));
+}
+
+extern void *lbl_80408DF0;
+
+f32 fn_8012D1E8(s32 arg0) {
+    return (*(f32 *)((s8 *)((*(void **)((s8 *)(((arg0 * 0x48) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x20))))) + (0x20)))) + (0x88)));
+}
+
+extern void *lbl_80408DF0;
+
+f32 fn_8012D204(s32 arg0) {
+    return (*(f32 *)((s8 *)((*(void **)((s8 *)(((arg0 * 0x48) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x20))))) + (0x20)))) + (0x8C)));
+}
+
+extern void *lbl_80408DF0;
+
+f32 fn_8012D220(s32 arg0) {
+    return (*(f32 *)((s8 *)((*(void **)((s8 *)(((arg0 * 0x48) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x20))))) + (0x20)))) + (0x90)));
+}
+
+s32 fn_80109128(s32);
+
+void fn_80136D84(void) {
+    fn_80109128(lbl_80409410);
+}

@@ -123,3 +123,17 @@ s32 fn_8010B6FC(u8* table, const char* name)
     }
     return -1;
 }
+
+s32 NuMtxTranslate(s32, s32);
+s32 fn_8000DD40(s32, u16);
+s32 fn_8000E3C0(s32, u16);
+s32 fn_800CFE08(s32, s32, s32);
+extern u16 lbl_8040B05C;
+extern u16 lbl_8040B120;
+
+void fn_8010B940(s32 arg0, s32 arg1, s32 arg2) {
+    fn_800CFE08(arg1, 0, 0);
+    fn_8000DD40(arg0, lbl_8040B05C);
+    fn_8000E3C0(arg0, lbl_8040B120);
+    NuMtxTranslate(arg0, arg2);
+}

@@ -87,3 +87,81 @@ void GenDebMomAdjFromAshRock(s32 a, s32 b, f32* c)
     c[4] = c[0] * k;
     c[6] = c[2] * k;
 }
+
+void AddChunkControlToStack(void *arg0, void **arg1) {
+    s32 temp_r0;
+    void **var_r4;
+    void *temp_r9;
+
+    var_r4 = arg1;
+    if ((void *) *var_r4 != NULL) {
+        do {
+            temp_r9 = *var_r4;
+            temp_r0 = (*(s32 *)((s8 *)(temp_r9) + (0x10)));
+            var_r4 = temp_r9 + 0x10;
+        } while (temp_r0 != 0);
+    }
+    *var_r4 = arg0;
+    (*(s32 *)((s8 *)(arg0) + (0x10))) = 0;
+}
+
+void FullReflect(void *arg0, void *arg1, void *arg2) {
+    f32 temp_f13;
+    f32 temp_f8;
+    f32 temp_f9;
+
+    temp_f8 = (*(f32 *)((s8 *)(arg1) + (0)));
+    temp_f13 = (*(f32 *)((s8 *)(arg0) + (0)));
+    temp_f9 = ((*(f32 *)((s8 *)(arg0) + (8))) * -(*(f32 *)((s8 *)(arg1) + (8)))) + ((temp_f13 * -temp_f8) + ((*(f32 *)((s8 *)(arg0) + (4))) * -(*(f32 *)((s8 *)(arg1) + (4)))));
+    (*(f32 *)((s8 *)(arg2) + (0))) = (f32) ((2.0f * (temp_f13 * temp_f9)) + temp_f8);
+    (*(f32 *)((s8 *)(arg2) + (4))) = (f32) ((2.0f * ((*(f32 *)((s8 *)(arg0) + (4))) * temp_f9)) + (*(f32 *)((s8 *)(arg1) + (4))));
+    (*(f32 *)((s8 *)(arg2) + (8))) = (f32) ((2.0f * ((*(f32 *)((s8 *)(arg0) + (8))) * temp_f9)) + (*(f32 *)((s8 *)(arg1) + (8))));
+}
+
+void fn_8005A6C4(s32 arg0, s32 arg1) {
+    if ((arg0 >= 0) && (arg0 < (s32) (*(s32 *)((s8 *)(lbl_8040AE4C) + (0xA59C))))) {
+        (*(s32 *)((s8 *)(((arg0 * 0x6C) + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))))) + (0x40))) = arg1;
+    }
+}
+
+void fn_8005A7F8(s32 arg0, s32 *arg1, s32 *arg2) {
+    s32 temp_r11;
+
+    if (arg0 >= 0) {
+        temp_r11 = arg0 * 0x6C;
+        *arg1 = (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))) + temp_r11;
+        *arg2 = (*(s32 *)((s8 *)((temp_r11 + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))))) + (0x40)));
+    }
+}
+
+extern s32 lbl_80408404;
+
+void fn_80063D78(s32 *arg0) {
+    s32 temp_r3;
+
+    temp_r3 = *arg0;
+    if (temp_r3 != -1) {
+        (*(s8 *)((s8 *)(((temp_r3 * 0x2EC) + lbl_80408404)) + (0x274))) = 0;
+    }
+}
+
+s32 fn_8005EF6C(s32);
+extern s32 lbl_80408404;
+
+void fn_80064888(s32 arg0) {
+    fn_8005EF6C(lbl_80408404 + (arg0 * 0x2EC));
+}
+
+extern s32 lbl_80408404;
+
+void fn_800648D8(s32 arg0, s16 arg1) {
+    if (arg0 != -1) {
+        (*(s16 *)((s8 *)(((arg0 * 0x2EC) + lbl_80408404)) + (0x270))) = arg1;
+    }
+}
+
+s32 fn_8005A8E4();
+
+void fn_80064CD4(void) {
+    fn_8005A8E4();
+}

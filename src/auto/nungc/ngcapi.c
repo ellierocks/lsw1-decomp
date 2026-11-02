@@ -41,3 +41,19 @@ void fn_80037DE8(void)
 {
     memset(lbl_80340588, 0, 0x271);
 }
+
+s32 OSGetResetButtonState();
+extern s32 lbl_804080F0;
+extern s32 lbl_804080F8;
+
+void fn_800385D4(void) {
+    s32 temp_r3;
+
+    if ((s32) lbl_804080F8 == 0) {
+        temp_r3 = OSGetResetButtonState();
+        if ((temp_r3 == 0) && ((s32) lbl_804080F0 == 1) && ((s32) lbl_804080F8 == 0)) {
+            lbl_804080F8 = lbl_804080F0;
+        }
+        lbl_804080F0 = temp_r3;
+    }
+}

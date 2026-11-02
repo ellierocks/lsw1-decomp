@@ -157,3 +157,35 @@ void fn_8002DB70(void)
 {
     memset(&lbl_803127F0, 0, 0x160);
 }
+
+s32 fn_80030E3C();
+s32 fn_80034BB8(s32, s32);
+extern s32 lbl_80407EFC;
+extern s32 lbl_80407F00;
+extern s32 lbl_80407F04;
+extern s32 lbl_80407F08;
+extern s32 lbl_80407F18;
+extern s32 lbl_80407F1C;
+
+void fn_80033DF0(void) {
+    s32 temp_r9;
+
+    lbl_80407F00 = 0;
+    lbl_80407F08 = 0;
+    if ((s32) lbl_80407EFC != 0) {
+        if (fn_80034BB8(0, 4) != 0) {
+            temp_r9 = lbl_80407F04 - 1;
+            lbl_80407F04 = temp_r9;
+            if (temp_r9 < 0) {
+                lbl_80407F04 = 0;
+            }
+        }
+        if (fn_80034BB8(0, 5) != 0) {
+            lbl_80407F04 += 1;
+        }
+    }
+    if ((s32) lbl_80407F1C != (s32) lbl_80407F18) {
+        fn_80030E3C();
+        lbl_80407F1C = lbl_80407F18;
+    }
+}

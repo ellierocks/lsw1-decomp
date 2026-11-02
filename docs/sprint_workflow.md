@@ -14,7 +14,11 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 
 ## Scope
 
-- **One unit per sprint.** Pick it with `next_target.py --by-unit`, then list the unit's
+- **Sweep first.** Run `python3 tools/sweep.py --apply` before choosing the unit; it takes
+  the automatic m2c matches across the whole game for free. Then pick the unit with
+  the most near-miss bytes in `work/sweep/results.json` (size × exact ratio, 90% exact or
+  better first). Each queued function's starting draft is `work/sweep/NAME/sweep_draft.c`.
+- **One unit per sprint.** Pick it from the sweep ranking or `next_target.py --by-unit`, then list the unit's
   ready functions with `--unit UNIT --limit 40`. Work them in waves of about 10, related
   families first. Choose a related family of functions inside one unit.
   Do not spread across several units. Siblings with one shape (a `Curve` and `Curve2`
@@ -44,7 +48,8 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 ## Kickoff (read only this much)
 
 1. AGENTS.md and this page.
-2. Run `python3 tools/next_target.py --unit UNIT --limit 40` and save the list as the
+2. Take the unit's near-misses from `work/sweep/results.json`, largest first, then fill
+   with `python3 tools/next_target.py --unit UNIT --limit 40`. Save the list as the
    queue in the first message of the thread.
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline --queue FN1 FN2 ...`
    to record the objdiff figures, the strict-only count and the DOL hash. It refuses to run

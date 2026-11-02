@@ -58,3 +58,13 @@ void fn_80040D00(void* data)
     node->flags &= ~0x8000;
     if (pool->owner != owner) lbl_80407B20();
 }
+
+s32 fn_800424F4();
+extern s32 lbl_8040A434;
+
+void fn_80042E28(void) {
+    if (((s32) lbl_8040A434 == 0xB) || ((s32) lbl_8040A434 == 0x1A) || ((s32) lbl_8040A434 == 0x17)) {
+        lbl_8040A434 = 0x11;
+        fn_800424F4();
+    }
+}
