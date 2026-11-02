@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sprint_metrics as metrics
 import strict_gap  # noqa: E402
 import verify_fn as vf  # noqa: E402
 
@@ -54,10 +55,13 @@ def verify(name: str) -> bool:
         return vf.main([name, "--strict-symbols", "--allow-stale", "--quiet"]) == 0
 
 
-def validate_queue(queue: list[str], matched: list[str], parked: list[str]) -> None:
+def validate_queue(queue: list[str], matched: list[str], parked: list[str], deferred=None, finish_due=False) -> None:
     if not queue or len(queue) != len(set(queue)):
         raise ValueError("supply the complete, unique sprint queue with --queue (or save it at --baseline)")
-    names = list(matched)
+    deferred = deferred or []
+    if deferred and not finish_due:
+        raise ValueError("--deferred requires the measured 10-minute run to reach its finish reserve")
+    names = list(matched) + deferred
     for row in parked:
         name, sep, note = row.partition("=")
         if not sep or not note.strip() or "next:" not in note:
@@ -100,10 +104,28 @@ def main(argv=None) -> int:
     ap.add_argument("--queue", nargs="+", help="complete ordered sprint queue; saved with baseline")
     ap.add_argument("--phase", choices=["setup", "matching", "tooling", "finish", "paused"],
                     help="switch elapsed-time phase and exit; pause during user/CI waits")
+    ap.add_argument("--budget-status", action="store_true", help="report active time and finish cutoff")
+    ap.add_argument("--usage", type=Path, help="import provider-reported usage JSON for one run")
+    ap.add_argument("--deferred", nargs="*", default=[], help="unfinished targets at the measured time cutoff")
     args = ap.parse_args(argv)
     timing = ROOT / "work" / "sprint_timing.json"
+    usage_path = ROOT / "work" / "sprint_usage.json"
+    if args.usage:
+        try:
+            print(json.dumps(metrics.record_usage(usage_path, json.loads(args.usage.read_text())), indent=2))
+        except (ValueError, OSError) as exc:
+            ap.error(str(exc))
+        return 0
+    if args.budget_status:
+        if not timing.exists():
+            ap.error("start timing with --phase setup; historical active time is unknown")
+        current = json.loads(timing.read_text())
+        current = phase(timing, current["active"])
+        print(json.dumps(metrics.budget_report(current), indent=2))
+        return 0
     if args.phase:
-        print(json.dumps(phase(timing, args.phase), indent=2))
+        current = phase(timing, args.phase)
+        print(json.dumps({**current, **metrics.budget_report(current)}, indent=2))
         return 0
 
     if args.baseline:
@@ -121,7 +143,7 @@ def main(argv=None) -> int:
         print(f"baseline: {snap['functions']:,} functions, {snap['code']:,} bytes, "
               f"{snap['strict_only_functions']} strict-only; saved to {BASELINE.relative_to(ROOT)}")
         return 0
-    if not args.functions and not args.parked:
+    if not args.functions and not args.parked and not args.deferred:
         ap.error("name the matched functions (or use --baseline)")
 
     base = json.loads(BASELINE.read_text()) if BASELINE.is_file() else None
@@ -129,7 +151,11 @@ def main(argv=None) -> int:
         ap.error("finish requires --unit and the complete --queue")
     if args.unit:
         try:
-            validate_queue(args.queue or (base or {}).get("queue", []), args.functions, args.parked)
+            current = json.loads(timing.read_text()) if timing.exists() else {}
+            if current:
+                current = phase(timing, current["active"])
+            validate_queue(args.queue or (base or {}).get("queue", []), args.functions, args.parked,
+                           args.deferred, metrics.budget_report(current)["finish_due"])
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
@@ -139,11 +165,15 @@ def main(argv=None) -> int:
     if args.rebase:
         if run(["git", "fetch", "-q", "origin"]).returncode or run(["git", "rebase", "origin/main"]).returncode:
             print("error: rebase failed; resolve it, then rerun", file=sys.stderr)
+            if timing.exists():
+                phase(timing, "paused")
             return 2
     b = run(["bash", "build.sh"])
     if b.returncode:
         print(b.stdout[-1500:] + b.stderr[-1500:], file=sys.stderr)
         print("error: build.sh failed", file=sys.stderr)
+        if timing.exists():
+            phase(timing, "paused")
         return 2
     results = {fn: verify(fn) for fn in args.functions}
     failures += [f"verify {fn}" for fn, ok in results.items() if not ok]
@@ -157,12 +187,14 @@ def main(argv=None) -> int:
         failures.append("DOL hash changed")
 
     parked = [p.split("=", 1) for p in args.parked]
-    print(f"\nSprint: `{args.unit or 'UNIT'}` ({sum(results.values())} matched, {len(parked)} parked)\n")
+    print(f"\nSprint: `{args.unit or 'UNIT'}` ({sum(results.values())} matched, {len(parked)} parked, {len(args.deferred)} deferred)\n")
     print("| Function | Result |\n|---|---|")
     for fn, ok in results.items():
         print(f"| {fn} | {'VERIFIED' if ok else '**FAILED strict check**'} |")
     for fn, note in parked:
         print(f"| {fn} | parked {note} |")
+    for fn in args.deferred:
+        print(f"| {fn} | deferred: active-time cutoff; resume next run |")
     print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
     if base:
         drift = " (includes main drift if rebased)" if args.rebase or base["head"] != snap["head"] else ""
@@ -178,6 +210,10 @@ def main(argv=None) -> int:
         elapsed = phase(timing, "paused")["seconds"]
         print("- Recorded elapsed seconds: " + ", ".join(f"{k}={v:.1f}" for k, v in sorted(elapsed.items()))
               + "; unrecorded earlier effort is unknown, phases do not measure CPU time")
+    if timing.exists():
+        print("- Active budget: " + json.dumps(metrics.budget_report(json.loads(timing.read_text()))))
+    print("- Provider usage: " + json.dumps(metrics.usage_report(
+        json.loads(usage_path.read_text()) if usage_path.exists() else {})))
     if failures:
         print(f"\nFAILED: {', '.join(failures)}", file=sys.stderr)
         return 1

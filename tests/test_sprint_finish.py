@@ -30,3 +30,26 @@ class SprintFinishTests(unittest.TestCase):
             phase(path, 'matching', 500)
             state = phase(path, 'finish', 505)
             self.assertEqual(state['seconds'], {'setup': 10, 'matching': 25})
+
+    def test_cutoff_defers_without_inventing_plateaus(self):
+        from tools.sprint_metrics import budget_report
+        self.assertFalse(budget_report({'seconds': {'matching': 509}})['finish_due'])
+        due = budget_report({'seconds': {'setup': 10, 'matching': 500}})['finish_due']
+        self.assertTrue(due)
+        validate_queue(['a', 'b'], ['a'], [], ['b'], due)
+        with self.assertRaises(ValueError):
+            validate_queue(['a', 'b'], ['a'], [], ['b'], False)
+
+    def test_usage_reimport_does_not_double_count_or_invent_cost(self):
+        from tools.sprint_metrics import record_usage
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'usage.json'
+            record = dict(run_id='run1', model='reported-model', source='provider export',
+                          input_tokens=100, cached_input_tokens=80, output_tokens=20)
+            record_usage(path, record)
+            result = record_usage(path, record)
+            self.assertEqual(result['input_tokens'], 100)
+            self.assertIsNone(result['cost_usd'])
+            record['cached_input_tokens'] = 101
+            with self.assertRaises(ValueError):
+                record_usage(path, record)

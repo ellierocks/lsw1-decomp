@@ -67,14 +67,51 @@ Do not read the batch history or the whole C matching guide up front. When a mis
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
 and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
-## Elapsed effort
+## Ten-minute active runs
 
-Before setup, run `python3 tools/sprint_finish.py --phase setup`. Switch to `matching`,
-`tooling` or `finish` as the work changes; use `paused` during user and CI waits.
-This stores ignored local timing state and prints separate elapsed totals at finish.
-It does not measure CPU time. Missing historical measurements remain unknown: never
-backfill them from estimates or conflate overlapping searches with exclusive effort.
-For an existing baseline without a queue, supply the full `--queue` at finish.
+Each run has a **600-second active-work budget**, including setup, matching, tooling
+and finish. Reserve the last **90 seconds** for verification and handoff. Start with
+`python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and
+run `--budget-status` before every new target or search. Cap a search by the smaller
+of its per-function limit and the time left before the finish reserve. At 510 active
+seconds, stop starting matching work and finish. Required correctness checks still run
+to completion; record an overrun rather than weakening or skipping them.
+
+Use `--phase paused` during user and CI waits and resume the appropriate phase when
+work resumes. This is explicitly bracketed active wall time, not CPU time or inferred
+human attention. Forgotten pauses invalidate efficiency claims. An interrupted run
+resumes its existing timer; do not reset it to gain another budget. A fresh sprint
+worktree starts a fresh run. The finish record includes active seconds, remaining budget
+and overruns. Missing historical measurements remain unknown.
+
+At the measured finish cutoff, list unfinished queue entries with `--deferred FN ...`.
+They remain distinct from bounded plateaus and appear in the report; the accounting
+check rejects deferral before the cutoff. Context pressure alone remains a continuation
+checkpoint. The ten-minute budget, not a convenient number of easy matches, ends a run.
+
+### Provider usage and cost
+
+Import provider-reported **per-run cumulative totals** with
+`python3 tools/sprint_finish.py --usage work/provider-usage.json`:
+
+```json
+{"run_id":"provider-run-id","model":"exact-provider-model","source":"provider export reference",
+ "input_tokens":1000,"cached_input_tokens":800,"output_tokens":200,"cost_usd":null}
+```
+
+Cached input is a subset of input; never add it twice. Reimporting the same run replaces
+its cumulative counters, and decreasing counters or changing identity is rejected.
+Use a distinct provider run ID for each run. Import only this sprint's usage, and retain
+provenance. Do not import thread-lifetime totals as per-run measurements. `cost_usd`
+is the provider-reported dollar charge, or null when unavailable—not a guessed price,
+subscription allocation or API-equivalent estimate. Reasoning tokens already included
+in provider output totals must not be added again. The tool never scans conversations,
+reads credentials or checks quotas. Without provider exports, usage and cost are unknown;
+partial imports are labeled as covering imported runs only.
+
+Report verified byte gain beside measured active time and usage coverage. Do not project
+whole-project completion from one easy-function run. For an existing baseline without
+a queue, supply the full `--queue` at finish.
 
 ## Per-function budget
 
@@ -94,7 +131,7 @@ a `work/NAME/status.md` note giving the best score, the remaining mismatch and t
 hypothesis.
 
 **After each wave**, commit the matches, then take the next wave from the same unit's list.
-**Finish only after accounting for the complete selected queue.** `sprint_finish.py`
+**Finish only after accounting for the complete selected queue, including timed deferrals.** `sprint_finish.py`
 rejects missing outcomes. A parked row needs a measured score, the remaining mismatch
 and a next hypothesis; it means an actual bounded search, not an unattempted function.
 Context pressure is a continuation checkpoint: save the current candidate, remaining
@@ -102,8 +139,8 @@ queue and next command under `work/`, then resume the same unit and PR. Do not t
 it into a smaller final PR. Three consecutive bounded plateaus justify reassessing
 the remaining queue; they do not prove unattempted functions are exhausted.
 
-A completed wave is not automatically a completed sprint. Refresh the unit queue and
-continue related tractable work when the requested scope is substantial. User-directed
+A completed wave is not automatically the end of the ten-minute run. Refresh the unit queue and
+continue related tractable work until the active-time cutoff or unit exhaustion. User-directed
 stops take precedence; report partial results honestly rather than claiming completion.
 
 Do not start a second unit in the same thread; open the next sprint as a new thread.
