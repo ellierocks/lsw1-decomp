@@ -179,6 +179,10 @@ than GC, so those donor offsets do not transfer.
 counts at `+0x734` from the pool and stepping each record by `0x40`. It
 stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
 `fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`.
+The strictly matched `fn_8013D2F4` converts negative links to null and
+nonnegative links from either record indices or byte offsets to addresses.
+It also saves Y and clamps signed kinds above two when the first record
+selects that kind family.
 The group initialization `fn_8013C620` remains parked at 41/51: loop
 register allocation and float-load placement differ. Its earlier 45-second
 permuter run found no match. The next hypothesis is to preserve the loop
