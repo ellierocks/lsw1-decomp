@@ -34,18 +34,23 @@ nucore/nufpar.c:
 
 auto/nucore/numem.c:
 	.text       start:0x80006F44 end:0x80007594
+	.rodata     start:0x8018D3E8 end:0x8018D88C
 
 auto/nucore/nustring.c:
 	.text       start:0x80007594 end:0x800082A4
+	.rodata     start:0x8018D88C end:0x8018DD64
 
 auto/nucore/rnc.c:
 	.text       start:0x800082A4 end:0x80008A60
+	.rodata     start:0x8018DD64 end:0x8018DF58
 
 auto/nucore/nuheap.c:
 	.text       start:0x80008A60 end:0x80008CD8
+	.rodata     start:0x8018DFA4 end:0x8018E034
 
 auto/nucore/nufilepak.c:
 	.text       start:0x80008CD8 end:0x80009948
+	.rodata     start:0x8018E034 end:0x8018E1D0
 
 nucore/ngc/nuerror_ngc.c:
 	.text       start:0x80009948 end:0x800099D4
@@ -64,9 +69,11 @@ nucore/ngc/nuthread.c:
 
 auto/numath/nutrig.c:
 	.text       start:0x8000A834 end:0x8000BD10
+	.rodata     start:0x8018E628 end:0x8018E998
 
 auto/numath/nugraph_1.c:
 	.text       start:0x8000BD10 end:0x8000C0C0
+	.rodata     start:0x8018E998 end:0x8018EF24
 
 numath/nurand.c:
 	.text       start:0x8000C0C0 end:0x8000C1B8
@@ -74,18 +81,22 @@ numath/nurand.c:
 
 auto/numath/nugraph_2.c:
 	.text       start:0x8000C1B8 end:0x8000C634
+	.rodata     start:0x8018EF24 end:0x8018EF2C
 
 numath/nuvec.c:
 	.text       start:0x8000C634 end:0x8000CB50
+	.rodata     start:0x8018EF2C end:0x8018EF44
 
 auto/numath/nugraph_3.c:
 	.text       start:0x8000CB50 end:0x8000DEF0
+	.rodata     start:0x8018EF44 end:0x8018F030
 
 numath/numtx.c:
 	.text       start:0x8000DEF0 end:0x8000E250
 
 auto/numath/nugraph_4.c:
 	.text       start:0x8000E250 end:0x8000E7E4
+	.rodata     start:0x8018F030 end:0x8018F12C
 
 auto/nu3d/nudlist_1.c:
 	.text       start:0x8000E7E4 end:0x8000E918
@@ -95,15 +106,19 @@ numath/nu_asm.c:
 
 auto/nu3d/nudlist_2.c:
 	.text       start:0x8000E9BC end:0x80012C44
+	.rodata     start:0x8018F12C end:0x8018F914
 
 auto/nu3d/nuspecial.c:
 	.text       start:0x80012C44 end:0x8001384C
+	.rodata     start:0x8018F914 end:0x8018FBB4
 
 auto/nu3d/nutexanm.c:
 	.text       start:0x8001384C end:0x800162A0
+	.rodata     start:0x8018FBB4 end:0x8018FF7C
 
 auto/nu3d/nutimebar.c:
 	.text       start:0x800162A0 end:0x80016558
+	.rodata     start:0x8018FF7C end:0x8018FFD0
 
 auto/nu3d/nuanim_1.c:
 	.text       start:0x80016558 end:0x80016A98
@@ -116,27 +131,34 @@ auto/nu3d/nuanim_2.c:
 
 auto/nu3d/NuHGobjEval.c:
 	.text       start:0x80018F78 end:0x8001B22C
+	.rodata     start:0x80190374 end:0x801905AC
 
 auto/nu3d/nuportal_gen.c:
 	.text       start:0x8001B22C end:0x8001EE20
+	.rodata     start:0x801905AC end:0x80190A3C
 
 auto/nu3d/nuqfnt.c:
 	.text       start:0x8001EE20 end:0x800215CC
+	.rodata     start:0x80190A3C end:0x80190C90
 
 auto/nu3d/ngc/nucamera.c:
 	.text       start:0x800215CC end:0x800244A8
+	.rodata     start:0x80190C90 end:0x80191200
 
 auto/nu3d/ngc/nugobj.c:
 	.text       start:0x800244A8 end:0x800248CC
 
 auto/nu3d/ngc/numtl.c:
 	.text       start:0x800248CC end:0x80024DB8
+	.rodata     start:0x801912C0 end:0x80191358
 
 auto/nu3d/ngc/nutex.c:
 	.text       start:0x80024DB8 end:0x80024F0C
+	.rodata     start:0x801913B8 end:0x8019145C
 
 auto/nu3d/ngc/nurndr.c:
 	.text       start:0x80024F0C end:0x80027DC8
+	.rodata     start:0x8019145C end:0x80191628
 
 auto/nu3d/ngc/nufont_ngc.c:
 	.text       start:0x80027DC8 end:0x80028138
@@ -155,66 +177,87 @@ auto/nu3d/ngc/nuqfnt_ngc.c:
 
 auto/nu3d/ngc/nustream.c:
 	.text       start:0x8002C644 end:0x8002D0FC
+	.rodata     start:0x80191DD4 end:0x80191FC8
 
 auto/nu3d/ngc/ngc_mtl.c:
 	.text       start:0x8002D0FC end:0x80033FA8
+	.rodata     start:0x80191FC8 end:0x8019242C
 
 auto/nu3d/ngc/ngc_video.c:
 	.text       start:0x80033FA8 end:0x80037C1C
+	.rodata     start:0x8019242C end:0x80192B44
 
 auto/nungc/ngcapi.c:
 	.text       start:0x80037C1C end:0x800395E8
+	.rodata     start:0x80192B44 end:0x80192D7C
 
 auto/nungc/ps2dma.c:
 	.text       start:0x800395E8 end:0x8003A214
+	.rodata     start:0x80192D7C end:0x8019308C
 
 auto/gamelib/gcutscn.c:
 	.text       start:0x8003A214 end:0x80040A88
+	.rodata     start:0x8019308C end:0x801936A4
 
 auto/gamelib/glutils.c:
 	.text       start:0x80040A88 end:0x80040B4C
+	.rodata     start:0x801936A4 end:0x80193898
 
 auto/gamelib/ngc/saveload.c:
 	.text       start:0x80040B4C end:0x80042F58
+	.rodata     start:0x80193898 end:0x80193D68
 
 auto/nusound3/ngc/nusound.c:
 	.text       start:0x80042F58 end:0x800451B4
+	.rodata     start:0x80193D68 end:0x8019416C
 
 auto/nusound3/ngc/NGCSound.c:
 	.text       start:0x800451B4 end:0x8004605C
+	.rodata     start:0x8019416C end:0x801943BC
 
 auto/nusound3/ngc/NGCStreaming.c:
 	.text       start:0x8004605C end:0x80047384
+	.rodata     start:0x801943BC end:0x801944E4
 
 auto/nusound3/ngc/NGCStreaming2.c:
 	.text       start:0x80047384 end:0x80048348
+	.rodata     start:0x801944E4 end:0x80194570
 
 auto/nufmv/ngc/nufmvmtl.c:
 	.text       start:0x80048348 end:0x80049AFC
+	.rodata     start:0x80194570 end:0x80194B0C
 
 auto/nufmv/ngc/HVQM4PlayerEx.c:
 	.text       start:0x80049AFC end:0x80049DC0
+	.rodata     start:0x80194B0C end:0x80194C0B
 
 auto/gamelib/terrain.c:
 	.text       start:0x80049DC0 end:0x8005A3F8
+	.rodata     start:0x80194C0C end:0x80195408
 
 auto/gamelib/debris.c:
 	.text       start:0x8005A3F8 end:0x8006624C
+	.rodata     start:0x80195408 end:0x80196A44
 
 auto/gamelib/audio.c:
 	.text       start:0x8006624C end:0x8006EB40
+	.rodata     start:0x80196A44 end:0x80199094
 
 auto/rtl/rtl.c:
 	.text       start:0x8006EB40 end:0x80071E9C
+	.rodata     start:0x80199094 end:0x80199A04
 
 auto/effects/objects/part.c:
 	.text       start:0x80071E9C end:0x80072028
+	.rodata     start:0x80199A04 end:0x80199A64
 
 auto/gui/gamemenu/apimenu.c:
 	.text       start:0x80072028 end:0x80078E40
+	.rodata     start:0x80199A64 end:0x8019B938
 
 auto/gui/gamemenu/apisave.c:
 	.text       start:0x80078E40 end:0x8007AC0C
+	.rodata     start:0x8019B938 end:0x8019BBCC
 
 auto/ai/aisys/aiscript.c:
 	.text       start:0x8007AC0C end:0x8007E3CC
@@ -224,12 +267,15 @@ auto/ai/aisys/aisys.c:
 
 auto/characters/apiobject/apiobject.c:
 	.text       start:0x8008F434 end:0x80092E18
+	.rodata     start:0x8019DE24 end:0x8019DF65
 
 auto/camera/socksys/socksys.c:
 	.text       start:0x80092E18 end:0x8009CD4C
+	.rodata     start:0x8019DF68 end:0x8019E608
 
 auto/game/main.c:
 	.text       start:0x8009CD4C end:0x800A20AC
+	.rodata     start:0x8019E608 end:0x8019EBE4
 
 auto/game/creature.c:
 	.text       start:0x800A20AC end:0x800AB85C
@@ -239,39 +285,51 @@ auto/game/levels.c:
 
 auto/game/obstacle.c:
 	.text       start:0x800DBDE0 end:0x80108CCC
+	.rodata     start:0x801A56C8 end:0x801A9CA8
 
 auto/game/credits.c:
 	.text       start:0x80108CCC end:0x8010C570
+	.rodata     start:0x801A9CA8 end:0x801AA2E0
 
 auto/game/config.c:
 	.text       start:0x8010C570 end:0x8011A9FC
+	.rodata     start:0x801AA2E0 end:0x801ABE28
 
 auto/game/cut.c:
 	.text       start:0x8011A9FC end:0x8011F17C
+	.rodata     start:0x801ABE28 end:0x801ACB64
 
 auto/game/force.c:
 	.text       start:0x8011F17C end:0x8012724C
+	.rodata     start:0x801ACB64 end:0x801ACDB0
 
 auto/game/gameai.c:
 	.text       start:0x8012724C end:0x8012D13C
+	.rodata     start:0x801ACDB0 end:0x801ACFA8
 
 auto/game/gameaiscript.c:
 	.text       start:0x8012D13C end:0x8013C4F4
+	.rodata     start:0x801ACFA8 end:0x801AEC04
 
 auto/game/pickups.c:
 	.text       start:0x8013C4F4 end:0x8013F304
+	.rodata     start:0x801AEC04 end:0x801AEE0C
 
 auto/game/rtlif.c:
 	.text       start:0x8013F304 end:0x8013FA74
+	.rodata     start:0x801AEE10 end:0x801AEF4C
 
 auto/game/turret.c:
 	.text       start:0x8013FA74 end:0x8014072C
+	.rodata     start:0x801AEF4C end:0x801AF010
 
 auto/game/chris.c:
 	.text       start:0x8014072C end:0x80146194
+	.rodata     start:0x801AF010 end:0x801AF668
 
 auto/game/podrace.c:
 	.text       start:0x80146194 end:0x8015BEF4
+	.rodata     start:0x801AF668 end:0x801B0460
 
 dolphin/base/PPCArch.c:
 	.text       start:0x8015BEF4 end:0x8015C008

@@ -95,7 +95,39 @@ Limits:
 - The next evidence to use is the 186 per-TU header copies of `VuMath.h`
   (175) and `nudlist_gen.h` (11). There are 2 to 9 copies between some pairs of
   consecutive `.c` paths, and each extra copy marks an anonymous TU.
-- The data sections are not proposed yet.
+- `.data`, `.bss`, `.sdata` and `.sdata2` are not proposed yet. `.rodata` is (below).
+
+### Provisional `.rodata` ranges
+
+`tools/rodata_splits.py` gives 58 game/Nu2 units a `.rodata` range taken from their code.
+It reads the `.rela.text` relocations in each built target object, maps them to `.rodata`
+symbols, and uses the span from the first referenced symbol to the end of the last one.
+These spans follow `.text` link order. A unit gets no range when:
+
+- its span overlaps another unit's: one TU is cut into several units, as with
+  `nufile_1`/`_2`/`_3`, `nufile_ngc_1`/`_2`, `nuanim_1`/`_2` with `nu3dx/nuanim`,
+  `nufont_ngc` through `nuqfnt_ngc`, `aiscript`/`aisys` and `creature`/`levels`. Merge the
+  units first;
+- it is `Matching`, because its compiled object would have to supply the range
+  (`--include-matching` proposes it for a separate proof);
+- its code references no `.rodata`.
+
+Unreferenced bytes between two spans stay unsplit. The ranges relink a byte-identical DOL.
+They let objdiff resolve a unit's literals inside its own target object. Under
+`functionRelocDiffs=all` a literal counts only when its value and section offset match
+retail. That happens when the unit's literal layout lines up with retail, which is also
+what promotion needs. Adding the ranges took three functions to 100% (`numtl`'s
+`fn_800248CC` and two in `nugraph_4`). The rest of the strict-only gap stays separate.
+
+dtk warns that 34 ranges start at a 4-aligned address while holding an 8-aligned double.
+Retail places these blocks as found: `nustring`'s block starts at `0x8018D88C`, directly
+after `numem`'s `VuMath.h` strings, and holds a double at block offset 0x64. One ProDG
+`.rodata` section with a double is 8-aligned (checked with the pinned `cc1`), so retail
+must place strings and constants in separate input sections, or the SN linker aligns them
+differently. Settle that before promoting such a unit.
+
+`tu_boundaries.py --write-splits` rewrites the `auto/` blocks and drops their `.rodata`
+lines. Afterwards, run `bash build.sh`, then `python3 tools/rodata_splits.py --write`.
 
 ## Per-TU ProDG flags
 
