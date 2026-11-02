@@ -11,9 +11,9 @@
 /* Nu2 game-scene spline: points are `ptsize` bytes apart, x/y/z first.
  * Consumers: the fn_800CCDE4 family (`lha 0x2`, `lwz 0x8`, `lfsx pts+ptsize`). */
 struct nugspline_s {
-    s16 len;
+    u8 pad0[2];
     s16 ptsize;
-    char *name;
+    u8 pad4[4];
     char *pts;
 };
 

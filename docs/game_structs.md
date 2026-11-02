@@ -199,3 +199,22 @@ modifies `+0x6E` as a halfword flag field and `+0x73` as a byte counter.
 The relationship between this array and the allocated turret record remains
 unconfirmed. OpenSaga lookup found no same-name hit and a turret search did not
 establish an equivalent.
+
+## Levels scene and spline views
+
+[`levels.h`](../include/game/levels.h) types the object behind `lbl_80409410`
+without renaming the global. These are sparse views, not complete object sizes.
+
+| View / offset | Field | Retail consumer |
+| --- | --- | --- |
+| scene `0x198`, `0x19C` | 32-bit level and mode values | levels comparisons; pickups mode checks |
+| scene `0x1A8`, `0x1AC` | opaque pointers | levels flag and nested-object accesses |
+| scene `0x1C0` | scene handle | `fn_800CD2B4`, `fn_800CD364`: first argument to `NuSpecialFind` |
+| scene `0x240`, `0x244` | area array and signed count | `fn_800C9490`: array stride `0x94` |
+| scene `0x1974` | spline pointer | `fn_800CCDE4` family |
+| spline `0x2`, `0x8` | signed point stride and point storage pointer | spline family: `lha`, `lwz`, then x/z reads at points and points + stride |
+| area `0x60`, `0x64`, `0x70`, `0x74` | spline, centre vector, radius, opaque block | `fn_800C9490`: four-point centre and maximum distance; block passed to `fn_8000CBF4` |
+
+`fn_800AAC04` takes a vector output: it clears 12 bytes and uses `NuVecAdd`
+and `NuVecScale`. Its second output remains opaque. Header types feed the
+sweep's m2c context; strict matches of the consumers validate their code generation.
