@@ -108,6 +108,10 @@ def main(argv=None):
             previous = attempts[-1].get('opensaga', {}) if attempts else {}
             note = args.donor_note or (previous.get('review_note')
                                       if previous.get('revision') == donor.get('revision') else None)
+            if not (note and note.strip()) and donor['result'] == 'no-name-hit':
+                # A pinned checkout with no name lead needs no manual review note; record the limit.
+                note = (f"auto: no OpenSaga name hit at {donor.get('revision')}; "
+                        'renamed equivalents not searched')
             if donor['result'] != 'sdk-not-applicable' and not (note and note.strip()):
                 ap.error('game/Nu2 attempts require --donor-note: record inspected OpenSaga paths, '
                          'GC-confirmed facts/rejected transfers, or the no-hit/unavailable limit; '

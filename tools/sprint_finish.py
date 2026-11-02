@@ -5,7 +5,8 @@
     python3 tools/sprint_finish.py FN1 FN2 ... [--parked "FN3=41/51: mismatch; next: idea"]
     python3 tools/sprint_finish.py FN1 FN2 --rebase      # fetch and rebase onto origin/main first
 
-`--baseline` saves the objdiff figures, strict-only count and DOL hash to
+`--baseline` fetches origin and refuses to run when HEAD is behind origin/main, so a sprint never
+starts from stale docs or tools. It then saves the objdiff figures, strict-only count and DOL hash to
 `work/sprint_baseline.json`. The finish run then does, in order: optional rebase (commit first),
 one `bash build.sh`, `verify_fn.py --strict-symbols` on each named function against that build,
 `git diff --check origin/main`, and the report delta against the baseline. It prints a filled-in
@@ -59,9 +60,18 @@ def main(argv=None) -> int:
     ap.add_argument("--rebase", action="store_true", help="git fetch and rebase onto origin/main first")
     ap.add_argument("--parked", action="append", default=[], metavar="FN=NOTE", help="parked function row")
     ap.add_argument("--unit", help="unit name for the record heading")
+    ap.add_argument("--allow-behind", action="store_true",
+                    help="record a baseline even when HEAD is behind origin/main")
     args = ap.parse_args(argv)
 
     if args.baseline:
+        if not args.allow_behind:
+            run(["git", "fetch", "-q", "origin"])
+            behind = run(["git", "rev-list", "--count", "HEAD..origin/main"]).stdout.strip()
+            if behind not in ("", "0"):
+                print(f"error: HEAD is {behind} commits behind origin/main, so the workflow docs and "
+                      "tools may be stale; rebase onto origin/main (or pass --allow-behind)", file=sys.stderr)
+                return 2
         snap = snapshot()
         BASELINE.parent.mkdir(exist_ok=True)
         BASELINE.write_text(json.dumps(snap, indent=2))

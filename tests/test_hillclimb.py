@@ -47,6 +47,27 @@ class HillclimbTests(unittest.TestCase):
         self.assertEqual(result['state'], 'PARK')
         self.assertEqual(result['best_attempt'], 1)
 
+    def test_no_name_hit_records_limit_without_note(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'source.c').write_text('int foo(void) { return 1; }')
+            for name in ('configure.py', 'tools/prodg_cc.py', 'tools/verify_fn.py',
+                         'config/GL5E4F/symbols.txt', 'config/GL5E4F/splits.txt'):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('fixture')
+            proc = subprocess.CompletedProcess([], 1, json.dumps(report()), '')
+            no_hit = dict(result='no-name-hit', revision='r1', matches=[])
+            with mock.patch.object(hc, 'ROOT', root), \
+                 mock.patch.object(hc.opensaga, 'lookup', return_value=no_hit), \
+                 mock.patch.object(hc.subprocess, 'run', return_value=proc), \
+                 mock.patch.object(hc.subprocess, 'check_output', return_value='head\n'), \
+                 mock.patch('builtins.print'):
+                self.assertEqual(hc.main(['try', 'foo', '--unit', 'foo', '--source', 'source.c',
+                                          '--hypothesis', 'baseline']), 1)
+            record = json.loads(next((root / 'work/hillclimb').glob('*/*.json')).read_text())
+            self.assertIn('no OpenSaga name hit at r1', record['opensaga']['review_note'])
+
     def test_real_recording_path_preserves_source_and_error(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -60,7 +81,9 @@ class HillclimbTests(unittest.TestCase):
                     '--hypothesis', 'baseline', '--patience', '1',
                     '--donor-note', 'unavailable in fixture; GC baseline only']
             proc = subprocess.CompletedProcess([], 1, json.dumps(report()), '')
+            unavailable = dict(result='unavailable', revision='r1', matches=[])
             with mock.patch.object(hc, 'ROOT', root), \
+                 mock.patch.object(hc.opensaga, 'lookup', return_value=unavailable), \
                  mock.patch.object(hc.subprocess, 'run', return_value=proc) as run, \
                  mock.patch.object(hc.subprocess, 'check_output', return_value='head\n'), \
                  mock.patch('builtins.print'):

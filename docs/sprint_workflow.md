@@ -1,7 +1,9 @@
 # Sprint workflow
 
-Phase 3 matching runs as **sprints**. A sprint is one thread, one unit, a queue of up to
-10 functions and one PR, and it finishes inside a single context window. It replaces the
+Phase 3 matching runs as **sprints**. A sprint is one thread, one unit and one PR, and it
+finishes inside a single context window. The queue is sized by context, not by a fixed
+count: fixed setup and finish costs (build, baseline, rebase, CI, merge) are paid once, so a
+sprint should match as much as its context allows. It replaces the
 multi-unit batches recorded in [Phase 3 batch history](phase3_batches.md). Those batches
 ran out of context and stalled on small issues. Fan-out workers were rate-limited and
 added nothing; one batch got 0 matches from 4 workers. Rebase drift, conflicts in shared
@@ -12,8 +14,9 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 
 ## Scope
 
-- **One unit per sprint.** Pick it with `next_target.py --by-unit`, then take the queue
-  with `--unit UNIT --limit 10`. Choose a related family of functions inside one unit.
+- **One unit per sprint.** Pick it with `next_target.py --by-unit`, then list the unit's
+  ready functions with `--unit UNIT --limit 40`. Work them in waves of about 10, related
+  families first. Choose a related family of functions inside one unit.
   Do not spread across several units. Siblings with one shape (a `Curve` and `Curve2`
   pair, setters, loop-per-parameter actions) beat unrelated bodies: draft one, then reuse
   its structure. Aim for 0x100 to 0x300 bytes per function; tiny accessors add few bytes
@@ -36,14 +39,18 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 ## Kickoff (read only this much)
 
 1. AGENTS.md and this page.
-2. Run `python3 tools/next_target.py --unit UNIT --limit 10` and save the list as the
+2. Run `python3 tools/next_target.py --unit UNIT --limit 40` and save the list as the
    queue in the first message of the thread.
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline`
-   to record the objdiff figures, the strict-only count and the DOL hash.
-4. Run `python3 tools/ghidra_decompile.py decompile FN1 ... FN10` to write `work/FN/ghidra.c`
-   for the queue in one run, and read it next to each m2c draft. The bootstrap creates the
-   project; if `status` says it is missing, run `setup` first (about a minute). See
-   [Ghidra and REA](research.md#ghidra-and-rea).
+   to record the objdiff figures, the strict-only count and the DOL hash. It refuses to run
+   when the checkout is behind `origin/main`; rebase first so the docs and tools are current.
+
+Ghidra is optional. For a function with loops, switches or nested conditions, run
+`python3 tools/ghidra_decompile.py decompile FN ...` for that wave and read `work/FN/ghidra.c`
+next to the m2c draft. Skip it for straight-line leaves and paired-single code. If `status`
+says the project is missing, run `setup` (about a minute); see
+[Ghidra and REA](research.md#ghidra-and-rea). Read `work/NAME/context.md` only when a draft
+fails to compile or a type is unclear.
 
 Do not read the batch history or the whole C matching guide up front. When a mismatch
 looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
@@ -60,14 +67,20 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 | Permuter, only at about 90% exact or better | one run of at most 180 s (`timeout 180`) |
 | Then | park and move on; do not come back in this sprint |
 
-The first `hillclimb.py try` records `--donor-note`. A target with no donor hit records
-the no-hit limit in one line. A parked function adds one row to the PR's Parked table and
+The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has
+no name hit, `hillclimb.py` records the no-hit limit itself; pass a note only when you
+searched or read donor code. A parked function adds one row to the PR's Parked table and
 a `work/NAME/status.md` note giving the best score, the remaining mismatch and the next
 hypothesis.
 
-**Stop the sprint** when the queue is empty, or when 10 functions are matched or parked.
-After that, finish this sprint. Do not start a second unit in the same thread; open the
-next sprint as a new thread.
+**After each wave**, commit the matches, then take the next wave from the same unit's list.
+**Stop the sprint** and finish when any of these holds:
+
+- the unit has no ready functions left;
+- about 60% of the context window is used (finish, CI fixes and merge need the rest);
+- three functions in a row are parked (the rest of the unit is likely harder; leave it).
+
+Do not start a second unit in the same thread; open the next sprint as a new thread.
 
 ## Finish (one pass)
 
@@ -136,6 +149,6 @@ park the function and drop it from the PR.
 ## Kickoff prompt
 
 ```text
-Sprint: UNIT. Queue: next_target.py --unit UNIT --limit 10 (or: fn_A, fn_B, ...).
+Sprint: UNIT. Queue: next_target.py --unit UNIT --limit 40 (or: fn_A, fn_B, ...).
 Follow docs/sprint_workflow.md. Branch t3/sprint-<unit-leaf>. Merge when CI passes.
 ```

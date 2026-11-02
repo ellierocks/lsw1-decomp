@@ -175,7 +175,7 @@ def print_by_unit(rows, args, owned=frozenset()) -> int:
         print(f"Skipped (open sprint PR): {', '.join(skipped)}")
     if order:
         print(f"\nSprint queue for the first unit:\n  python3 tools/next_target.py --unit {order[0][0]} "
-              f"--max-size {args.max_size:#x} --limit 10")
+              f"--max-size {args.max_size:#x} --limit 40")
     return 0
 
 
