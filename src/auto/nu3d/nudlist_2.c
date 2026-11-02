@@ -50,3 +50,32 @@ void fn_800127D8(struct fn_800127D8_outer* o)
     p->f1e = m;
     o->f14 = o->f10;
 }
+
+s32 fn_8000D010();
+
+void fn_8000EB24(void) {
+    fn_8000D010();
+}
+
+s32 fn_8000EFE0();
+
+void fn_8000EBC8(void) {
+    fn_8000EFE0();
+}
+
+s32 fn_8000F65C(s32, s32, s32);
+extern s32 lbl_80407B84;
+
+void fn_8000F840(void *arg0) {
+    s32 *temp_r4;
+    s32 var_r0;
+
+    temp_r4 = (*(s32 **)((s8 *)(arg0) + (4)));
+    if ((temp_r4 != NULL) && ((s32) lbl_80407B84 != 0)) {
+        fn_8000F65C((*(s32 *)((s8 *)(arg0) + (0x20))), *temp_r4, (*(s32 *)((s8 *)(arg0) + (0))));
+        var_r0 = (*(s32 *)((s8 *)(arg0) + (0x28))) | 0x20000000;
+    } else {
+        var_r0 = (*(s32 *)((s8 *)(arg0) + (0x28))) & 0xDFFFFFFF;
+    }
+    (*(s32 *)((s8 *)(arg0) + (0x28))) = var_r0;
+}

@@ -120,6 +120,17 @@ inside sprints: confirm a field when a queued function accesses it. Results and
 failure modes from the earlier multi-unit batches are in
 [batch history](phase3_batches.md).
 
+**Biggest progress first.** Every Phase 3 round starts with the unattended sweep,
+`python3 tools/sweep.py --apply` (about two minutes, no model or agent). It drafts every ready
+target with m2c, strict-scores each draft and writes the matches into their units. The
+first sweep matched 183 functions (13,608 verified bytes) in under ten minutes of wall
+time, more than any agent sprint so far. Check its output with `bash build.sh` and
+`verify_fn.py --strict-symbols` on each applied function. Everything that did not match is
+ranked in `work/sweep/results.json` by size × exact-instruction ratio; that ranking is the
+sprint queue. Large near-misses (90% exact or better) come before small fresh targets,
+because the draft is already most of the way there. Rerun the sweep after header or
+tool changes that could turn more drafts into matches.
+
 For each queued function:
 
 1. **Draft.** Combine m2c (PPC) output, the Ghidra output (`work/NAME/ghidra.c` from `draft_fn.py`), CrashWOC/Nu2 donor
@@ -161,7 +172,8 @@ explicit exclusions for changed TCS behavior.
    units; do remaining Phase 2 boundary and data work when it directly unblocks
    a promising unit. Keep libsn, debugger and HVQM4 research deferred until a
    concrete donor or implementation lead changes their expected yield.
-2. Fetch, inspect `git worktree list`, and run
+2. Run the sweep first (see Phase 3), then take the sprint queue from the top of
+   `work/sweep/results.json`, grouped by unit. Fetch, inspect `git worktree list`, and run
    `python3 tools/next_target.py --by-unit`. Exclude active local worktrees as
    well as unmerged sprint branches and open PRs. Treat the ranking as a
    shortlist: prefer related function families with reusable code and types,

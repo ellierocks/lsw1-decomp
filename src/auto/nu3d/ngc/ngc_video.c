@@ -132,3 +132,34 @@ void fn_80033FC8(u8* p)
     *(s32*)(p + 0xf4) = -1;
     fn_80032CB4(p);
 }
+
+s32 GXReadDrawSync();
+s32 fn_800165B4(s32, s32);
+s32 fn_80016660(s32, s32, s32 *);
+s32 fn_800166C4(s32, s32);
+extern s32 lbl_80192660[];
+extern s32 lbl_80192664[];
+extern s32 lbl_8040AD9C;
+
+void fn_80037188(void) {
+    fn_800166C4(lbl_8040AD9C, 0);
+    do {
+
+    } while (GXReadDrawSync() != 0xB000);
+    fn_80016660(lbl_8040AD9C, 0, lbl_80192660);
+    fn_800165B4(lbl_8040AD9C, 2);
+    fn_80016660(lbl_8040AD9C, 2, lbl_80192664);
+}
+
+s32 GXSetProjectionv(s32);
+extern s32 lbl_80407FA8;
+extern s32 lbl_80407FAC;
+
+void fn_80037B80(s32 arg0) {
+    fn_8003776C();
+    if (((s32) lbl_80407FAC != 0) || (arg0 != (s32) lbl_80407FA8)) {
+        GXSetProjectionv(arg0);
+        lbl_80407FA8 = arg0;
+        lbl_80407FAC = 0;
+    }
+}

@@ -178,3 +178,14 @@ void fn_8009083C(struct NUAPIOBJECT_s* a, struct NUAPIOBJECT_s* b)
     b->responseX = b->velocityX;
     b->responseZ = b->velocityZ;
 }
+
+void *fn_8008FA44();
+
+void fn_8008FA0C(f32 farg0) {
+    void *temp_r3;
+
+    temp_r3 = fn_8008FA44();
+    if (temp_r3 != NULL) {
+        (*(f32 *)((s8 *)(temp_r3) + (0x28))) = farg0;
+    }
+}

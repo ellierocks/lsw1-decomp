@@ -152,3 +152,83 @@ void fn_80095128(struct relation_pool* pool, struct relation_object* object)
         memset(object, 0, pool->stride);
     }
 }
+
+s32 memset(s32, s32, s32);
+
+void fn_800951FC(void *arg0) {
+    if (arg0 != NULL) {
+        memset((*(s32 *)((s8 *)(arg0) + (4))), 0, (*(s32 *)((s8 *)(arg0) + (0))) << 6);
+    }
+}
+
+s32 NuStrICmp(s32, s32);
+
+s32 fn_8009587C(void *arg0, s32 arg1) {
+    s32 var_r30;
+    s32 var_r31;
+
+    var_r31 = (*(s32 *)((s8 *)(arg0) + (0)));
+    if (var_r31 < (s32) (*(s32 *)((s8 *)(arg0) + (4)))) {
+        var_r30 = var_r31 * 0x14;
+loop_2:
+        if (NuStrICmp(arg1, (*(s32 *)((s8 *)(arg0) + (8))) + var_r30 + 4) == 0) {
+            return var_r31;
+        }
+        var_r31 += 1;
+        var_r30 += 0x14;
+        if (var_r31 >= (s32) (*(s32 *)((s8 *)(arg0) + (4)))) {
+            goto block_5;
+        }
+        goto loop_2;
+    }
+block_5:
+    return -1;
+}
+
+extern f32 lbl_8019E4F4[];
+
+f32 fn_8009CB2C(s32 *arg0, void *arg1) {
+    u8 temp_r0;
+    void *temp_r9;
+
+    if (arg0 != NULL) {
+        temp_r0 = (*(u8 *)((s8 *)(arg1) + (1)));
+        if ((s8) temp_r0 != -1) {
+            temp_r9 = (*(s32 *)((s8 *)((((s8) temp_r0 * 0x104) + *arg0)) + (0x30))) + ((*(s16 *)((s8 *)(arg1) + (2))) << 7);
+            return ((*(f32 *)((s8 *)(temp_r9) + (0x78))) * (*(f32 *)((s8 *)(arg1) + (4)))) + (*(f32 *)((s8 *)(temp_r9) + (0x7C)));
+        }
+    }
+    return lbl_8019E4F4[0];
+}
+
+void fn_8009CB88(s32 *arg0, s32 arg1) {
+    void *temp_r9;
+
+    if ((arg0 != NULL) && (arg1 >= 0) && (arg1 <= 0x1F)) {
+        temp_r9 = (arg1 * 0x104) + *arg0;
+        (*(u16 *)((s8 *)(temp_r9) + (0x64))) = (u16) ((*(u16 *)((s8 *)(temp_r9) + (0x64))) & 0xFDFF);
+    }
+}
+
+void fn_8009CBC4(s32 *arg0, s32 arg1) {
+    void *temp_r9;
+
+    if ((arg0 != NULL) && (arg1 >= 0) && (arg1 <= 0x1F)) {
+        temp_r9 = (arg1 * 0x104) + *arg0;
+        (*(u16 *)((s8 *)(temp_r9) + (0x64))) = (u16) ((*(u16 *)((s8 *)(temp_r9) + (0x64))) | 0x200);
+    }
+}
+
+void fn_8009CAB4(s32 arg0, s32 arg1) {
+    s32 temp_r11;
+    s32 temp_r8;
+    s32 var_r11;
+
+    var_r11 = arg1;
+    if (arg1 < 0) {
+        var_r11 = arg1 + 0x1F;
+    }
+    temp_r8 = arg0 + 0xD8;
+    temp_r11 = (var_r11 >> 5) * 4;
+    *(s32 *)(temp_r8 + temp_r11) = *(s32 *)(temp_r8 + temp_r11) | (1 << (arg1 & 0x1F));
+}

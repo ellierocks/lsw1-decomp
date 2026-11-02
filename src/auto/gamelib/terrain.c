@@ -64,3 +64,181 @@ s32 fn_8004BCB0(u8* a)
 {
     return *(s32*)(a + 84);
 }
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+s32 HVQM4BufaChkSend(void *arg0) {
+    s32 temp_r29;
+
+    OSDisableInterrupts();
+    temp_r29 = (*(s32 *)((s8 *)(arg0) + (8)));
+    OSRestoreInterrupts();
+    return temp_r29;
+}
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+s32 HVQM4BufaGetSendNums(void *arg0) {
+    s32 var_r31;
+    void *var_r9;
+
+    var_r31 = 0;
+    OSDisableInterrupts();
+    var_r9 = (*(void **)((s8 *)(arg0) + (8)));
+    if (var_r9 != NULL) {
+        do {
+            var_r9 = (*(void **)((s8 *)(var_r9) + (4)));
+            var_r31 += 1;
+        } while (var_r9 != NULL);
+    }
+    OSRestoreInterrupts();
+    return var_r31;
+}
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+s32 HVQM4BufvChkDisp(void *arg0) {
+    s32 temp_r29;
+
+    OSDisableInterrupts();
+    temp_r29 = (*(s32 *)((s8 *)(arg0) + (4)));
+    OSRestoreInterrupts();
+    return temp_r29;
+}
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+s32 HVQM4BufvGetDispNums(void *arg0) {
+    s32 var_r31;
+    void *var_r9;
+
+    var_r31 = 0;
+    OSDisableInterrupts();
+    var_r9 = (*(void **)((s8 *)(arg0) + (4)));
+    if (var_r9 != NULL) {
+        do {
+            var_r9 = (*(void **)((s8 *)(var_r9) + (8)));
+            var_r31 += 1;
+        } while (var_r9 != NULL);
+    }
+    OSRestoreInterrupts();
+    return var_r31;
+}
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+void HVQM4BufvSetFree(s32 **arg0, s32 *arg1) {
+    s32 *temp_r11;
+    s32 *temp_r9;
+
+    OSDisableInterrupts();
+    temp_r11 = *arg0;
+    if (temp_r11 == NULL) {
+        (*(s32 **)((s8 *)(arg1) + (0))) = arg1;
+        (*(s32 **)((s8 *)(arg1) + (4))) = arg1;
+        *arg0 = arg1;
+    } else {
+        temp_r9 = (*(s32 **)((s8 *)(temp_r11) + (4)));
+        (*(s32 **)((s8 *)(temp_r11) + (4))) = arg1;
+        (*(s32 **)((s8 *)(arg1) + (0))) = temp_r11;
+        (*(s32 **)((s8 *)(arg1) + (4))) = temp_r9;
+        *temp_r9 = arg1;
+    }
+    OSRestoreInterrupts();
+}
+
+s32 HVQM4BufaSetFree(s32);
+
+void HVQM4PlayerExBufaSetFree(void *arg0) {
+    HVQM4BufaSetFree((*(s32 *)((s8 *)(arg0) + (0x68))));
+}
+
+s32 OSJoinThread(s32, s32 *);
+s32 fn_8004A578(s32, s32 *);
+extern s32 lbl_80408378;
+
+s32 HVQM4PlayerExClose(s32 arg0, s32 *arg1) {
+    s32 sp8;
+    s32 var_r29;
+
+    OSJoinThread(arg0 + 0x78, &sp8);
+    var_r29 = 1;
+    if (fn_8004A578(arg0, arg1) == 0) {
+        var_r29 = 0;
+    }
+    if ((s32) lbl_80408378 != 0) {
+        if (arg1 != NULL) {
+            *arg1 = 0xD;
+        }
+        var_r29 = 0;
+    }
+    return var_r29;
+}
+
+s32 OSResumeThread(s32);
+
+s32 HVQM4PlayerExStart(s32 arg0) {
+    OSResumeThread(arg0 + 0x78);
+    return 1;
+}
+
+s32 fn_80049A10();
+
+s32 fn_8004B088(void) {
+    fn_80049A10();
+    return 1;
+}
+
+s32 fn_80049A10();
+
+s32 fn_8004B3EC(void) {
+    fn_80049A10();
+    return 1;
+}
+
+s32 DVDGetCommandBlockStatus();
+
+void fn_8004BCB8(void) {
+    DVDGetCommandBlockStatus();
+}
+
+s32 DVDGetCommandBlockStatus();
+
+s32 fn_8004BCD8(void *arg0) {
+    s32 (*temp_r0)(s32, s32, s32);
+    s32 temp_r3;
+
+    if ((s32) (*(s32 *)((s8 *)(arg0) + (0x64))) == 0) {
+        temp_r3 = DVDGetCommandBlockStatus();
+        if (temp_r3 != (s32) (*(s32 *)((s8 *)(arg0) + (0x4C)))) {
+            temp_r0 = (*(s32 (**)(s32, s32, s32))((s8 *)(arg0) + (0x6C)));
+            (*(s32 *)((s8 *)(arg0) + (0x4C))) = temp_r3;
+            if (temp_r0 != NULL) {
+                temp_r0((*(s32 *)((s8 *)(arg0) + (0x70))), (*(s32 *)((s8 *)(arg0) + (0x74))), temp_r3);
+            }
+        }
+        return 1;
+    }
+    return 0;
+}
+
+s32 DVDGetCommandBlockStatus();
+
+void fn_8004BDD0(void *arg0) {
+    s32 (*temp_r0)(s32, s32, s32);
+    s32 temp_r3;
+
+    temp_r3 = DVDGetCommandBlockStatus();
+    if (temp_r3 != (s32) (*(s32 *)((s8 *)(arg0) + (0x4C)))) {
+        temp_r0 = (*(s32 (**)(s32, s32, s32))((s8 *)(arg0) + (0x6C)));
+        (*(s32 *)((s8 *)(arg0) + (0x4C))) = temp_r3;
+        if (temp_r0 != NULL) {
+            temp_r0((*(s32 *)((s8 *)(arg0) + (0x70))), (*(s32 *)((s8 *)(arg0) + (0x74))), temp_r3);
+        }
+    }
+}

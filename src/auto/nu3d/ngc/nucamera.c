@@ -54,3 +54,23 @@ void NuCameraDistSqr(s32 a)
 {
     fn_8000CD08(a, lbl_80313298, 0);
 }
+
+s32 NuAnimCurveSetApplyBlendToJoint2(s32 *, s32);
+extern s32 lbl_80314354[];
+extern s32 lbl_80407C58;
+
+void NuCameraTransformScreenClip(void) {
+    if ((s32) lbl_80407C58 == 1) {
+        NuAnimCurveSetApplyBlendToJoint2(lbl_80314354, 0);
+    }
+}
+
+s32 NuAnimCurveSetApplyBlendToJoint2(s32 *, s32);
+extern s32 lbl_803143BC[];
+extern s32 lbl_80407C58;
+
+void NuPs2CreateSkin(void) {
+    if ((s32) lbl_80407C58 == 1) {
+        NuAnimCurveSetApplyBlendToJoint2(lbl_803143BC, 0);
+    }
+}

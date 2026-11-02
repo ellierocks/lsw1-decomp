@@ -34,13 +34,16 @@ Follow the yield priorities in [strategy](strategy.md#choosing-a-task): match
 existing game/Nu2 units first, and resolve splits or data when they unblock a
 promising unit. The SDK donor queue is exhausted. Claim one library,
 TU or function per worktree branch. Phase 3 game code runs as one-unit
-[sprints](sprint_workflow.md): `python3 tools/next_target.py --by-unit` ranks units by
+[sprints](sprint_workflow.md). Run `python3 tools/sweep.py --apply` first: it m2c-drafts
+and strict-scores every ready target unattended, applies the matches, and ranks the rest by
+near-miss bytes in `work/sweep/results.json`. `python3 tools/next_target.py --by-unit` ranks units by
 bytes in the first ten ready targets, with ownership filtering. Inspect related
 code shapes before choosing; the ranking does not estimate matching time. Naming and donor mining serve that target.
 For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
 `python3 tools/sdk_import_unit.py UNIT --apply` imports and proves a unit.
 
 ```sh
+python3 tools/sweep.py --apply          # then bash build.sh and verify_fn.py on each match
 python3 tools/next_target.py
 python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
 ```
