@@ -11,6 +11,11 @@ assembly, rewrites m2c's macros into plain C, and scores the draft with `score_f
 untouched). A draft that redeclares a function or global with conflicting types is
 retried without m2c's declaration. No model or agent is involved.
 
+m2c also reads the unit source, preprocessed, as `--context`: its structs, globals and
+prototypes (including the unit's headers) type the draft's field accesses and calls. Each
+target is drafted with and without that context and the better-scoring draft is kept, so
+typing a header can only raise the sweep's yield.
+
 `--apply` writes strict MATCHes into their unit sources one at a time, re-scoring each
 against the updated file with `score_fn.py --apply`; run `bash build.sh` and
 `sprint_finish.py` afterwards for the build-level strict verification. Everything else is
@@ -26,6 +31,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -64,8 +70,14 @@ def expand_macros(text: str) -> str:
     """Rewrite m2c valid-syntax macros as plain C casts so a matched draft needs no header."""
     for name, ctype in UNKNOWN_TYPES.items():
         text = re.sub(rf"\b{name}\b", ctype, text)
+    # With a typed context m2c reads the first member of a struct local as
+    # M2C_BITWISE(f32, sp8); a cast cannot convert a struct, so reinterpret its storage.
+    struct_locals = set(re.findall(r"^\s+struct \w+ (\w+);", text, flags=re.M))
+    while (m := re.search(r"\bM2C_BITWISE\s*\(", text)):
+        args, end = split_args(text, m.end() - 1)
+        fmt = "(*({0} *)&({1}))" if args[1] in struct_locals else "(({0})({1}))"
+        text = text[:m.start()] + fmt.format(*args) + text[end:]
     for macro, fmt in (("M2C_FIELD", "(*({1})((s8 *)({0}) + ({2})))"),
-                       ("M2C_BITWISE", "(({0})({1}))"),
                        ("M2C_STRUCT_COPY", "memcpy({0}, {1}, {2})"),
                        ("M2C_MEMCPY_ALIGNED", "memcpy({0}, {1}, {2})")):
         while (m := re.search(rf"\b{macro}\s*\(", text)):
@@ -106,7 +118,30 @@ def type_derefs(text: str) -> str:
     return UNTYPED_DEREF.sub("*(s32 *)(", text)
 
 
-def draft(name: str) -> tuple[str, str]:
+_CONTEXTS: dict[str, Path | None] = {}
+_CONTEXT_LOCK = threading.Lock()
+CPP = ["cpp", "-P", "-nostdinc", "-Isrc", "-Iinclude", "-Ibuild/GL5E4F/include", "-D__attribute__(x)="]
+
+
+def unit_context(source: str) -> Path | None:
+    """SOURCE preprocessed for m2c's `--context` (cached per sweep), or None if cpp fails."""
+    with _CONTEXT_LOCK:
+        if source not in _CONTEXTS:
+            out = OUT / "ctx" / (source.replace("/", "_") + ".i")
+            out.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                r = subprocess.run(CPP + [source], cwd=ROOT, capture_output=True, text=True)
+            except OSError:
+                r = None
+            if r is not None and r.returncode == 0:
+                out.write_text(r.stdout)
+                _CONTEXTS[source] = out
+            else:
+                _CONTEXTS[source] = None
+        return _CONTEXTS[source]
+
+
+def draft(name: str, context: Path | None = None) -> tuple[str, str]:
     """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'."""
     task = OUT / name
     asm = task / "asm.s"
@@ -118,8 +153,10 @@ def draft(name: str) -> tuple[str, str]:
     m2c = draft_fn.m2c_dir()
     m2c_in = task / "asm_m2c.s"
     m2c_in.write_text(fold_cror(asm.read_text()))
-    r = subprocess.run([sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax",
-                        str(m2c_in.resolve())], capture_output=True, text=True)
+    cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
+    if context is not None:
+        cmd += ["--no-cache", "--context", str(context)]
+    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True)
     if r.returncode or not r.stdout.strip():
         return "m2c-failed", ""
     if UNHANDLED.search(r.stdout):
@@ -130,8 +167,28 @@ def draft(name: str) -> tuple[str, str]:
         return "m2c-failed", ""
     body = draft_fn.clean(body, name, asm.read_text())
     body = body.replace('#include "types.h"\n', "", 1).strip() + "\n"
-    (task / "sweep_draft.c").write_text(body)
     return "ok", body
+
+
+# m2c phrases a conditional store as `v = A; if (c) { v = B; } g = v;`. ProDG then hoists
+# `v = A` above the call in c into a callee-saved register; the retail code usually
+# comes from storing in both arms, so a second variant stores B or A directly.
+PRESET_STORE = re.compile(r"(?P<ind>[ \t]*)(?P<v>var_r\w+) = (?P<a>[^;\n]+);\n(?P=ind)if \((?P<c>.*)\) \{\n"
+                          r"[ \t]*(?P=v) = (?P<b>[^;\n]+);\n(?P=ind)\}\n(?P=ind)(?P<g>[\w\[\]]+) = (?P=v);\n")
+
+
+def store_in_arms(body: str) -> str:
+    """BODY with each PRESET_STORE written as an if/else of direct stores."""
+    def arms(m):
+        i = m["ind"]
+        return (f"{i}if ({m['c']}) {{\n{i}    {m['g']} = {m['b']};\n{i}}} else {{\n"
+                f"{i}    {m['g']} = {m['a']};\n{i}}}\n")
+    out = PRESET_STORE.sub(arms, body)
+    for v in {m["v"] for m in PRESET_STORE.finditer(body)}:
+        decl = re.compile(rf"^[ \t]+\w+ {v};\n", flags=re.M)
+        if len(re.findall(rf"\b{v}\b", out)) == len(decl.findall(out)):  # only declared now
+            out = decl.sub("", out, count=1)
+    return out
 
 
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
@@ -171,12 +228,45 @@ def score(name: str, source: str, body: str, apply: bool = False) -> dict:
     return {"verdict": rep.get("verdict"), "exact": rep.get("exact_insns"), "target": rep.get("target_insns")}
 
 
+RANK = {"MATCH": 3, "MISMATCH": 2}
+
+
+def better(a: dict, b: dict) -> bool:
+    """Whether score A beats score B (MATCH, then more exact instructions)."""
+    return (RANK.get(a["verdict"], 0), a.get("exact") or 0) > (RANK.get(b["verdict"], 0), b.get("exact") or 0)
+
+
 def sweep_one(t: dict) -> dict:
     name, source = t["name"], t["source"]
     row = {"name": name, "unit": t["unit"], "source": source, "size": t["size"]}
-    status, body = draft(name)
-    if status != "ok":
-        return {**row, "verdict": status.upper()}
+    best = None
+    ctx = unit_context(source)
+    for context in [None] + ([ctx] if ctx else []):
+        status, body = draft(name, context)
+        if status != "ok":
+            res = {"verdict": status.upper()}
+        else:
+            res, body = score_draft(name, source, body)
+            res["context"] = context is not None
+            if res["verdict"] == "MISMATCH" and (alt := store_in_arms(body)) != body:
+                alt_res, alt = score_draft(name, source, alt)
+                if better(alt_res, res):
+                    res, body = {**alt_res, "context": context is not None, "rewrite": "store-in-arms"}, alt
+        if best is None or better(res, best[0]):
+            best = (res, body)
+        if res["verdict"] == "MATCH":
+            break
+    res, body = best
+    if res["verdict"] in ("MATCH", "MISMATCH"):
+        (OUT / name / "sweep_draft.c").write_text(body)
+    err = res.pop("error", "").strip()
+    if res["verdict"] in ("COMPILE-ERROR", "ERROR") and err:
+        res["error"] = err.splitlines()[-1][:200]
+    return {**row, **res}
+
+
+def score_draft(name: str, source: str, body: str) -> tuple[dict, str]:
+    """Score BODY, dropping m2c declarations that conflict with SOURCE; (result, final body)."""
     for _ in range(4):
         res = score(name, source, body)
         if res["verdict"] != "COMPILE-ERROR":
@@ -190,12 +280,7 @@ def sweep_one(t: dict) -> dict:
             break
     else:
         res = score(name, source, body)
-    if res["verdict"] in ("MATCH", "MISMATCH"):
-        (OUT / name / "sweep_draft.c").write_text(body)
-    err = res.pop("error", "").strip()
-    if res["verdict"] in ("COMPILE-ERROR", "ERROR") and err:
-        res["error"] = err.splitlines()[-1][:200]
-    return {**row, **res}
+    return res, body
 
 
 def targets(args) -> list[dict]:

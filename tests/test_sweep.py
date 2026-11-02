@@ -14,6 +14,24 @@ class SweepRewriteTest(unittest.TestCase):
         out = sweep.expand_macros("M2C_UNK32 x = M2C_FIELD(M2C_FIELD(p, s8 **, 4), s32 *, 0x10);")
         self.assertEqual(out, "s32 x = (*(s32 *)((s8 *)((*(s8 **)((s8 *)(p) + (4)))) + (0x10)));")
 
+    def test_expand_bitwise_struct_local(self):
+        out = sweep.expand_macros("void f(void) {\n    struct nuvec_s sp8;\n    s32 r;\n"
+                                  "    g(M2C_BITWISE(f32, sp8), M2C_BITWISE(f32, r));\n}\n")
+        self.assertIn("g((*(f32 *)&(sp8)), ((f32)(r)));", out)
+
+    def test_better_prefers_match_then_exact(self):
+        self.assertTrue(sweep.better({"verdict": "MATCH", "exact": 3}, {"verdict": "MISMATCH", "exact": 9}))
+        self.assertTrue(sweep.better({"verdict": "MISMATCH", "exact": 9}, {"verdict": "MISMATCH", "exact": 8}))
+        self.assertFalse(sweep.better({"verdict": "COMPILE-ERROR"}, {"verdict": "UNHANDLED"}))
+
+    def test_store_in_arms(self):
+        body = ("void f(void) {\n    s32 var_r0;\n\n    var_r0 = 0xA;\n    if (g() != 0) {\n"
+                "        var_r0 = 8;\n    }\n    lbl_X = var_r0;\n}\n")
+        self.assertEqual(sweep.store_in_arms(body),
+                         "void f(void) {\n\n    if (g() != 0) {\n        lbl_X = 8;\n    } else {\n"
+                         "        lbl_X = 0xA;\n    }\n}\n")
+        self.assertEqual(sweep.store_in_arms("x = 1;\n"), "x = 1;\n")
+
     def test_fold_cror(self):
         asm = ("\tfcmpu cr0, f0, f31\n\tcror un, eq, lt\n\tbns .L_1\n"
                "\tfcmpu cr0, f1, f2\n\tcror un, eq, gt\n\tbsolr\n")
