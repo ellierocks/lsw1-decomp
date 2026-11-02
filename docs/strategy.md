@@ -156,11 +156,20 @@ explicit exclusions for changed TCS behavior.
 
 ## Choosing a task
 
-1. Take the lowest unfinished phase that still has open work. Phase 1 can run
-   in parallel with Phase 3 on functions inside units that already exist.
-2. For Phase 3, pick a unit with `python3 tools/next_target.py --by-unit` that no
-   open PR owns (`gh pr list --state open`), and run it as a
-   [sprint](sprint_workflow.md) in its own worktree branch.
+1. Choose by expected verified code bytes per unit of effort, not phase number.
+   The SDK donor queue is exhausted. Prioritize game/Nu2 matching in existing
+   units; do remaining Phase 2 boundary and data work when it directly unblocks
+   a promising unit. Keep libsn, debugger and HVQM4 research deferred until a
+   concrete donor or implementation lead changes their expected yield.
+2. Fetch, inspect `git worktree list`, and run
+   `python3 tools/next_target.py --by-unit`. Exclude active local worktrees as
+   well as unmerged sprint branches and open PRs. Treat the ranking as a
+   shortlist: prefer related function families with reusable code and types,
+   then units with few functions left. Inspect owned data sections before
+   assuming code completion permits promotion. A small finishable queue can
+   beat the unit with the most ready targets. Run one
+   [sprint](sprint_workflow.md) in its own worktree branch, keeping the attempt
+   budget so difficult targets do not consume the easy gains.
 3. Record a plateau in the task's `status.md` and the PR with its best score, its
    remaining mismatch and one concrete next hypothesis. Then move on.
 4. When the plan changes, update this file in the same PR. Sprint results stay in
