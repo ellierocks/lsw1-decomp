@@ -119,12 +119,59 @@ retail. That happens when the unit's literal layout lines up with retail, which 
 what promotion needs. Adding the ranges took three functions to 100% (`numtl`'s
 `fn_800248CC` and two in `nugraph_4`). The rest of the strict-only gap stays separate.
 
-dtk warns that 34 ranges start at a 4-aligned address while holding an 8-aligned double.
-Retail places these blocks as found: `nustring`'s block starts at `0x8018D88C`, directly
-after `numem`'s `VuMath.h` strings, and holds a double at block offset 0x64. One ProDG
-`.rodata` section with a double is 8-aligned (checked with the pinned `cc1`), so retail
-must place strings and constants in separate input sections, or the SN linker aligns them
-differently. Settle that before promoting such a unit.
+#### Alignment evidence and limits
+
+dtk warns that 34 provisional spans begin at a 4-aligned address but contain an
+8-aligned double. A **reference span is not proof of one original input section**.
+For example, `nustring` begins at `0x8018D88C`, immediately after `numem`'s
+`VuMath.h` strings; its double at `0x8018D8F0` is absolutely 8-aligned but is at
+span offset `0x64`. Rounding the span start or reducing symbol alignment would
+change the evidence rather than explain it. Keep these spans provisional.
+
+Pinned ProDG 3.9.3 (`cc1` SN BUILD v1.76), with the wrapper's `-O2`, gives these
+results for `use("a string", 123.456)`:
+
+| Probe | Result |
+|---|---|
+| Default | One `.rodata`, string offset 0, double offset `0x10`, section alignment 8 |
+| `-fdata-sections` | Same literal pool; no `.rodata.cst*` sections |
+| `-ffunction-sections -fdata-sections` | Same pool; only the function section changes; current DTK fixup rejects this probe |
+| `-malign-section-names` | One `.rodata.lit4`, still aligned 8 and containing both literals |
+| `#pragma pack(4)` | Same literal pool and double alignment |
+| `#pragma section rodata=".rodata.str"` | No section change |
+| Named `const` objects with `__attribute__((section(...)))` | Separate string and double input sections are supported |
+
+GNU `powerpc-eabi-as` and the shipped `NgcAs.exe` (also with `-sn`) agree on
+the default pool's alignment. The pinned SN linker honors it: linking that
+object at `0x8018D88C` inserts four bytes **before the string**, rather than
+rebasing the pool's internal double alignment. A linker start address alone
+therefore does not reproduce retail's offsets. `-mno-strict-align`,
+`-mno-bit-align`, `-mno-eabi`, `-msdata=none`, `-mno-fp-in-toc` and
+`-fno-const-strings` also leave this pool unchanged; `-fmerge-constants` and
+`-m[no-]align-double` are not accepted by this compiler.
+
+Separate input sections **can** reproduce the address relationship without
+weakening alignment. A synthetic pinned-compiler probe declares:
+
+```c
+const char strings[0x64] __attribute__((section(".rodata.str"))) = "probe";
+const double constant __attribute__((section(".rodata.cst8"))) = 123.456;
+```
+
+After a four-byte predecessor at `0x8018D888`, the SN linker places `strings`
+at `0x8018D88C` and `constant` at `0x8018D8F0` using:
+
+```text
+.rodata 0x8018D888 : { *(.rodata) *(.rodata.str) *(.rodata.cst8) }
+```
+
+This is a demonstrated mechanism, **not proof of retail's original flags,
+section names or declarations**. The DOL has lost its input-section metadata;
+the tests above do not establish how retail generated those sections. No
+compiler override, linker-script change or split rewrite is justified yet.
+Promotion of an affected span still requires reproducing its complete layout
+and linked addresses; a strict function match alone cannot settle this.
+Units without this alignment conflict can be verified independently.
 
 `tu_boundaries.py --write-splits` rewrites the `auto/` blocks and drops their `.rodata`
 lines. Afterwards, run `bash build.sh`, then `python3 tools/rodata_splits.py --write`.
