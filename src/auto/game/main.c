@@ -117,3 +117,16 @@ void fn_800A1F9C(void) {
         fn_80024CD4(lbl_8040AF8C);
     }
 }
+
+s32 fn_800CA018(s32);
+extern s32 lbl_80408E84;
+
+void fn_8009D550(void)
+{
+  s32 new_var;
+  s32 temp_r9;
+  temp_r9 = lbl_80408E84 + 1;
+  lbl_80408E84 = temp_r9;
+  fn_800CA018(new_var);
+  new_var = temp_r9;
+}

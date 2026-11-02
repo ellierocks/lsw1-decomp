@@ -243,3 +243,20 @@ extern s32 lbl_803D461C[];
 void fn_8006DBE8(void) {
     fn_8000759C(lbl_803D45B8, lbl_803D461C, 0x64);
 }
+
+extern f32 lbl_801986F0[];
+extern f32 lbl_801BB460[];
+
+void fn_8006E328(void)
+{
+  if (((s16) (*((s16 *) (((s8 *) lbl_801BB44C) + 0)))) == 0xB)
+  {
+    *((s16 *) (((s8 *) lbl_801BB44C) - -6)) = -1;
+  }
+  else
+  {
+    *((s16 *) (((s8 *) lbl_801BB44C) + 2)) = (*((s16 *) (((s8 *) lbl_801BB44C) + 0xA)) = -1);
+    *((s16 *) (((s8 *) lbl_801BB44C) + 0xC)) = 0;
+  }
+  lbl_801BB460[0] = lbl_801986F0[0];
+}

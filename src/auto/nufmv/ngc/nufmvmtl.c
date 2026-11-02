@@ -51,3 +51,31 @@ void fn_800484F8(void)
 {
     OSSendMessage(lbl_802B10C0, 7, 1);
 }
+
+s32 OSInitMessageQueue(s32 *, s32 *, s32);
+extern s32 lbl_802B10E0[];
+extern s32 lbl_8036E580[];
+extern s32 lbl_8037E580[];
+extern s32 lbl_80408310;
+extern s32 *lbl_8040A500;
+extern s32 *lbl_8040A504;
+extern s32 lbl_8040A51C;
+extern s32 lbl_8040A520;
+extern s32 lbl_8040AE44;
+
+void fn_80048348(s32 *arg0)
+{
+  s32 temp_r11;
+  OSInitMessageQueue(lbl_802B10C0, lbl_802B10E0, 8);
+  lbl_8040A500 = lbl_8036E580;
+  lbl_8040A504 = lbl_8037E580;
+  lbl_8040A51C = *arg0;
+  if (1)
+  {
+    temp_r11 = (*arg0) + 0x10000;
+  }
+  *arg0 = temp_r11;
+  lbl_8040A520 = temp_r11;
+  *arg0 += 0x10000;
+  lbl_8040AE44 = (lbl_80408310 = 0);
+}

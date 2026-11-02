@@ -15,7 +15,9 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 ## Scope
 
 - **Sweep first.** Run `python3 tools/sweep.py --apply` before choosing the unit; it takes
-  the automatic m2c matches across the whole game for free. Then pick the unit with
+  the automatic m2c matches across the whole game for free. Then run
+  `python3 tools/sweep_permute.py --apply`, which runs the permuter unattended on the
+  biggest near-misses. Then pick the unit with
   the most near-miss bytes in `work/sweep/results.json` (size × exact ratio, 90% exact or
   better first). Each queued function's starting draft is `work/sweep/NAME/sweep_draft.c`.
 - **One unit per sprint.** Pick it from the sweep ranking or `next_target.py --by-unit`, then list the unit's

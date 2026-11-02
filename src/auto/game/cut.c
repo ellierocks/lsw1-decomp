@@ -1143,3 +1143,18 @@ void fn_8011E864(void) {
     fn_8003F180(fn_8011EFE4);
     fn_8003F1A0(fn_8011D30C);
 }
+
+f32 fn_8000ED40();
+
+void fn_8011BC1C(void)
+{
+  f32 temp_f1;
+  s8 *new_var;
+  temp_f1 = fn_8000ED40();
+  new_var = (s8 *) lbl_8040A75C;
+  *((f32 *) (((s8 *) lbl_8040A75C) + 0xB0)) = temp_f1;
+  if ((*((f32 *) (new_var + 0xB4))) < temp_f1)
+  {
+    *((f32 *) (new_var + 0xB4)) = temp_f1;
+  }
+}
