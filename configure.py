@@ -393,7 +393,7 @@ config.libs = [
             Object(NonMatching, "auto/nu3d/ngc/ngc_mtl.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nugscn.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nuhgobj.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "auto/nu3d/ngc/numtl.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(Matching, "auto/nu3d/ngc/numtl.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nurndr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nustream.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nufmv/ngc/nufmvmtl.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
