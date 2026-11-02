@@ -207,6 +207,12 @@ to be nonzero before collision testing. It filters the signed room ID at
 `+0x18` and `+0x1C` on success. Its actor view has bounding vectors at
 `+0x188` and `+0x194`; this view is separate from the pool.
 
+`fn_8013E34C` strictly matches collection across the six groups and the
+secondary buffer. Its definition table has a `0x34` stride, a word award at
+`+0x1C`, flags at `+0x22`, and a float collision radius at `+0x30`. The
+collection switch handles signed kinds 0–2, 4 and 5; the local actor and
+definition views retain unknown fields.
+
 A separate callback record has a float at `+0x100` and a signed halfword at
 `+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
 Both consumers strictly match. Its full size is unknown. OpenSaga lookup found
