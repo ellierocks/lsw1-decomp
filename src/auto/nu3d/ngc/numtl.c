@@ -1,8 +1,6 @@
 #include "types.h"
 #include "nu3dx/nu3dx.h"
 
-extern char lbl_801912C4[];
-extern char str_NuMtlSetCurrentRenderPlane_OutOfRange[];
 extern s32 lbl_80407D24;
 extern s32 lbl_80407D1C;
 extern void (*fn_80009948(char* file, s32 line))();
@@ -17,7 +15,6 @@ extern s32 lbl_80407D20;
 struct numtl_s* fn_80024A34(s32 n, s32 plane, s32 flag);
 extern void* memset();
 extern struct numtl_s lbl_8020E9B4[100];
-extern char lbl_801912F4[];
 extern void fn_80024DB8(struct numtl_s* mtl, s32 plane);
 extern void fn_80012AB4(struct numtl_s* mtl);
 
@@ -122,10 +119,40 @@ struct numtl_s* fn_80024A34(s32 n, s32 plane, s32 flag)
         lbl_80407D1C++;
         last = mtl;
         if (++lbl_80407D24 > 99) {
-            fn_80009948(lbl_801912C4, 0x17A)(lbl_801912F4);
+            fn_80009948("../nu2api.legogc/nu3d/ngc/ngc_obj/../numtl.c", 0x17A)("Too many materials taken from matpool");
         }
     }
     return mtl;
+}
+
+/* Retail retains this format even though no surviving function references it. */
+static const char mtlSizeFormat[] = "mtlsize=%d";
+
+void fn_80024BB8(void)
+{
+    fn_800339C0();
+}
+
+void NuHazeClose(void)
+{
+    if (lbl_80407D18 != 0) {
+        lbl_80407D18 = 0;
+    }
+}
+
+struct numtl_s* fn_80024BF0(s32 a)
+{
+    return fn_80024A34(a, lbl_80407D20, 0);
+}
+
+struct numtl_s* fn_80024C18(s32 a)
+{
+    return fn_80024A34(a, lbl_80407D20, 1);
+}
+
+struct numtl_s* fn_80024C40(s32 a, s32 b)
+{
+    return fn_80024A34(a, b, 1);
 }
 
 void fn_80024C64(struct numtl_s* mtl)
@@ -147,19 +174,14 @@ void fn_80024CD4(struct numtl_s* mtl)
     mtl->version++;
 }
 
-void fn_80024D54(struct numtl_s* mtl)
+s32 fn_80024D0C(s32 cb)
 {
-}
-
-s32 NuMtlSetCurrentRenderPlane(u32 plane)
-{
-    s32 old;
-
-    if (plane > 0x17) {
-        fn_80009948(lbl_801912C4, 0x3D9)(str_NuMtlSetCurrentRenderPlane_OutOfRange);
+    s32 old = lbl_80407D5C;
+    if (cb != 0) {
+        lbl_80407D5C = cb;
+    } else {
+        lbl_80407D5C = (s32)fn_80024DC0;
     }
-    old = lbl_80407D20;
-    lbl_80407D20 = plane;
     return old;
 }
 
@@ -175,40 +197,18 @@ void fn_80024D44(u8* p)
     *(s32*)(p + 0xb4) = *(s32*)(*(u8**)(p + 0xb4) + 0xb4);
 }
 
-void NuHazeClose(void)
+void fn_80024D54(struct numtl_s* mtl)
 {
-    if (lbl_80407D18 != 0) {
-        lbl_80407D18 = 0;
-    }
 }
 
-s32 fn_80024D0C(s32 cb)
+s32 NuMtlSetCurrentRenderPlane(u32 plane)
 {
-    s32 old = lbl_80407D5C;
-    if (cb != 0) {
-        lbl_80407D5C = cb;
-    } else {
-        lbl_80407D5C = (s32)fn_80024DC0;
+    s32 old;
+
+    if (plane > 0x17) {
+        fn_80009948("../nu2api.legogc/nu3d/ngc/ngc_obj/../numtl.c", 0x3D9)("NuMtlSetCurrentRenderPlane out of range");
     }
+    old = lbl_80407D20;
+    lbl_80407D20 = plane;
     return old;
-}
-
-void fn_80024BB8(void)
-{
-    fn_800339C0();
-}
-
-struct numtl_s* fn_80024C40(s32 a, s32 b)
-{
-    return fn_80024A34(a, b, 1);
-}
-
-struct numtl_s* fn_80024BF0(s32 a)
-{
-    return fn_80024A34(a, lbl_80407D20, 0);
-}
-
-struct numtl_s* fn_80024C18(s32 a)
-{
-    return fn_80024A34(a, lbl_80407D20, 1);
 }
