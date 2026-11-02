@@ -290,3 +290,16 @@ s32 fn_80071CC8(s32 arg0, u32 arg1, s32 *arg2) {
     }
     return 0;
 }
+
+s32 fn_8006ECF0();
+extern s32 lbl_80408728;
+
+s32 fn_8006EB98(void) {
+    s32 var_r3;
+
+    var_r3 = lbl_80408728;
+    if (var_r3 != 0) {
+        var_r3 = fn_8006ECF0();
+    }
+    return var_r3;
+}

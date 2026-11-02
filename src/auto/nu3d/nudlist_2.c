@@ -79,3 +79,15 @@ void fn_8000F840(void *arg0) {
     }
     (*(s32 *)((s8 *)(arg0) + (0x28))) = var_r0;
 }
+
+void NuVec4MtxTransformVU0x4(struct numtx_s *arg0, struct nuvec_s *arg1) {
+    NuMtxScale(arg0, arg1);
+}
+
+void fn_8000EA94(struct numtx_s *arg0, struct nuvec_s *arg1) {
+    NuMtxPreScale(arg0, arg1);
+}
+
+void fn_8000EB44(struct numtx_s *arg0, struct numtx_s *arg1, struct numtx_s *arg2) {
+    NuMtxMul(arg0, arg1, arg2);
+}

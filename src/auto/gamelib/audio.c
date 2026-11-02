@@ -260,3 +260,7 @@ void fn_8006E328(void)
   }
   lbl_801BB460[0] = lbl_801986F0[0];
 }
+
+void fn_8006DB8C(s32 *arg0) {
+    fn_8000759C(arg0, (s32) lbl_803D45B8, 0x64);
+}
