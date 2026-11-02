@@ -179,6 +179,11 @@ than GC, so those donor offsets do not transfer.
 counts at `+0x734` from the pool and stepping each record by `0x40`. It
 stores a float at record `+0x2C` and bytes at `+0x38` and `+0x39`;
 `fn_8013D2F4` reads and writes words at `+0x18` and `+0x1C`.
+The group initialization `fn_8013C620` remains parked at 41/51: loop
+register allocation and float-load placement differ. Its earlier 45-second
+permuter run found no match. The next hypothesis is to preserve the loop
+index in r11 and defer the float load until after the count check.
+
 The matched `fn_8013D9FC` confirms record floats at `+0x04` (current Y),
 `+0x20` (base Y) and `+0x24` (saved Y), and a signed kind byte at `+0x3E`.
 Its height table has a `0x34`-byte stride. The comparison stores the computed
