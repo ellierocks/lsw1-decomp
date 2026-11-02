@@ -15,9 +15,14 @@ Output is one line: verdict, score (lower is better, same order as
 hillclimb.py), exact instructions and the first difference. `--diff` adds the
 side-by-side TARGET/MINE listing (mismatched rows marked `!!`). `--body FILE`
 scores FILE in place of NAME's definition without editing SOURCE (`--apply`
-writes it back on a strict MATCH), so one unit source can host many trials:
+writes it back on a strict MATCH), so one unit source can host many trials.
+When SOURCE has no definition of NAME yet, the body is appended instead, so a
+new function never needs a placeholder or a cleanup pass after a plateau:
 
     python3 tools/score_fn.py fn_X src/auto/u.c --body /tmp/try.c --diff --apply
+
+During a timed sprint (`work/sprint_timing.json` active) the result line ends
+with the remaining active budget, so no separate `--budget-status` call is needed.
 
 `--json` prints
 the full verifier report with the score added. Exit codes follow verify_fn.py:
@@ -89,6 +94,22 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
     return err or run([str(BUILD / "tools" / "dtk_patched"), "elf", "fixup", str(raw), str(out)])
 
 
+def budget_suffix(timing: Path = ROOT / "work" / "sprint_timing.json") -> str:
+    """Remaining active budget of a running sprint timer, or nothing when none is running."""
+    try:
+        state = json.loads(timing.read_text())
+    except (OSError, ValueError):
+        return ""
+    if state.get("active") in (None, "paused"):
+        return ""
+    import time
+    from sprint_metrics import budget_report
+    seconds = dict(state.get("seconds", {}))
+    seconds[state["active"]] = seconds.get(state["active"], 0) + max(0.0, time.time() - state["since"])
+    rep = budget_report({"seconds": seconds})
+    return f"  [budget {rep['remaining_seconds']:.0f}s left{', FINISH DUE' if rep['finish_due'] else ''}]"
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -135,12 +156,13 @@ def main(argv=None) -> int:
         if args.body:
             from variant_search import VariantError, find_function
             text = source.read_text()
+            body = args.body.read_text().strip("\n")
             try:
                 fn = find_function(text, args.compiled_symbol or args.name)
-            except VariantError as e:
-                print(f"error: {e} in {args.source}", file=sys.stderr)
-                return vf.EXIT_ERROR
-            replaced = fn.before + args.body.read_text().strip("\n") + fn.tail[1:]
+                replaced = fn.before + body + fn.tail[1:]
+            except VariantError:
+                # New function: append it, keeping one blank line before it.
+                replaced = text.rstrip("\n") + "\n\n" + body + "\n"
             source = Path(tmp) / source.name
             source.write_text(replaced)
         err = compile_source(source, obj, args.compiler, extra,
@@ -177,7 +199,7 @@ def main(argv=None) -> int:
     first = rep["differences"][0] if rep["differences"] else None
     detail = f"  first: {first['kind']} @{first.get('index_t')}: {first.get('detail', '')}" if first else ""
     print(f"{rep['verdict']}  score={rep['score']}  exact={rep['exact_insns']}/{rep['target_insns']}"
-          f"  mine_insns={rep['mine_insns']}{detail}")
+          f"  mine_insns={rep['mine_insns']}{detail}{budget_suffix()}")
     if listing and code != 0:
         print(listing)
     if args.apply and code == 0:
