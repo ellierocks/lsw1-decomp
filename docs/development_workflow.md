@@ -8,9 +8,6 @@ live in [C matching](code_matching_workflow.md).
 | Remote | Role |
 |--------|------|
 | [GitHub `ellierocks/lsw1-decomp`](https://github.com/ellierocks/lsw1-decomp) | Primary. All pushes go here; CI runs here. |
-| Codeberg | Read-only mirror, updated from GitHub by the `mirror` workflow. |
-
-Codeberg receives changes from GitHub. Do not push to it directly.
 
 ## Branches and pull requests
 
