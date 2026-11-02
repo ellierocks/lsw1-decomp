@@ -213,6 +213,19 @@ secondary buffer. Its definition table has a `0x34` stride, a word award at
 collection switch handles signed kinds 0–2, 4 and 5; the local actor and
 definition views retain unknown fields.
 
+`fn_8013E8F8` strictly matches the heart award: it increments the signed
+held count at actor `+0x1085` only between zero and the unsigned total at
+`+0x1084`, and bounds the owner heart counter at `+0x7D7`. The owner is
+reached through actor `+0xEEC`; its floats at `+0x708` and `+0x730`
+control the projected effect vector.
+
+The strictly matched `fn_8013DF98` confirms the signed player byte at actor
+`+0x284`, the owner award word at `+0x140`, and the definition-table signed
+effect halfword at `+0x20`. The pool handles have a `0x10` stride from
+`+0x774`. A permuter-generated temporary for the reloaded signed kind
+resolved the last three register differences. The effect creation helper
+returns a pointer, whose `+0x93` byte is set to five in mode 21.
+
 A separate callback record has a float at `+0x100` and a signed halfword at
 `+0x122`: `fn_8013F1B0` stores the float and `fn_8013F1DC` loads both.
 Both consumers strictly match. Its full size is unknown. OpenSaga lookup found
