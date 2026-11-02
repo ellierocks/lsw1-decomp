@@ -53,7 +53,7 @@ without evidence that the target needs them.
 
 `tools/tu_boundaries.py` proposes `.text` units for the game and Nu2 code below
 the first Dolphin split and writes `work/tu_boundaries.tsv`. The committed
-`splits.txt` carries its 78 provisional `auto/` units. To regenerate them after
+`splits.txt` initially carried its 78 provisional `auto/` units. To regenerate them after
 a symbol or split change, run
 `python3 tools/tu_boundaries.py --write-splits config/GL5E4F/splits.txt`.
 This replaces the existing `auto/` blocks and keeps every other unit. Check that
@@ -99,15 +99,14 @@ Limits:
 
 ### Provisional `.rodata` ranges
 
-`tools/rodata_splits.py` gives 58 game/Nu2 units a `.rodata` range taken from their code.
+`tools/rodata_splits.py` gives 59 game/Nu2 units a `.rodata` range taken from their code.
 It reads the `.rela.text` relocations in each built target object, maps them to `.rodata`
 symbols, and uses the span from the first referenced symbol to the end of the last one.
 These spans follow `.text` link order. A unit gets no range when:
 
-- its span overlaps another unit's: one TU is cut into several units, as with
-  `nufile_1`/`_2`/`_3`, `nufile_ngc_1`/`_2`, `nuanim_1`/`_2` with `nu3dx/nuanim`,
-  `nufont_ngc` through `nuqfnt_ngc`, `aiscript`/`aisys` and `creature`/`levels`. Merge the
-  units first;
+- its span overlaps another unit's. Investigate `__FILE__` xrefs and actual shared
+  literal targets before merging; overlapping envelopes alone do not prove a
+  common TU (see the [family audit](#split-tu-family-audit));
 - it is `Matching`, because its compiled object would have to supply the range
   (`--include-matching` proposes it for a separate proof);
 - its code references no `.rodata`.
@@ -118,6 +117,40 @@ They let objdiff resolve a unit's literals inside its own target object. Under
 retail. That happens when the unit's literal layout lines up with retail, which is also
 what promotion needs. Adding the ranges took three functions to 100% (`numtl`'s
 `fn_800248CC` and two in `nugraph_4`). The rest of the strict-only gap stays separate.
+
+#### Split-TU family audit
+
+The `nuanim_1` / `nu3dx/nuanim` / `nuanim_2` comparison units are now combined
+as `nu3dx/nuanim.c`, covering their unchanged outer `.text` envelope
+`0x80016558..0x80018F78`. The two internal cuts at `0x80016A98` and
+`0x8001752C` were artificial comparison boundaries:
+
+- `NuAnimCurve2CalcVal` in the middle piece and `NuAnimCurveCreate`,
+  `NuAnimDataCreate`, `NuAnimDataLoad` and other functions in the final piece
+  reference the **same** `__FILE__` object at `0x80190074`,
+  `../nu2api.legogc/nu3d/ngc_obj/../nuanim.c`.
+- The first piece's `fn_80016944` references constants at `0x801901E4`,
+  `0x801901E8` and `0x801901F0`, interleaved within the same literal block
+  used by the middle/final pieces. Its reference envelope is
+  `0x8018FFD0..0x801901F8`, not a preceding independent block.
+- Removing the cuts lets `rodata_splits.py --write` assign the union
+  `0x8018FFD0..0x80190374` (0x3A4 bytes). Source bodies are preserved;
+  all 22 previously strict matches remain strict. This consolidates comparison
+  ownership, not a promotion or proof of the unresolved timebar-prefix boundary.
+
+The other families remain separate after the initial audit:
+
+| Family | Evidence and remaining work |
+|---|---|
+| `nufile_1/2/3` | All share the path object at `0x8018CB9C`; `_1/_2` also share `NuFileClose - close failed, retrying` at `0x8018CD24`. Promoted `nufile_size` and `nufile` slices lie between them; preserve those promotions when choosing a consolidation scheme. |
+| `nufile_ngc_1/2` | Both share the path object at `0x8018E304`; promoted `nufile_exists` lies between them. Same promotion-preservation requirement. |
+| `nufont_ngc` through `nuqfnt_ngc` | Each has its own source-path xrefs (`0x8019167C`, `0x801918E8`, `0x80191AC4`, `0x80191C4C`, `0x80191D80`); no shared named `.rodata` relocation target was found across these five units. Overlapping spans do not justify merging them. Investigate boundary placement and symbol extents first. |
+| `aiscript/aisys` | Distinct path objects at `0x8019BC94` and `0x8019C6DC`; both reference `param` at `0x8019BD48` and `Base` at `0x8019BD80`. These common words alone do not prove a common TU; investigate cross-boundary ownership before merging. |
+| `creature/levels` | Distinct path objects at `0x8019FA30` and `0x801A24A0`, with no shared named `.rodata` relocation target found. Investigate boundary placement and symbol extents first. |
+
+These are target relocation/path observations, independent of objdiff scores.
+The union does not establish that every symbol-sized aggregate in the proposed
+range is a single original literal, or identify original input sections.
 
 #### Alignment evidence and limits
 

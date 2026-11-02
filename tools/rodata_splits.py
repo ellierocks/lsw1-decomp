@@ -10,9 +10,9 @@ the last one as the unit's range.
 A range is proposed only when it is evidence-only and unambiguous:
 
 - the unit has no `.rodata` split yet and is a game/Nu2 unit (below the first SDK split);
-- its span does not overlap the span of any other unit. Overlapping spans mean one real TU
-  cut into several units (for example `nufile_1`/`nufile_2`), so all of them are skipped
-  until the units are merged;
+- its span does not overlap the span of any other unit. Overlapping spans leave ownership
+  unresolved: they can indicate one TU cut into several units, but are not by themselves
+  evidence to merge the units;
 - by default the unit is not `Matching` in `configure.py`. A promoted unit would have to
   supply the range from its compiled object, which is a separate proof (`--include-matching`).
 
@@ -122,7 +122,7 @@ def propose(units: list[Unit], symbols: dict[str, tuple[int, int]], matching: se
         elif span is None:
             u.reason = "no .rodata references"
         elif u.name in overlapping:
-            u.reason = "overlaps another unit (one TU in several units)"
+            u.reason = "overlaps another unit (ownership unresolved)"
         elif span[0] < previous_end:
             u.reason = "out of link order"
         elif u.name.rsplit(".", 1)[0] in matching or u.name in matching:

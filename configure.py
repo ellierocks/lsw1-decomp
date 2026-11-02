@@ -407,8 +407,6 @@ config.libs = [
             Object(NonMatching, "auto/nusound3/ngc/NGCSound.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nudlistngc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/nutexanm.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "auto/nu3d/nuanim_1.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "auto/nu3d/nuanim_2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/game/chris.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/game/creature.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/game/credits.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),

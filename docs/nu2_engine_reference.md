@@ -184,9 +184,9 @@ and neither does the OpenSaga (PC) layout for `numtl_s`.
 Some of these structs appear only through local views, because no shared header owns them
 yet:
 
-- **Timebar** (`nuanim_1`). The view is `vals[16][2]` at 0x4, `start[16]` at 0x84,
+- **Timebar** (`nu3dx/nuanim`, formerly `nuanim_1`). The view is `vals[16][2]` at 0x4, `start[16]` at 0x84,
   `which[16]` at 0x144 and `active[16]` at 0x1C4 (bytes).
-- **Animation file header** (`nuanim_2`). The header is `{version, base, data}`, and the
+- **Animation file header** (`nu3dx/nuanim`, formerly `nuanim_2`). The header is `{version, base, data}`, and the
   loader rebases `data` by `*buf - base`.
 - **ANI4 header** (`nu3dx/nuanim`). It has a `u16` frame count at 0xA (`lhz`).
 - **File device** (`nufile_3`). The directory separator is a byte at 0x10.
