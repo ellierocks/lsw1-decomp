@@ -97,7 +97,10 @@ left to fill in. It exits non-zero on any failure.
 A function can pass the strict verifier yet sit below 100% in objdiff, because a literal reloc
 targets `.rodata+N` rather than the retail `lbl_` symbol. Those do not move `matched_functions`.
 `matching_progress.py --strict-gap` (and `tools/strict_gap.py`) counts them separately; report
-that figure, not an adjusted objdiff total.
+that figure, not an adjusted objdiff total. In a unit with a `.rodata` range
+([provisional ranges](build_config.md#provisional-rodata-ranges)), such a function counts once
+the unit's literals sit at retail offsets. An `extern lbl_` reference already matches by name.
+To promote the unit, its C must emit every literal in the range, strings included, in retail order.
 
 Rebase once, at the end. If main moved, the report delta includes main's changes; say so
 in the PR rather than building a separate baseline worktree. Run `verify_unit.py UNIT

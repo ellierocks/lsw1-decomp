@@ -100,7 +100,9 @@ not verify BSS.
    alignment padding, Mac demo/lineage neighbours and SDK archive order into a
    proposed `splits.txt` for `.text` and data. **Started:** the `.text` pass
    exists and its proposal relinks byte-identically. Alignment padding carries
-   no signal. Anonymous TUs and data sections remain; see
+   no signal. `tools/rodata_splits.py` adds `.rodata` ranges for the 58 units whose
+   literal references are unambiguous. Anonymous TUs, the other data sections and
+   `.rodata` for TUs cut into several units remain; see
    [proposed TU boundaries](build_config.md#proposed-game-tu-boundaries).
 2. Add a provisional unit per TU with assembly fallback. A split change must
    not change the relinked DOL. Mark boundaries provisional and revise them on
