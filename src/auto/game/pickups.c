@@ -81,7 +81,7 @@ extern f32 lbl_801AEDD8[];
 extern f32 lbl_801AEDDC[];
 extern s32 lbl_80409488;
 extern char str_Format_Hash[];
-void fn_800D5680(char* fmt, s32 value, s32 a, s32 r, s32 g, s32 b, s32 alpha, f32 x, f32 y, f32 z);
+void *fn_800D5680(char* fmt, s32 value, s32 a, s32 r, s32 g, s32 b, s32 alpha, f32 x, f32 y, f32 z);
 
 void fn_8013F050(s32 value)
 {
@@ -411,4 +411,149 @@ final:
     fn_8013DF98(p, actor, lbl_801E15E8[p->kind3E].award);
 yes:
     return 1;
+}
+
+struct PickupHeartOwner {
+    char unk0[0x61c];
+    s32 *handle;
+    char unk620[0xe8];
+    f32 value708;
+    char unk70c[0x24];
+    f32 value730;
+    char unk734[0xa3];
+    u8 hearts;
+};
+struct PickupHeartActor {
+    char unk0[0x78];
+    struct PickupVec velocity;
+    char unk84[0x57d];
+    s8 state601;
+    char unk602[0x22];
+    u16 rotX, rotY;
+    char unk628[0x8c4];
+    struct PickupHeartOwner *owner;
+    char unkef0[0x194];
+    u8 total;
+    s8 held;
+};
+extern f32 NuVecDot(struct PickupVec *, struct PickupVec *);
+extern void NuVecRotateX(struct PickupVec *, struct PickupVec *, u16);
+extern void NuVecRotateY(struct PickupVec *, struct PickupVec *, u16);
+extern void fn_80095A44(void *, s32, struct NUPICKUP_s *, s32,
+                        struct PickupVec *);
+extern f32 lbl_801AED9C[], lbl_801AEDA0[], lbl_801AEDA4[];
+extern struct PickupVec lbl_801D5970[];
+extern s32 lbl_8040AFB8;
+extern char str_Pickup_Heart[];
+void fn_8013E8F8(void *arg0, struct NUPICKUP_s *p) {
+    struct PickupHeartActor *actor = arg0;
+    struct PickupVec velocity, projected, direction;
+    if (actor->held > 0 && actor->held < actor->total)
+        actor->held++;
+    if (actor->owner->hearts <= 3)
+        actor->owner->hearts++;
+    if (lbl_8040AFB8) {
+        NuVecScale(&velocity, &actor->velocity, lbl_801AED9C[0]);
+        if (lbl_80409410->mode19C != 10) {
+            f32 zero = lbl_801AEDA0[0];
+            if (actor->owner->value730 != zero && actor->state601 != -1) {
+                NuVecRotateX(&direction, lbl_801D5970, actor->rotX);
+                NuVecRotateY(&direction, &direction, actor->rotY);
+                projected.x = NuVecDot(&velocity, &direction);
+                projected.y = zero;
+                projected.z = actor->owner->value730 * actor->owner->value708;
+                NuVecRotateX(&projected, &projected, actor->rotX);
+                NuVecRotateY(&velocity, &projected, actor->rotY);
+            }
+        }
+        fn_80095A44(((struct NUPICKUPPOOL_s *)lbl_80409410)->effect1B8, 14, p,
+                    15, &velocity);
+    } else
+        fn_800958F8(((struct NUPICKUPPOOL_s *)lbl_80409410)->effect1B8, 13, p);
+    fn_8006DCD4(str_Pickup_Heart, (struct PickupVec *)p);
+    fn_800AC020(*actor->owner->handle, lbl_801AEDA4[0]);
+}
+
+struct PickupCoinDef {
+    char unk0[0x20];
+    s16 effect;
+    char unk22[0x12];
+};
+struct PickupCoinPool {
+    char unk0[0x774];
+    s32 handles[1][4];
+};
+struct PickupCoinOwner {
+    char unk0[0x140];
+    s32 award;
+    char unk144[0x4d8];
+    s32 *handle;
+};
+struct PickupCoinActor {
+    char unk0[0x284];
+    s8 player;
+    char unk285[0xc67];
+    struct PickupCoinOwner *owner;
+};
+struct PickupCoinEffect {
+    char unk0[0x93];
+    u8 mode;
+};
+extern void *gPlayerPointers[];
+extern f32 lbl_801AED48[], lbl_801AED4C[], lbl_801AED50[];
+extern s32 lbl_8040948C, lbl_80409490, lbl_80409494;
+extern f32 lbl_804094AC, lbl_804094B0, lbl_804094B8, lbl_804094D0, lbl_80409504;
+extern f32 lbl_80409518[], lbl_80409A0C, lbl_8040B0D0, lbl_8040B1C4;
+extern char str_Pickup_Coin[], str_Pickup_CoinB[];
+static inline void pickup_coin_sound(s32 *handle, f32 value) {
+    fn_800AC020(*handle, value);
+}
+void fn_8013DF98(struct NUPICKUP_s *p, void *arg1, s32 award) {
+    struct PickupCoinActor *actor = arg1;
+    s8 kind;
+    struct PickupVec position;
+    f32 value;
+    s16 effect;
+    struct PickupCoinEffect *result;
+    if (actor->player == -1) {
+        actor->owner->award += award;
+        return;
+    }
+    if (p->kind3E == 2) {
+        pickup_coin_sound(actor->owner->handle, lbl_801AED48[0]);
+    }
+    kind = p->kind3E;
+    if (kind == 2)
+        fn_8006DCD4(str_Pickup_CoinB, (void *)p);
+    else
+        fn_8006DCD4(str_Pickup_Coin, (void *)p);
+    if (lbl_80409410->mode19C == 21) {
+        if (actor->player <= 1)
+            position.x = lbl_80409518[actor->player];
+        else
+            position.x = lbl_801AED4C[0];
+        position.y = lbl_804094D0;
+        value = lbl_80409504;
+        lbl_8040B0D0 = lbl_80409A0C + lbl_801AED50[0];
+    } else {
+        if (actor == gPlayerPointers[0])
+            position.x = lbl_804094AC;
+        else
+            position.x = -lbl_804094AC;
+        position.y = lbl_804094D0 + lbl_804094B0;
+        value = lbl_804094B8;
+        lbl_8040B1C4 = lbl_80409A0C + lbl_801AED50[0];
+    }
+    position.z = lbl_801AED50[0];
+    effect = ((struct PickupCoinDef *)lbl_801E15E8)[p->kind3E].effect;
+    if (effect != -1 &&
+        ((struct PickupCoinPool *)lbl_80409410)->handles[effect][0]) {
+        lbl_8040948C = effect;
+        lbl_80409490 = actor->player;
+        lbl_80409494 = award;
+        result = fn_800D5680(0, (s32)p, (s32)&position, 0, 0, 0, 0x12d,
+                             position.z, value, lbl_80409A0C);
+        if (result && lbl_80409410->mode19C == 21)
+            result->mode = 5;
+    }
 }
