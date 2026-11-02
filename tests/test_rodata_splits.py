@@ -61,6 +61,16 @@ class RodataSplitTests(unittest.TestCase):
         game = rs.propose(units(refs), symbols, matching={"a"}, include_matching=True)
         self.assertEqual(next(u for u in game if u.name == "a.c").span, (0x80100000, 0x80100004))
 
+    def test_interleaved_spans_without_shared_literals_stay_unresolved(self):
+        # Like the nufont/nugscn audit: overlapping envelopes can have no
+        # shared target, so the range tool cannot infer a common TU.
+        game = rs.propose(units({"a.c": ["lbl_A0", "lbl_B1"],
+                                 "b_1.c": ["lbl_B0"]}),
+                          rs.rodata_symbols(SYMBOLS), matching=set())
+        for unit in game[:2]:
+            self.assertIsNone(unit.span)
+            self.assertEqual(unit.reason, "overlaps another unit (ownership unresolved)")
+
     def test_with_ranges_inserts_after_text(self):
         text = rs.with_ranges(SPLITS, {"c.c": (0x80100030, 0x80100034)})
         self.assertIn("c.c:\n\t.text       start:0x80000300 end:0x80000400\n"

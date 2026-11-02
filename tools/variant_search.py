@@ -9,7 +9,7 @@ only the named function:
   - `x = c ? a : b;` against an explicit if/else with the store in each branch,
   - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local.
 
-    python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/auto/nu3d/nuanim_2.c -j 8
+    python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/nu3dx/nuanim.c -j 8
 
 Variants are tried fewest-changes first, so the smallest edit that matches wins. Every one is
 compiled with `score_fn.py` (strict verifier, same score order as hillclimb.py). The search
