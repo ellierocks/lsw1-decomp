@@ -17,7 +17,9 @@ struct NUPICKUP_s {
     s16 kind36;
     u8 flags38;
     u8 active39;
-    char unk3A[4];
+    char unk3A[2];
+    u8 enabled3C; /* fn_8013E190 rejects entries with this byte clear. */
+    char unk3D;
     s8 kind3E;
     char unk3F;
 };

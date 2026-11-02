@@ -272,3 +272,50 @@ void fn_8013F0AC(s32 id)
         fn_8006DCD4(str_Pickup_MKAppear, &sum);
     }
 }
+
+static inline void pickup_expand(struct PickupVec *out, struct PickupVec *in, f32 r)
+{
+    out->x = in->x + r;
+    out->y = in->y + r;
+    out->z = in->z + r;
+}
+static inline void pickup_contract(struct PickupVec *out, struct PickupVec *in, f32 r)
+{
+    out->x = in->x - r;
+    out->y = in->y - r;
+    out->z = in->z - r;
+}
+struct PickupFindActor {
+    char unk0[0x90];
+    char collision[0x2c];
+    f32 valueBC;
+    char unkC0[0xc8];
+    struct PickupVec min, max;
+    char unk1A0[0x50];
+    f32 value1F0;
+};
+extern s32 fn_800CFEE8(void *, f32, f32, f32, f32, void *);
+extern u8 lbl_803EAF84[];
+struct NUPICKUP_s *fn_8013E190(struct PickupFindActor *actor, s32 entries, s32 n, s32 rooms, f32 radius)
+{
+    struct PickupVec max, min;
+    s32 i = 0;
+    s32 cursor = entries;
+    pickup_expand(&max, &actor->max, radius);
+    pickup_contract(&min, &actor->min, radius);
+    for (; i < n; i++, cursor += 0x40) {
+        struct NUPICKUP_s *p = (void *)cursor;
+        struct PickupVec *pos = (void *)p;
+        if (p->active39 && p->enabled3C && (!rooms || p->kind36 == -1 || lbl_803EAF84[p->kind36])) {
+            if (pos->x < max.x && pos->x > min.x && pos->z < max.z && pos->z > min.z && pos->y < max.y && pos->y > min.y && fn_800CFEE8(p, radius, radius, actor->valueBC, actor->value1F0, actor->collision)) {
+                *(struct PickupVec *)((char *)p + 0xc) = *pos;
+                if (p->link1C)
+                    ((struct NUPICKUP_s *)p->link1C)->link18 = p->link18;
+                if (p->link18)
+                    ((struct NUPICKUP_s *)p->link18)->link1C = p->link1C;
+                return p;
+            }
+        }
+    }
+    return 0;
+}
