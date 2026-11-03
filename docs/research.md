@@ -99,6 +99,14 @@ Detailed cross-build evidence is retained under
 [research/revisions](../research/revisions/revision_graph.md). Concrete donor
 symbols, body matches and correction evidence remain under `symbol_donors/`.
 
+## Asset evidence
+
+[Asset mining](asset_mining.md) ranks scripts, archives, animation/cutscene data,
+scene references and controlled saves as evidence for specific native-code
+questions. It records current input limitations, existing extractor coverage and
+the proposed inventory → script-usage → handler workflow. Check actual file
+presence; the historical revision registry is not a live availability report.
+
 ## String references
 
 ```sh
