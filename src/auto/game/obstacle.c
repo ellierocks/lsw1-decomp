@@ -1463,7 +1463,7 @@ void fn_80108B3C(void *arg0) {
 
 s32 fn_80095630(void *, s32, s32, s32);
 s32 fn_800F77A4(void *);
-s32 fn_801044F0(void *);
+void fn_801044F0(void *);
 extern f32 lbl_801A9924[];
 extern f32 lbl_801A9928[];
 extern f32 lbl_804098AC;
@@ -2534,4 +2534,271 @@ s32 fn_800F10B4(u8 *arg0, s32 *arg1, s32 arg2, s32 *arg3) {
     arg1[1] = ((struct Fn800F10B4Tbl *)*(u8 **)(*(u8 **)(arg0 + 0x64) + 0x20))->e[*out][1];
     if (arg1[1] == -1 || (*(struct Fn800F10B4Arr **)(arg0 + 0x60))->v[arg1[1]] == 0) return 0;
     return 1;
+}
+
+extern f32 lbl_80408E9C;
+
+f32 fn_801038E8(f32 a, f32 b, f32 t) {
+    t *= lbl_80408E9C;
+    if (t > 1.0f) {
+        t = 1.0f;
+    }
+    return (b - a) * t + a;
+}
+
+s32 fn_80103494(u8 *arg0) {
+    u8 *q = *(u8 **)(arg0 + 0xEEC);
+    if (*(u8 *)(q + 0x7DF) == 0x22) {
+        return 2;
+    }
+    if (*(s32 *)(q + 0x650) != 0) {
+        return 1;
+    }
+    return 0;
+}
+
+s32 fn_80103944(u8 *arg0) {
+    if (*(u8 *)(arg0 + 0x287) != 1) {
+        return 0;
+    }
+    if (*(f32 *)(arg0 + 0x198) < *(f32 *)(arg0 + 0x224)) {
+        return 0;
+    }
+    if (*(f32 *)(arg0 + 0x18C) > *(f32 *)(arg0 + 0x224)) {
+        return 0;
+    }
+    return 1;
+}
+
+void fn_801044F0(void *arg0) {
+    u8 *q = *(u8 **)((u8 *)arg0 + 0xEEC);
+    if (*(u8 *)(q + 0x7D7) == 3) {
+        *(s16 *)(q + 0x7A6) = 0x48;
+    } else if (*(u8 *)(q + 0x7D7) == 2) {
+        *(s16 *)(q + 0x7A6) = 0x49;
+    } else if (*(u8 *)(q + 0x7D7) == 1) {
+        *(s16 *)(q + 0x7A6) = 0x4A;
+    }
+}
+
+void fn_801045E4(void *arg0) {
+    u8 *q = *(u8 **)((u8 *)arg0 + 0xEEC);
+    if (*(u8 *)(q + 0x7D7) == 3) {
+        *(s16 *)(q + 0x7A6) = 0x4B;
+    } else if (*(u8 *)(q + 0x7D7) == 2) {
+        *(s16 *)(q + 0x7A6) = 0x4C;
+    } else if (*(u8 *)(q + 0x7D7) == 1) {
+        *(s16 *)(q + 0x7A6) = 0x4D;
+    }
+}
+
+s32 fn_80103914(u8 *arg0) {
+    if (*(u8 *)(arg0 + 0x287) != 1) {
+        return 0;
+    }
+    return *(f32 *)(arg0 + 0x94) <= *(f32 *)(arg0 + 0x224);
+}
+
+void fn_80108878(struct Fn80105194Self *arg0) {
+    s32 i;
+    for (i = 0; i < arg0->count; i++) {
+        if ((arg0->entries[i].flags & 0x18) == 0 && arg0->entries[i].obj != NULL) {
+            arg0->entries[i].obj->flags |= 0x80000000;
+            arg0->entries[i].obj->f4C = 3.4028235e38f;
+        }
+    }
+    *(s32 *)((u8 *)arg0 + 0x18) |= 0xA8;
+}
+
+struct Fn800DF25CArg {
+    u8 pad0[0x44];
+    f32 f44; /* 0x44 */
+    f32 f48; /* 0x48 */
+};
+
+extern s32 lbl_8040B1E8;
+extern f32 lbl_8040B1F8;
+extern f32 lbl_804095A8;
+extern f32 lbl_804095AC;
+
+s32 fn_800DF25C(struct Fn800DF25CArg *arg0) {
+    f32 lim;
+    if (arg0->f44 > arg0->f48) {
+        arg0->f44 = 0.0f;
+        lbl_8040B1E8++;
+        lbl_8040B1F8 = 1.0f;
+        return 1;
+    }
+    lim = arg0->f48 - lbl_804095A8;
+    if (arg0->f44 > lim - lbl_804095AC && arg0->f44 <= lim) {
+        lbl_8040B1F8 = (arg0->f48 - arg0->f44 - lbl_804095A8) / lbl_804095AC;
+    }
+    return 0;
+}
+
+struct Fn800E2770Player {
+    u8 pad0[0x20C];
+    u32 b20C_0 : 7;
+    u32 b20C_7 : 1; /* 0x20C bit 7 */
+    u32 b20C_8 : 24;
+    u8 pad210[0xE64];
+    s16 s1074; /* 0x1074 */
+};
+
+extern void *gPlayer1Pointer[];
+struct Fn800E2770Pair {
+    s16 h[2]; /* 0x0 */
+    u8 b[2]; /* 0x4, also referenced as lbl_8040B0DC */
+};
+extern struct Fn800E2770Pair lbl_8040B0D8;
+
+void fn_800E2770(void) {
+    s32 i;
+    struct Fn800E2770Player **pp;
+    struct Fn800E2770Player *p;
+    s16 *h;
+    u8 *b;
+    s16 none;
+    none = -1;
+    pp = (struct Fn800E2770Player **)gPlayer1Pointer;
+    b = lbl_8040B0D8.b;
+    h = lbl_8040B0D8.h;
+    for (i = 0; i < 2; i++, pp++, b++, h++) {
+        p = *pp;
+        if (p != NULL) {
+            *h = p->s1074;
+            *b = p->b20C_7;
+        } else {
+            *h = none;
+            *b = 0;
+        }
+    }
+}
+
+struct Fn800E27CCA {
+    u8 pad0[0x44];
+    s8 idx; /* 0x44 */
+    u8 pad45[0x63];
+};
+
+struct Fn800E27CCB {
+    u8 pad0[0x32];
+    u8 flags; /* 0x32 */
+    u8 pad33[0x35];
+};
+
+struct Fn800E27CCC {
+    u8 pad0[2];
+    u8 superkitTotal; /* 0x2, also referenced as gSuperkitTotal */
+    u8 pad3[0x10E];
+    u8 e[1][8]; /* 0x111 */
+};
+
+extern s32 lbl_8040B1B0;
+extern struct Fn800E27CCA lbl_801D68E0[];
+extern struct Fn800E27CCB lbl_801DC074[];
+extern struct Fn800E27CCC lbl_803E0298;
+extern s32 lbl_8040B1FC;
+extern s32 lbl_8040A6DC;
+
+void fn_800E27CC(void) {
+    s32 idx;
+    struct Fn800E27CCA *a;
+    struct Fn800E27CCB *b;
+    a = &lbl_801D68E0[lbl_8040B1B0];
+    idx = a->idx;
+    b = &lbl_801DC074[idx];
+    if (b->flags & 1) {
+        lbl_8040B1FC = 0;
+    } else if (lbl_803E0298.e[idx][0] != 0) {
+        lbl_8040B1FC = 1;
+    } else {
+        lbl_8040B1FC = 0;
+    }
+    lbl_8040A6DC = 0;
+}
+
+extern f32 lbl_804098A0;
+extern f32 lbl_804098A4;
+extern f32 lbl_804098A8;
+
+f32 fn_80104250(u8 *arg0) {
+    f32 r;
+    r = lbl_804098A0;
+    if ((s8)arg0[0x284] > 1) {
+        return r;
+    }
+    if (*(s32 *)(lbl_80409410 + 0x198) != 0x4C) {
+        r = lbl_804098A4;
+    }
+    if (gPlayer1Pointer[0] != NULL && (*(s32 *)((u8 *)gPlayer1Pointer[0] + 0x20C) & 0x01000000) &&
+        gPlayer1Pointer[1] != NULL && (*(s32 *)((u8 *)gPlayer1Pointer[1] + 0x20C) & 0x01000000)) {
+        if (arg0 == gPlayer1Pointer[0]) {
+            r += lbl_804098A8;
+        } else {
+            r -= lbl_804098A8;
+        }
+    }
+    return r;
+}
+
+struct Fn800DF1ACEntry {
+    f32 f0;
+    f32 f4;
+    f32 f8;
+    f32 fC;
+    u8 b10; /* 0x10 */
+    u8 pad11[3];
+};
+
+struct Fn800DF1ACData {
+    u8 pad0[0x4C];
+    u8 flags[0x20]; /* 0x4C */
+    struct Fn800DF1ACEntry e[2]; /* 0x6C, also referenced as lbl_801DCFC8 */
+};
+
+extern struct Fn800DF1ACData lbl_801DCF5C;
+
+void fn_800DF1AC(s32 arg0, f32 arg1, f32 arg2, s32 arg3) {
+    s32 i;
+    struct Fn800DF1ACEntry *e;
+    e = lbl_801DCF5C.e;
+    for (i = 0; i < 2; i++, e++) {
+        if (lbl_801DCF5C.flags[i] != 0 && (arg0 == -1 || i == arg0)) {
+            if (arg1 > 0.0f && (e->f4 <= 0.0f || arg1 > e->f0 * (e->f4 / e->f8))) {
+                e->f0 = arg1;
+                e->f8 = arg1;
+                e->f4 = arg1;
+            }
+            if (arg2 > e->fC) {
+                e->fC = arg2;
+            }
+            if (arg3 > 0) {
+                arg3++;
+                if (arg3 > e->b10) {
+                    e->b10 = arg3;
+                }
+            }
+        }
+    }
+}
+
+extern s32 lbl_8040B1F0;
+
+s32 fn_800DF2D4(struct Fn800DF25CArg *arg0) {
+    f32 lim;
+    if (lbl_8040B1F0 == lbl_803E0298.superkitTotal) {
+        return 1;
+    }
+    if (arg0->f44 > arg0->f48) {
+        arg0->f44 = 0.0f;
+        lbl_8040B1F0++;
+        lbl_8040B1F8 = 1.0f;
+    } else {
+        lim = arg0->f48 - lbl_804095A8;
+        if (arg0->f44 > lim - lbl_804095AC && arg0->f44 <= lim) {
+            lbl_8040B1F8 = (arg0->f48 - arg0->f44 - lbl_804095A8) / lbl_804095AC;
+        }
+    }
+    return 0;
 }
