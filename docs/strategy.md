@@ -171,6 +171,15 @@ explicit exclusions for changed TCS behavior.
 - Raw experiment logs, probe TSVs and proprietary artifacts stay under the
   ignored `work/` directory.
 
+## Asset evidence for blocked targets
+
+Use the [asset inventory and script index](asset_mining.md#available-tooling) when
+a selected handler or loader needs argument, count, stride or format evidence.
+Start with original LSW1 inputs and retain their hashes and source locations.
+Lexical command hits are leads; connect them through GC parser/dispatch/access
+evidence before expanding shared types. This supports the existing one-unit
+sprints and strict promotion gates; asset coverage is not matching progress.
+
 ## Choosing a task
 
 1. Choose by expected verified code bytes per unit of effort, not phase number.

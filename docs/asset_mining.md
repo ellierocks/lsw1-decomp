@@ -15,7 +15,8 @@ were present. `research/revisions/builds.tsv` is a historical registry: its
 using a recorded result or planning an extraction. Missing inputs are a limit,
 not evidence that a format or command is absent from the game.
 
-Existing coverage is mostly executable-oriented:
+The older pipeline is mostly executable-oriented; the new inventory/index CLI is
+described under [available tooling](#available-tooling):
 
 - `tools/binary_mining_pipeline.py` checks its input paths and mines executable
   strings, symbols, cross-build relationships and SDK regions. It does not build
@@ -26,7 +27,7 @@ Existing coverage is mostly executable-oriented:
   `ps2_bin.py` has an ISO9660 directory parser used by executable extraction.
   These are potential starting points, not validated general asset extractors.
 - `tools/revisions/formats/gc_iso.py` extracts only the DOL. GameCube filesystem
-  table traversal and a read-only asset inventory still need implementation.
+  table traversal is implemented separately by `tools/asset_mining.py`.
 - `tools/extract_dispatch_tables.py` connects executable command strings to native
   handlers. It does not collect usages from shipped scripts. Its generated
   reports can contain stale names; resolve addresses against current symbols.
@@ -54,7 +55,7 @@ function names below are leads in current symbols, not proof of file formats.
 - [Script handlers](game_structs.md#confirmed-fields) have strictly matched
   consumers that establish AI packet fields and a shared timer read/write pair.
   This is demonstrated code/type recovery, although systematic mining of actual
-  script usages remains a gap.
+  script usages now has lexical indexing support, pending original input files.
 - [Parser/file results](symbol_donors/opensaga_matching_results.md) prove GC
   numeric readers, parser creation and command-stack operations. They also show
   why donor pool sizes, slots and return contracts must not be imported blindly.
@@ -71,7 +72,7 @@ function names below are leads in current symbols, not proof of file formats.
 
 ## First implementation and sprint integration
 
-Start with a read-only filesystem inventory for an original LSW1 disc or loose
+Use a read-only filesystem inventory for an original LSW1 disc or loose
 installation. Record build identity, source hash, container/member path, byte
 range, length and extraction method. Separate observed extensions/magic from
 inferred types. For archives, retain the outer-file and member provenance.
@@ -79,7 +80,7 @@ Validate bounds before reading or extracting, and never overwrite the input.
 Hash logical file contents to find duplicates across demos/platforms; executable
 similarity and disc dates do not establish asset identity.
 
-Then build a script command-usage index for one available original LSW1 corpus.
+Then generate a script command-usage index for one available original LSW1 corpus.
 Preserve encoding and source byte/line locations; support comments, quoting and
 state/scope context before treating text matches as parsed commands. Retain
 unparsed constructs instead of silently dropping them. Join command names to
@@ -102,3 +103,52 @@ answers the matching question; retain the existing one-unit sprint workflow.
 Do not regenerate every historical report or rename symbols merely because an
 asset name resembles a function. Controlled asset mutations or runtime probes
 are follow-up experiments only after a baseline interpretation is established.
+
+## Available tooling
+
+`tools/asset_mining.py` implements the first inventory and lexical-index steps.
+It needs no external packages and never extracts or modifies input files. Reports
+must go to new paths under this checkout's ignored `work/` or `build/` directories;
+it refuses existing outputs and outputs inside a loose input corpus.
+
+```sh
+python3 tools/asset_mining.py inventory /path/to/disc.iso --kind gc --build GL5E4F --output work/assets/gc.json
+python3 tools/asset_mining.py inventory /path/to/installation --kind loose --build pc_demo --output work/assets/pc.json
+python3 tools/asset_mining.py scripts work/assets/gc.json --output work/assets/scripts.json
+python3 tools/asset_mining.py scripts work/assets/gc.json --suffix .scp --suffix .txt --dol orig/GL5E4F/sys/main.dol --output work/assets/linked-scripts.json
+```
+
+Inventory records absolute source paths, build labels, source/member SHA-256,
+file ranges, observed suffixes and the first 16 bytes as hex. Equal member hashes
+identify byte duplicates without implying shared native implementations. GameCube
+FST parsing checks root/count, directory nesting/parents, names, duplicate paths
+and file bounds. Loose inventory rejects symlinks. Disc hashing reads the whole
+image once in addition to member hashing. Xbox/PS2 inventory and DAT member
+unpacking remain future work; this command does not call the older extractors.
+
+Script selection defaults to `.scp`; add suffixes explicitly for configuration
+files after inspecting the inventory. The index verifies source/member hashes
+before reading, limits each script to 16 MiB, recognizes UTF-8 and BOM-marked
+UTF-16 LE/BE, and reports decoding failures rather than guessing an encoding.
+It retains unknown token sequences, byte ranges, line/column and lexical brace
+context. Quoted strings and `//`/`/* */` comments are excluded from command
+matching. Unbalanced braces, unmatched text and unfinished comments generate
+diagnostics. Brace labels are nearby lexical text, not proven language scopes;
+there is no claim to support every LSW1 grammar or comment convention.
+
+With `--dol`, the CLI requires the pinned GL5E4F retail SHA-1 and a `GL5E4F`
+build label. It reads the six known keyword/AI/level dispatch tables through the
+DOL's actual section mappings, retains same-name entries across tables, and
+resolves exact handler addresses against the supplied current symbols. The third
+word of condition entries is retained without assuming its meaning. DOL and
+symbol-file hashes accompany the index. It performs no automatic renames.
+Without a DOL, the index still retains lexical records but has no handler links.
+Matching is exact-case, at any unquoted word position: **a candidate occurrence
+is not a parsed command**, and its following tokens are not proven arguments.
+Inspect the original source and parser before using it to type a native field.
+
+Synthetic tests cover nested/empty disc members, invalid ranges/parents/paths,
+changed inputs, symlinks, UTF-16 offsets, comments, quotes, unknown syntax and
+cross-table command collisions. No actual assets or decrypted retail DOL were
+available for local validation; run the tools on original files before drawing
+format conclusions. No matching bytes are claimed by adding these tools.
