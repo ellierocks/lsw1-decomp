@@ -2351,3 +2351,187 @@ void fn_800EC1C8(void *arg0, void *arg1) {
         *(f32 *)(v + 4) = (*(f32 *)((s8 *)arg0 + 0x198) - *(f32 *)((s8 *)arg0 + 0x18C)) * t + *(f32 *)((s8 *)arg0 + 0x18C);
     }
 }
+
+s32 fn_800EC68C(void *, void *);
+
+struct Fn800EC9B8Flags {
+    u32 pad : 7;
+    u32 bit24 : 1;
+    u32 rest : 24;
+};
+#define FN_800EC9B8_BIT(p) (((struct Fn800EC9B8Flags *)((s8 *)(p) + 0x20C))->bit24)
+
+#define FN_800EC9B8_OK(p) ((p) != NULL && (*(u32 *)((s8 *)(p) + 0x20C) & 0x80080000) == 0x80080000 && \
+    (p) != arg0 && *(u8 *)((s8 *)(p) + 0x28F) == 0 && !(*(u32 *)((s8 *)(p) + 0x20C) & 0x01000000) && \
+    !(*(s32 *)((s8 *)(p) + 0xF24) & 8))
+
+s32 fn_800EC9B8(void *arg0, void *arg1) {
+    s32 i;
+    void *p;
+    u32 a;
+    u32 b;
+
+    if (!FN_800EC9B8_OK(arg1)) {
+        arg1 = NULL;
+    }
+    if (arg1 == NULL) {
+        for (i = 0; i < 8; i++) {
+            p = gPlayer1Pointer[i];
+            if (FN_800EC9B8_OK(p)) {
+                arg1 = p;
+                break;
+            }
+        }
+    }
+    if (arg1 != NULL) {
+        a = FN_800EC9B8_BIT(arg0);
+        b = FN_800EC9B8_BIT(arg1);
+        if (fn_800EC68C(arg0, arg1) != 0) {
+            FN_800EC9B8_BIT(arg1) = a;
+            FN_800EC9B8_BIT(arg0) = b;
+            return 1;
+        }
+    }
+    return 0;
+}
+#undef FN_800EC9B8_OK
+#undef FN_800EC9B8_BIT
+
+s32 fn_80013890(s32, void *);
+
+struct Fn80105194Obj {
+    u8 pad0[0x4C];
+    f32 f4C; /* 0x4C */
+    s32 flags; /* 0x50 */
+};
+
+struct Fn80105194Entry {
+    u8 pad0[0xC];
+    struct Fn80105194Obj *obj; /* 0xC */
+    u8 pad10[0x20];
+    u8 flags; /* 0x30 */
+    u8 pad31[3];
+};
+
+struct Fn80105194Self {
+    u8 pad0[0x1E];
+    u8 count; /* 0x1E */
+    u8 pad1F[0x89];
+    struct Fn80105194Entry entries[1]; /* 0xA8 */
+};
+
+s32 fn_80105194(struct Fn80105194Self *arg0) {
+    s32 n;
+    s32 i;
+    s32 j;
+    char *p;
+    struct Fn80105194Obj *obj;
+    s32 fl;
+    if (arg0 != NULL) {
+        n = 0;
+        for (i = 0; i < arg0->count; i++) {
+            if ((arg0->entries[i].flags & 0x18) == 0) {
+                obj = arg0->entries[i].obj;
+                if (obj != NULL) {
+                    fl = obj->flags;
+                    if (!(fl & 0x10000000)) {
+                        if (fl & 0x80000000) return 0;
+                        if (obj->f4C <= 1.0f) return 0;
+                    } else {
+                        n++;
+                    }
+                } else {
+                    j = 0;
+                    p = *(char **)((char *)lbl_80409410 + 0x5D4);
+                    while (p != 0 && j < *(s32 *)((char *)lbl_80409410 + 0x5D8)) {
+                        if (fn_80013890(*(s32 *)p + 4, &arg0->entries[i]) != 0) {
+                            if (!(*(u16 *)(*(char **)p + 0x20) & 0x100)) return 0;
+                            p = 0;
+                        } else {
+                            j++;
+                            p += *(u16 *)(p + 8);
+                        }
+                    }
+                }
+            }
+        }
+        if (n < arg0->count) return 1;
+    }
+    return 0;
+}
+
+s32 fn_80108DA8(void *, s32);
+
+struct Fn8010443CEntry {
+    u8 pad0[4];
+    u8 *obj; /* 0x4 */
+    u8 flag; /* 0x8 */
+    s8 a; /* 0x9 */
+    s8 b; /* 0xA */
+    u8 padB;
+};
+
+void fn_8010443C(u8 *arg0) {
+    struct Fn8010443CEntry *e;
+    s32 i;
+
+    if (arg0 != NULL) {
+        e = *(struct Fn8010443CEntry **)(arg0 + 0x228);
+        if (e != NULL) {
+            for (i = 0; i < *(s32 *)(arg0 + 0x22C); i++, e++) {
+                if ((e->obj == NULL || (*(u16 *)(e->obj + 0x20) & 0x101) != 0) &&
+                    (e->a == -1 || fn_80108DA8(arg0, e->a) == e->b)) {
+                    e->flag = 1;
+                } else {
+                    e->flag = 0;
+                }
+            }
+        }
+    }
+}
+
+struct Fn800F10B4Tbl {
+    u8 pad0[0xD2];
+    s8 e[1][2]; /* 0xD2 */
+};
+
+struct Fn800F10B4Arr {
+    u8 pad0[0x14];
+    s32 v[1]; /* 0x14 */
+};
+
+s32 fn_800F10B4(u8 *arg0, s32 *arg1, s32 arg2, s32 *arg3) {
+    s32 local;
+    u8 *q;
+    s8 st;
+    s32 *out;
+
+    if (*(u8 *)(arg0 + 0x290) == 0) return 0;
+    q = *(u8 **)(arg0 + 0xEEC);
+    if (*(u8 *)(q + 0x7DE) == 0) return 0;
+    if (arg3 == NULL) {
+        out = &local;
+    } else {
+        out = arg3;
+    }
+    if (*(s16 *)(arg0 + 0x1074) == 8 &&
+        (((st = *(s8 *)(q + 0x7DF)) == 5 &&
+          (*(s16 *)(q + 0x798) == 0x33 || *(s16 *)(q + 0x798) == 0x34 || *(s16 *)(q + 0x798) == 0x36 ||
+           *(s16 *)(q + 0x798) == 0x37 || *(s16 *)(q + 0x798) == 0x38 || *(s16 *)(q + 0x798) == 0x39 ||
+           *(s16 *)(q + 0x798) == 0x3B || *(s16 *)(q + 0x798) == 0x3D || *(s16 *)(q + 0x798) == 0x3E ||
+           *(s16 *)(q + 0x798) == 0x41)) ||
+         (st == 0 && *(u8 *)(q + 0x7BE) == 4))) {
+        if (arg2 == 1) {
+            *out = 0;
+        } else {
+            *out = 1;
+        }
+    } else {
+        *out = arg2;
+    }
+    arg1[0] = ((struct Fn800F10B4Tbl *)*(u8 **)(*(u8 **)(arg0 + 0x64) + 0x20))->e[*out][0];
+    if (arg1[0] == -1 || (*(struct Fn800F10B4Arr **)(arg0 + 0x60))->v[arg1[0]] == 0) return 0;
+    arg1[1] = ((struct Fn800F10B4Tbl *)*(u8 **)(*(u8 **)(arg0 + 0x64) + 0x20))->e[*out][1];
+    if (arg1[1] == -1 || (*(struct Fn800F10B4Arr **)(arg0 + 0x60))->v[arg1[1]] == 0) return 0;
+    return 1;
+}
