@@ -94,7 +94,7 @@ def expand_macros(text: str) -> str:
 # ProDG emits float `<=`/`>=` as `fcmpu; cror un, eq, lt|gt; bso|bns`. m2c cannot read the
 # cror, but folding it into the branch is exact, including the unordered case:
 # un|eq|lt set <=> !gt, so bso -> ble and bns -> bgt (and with gt: bso -> bge, bns -> blt).
-CROR = re.compile(r"^(.*?)\bcror un, eq, (lt|gt)\s*$")
+CROR = re.compile(r"^(.*?)\bcror (?P<f>cr[0-7])?un, (?P=f)?eq, (?P=f)?(lt|gt)\s*$")
 FOLD = {("lt", "bso"): "ble", ("lt", "bns"): "bgt", ("gt", "bso"): "bge", ("gt", "bns"): "blt"}
 
 
@@ -106,11 +106,78 @@ def fold_cror(asm: str) -> str:
             continue
         nxt = lines[i + 1] if i + 1 < len(lines) else ""
         b = re.search(r"\t(bso|bns)(lr)?\b", nxt)
+        f = m.group("f")
+        if b and f and not re.match(rf"\s*{f}\b", nxt[b.end():]):
+            b = None
         if not b:
-            return asm  # not the compiler's pattern: leave the cror for m2c to report
-        lines[i + 1] = nxt[:b.start() + 1] + FOLD[(m.group(2), b.group(1))] + (b.group(2) or "") + nxt[b.end():]
+            continue  # not the float pattern: the patched m2c evaluates the cror itself
+        lines[i + 1] = nxt[:b.start() + 1] + FOLD[(m.group(3), b.group(1))] + (b.group(2) or "") + nxt[b.end():]
         lines[i] = None
     return "\n".join(ln for ln in lines if ln is not None) + "\n"
+
+
+# Game code inlines NuVecAdd/NuVecSub as a fixed eight-instruction paired-single asm block
+# (src/numath/nuvec_ps.h): psq_l f1,f3,f2,f4 from two base registers, ps_add|ps_sub twice,
+# psq_st twice through a third. m2c has no paired-single model, so the block becomes a call
+# `NuVec{Add,Sub}PS(dst, a, b)`; the draft includes the header whose macro reproduces it.
+PS_BLOCK = re.compile(
+    r"psq_l f1, 0x0\((?P<a>r\d+)\), 0, qr0\npsq_l f3, 0x0\((?P<b>r\d+)\), 0, qr0\n"
+    r"psq_l f2, 0x8\((?P=a)\), 1, qr0\npsq_l f4, 0x8\((?P=b)\), 1, qr0\n"
+    r"ps_(?P<op>add|sub) f1, f1, f3\nps_(?P=op) f2, f2, f4\n"
+    r"psq_st f1, 0x0\((?P<d>r\d+)\), 0, qr0\npsq_st f2, 0x8\((?P=d)\), 1, qr0\n")
+ASM_COMMENT = re.compile(r"^/\*.*?\*/\s*")
+PS_CALLS = ("NuVecAddPS", "NuVecSubPS")
+
+
+def fix_ps_calls(body: str) -> str:
+    """Give every NuVec{Add,Sub}PS call exactly its three arguments."""
+    for fn in PS_CALLS:
+        for start, end, args in reversed(list(call_sites(body, fn))):
+            fixed = (args[:3] + ["0"] * 3)[:3]
+            call = f"{fn}({', '.join(fixed)})"
+            # The block is an asm statement with no value; m2c models r3 as the return
+            # value, and after the fold's `mr r3, dst` that is the destination.
+            if (m := re.search(r"([ \t]*)(\w+) = $", body[:start])) and body[end:end + 1] == ";":
+                body = (body[:m.start()] + f"{m.group(1)}{call};\n{m.group(1)}{m.group(2)} = {fixed[0]}"
+                        + body[end:])
+            else:
+                body = body[:start] + call + body[end:]
+    return body
+
+
+def moves_to_args(srcs: list[str]) -> list[str]:
+    """`mr` lines that load SRCS into r3, r4, r5 in parallel (r0 breaks a cycle). Registers
+    already in place get a trailing `mr rN, rN` so m2c still sees them passed."""
+    pending = [(f"r{3 + i}", s) for i, s in enumerate(srcs) if s != f"r{3 + i}"]
+    out = []
+    while pending:
+        free = next(((d, s) for d, s in pending if all(d != s2 for _, s2 in pending)), None)
+        if free is None:
+            d0 = pending[0][0]
+            out.append(f"\tmr r0, {d0}")
+            pending = [(d, "r0" if s == d0 else s) for d, s in pending]
+            continue
+        pending.remove(free)
+        out.append(f"\tmr {free[0]}, {free[1]}")
+    out += [f"\tmr r{3 + i}, r{3 + i}" for i, s in enumerate(srcs) if s == f"r{3 + i}"]
+    return out
+
+
+def fold_ps(asm: str) -> str:
+    """Rewrite each inlined paired-single vector add/sub block as a call m2c can read."""
+    lines = asm.splitlines()
+    text = [ASM_COMMENT.sub("", ln).strip() for ln in lines]
+    out, i = [], 0
+    while i < len(lines):
+        m = PS_BLOCK.match("\n".join(text[i:i + 8]) + "\n") if i + 8 <= len(lines) else None
+        if not m:
+            out.append(lines[i])
+            i += 1
+            continue
+        body = [*moves_to_args([m["d"], m["a"], m["b"]]), f"\tbl {PS_CALLS[m['op'] == 'sub']}"]
+        out.extend(body)
+        i += 8
+    return "\n".join(out) + "\n"
 
 
 # m2c writes `*(base + off)` when it cannot type the pointer; ProDG rejects a deref of an
@@ -146,6 +213,47 @@ def unit_context(source: str) -> Path | None:
         return _CONTEXTS[source]
 
 
+def strip_vararg_saves(asm: str) -> str:
+    """Drop a variadic prologue's `bne cr1, .L; stfd f1..f8` float save area.
+
+    The compiler emits it itself (cr1eq is the ABI's "no float arguments" flag), and m2c
+    would read cr1eq and the float registers before anything sets them. The arguments the
+    body reads from the va_list area remain stack accesses in the draft.
+    """
+    lines = asm.splitlines()
+    for i, line in enumerate(lines):
+        m = re.search(r"\bbne cr1, (\.L_\w+)\s*$", line)
+        if not m:
+            continue
+        saves = lines[i + 1:i + 9]
+        if all(re.search(rf"\bstfd f{n + 1}, 0x[0-9a-f]+\(r1\)\s*$", ln) for n, ln in enumerate(saves)) \
+                and len(saves) == 8:
+            return "\n".join(lines[:i] + lines[i + 9:]) + "\n"
+    return asm
+
+
+UNSET = re.compile(r"M2C_ERROR\(/\* Read from unset register \$(?P<r>[rf]\d+) \*/\)")
+
+
+def declare_unset(text: str, name: str) -> str:
+    """Name registers the target reads before writing as uninitialized locals.
+
+    The retail code passes or stores a variable that was never assigned (an `mr r10, r11`
+    with r11 unset); the local keeps that visible in the draft instead of an M2C_ERROR.
+    """
+    regs = sorted({m["r"] for m in UNSET.finditer(text)})
+    # m2c names a callee-saved register read before any write (`saved_reg_r28`) without declaring it.
+    saved = sorted({s for s in re.findall(r"\bsaved_reg_\w+\b", text)
+                    if not re.search(rf"^\s+\w[\w ]*\b{s};", text, flags=re.M)})
+    if not regs and not saved:
+        return text
+    decls = "".join(f"    {'s32' if r[0] == 'r' else 'f64'} unset_{r};\n" for r in regs)
+    decls += "".join(f"    {'f64' if s.startswith('saved_reg_f') else 's32'} {s};\n" for s in saved)
+    text = UNSET.sub(lambda m: "unset_" + m["r"], text)
+    return re.sub(rf"^(.*\b{re.escape(name)}\(.*\) \{{\n)", lambda m: m.group(1) + decls, text,
+                  count=1, flags=re.M)
+
+
 def draft(name: str, context: Path | None = None) -> tuple[str, str]:
     """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'."""
     task = OUT / name
@@ -157,21 +265,26 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
         return "no-asm", ""
     m2c = draft_fn.m2c_dir()
     m2c_in = task / "asm_m2c.s"
-    m2c_in.write_text(fold_cror(asm.read_text()))
+    m2c_in.write_text(fold_ps(fold_cror(strip_vararg_saves(asm.read_text()))))
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
         cmd += ["--no-cache", "--context", str(context)]
     r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True)
     if r.returncode or not r.stdout.strip():
         return "m2c-failed", ""
-    if UNHANDLED.search(r.stdout):
+    out = declare_unset(r.stdout, name)
+    if UNHANDLED.search(out):
         return "unhandled", ""
     try:
-        body = type_derefs(expand_macros(r.stdout))
+        body = type_derefs(expand_macros(out))
     except ValueError:
         return "m2c-failed", ""
     body = draft_fn.clean(body, name, asm.read_text())
     body = body.replace('#include "types.h"\n', "", 1).strip() + "\n"
+    if any(c in body for c in PS_CALLS):  # the macros stand in for m2c's guessed prototypes
+        body = re.sub(rf"^(?=\S)[^\n]*\b(?:{'|'.join(PS_CALLS)})\([^\n]*\);\n", "", body, flags=re.M)
+        body = fix_ps_calls(body)
+        body = '#include "numath/nuvec_ps.h"\n' + body
     return "ok", body
 
 
@@ -277,6 +390,7 @@ SIZES = {"s8": 1, "u8": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4}
 
 def stack_arrays(body: str) -> str:
     """BODY with undeclared `spXX` slots folded into an array at a declared lower slot."""
+    body = re.sub(r"&(sp[0-9A-F]+)\[0\]", r"&\1", body)  # m2c's `&sp20[0]` for an undeclared slot
     declared = {m["v"]: m for m in SP_DECL.finditer(body)}
     all_decl = set(re.findall(r"^[ \t]+[\w ]+?\**\s*(sp[0-9A-F]+)(?:\[\w*\])?;", body, flags=re.M))
     missing = sorted({v for v in re.findall(r"\bsp[0-9A-F]+\b", body) if v not in all_decl},
@@ -379,6 +493,19 @@ def call_sites(text: str, fn: str):
         yield m.start(), end, [] if args == [""] else args
 
 
+RAW_PROTO = re.compile(r"^(?:extern\s+|static\s+)?[A-Za-z_][^;{}()\n]*?\b(\w+)\s*\(([^;{}()]*)\)\s*;", re.M)
+
+
+def raw_protos(text: str) -> dict[str, list[str]]:
+    """Parameter lists of the prototypes in TEXT whatever their types (typedef names and
+    structs included); `f()` and `f(void)` give []. The last declaration of a name wins."""
+    out = {}
+    for m in RAW_PROTO.finditer(text):
+        if m[1] not in NOT_FUNCS and m[2].strip():
+            out[m[1]] = [] if m[2].strip() == "void" else [p.strip() for p in m[2].split(",")]
+    return out
+
+
 def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
     """BODY with m2c's callee declarations replaced by known or cr1eq-implied ones and
     each call's argument list trimmed or zero-padded to the declared count."""
@@ -387,7 +514,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
         return body
     head, code = body[:m.start()], body[m.start():]
     unit = {n: p[-1][1] for n, p in find_protos(unit_text).items()}
-    repo, variadic = repo_protos(), variadic_calls(asm)
+    repo, variadic, raw = repo_protos(), variadic_calls(asm), raw_protos(unit_text)
     lines, arity = [], {}
     for ln in head.splitlines():
         d = PROTO.match(ln) if ln.endswith(";") and not ln.startswith("extern") else None
@@ -399,6 +526,9 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
         if fn in unit:
             arity[fn] = unit[fn][1]
             continue  # the unit's declaration governs
+        if fn in raw:  # declared in the unit with types we do not reduce: still fix the arity
+            arity[fn] = [(re.match(r"(f32|f64)\b(?!\s*\*)", p) or [p])[0] for p in raw[fn]]
+            continue
         known = repo.get(fn)
         if fn in variadic:
             if known and "..." in known[1]:
@@ -426,6 +556,40 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
     return "\n".join(lines) + ("\n" if lines else "") + code
+
+
+def adopt_own_prototype(body: str, name: str, unit_text: str) -> str:
+    """BODY with NAME's definition header taken from the unit's own prototype of NAME.
+
+    A unit often declares the target (`u8 *f(void *, char *);`) for earlier callers; the
+    draft's m2c-guessed signature then fails with `conflicting types`. The unit's return
+    and parameter types win; m2c's parameter names are kept by position, missing ones are
+    padded as `padN`. Returns BODY unchanged when there is no prototype or the header is
+    not found."""
+    n = re.escape(name)
+    proto = re.search(rf"^(?:extern\s+|static\s+)?([^;{{}}()\n]*?)\b{n}\s*\(([^;{{}}]*?)\)\s*;", unit_text, flags=re.M)
+    head = re.search(rf"^(\w[^\n;(]*?)\b{n}\((.*?)\) \{{$", body, flags=re.M)
+    if not proto or not head:
+        return body
+    ptypes = [p.strip() for p in proto[2].split(",")] if proto[2].strip() not in ("", "void") else []
+    if proto[2].strip() == "":
+        return body  # `f()` says nothing about the arguments
+    names = [re.split(r"[\s*]+", p.strip())[-1] for p in head[2].split(",") if p.strip() not in ("", "void")]
+    params = []
+    for i, t in enumerate(ptypes):
+        if t == "...":
+            params.append(t)
+            continue
+        # A prototype may name its parameters; keep only the type.
+        words = t.replace("*", " * ").split()
+        if len(words) > 1 and words[-1] != "*" and words[-1] not in BUILTIN:
+            words = words[:-1]
+        typ = " ".join(words).replace("* *", "**")
+        nm = names[i] if i < len(names) else f"pad{i}"
+        params.append(f"{typ}{nm}" if typ.endswith("*") else f"{typ} {nm}")
+    ret = proto[1].strip()
+    new = f"{decl(ret, name)}({', '.join(params) or 'void'}) {{"
+    return body[:head.start()] + new + body[head.end():]
 
 
 def score(name: str, source: str, body: str, apply: bool = False) -> dict:
@@ -459,6 +623,12 @@ def better(a: dict, b: dict) -> bool:
     return (RANK.get(a["verdict"], 0), a.get("exact") or 0) > (RANK.get(b["verdict"], 0), b.get("exact") or 0)
 
 
+def improves(new: dict, old: dict) -> bool:
+    """Whether a repaired draft's score replaces OLD. Repairs accumulate, so a draft that
+    still fails to compile is kept in its further-repaired form (its error is the live one)."""
+    return better(new, old) or new["verdict"] == old["verdict"] == "COMPILE-ERROR"
+
+
 def sweep_one(t: dict) -> dict:
     name, source = t["name"], t["source"]
     row = {"name": name, "unit": t["unit"], "source": source, "size": t["size"]}
@@ -474,13 +644,19 @@ def sweep_one(t: dict) -> dict:
             padded = pad_signature(body, name)
             if padded != body:
                 pad_res, padded = score_draft(name, source, padded)
-                if better(pad_res, res):
+                if improves(pad_res, res):
                     res, body = {**pad_res, "padded": True}, padded
             protos = fix_prototypes(body, name, (OUT / name / "asm.s").read_text(), unit_text)
             if protos != body:
                 proto_res, protos = score_draft(name, source, protos)
-                if better(proto_res, res):
+                if improves(proto_res, res):
                     res, body = {**proto_res, "padded": res.get("padded", False), "prototypes": True}, protos
+            if res["verdict"] == "COMPILE-ERROR":
+                own = adopt_own_prototype(body, name, unit_text)
+                if own != body:
+                    own_res, own = score_draft(name, source, own)
+                    if improves(own_res, res):
+                        res, body = {**own_res, "padded": res.get("padded", False), "own_prototype": True}, own
             res["context"] = context is not None
             res, body = try_variants(name, source, res, body)
         if best is None or better(res, best[0]):

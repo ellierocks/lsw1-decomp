@@ -523,3 +523,12 @@ void fn_8007907C(void) {
     }
     lbl_80408A38 = var_r0;
 }
+
+s32 memset();
+extern s32 gMenuDepth;
+
+void Menu_ResetStack(void) {
+    memset(gMenuStack, 0, 0x8C0);
+    (*(s16 *)((s8 *)(gMenuStack) + (0x14))) = -1;
+    gMenuDepth = 0;
+}

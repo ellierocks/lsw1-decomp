@@ -1,4 +1,5 @@
 #include "numath/numath.h"
+#include "numath/nuvec_ps.h"
 
 struct fn_800127D8_inner {
     u8 pad0[0x8];
@@ -90,4 +91,12 @@ void fn_8000EA94(struct numtx_s *arg0, struct nuvec_s *arg1) {
 
 void fn_8000EB44(struct numtx_s *arg0, struct numtx_s *arg1, struct numtx_s *arg2) {
     NuMtxMul(arg0, arg1, arg2);
+}
+
+void NuVecAdd(struct nuvec_s *arg0, struct nuvec_s *arg1, struct nuvec_s *arg2) {
+    NuVecAddPS(arg0, arg1, arg2);
+}
+
+void NuVecSub(struct nuvec_s *arg0, struct nuvec_s *arg1, struct nuvec_s *arg2) {
+    NuVecSubPS(arg0, arg1, arg2);
 }
