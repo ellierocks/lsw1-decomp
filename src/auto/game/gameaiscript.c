@@ -2592,7 +2592,9 @@ struct gameaiscript_440_s {
     u32 clockwise : 1;
     u32 unk10 : 9;
     u32 zeroAcceleration : 1;
-    u32 unk14 : 12;
+    u32 unk14 : 7;
+    u32 rangeMode : 2; /* Action_SetMaxMovementRange */
+    u32 unk1d : 3;
 };
 
 s32 Action_SetZeroAcceleration(void *sys, void *process, struct gameaiscript_packet_s *packet,
@@ -3421,5 +3423,125 @@ s32 Action_FollowSock(void *sys, void *process, struct gameaiscript_packet_s *pa
         v.x = v.y = v.z = 0.0f;
     NuVecAdd(&v, &v, &info.pos);
     AIMoveInstruction(packet, (s32)&v, 0, 1, 0.0f, 0.0f);
+    return 0;
+}
+
+extern void *fn_800076C4(void *);
+extern void *fn_800076CC(void *, void *);
+extern void fn_800E3928(void *, s32, char *, s32);
+extern char str_ScriptParam_NameEq[];
+s32 Action_PlaySfx(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time);
+
+void GameAIScriptAddLevelSfx(void *level, void *scripts)
+{
+    u8 *script;
+    u8 *state;
+    u8 *action;
+    char *p;
+    s32 i;
+
+    if (scripts == 0)
+        return;
+    for (script = fn_800076C4(scripts); script != 0; script = fn_800076CC(scripts, script)) {
+        for (state = fn_800076C4(script + 0x10); state != 0; state = fn_800076CC(script + 0x10, state)) {
+            for (action = fn_800076C4(state + 0x10); action != 0; action = fn_800076CC(state + 0x10, action)) {
+                if (*(u8 **)(action + 0x10) != 0 && *(void **)(*(u8 **)(action + 0x10) + 4) == (void *)Action_PlaySfx) {
+                    for (i = 0; i < *(s32 *)(action + 0xc); i++) {
+                        if ((p = NuStrIStr((*(char ***)(action + 8))[i], str_ScriptParam_NameEq)) != 0)
+                            fn_800E3928(level, 0, p + 5, -1);
+                    }
+                }
+            }
+        }
+    }
+}
+
+extern s32 lbl_8040B058;
+extern u8 *lbl_80409430;
+extern char str_ScriptScope_Default2[];
+extern char str_ScriptTarget_AllNonParty[];
+extern char str_ScriptTarget_Locator[];
+
+s32 Action_SetMaxMovementRange(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 range = 0.0f;
+    s32 all = 0;
+    s32 mode = 1;
+    u8 *c;
+    u8 *object;
+    s32 i;
+    s32 n;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(str_ScriptScope_Default2, params[i]) == 0)
+                range = lbl_8040900C;
+            else if (NuStrICmp(str_ScriptTarget_AllNonParty, params[i]) == 0)
+                all = 1;
+            else if (NuStrICmp(str_ScriptTarget_Locator, params[i]) == 0)
+                mode = 2;
+            else
+                range = AIParamToFloat(process, params[i]);
+        }
+        if (all != 0) {
+            n = lbl_8040B058;
+            c = lbl_80409430;
+            for (i = 0; i < n; i++, c += 0x1098) {
+                if (*(s32 *)(c + 0x20c) < 0 && (*(u32 *)(c + 0x208) & 0x400)) {
+                    *(f32 *)(c + 0x448) = range;
+                    if (range > 0.0f)
+                        ((struct gameaiscript_440_s *)(c + 0x440))->rangeMode = 1;
+                    else
+                        ((struct gameaiscript_440_s *)(c + 0x440))->rangeMode = 0;
+                }
+            }
+        } else if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+            *(f32 *)(object + 0x448) = range;
+            if (range > 0.0f)
+                ((struct gameaiscript_440_s *)(object + 0x440))->rangeMode = mode;
+            else
+                ((struct gameaiscript_440_s *)(object + 0x440))->rangeMode = 0;
+        }
+    }
+    return 1;
+}
+
+extern s32 sprintf(char *, const char *, ...);
+extern void *NuSplineFind(void *, char *);
+extern void InitSplinePosition(void *, void *, s32, f32);
+extern char str_Format_StringTwoDigits[];
+extern char str_ScriptFlag_Looping[];
+
+s32 Action_SetRandomSpline(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 looping = 0;
+    u8 *object;
+    void *spline;
+    s32 n;
+    s32 i;
+    char name[64];
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+        n = 0;
+        for (i = 1; i < count; i++) {
+            if (NuStrIStr(params[i], str_ScriptFlag_Looping) != 0)
+                looping = 1;
+        }
+        for (i = 0; i <= 9; i++) {
+            sprintf(name, str_Format_StringTwoDigits, params[0], i);
+            if (NuSplineFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), name) != 0)
+                n++;
+        }
+        n = n * fn_8000C038();
+        sprintf(name, str_Format_StringTwoDigits, params[0], n);
+        if ((spline = NuSplineFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), name)) != 0)
+            goto found;
+    }
+    return 1;
+found:
+    InitSplinePosition(object + 0x69c, spline, looping, 0.0f);
     return 0;
 }
