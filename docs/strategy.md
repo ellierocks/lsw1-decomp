@@ -141,7 +141,9 @@ GCC 2.95 carry idioms (`subfic/adde` = `x == 0`, `addic/subfe` = `-(y == 0)`, `s
 = `x >u K`). That took UNHANDLED targets from 359 functions (453 KB) to 38 (32 KB) and drafted
 about 257 KB of new code. The sweep also strips the varargs `stfd` prologue, declares
 unset-register and `saved_reg_*` reads as locals, adopts the unit's own prototype for the
-target and fixes callee arity from the unit's declarations. What stays UNHANDLED is recorded
+target and fixes callee arity from the unit's declarations. Where the repo has no prototype,
+the Mac LSW1 demo's mangled names supply parameter kinds (`tools/mac_protos.py`), kept only on a
+strictly better score. What stays UNHANDLED is recorded
 hand-work: paired-single code beyond the vector add/sub block (`ps_mul`/`madd`/`sum`/`merge`
 in `NuVecMagSqr`, `NuVecCross`, `NuVecMtxTransform`, `NuMtxMul`, `fn_8000EFE0`, and the
 `psq_l`/`psq_st` dumps in the runtime region past 0x801503A0), supervisor code (`mtmsr`,
