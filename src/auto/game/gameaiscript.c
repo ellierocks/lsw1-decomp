@@ -2846,3 +2846,56 @@ s32 Action_SetFlag(void *sys, void *process, struct gameaiscript_packet_s *packe
     }
     return 1;
 }
+
+extern u8 *FindTurret(void *, char *);
+
+s32 Action_ActivateTurret(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 on = 1;
+    u8 *turret = 0;
+    s32 i;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrIStr(params[i], str_ScriptParam_Name) != 0) {
+                i++;
+                if (i < count)
+                    turret = FindTurret(*(void **)((u8 *)lbl_80409410 + 0x578), params[i]);
+            } else if (NuStrIStr(params[i], str_Bool_FALSE) != 0)
+                on = 0;
+        }
+        if (turret != 0) {
+            if (on != 0)
+                *(u16 *)(turret + 0x6e) &= ~1;
+            else
+                *(u16 *)(turret + 0x6e) |= 1;
+        }
+    }
+    return 1;
+}
+
+extern void fn_80013200(void *, s32);
+extern void *memset(void *, s32, u32);
+
+s32 Action_SetVisibility(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 on = 1;
+    u8 special[0xc];
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        memset(special, 0, sizeof(special));
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), special, p + 5, 1);
+            else if (NuStrIStr(params[i], str_Bool_FALSE) != 0)
+                on = 0;
+        }
+        if (fn_800130F4(special) != 0)
+            fn_80013200(special, on);
+    }
+    return 1;
+}
