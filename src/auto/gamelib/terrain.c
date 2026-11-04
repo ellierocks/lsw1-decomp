@@ -278,3 +278,7 @@ void fn_8004F590(void *arg0)
   *((f32 *) (((s8 *) arg0) + 8)) = (f32) ((((temp_f12 + (*new_var)) - (*new_var3)) * temp_f29) + (temp_f13_2 * temp_f30));
   *((f32 *) (((s8 *) arg0) + 4)) = (f32) ((((temp_f12 + (*new_var)) - (*new_var3)) * temp_f30) - (temp_f13_2 * temp_f29));
 }
+
+s32 HVQM4PlayerExControlCheckNormal(void *arg0) {
+    return (*(s32 *)((s8 *)(arg0) + (0x3A8))) == 0;
+}

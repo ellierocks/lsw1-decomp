@@ -46,3 +46,35 @@ class TimerSuffixTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SweepRepairTest(unittest.TestCase):
+    def setUp(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+        import sweep
+        self.sweep = sweep
+
+    def test_adopt_own_prototype_keeps_m2c_names(self):
+        body = "extern s32 x;\n\ns32 f(void *arg0, void *arg1) {\n    return 0;\n}\n"
+        out = self.sweep.adopt_own_prototype(body, "f", "u8 *f(void *, char *, s32 *);\n")
+        self.assertIn("u8 *f(void *arg0, char *arg1, s32 *pad2) {", out)
+
+    def test_adopt_own_prototype_ignores_unspecified_arguments(self):
+        body = "s32 f(void *arg0) {\n}\n"
+        self.assertEqual(self.sweep.adopt_own_prototype(body, "f", "s32 f();\n"), body)
+
+    def test_declare_unset_names_saved_registers(self):
+        out = self.sweep.declare_unset("void f(void) {\n    g(saved_reg_r28);\n}\n", "f")
+        self.assertIn("    s32 saved_reg_r28;\n", out)
+
+    def test_stack_array_folds_zero_indexed_address(self):
+        body = "void f(void) {\n    s32 sp8;\n    g(&sp8);\n    h(&sp20[0]);\n}\n"
+        out = self.sweep.stack_arrays(body)
+        self.assertIn("s32 sp8[7];", out)
+        self.assertIn("h(&sp8[6]);", out)
+
+    def test_find_function_skips_calls(self):
+        from variant_search import find_function
+        text = "void g(void) {\n    if (f(1) != 0) {\n    }\n}\n\nint f(int a) {\n    return a;\n}\n"
+        self.assertEqual(find_function(text, "f").body.strip(), "return a;")

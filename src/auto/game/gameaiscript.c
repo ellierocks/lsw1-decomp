@@ -2415,3 +2415,57 @@ s32 Action_ResetGameCamera(void *sys, void *process, struct gameaiscript_packet_
     }
     return 1;
 }
+
+f32 fn_8009CB2C(void *, void *);
+extern f32 lbl_801AEB04[];
+extern void *lbl_80409410;
+
+f32 Condition_SockDistanceToOpponent(s32 pad0, s32 pad1, void *arg2) {
+    f32 temp_f31;
+    u8 temp_r0;
+    void **temp_r4;
+    void **temp_r9;
+    void *temp_r31;
+    void *temp_r4_2;
+
+    if (arg2 != NULL) {
+        temp_r9 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r9 != NULL) {
+            temp_r4 = (*(void ***)((s8 *)(arg2) + (0x64)));
+            if (temp_r4 != NULL) {
+                temp_r4_2 = *temp_r4;
+                temp_r31 = *temp_r9;
+                temp_r0 = (*(u8 *)((s8 *)(temp_r4_2) + (0x601)));
+                if (((s8) temp_r0 != -1) && ((s8) temp_r0 == (s8) (*(u8 *)((s8 *)(temp_r31) + (0x601))))) {
+                    temp_f31 = fn_8009CB2C((*(s32 *)((s8 *)(lbl_80409410) + (0x2DC))), temp_r4_2 + 0x600);
+                    return temp_f31 - fn_8009CB2C((*(s32 *)((s8 *)(lbl_80409410) + (0x2DC))), temp_r31 + 0x600);
+                }
+            }
+        }
+    }
+    return lbl_801AEB04[0];
+}
+
+f32 fn_8009CB2C(void *, void *);
+extern f32 lbl_801AEB00[];
+extern void *lbl_80409410;
+
+f32 Condition_SockDistanceToPlayer(s32 pad0, s32 pad1, void *arg2) {
+    f32 temp_f31;
+    u8 temp_r0;
+    void **temp_r5;
+    void *temp_r31;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((void *) lbl_80409004 != NULL)) {
+            temp_r0 = (*(u8 *)((s8 *)(lbl_80409004) + (0x601)));
+            temp_r31 = *temp_r5;
+            if (((s8) temp_r0 != -1) && ((s8) temp_r0 == (s8) (*(u8 *)((s8 *)(temp_r31) + (0x601))))) {
+                temp_f31 = fn_8009CB2C((*(s32 *)((s8 *)(lbl_80409410) + (0x2DC))), lbl_80409004 + 0x600);
+                return temp_f31 - fn_8009CB2C((*(s32 *)((s8 *)(lbl_80409410) + (0x2DC))), temp_r31 + 0x600);
+            }
+        }
+    }
+    return lbl_801AEB00[0];
+}

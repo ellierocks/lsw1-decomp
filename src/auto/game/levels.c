@@ -3966,3 +3966,27 @@ void fn_800AC058(s32 arg0, s32 arg1) {
         fn_80044F28(arg0, 0, (f32) (f64) arg1 / lbl_8019FEF8[0], lbl_8019FEFC[0], lbl_8019FEFC[0]);
     }
 }
+
+extern s32 lbl_8040913C;
+extern s32 lbl_804093C0;
+
+s32 fn_800B9D2C(s32 arg0) {
+    lbl_8040913C = arg0;
+    lbl_804093C0 = (-1 - arg0) == 0;
+}
+
+extern u8 lbl_802DA6BD[];
+
+s32 fn_800CC610(void) {
+    return (lbl_802DA6BD[0] ^ 2) == 0;
+}
+
+extern s16 lbl_803ED3AC[];
+
+s32 fn_800CC6E4(void) {
+    return (lbl_803ED3AC[0] ^ 4) == 0;
+}
+
+s32 fn_800D5408(void *arg0) {
+    return ((*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) ^ 0x24) == 0;
+}

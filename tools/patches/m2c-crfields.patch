@@ -1,5 +1,5 @@
 diff --git a/m2c/arch_ppc.py b/m2c/arch_ppc.py
-index eb5cb38..0291401 100644
+index eb5cb38..9678413 100644
 --- a/m2c/arch_ppc.py
 +++ b/m2c/arch_ppc.py
 @@ -1,4 +1,5 @@
@@ -8,7 +8,83 @@ index eb5cb38..0291401 100644
  from dataclasses import replace
  from typing import (
      Callable,
-@@ -756,6 +757,7 @@ class PpcArch(Arch):
+@@ -129,7 +130,8 @@ class FcmpoCrorPattern(SimpleAsmPattern):
+ 
+ 
+ class MfcrPattern(SimpleAsmPattern):
+-    """Comparison results extracted as ints."""
++    """Comparison results extracted as ints (any CR field: the rotate count N picks bit
++    IBM-numbered N - 1 of CR)."""
+ 
+     pattern = make_pattern(
+         "mfcr $x",
+@@ -138,16 +140,8 @@ class MfcrPattern(SimpleAsmPattern):
+ 
+     def replace(self, m: AsmMatch) -> Optional[Replacement]:
+         x = m.regs["x"]
+-        if m.literals["N"] == 1:
+-            reg = Register("cr0_lt")
+-        elif m.literals["N"] == 2:
+-            reg = Register("cr0_gt")
+-        elif m.literals["N"] == 3:
+-            reg = Register("cr0_eq")
+-        elif m.literals["N"] == 4:
+-            reg = Register("cr0_so")
+-        else:
+-            return None
++        bit = (m.literals["N"] - 1) % 32
++        reg = Register(f"cr{bit // 4}_{('lt', 'gt', 'eq', 'so')[bit % 4]}")
+         return Replacement([AsmInstruction("move.fictive", [x, reg])], len(m.body))
+ 
+ 
+@@ -251,6 +245,46 @@ class CmpnezPattern2(IrPattern):
+     ]
+ 
+ 
++class CmpeqzPattern1(IrPattern):
++    """`x == 0` as GCC 2.95 computes it through the carry flag: `subfic` sets CA when
++    x == 0, and `adde` adds that CA to (-x + x)."""
++
++    replacement = "cmpeqz.fictive $o, $i"
++    parts = [
++        "subfic $a, $i, 0",
++        "adde $o, $a, $i",
++    ]
++
++
++class CmpeqzPattern2(IrPattern):
++    replacement = "cmpeqz.fictive $o, $i"
++    parts = [
++        "subfic $a, $i, 0",
++        "adde $o, $i, $a",
++    ]
++
++
++class NegCmpeqzPattern(IrPattern):
++    """`-(x == 0)`: addic CA is `x != 0`, and `subfe d, a, a` is CA - 1."""
++
++    replacement = "negcmpeqz.fictive $o, $i"
++    parts = [
++        "addic $a, $i, -1",
++        "subfe $o, $a, $a",
++    ]
++
++
++class CmpgtuPattern(IrPattern):
++    """`x >u K`: `subfic` sets CA when K >=u x, `subfe d, a, a` is CA - 1, and neg flips it."""
++
++    replacement = "cmpgtu.fictive $o, $i, K"
++    parts = [
++        "subfic $a, $i, K",
++        "subfe $b, $a, $a",
++        "neg $o, $b",
++    ]
++
++
+ class CmplezPattern(IrPattern):
+     replacement = "cmplez.fictive $o, $i"
+     parts = [
+@@ -756,6 +790,7 @@ class PpcArch(Arch):
                  "cr0_so",
                  "ctr",
              ]
@@ -16,7 +92,7 @@ index eb5cb38..0291401 100644
          ]
      )
      saved_regs = [
-@@ -764,6 +766,7 @@ class PpcArch(Arch):
+@@ -764,6 +799,7 @@ class PpcArch(Arch):
              # TODO: Some of the bits in CR are required to be saved (like cr2_gt)
              # When those bits are implemented, they should be added here
              "lr",
@@ -24,7 +100,7 @@ index eb5cb38..0291401 100644
              # $r2 & $r13 are used for the small-data region, and are like $gp in MIPS
              "r2",
              "r13",
-@@ -1039,6 +1042,17 @@ class PpcArch(Arch):
+@@ -1039,6 +1075,32 @@ class PpcArch(Arch):
              Register("cr0_so"),
          ]
  
@@ -32,6 +108,21 @@ index eb5cb38..0291401 100644
 +            if isinstance(arg, Register) and re.fullmatch(r"cr[0-7]", arg.register_name):
 +                return int(arg.register_name[2])
 +            return None
++
++        def cr_bit(arg: Argument) -> Optional[Register]:
++            """`cr7eq`/`cr7un` symbols or a raw CR bit number 0-31."""
++            names = ("lt", "gt", "eq", "so")
++            if isinstance(arg, AsmLiteral) and 0 <= arg.value < 32:
++                return Register(f"cr{arg.value // 4}_{names[arg.value % 4]}")
++            name = (
++                arg.register_name
++                if isinstance(arg, Register)
++                else arg.symbol_name if isinstance(arg, AsmGlobalSymbol) else ""
++            )
++            mt = re.fullmatch(r"cr([0-7])(lt|gt|eq|un|so)", name)
++            if mt is None:
++                return None
++            return Register(f"cr{mt.group(1)}_{'so' if mt.group(2) == 'un' else mt.group(2)}")
 +
 +        def cr_bits(n: int) -> List[Location]:
 +            return [Register(f"cr{n}_{b}") for b in ("lt", "gt", "eq", "so")]
@@ -42,7 +133,7 @@ index eb5cb38..0291401 100644
          memory_sizes = {
              "b": 1,
              "h": 2,
-@@ -1088,9 +1102,9 @@ class PpcArch(Arch):
+@@ -1088,9 +1150,9 @@ class PpcArch(Arch):
              "bsolr",
          ):
              # Conditional return
@@ -54,7 +145,7 @@ index eb5cb38..0291401 100644
              is_return = True
              is_conditional = True
              # NB: These are rewritten to mnemonic[:-2] by build_blocks in flow_graph.py
-@@ -1126,12 +1140,14 @@ class PpcArch(Arch):
+@@ -1126,12 +1188,14 @@ class PpcArch(Arch):
              jump_target = get_jump_target(args[0])
          elif mnemonic in cls.instrs_branches:
              # Normal branch
@@ -70,7 +161,19 @@ index eb5cb38..0291401 100644
  
              inputs = [Register(reg_name)]
              jump_target = get_jump_target(args[-1])
-@@ -1439,19 +1455,68 @@ class PpcArch(Arch):
+@@ -1376,10 +1440,7 @@ class PpcArch(Arch):
+                         Register("cr0_lt"),
+                         BinaryOp(target_s32, "<", Literal(0), type=Type.s32()),
+                     )
+-                    s.set_reg(
+-                        Register("cr0_so"),
+-                        fn_op("M2C_OVERFLOW", [target_val], type=Type.s32()),
+-                    )
++                    s.set_reg(Register("cr0_so"), Literal(0))
+                 if Register("carry") in outputs:
+                     s.set_reg(
+                         Register("carry"),
+@@ -1439,19 +1500,79 @@ class PpcArch(Arch):
          elif mnemonic in cls.instrs_ppc_compare:
              assert len(args) == 3 and isinstance(args[1], Register)
              inputs = [r for r in args[1:] if isinstance(r, Register)]
@@ -98,16 +201,27 @@ index eb5cb38..0291401 100644
 +            assert dst_f is not None and src_f is not None
 +            inputs = cr_bits(src_f)
 +            outputs = cr_bits(dst_f)
- 
--                s.set_reg(Register("cr0_eq"), cls.instrs_ppc_compare[mnemonic](a, "=="))
--                s.set_reg(Register("cr0_gt"), cls.instrs_ppc_compare[mnemonic](a, ">"))
--                s.set_reg(Register("cr0_lt"), cls.instrs_ppc_compare[mnemonic](a, "<"))
--                s.set_reg(Register("cr0_so"), Literal(0))
++
 +            def eval_fn(s: NodeState, a: InstrArgs) -> None:
 +                for d, r in zip(cr_bits(dst_f), cr_bits(src_f)):
 +                    assert isinstance(d, Register) and isinstance(r, Register)
 +                    s.set_reg(d, a.regs[r])
 +
++        elif mnemonic in cls.instrs_cr_logic:
++            assert len(args) == 3
++            dst_b, a_b, b_b = (cr_bit(x) for x in args)
++            assert dst_b is not None and a_b is not None and b_b is not None
++            inputs = [a_b, b_b]
++            outputs = [dst_b]
++            cr_op = cls.instrs_cr_logic[mnemonic]
++
++            def eval_fn(s: NodeState, a: InstrArgs) -> None:
++                s.set_reg(dst_b, cr_op(a.regs[a_b], a.regs[b_b]))
+ 
+-                s.set_reg(Register("cr0_eq"), cls.instrs_ppc_compare[mnemonic](a, "=="))
+-                s.set_reg(Register("cr0_gt"), cls.instrs_ppc_compare[mnemonic](a, ">"))
+-                s.set_reg(Register("cr0_lt"), cls.instrs_ppc_compare[mnemonic](a, "<"))
+-                s.set_reg(Register("cr0_so"), Literal(0))
 +        elif mnemonic == "mfcr":
 +            # Snapshot every CR field into shadow registers tied to the GPR, so a later
 +            # `mtcrf mask, $rX` can restore the compare results it saved.
@@ -147,3 +261,54 @@ index eb5cb38..0291401 100644
  
          elif mnemonic in cls.instrs_ignore:
              pass
+@@ -1506,6 +1627,10 @@ class PpcArch(Arch):
+         UintToFloatIrPattern(),
+         CmpnezPattern1(),
+         CmpnezPattern2(),
++        CmpeqzPattern1(),
++        CmpeqzPattern2(),
++        NegCmpeqzPattern(),
++        CmpgtuPattern(),
+         CmplezPattern(),
+         CmpgtzPattern(),
+         CmpnePattern(),
+@@ -1531,6 +1656,19 @@ class PpcArch(Arch):
+         StructCopyPattern(),
+     ]
+ 
++    instrs_cr_logic: Dict[str, Callable[[Expression, Expression], Expression]] = {
++        "cror": lambda x, y: BinaryOp(as_intish(x), "||", as_intish(y), type=Type.boolean()),
++        "crand": lambda x, y: BinaryOp(as_intish(x), "&&", as_intish(y), type=Type.boolean()),
++        "crxor": lambda x, y: BinaryOp.icmp(x, "!=", y),
++        "creqv": lambda x, y: BinaryOp.icmp(x, "==", y),
++        "crandc": lambda x, y: BinaryOp(
++            as_intish(x), "&&", UnaryOp.int("!", y), type=Type.boolean()
++        ),
++        "crorc": lambda x, y: BinaryOp(
++            as_intish(x), "||", UnaryOp.int("!", y), type=Type.boolean()
++        ),
++    }
++
+     instrs_ignore: Set[str] = {
+         "nop",
+         # Assume stmw/lmw are only used for saving/restoring saved regs
+@@ -1705,6 +1843,11 @@ class PpcArch(Arch):
+         "xori": lambda a: handle_xor(a.reg(1), a.u16_imm(2)),
+         "xoris": lambda a: BinaryOp.int(a.reg(1), "^", a.shifted_u16_imm(2)),
+         "cmpnez.fictive": lambda a: handle_cmpnez(a.reg(1)),
++        "cmpeqz.fictive": lambda a: BinaryOp.icmp(a.reg(1), "==", Literal(0)),
++        "negcmpeqz.fictive": lambda a: UnaryOp(
++            "-", BinaryOp.icmp(a.reg(1), "==", Literal(0)), type=Type.intish()
++        ),
++        "cmpgtu.fictive": lambda a: BinaryOp.ucmp(a.reg(1), ">", Literal(a.imm_value(2) & 0xFFFFFFFF)),
+         "cmpne.fictive": lambda a: BinaryOp.icmp(a.reg(1), "!=", a.reg(2)),
+         "cmple.fictive": lambda a: BinaryOp.scmp(a.reg(1), "<=", a.reg(2)),
+         "cmplez.fictive": lambda a: BinaryOp.scmp(a.reg(1), "<=", Literal(0)),
+@@ -1718,6 +1861,7 @@ class PpcArch(Arch):
+         "rlwinm": lambda a: handle_rlwinm(
+             a.reg(1), a.imm_value(2), a.imm_value(3), a.imm_value(4)
+         ),
++        "rotlw": lambda a: handle_rlwnm(a.reg(1), a.reg(2), 0, 31),
+         "rlwnm": lambda a: handle_rlwnm(
+             a.reg(1), a.reg(2), a.imm_value(3), a.imm_value(4)
+         ),
