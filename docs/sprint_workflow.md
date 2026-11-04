@@ -82,7 +82,8 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 ## Measured runs
 
 Active time is **measured, not budgeted**. Start the timer with
-`python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and use
+`python3 tools/sprint_finish.py --phase setup`. `--baseline` closes kickoff and moves a timer
+still in setup to `matching`; after that, switch phases as work changes, and use
 `--phase paused` for user waits, CI and rate limits, and when only an unattended permuter queue
 is running (not while you work beside it).
 Every `score_fn.py` result line ends with `[active Ns]` while the timer runs. Each tool run

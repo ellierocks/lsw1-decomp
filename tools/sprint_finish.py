@@ -211,6 +211,11 @@ def main(argv=None) -> int:
         BASELINE.write_text(json.dumps(snap, indent=2))
         print(f"baseline: {snap['functions']:,} functions, {snap['code']:,} bytes, "
               f"{snap['strict_only_functions']} strict-only; saved to {BASELINE.relative_to(ROOT)}")
+        # The baseline closes kickoff: a timer still in setup moves to matching here, so a
+        # run that never switches by hand does not book all its matching as setup (#74).
+        if timing.exists() and json.loads(timing.read_text()).get("active") == "setup":
+            phase(timing, "matching", cap=args.idle_cap)
+            print("timer: setup -> matching")
         return 0
     if not args.functions and not args.parked and not args.deferred:
         ap.error("name the matched functions (or use --baseline)")
