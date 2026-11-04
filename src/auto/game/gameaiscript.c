@@ -2682,3 +2682,103 @@ s32 Action_AddToSet(void *sys, void *process, struct gameaiscript_packet_s *pack
     }
     return 1;
 }
+
+extern char str_ScriptParam_State[];
+extern void *fn_8008386C(char *, void *);
+extern void AIScriptProcessorInit(void *, void *, void *, s32, s32, s32, s32, void *, void *);
+
+s32 Action_SetScriptState(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    char *state = 0;
+    char *p;
+    void *found;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_State)) != 0)
+                state = p + 6;
+        }
+        if (target != 0 && state != 0) {
+            found = fn_8008386C(state, *(void **)(target + 0x2a0));
+            if (found != 0) {
+                *(s32 *)(target + 0x2d8) = 0;
+                AIScriptProcessorInit(sys, target + 0x2a0, target + 0x2a0, 0, 0, 0, 0,
+                    *(void **)(target + 0x2a0), found);
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_801091AC(void *, char *);
+
+s32 Action_ResetDoorTrigger(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrIStr(params[i], str_ScriptParam_Name) != 0) {
+                i++;
+                if (i < count)
+                    fn_801091AC(lbl_80409410, params[i]);
+            }
+        }
+    }
+    return 1;
+}
+
+extern f32 lbl_801AEAD0[];
+extern f32 lbl_801AEAD4[];
+extern void *lbl_80409410;
+
+f32 Condition_AnimationFinished(s32 pad0, s32 pad1, s32 pad2, s32 pad3, void *arg4) {
+    f32 *temp_r9;
+    f32 temp_f0;
+    f32 temp_f13;
+
+    if ((arg4 != NULL) && ((s32) (*(s32 *)((s8 *)(arg4) + (0x50))) >= 0)) {
+        temp_r9 = *(s32 *)(((*(u8 *)((s8 *)(arg4) + (0x5C))) * 4) + (*(s32 *)((s8 *)((*(void **)((s8 *)(lbl_80409410) + (0x1C0)))) + (0x50))));
+        if (temp_r9 != NULL) {
+            temp_f13 = (*(f32 *)((s8 *)(arg4) + (0x4C)));
+            temp_f0 = *temp_r9;
+            if ((temp_f13 >= temp_f0)) {
+                return lbl_801AEAD0[0];
+            }
+        }
+    }
+    return lbl_801AEAD4[0];
+}
+
+extern f32 lbl_801AE9D8[];
+extern f32 lbl_801AE9DC[];
+#define lbl_80409004 (*(void *(*))&lbl_80409004)
+#define lbl_8040AE4C (*(void *(*))&lbl_8040AE4C)
+
+f32 Condition_PlayerOnObject(s32 pad0, s32 pad1, s32 pad2, s32 pad3, s32 arg4) {
+    f32 temp_f0;
+    f32 temp_f13;
+    s16 temp_r11;
+
+    if (((void *) lbl_80409004 != NULL) && (arg4 != -1) && ((*(s32 *)((s8 *)(lbl_80409004) + (0x284))) & 0xFFFF00)) {
+        temp_r11 = (*(s16 *)((s8 *)(lbl_80409004) + (0x282)));
+        if (temp_r11 == arg4) {
+            temp_f13 = (*(f32 *)((s8 *)(lbl_80409004) + (0x70)));
+            temp_f0 = (*(f32 *)((s8 *)((*(void **)((s8 *)(((temp_r11 * 0x6C) + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))))) + (0x40)))) + (0x34)));
+            if ((temp_f13 >= temp_f0)) {
+                return lbl_801AE9D8[0];
+            }
+        }
+    }
+    return lbl_801AE9DC[0];
+}
+#undef lbl_80409004
+#undef lbl_8040AE4C
