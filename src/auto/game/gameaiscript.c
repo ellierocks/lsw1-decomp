@@ -1316,9 +1316,12 @@ s32 Action_SetJumping(void *sys, void *process, struct gameaiscript_packet_s *pa
     return 1;
 }
 
-/* Character flag word at +0x20C; bit 0x4000 set by Action_SetIgnoreAntinodes_Level. */
+/* Character flag word at +0x20C; bit 0x4000 set by Action_SetIgnoreAntinodes_Level,
+ * bit 0x800000 by Action_SetAIOverrideControl. */
 struct gameaiscript_20c_s {
-    u32 unk0 : 17;
+    u32 unk0 : 8;
+    u32 aiOverrideControl : 1;
+    u32 unk9 : 8;
     u32 ignoreAntinodes : 1;
     u32 unk12 : 14;
 };
@@ -2782,3 +2785,64 @@ f32 Condition_PlayerOnObject(s32 pad0, s32 pad1, s32 pad2, s32 pad3, s32 arg4) {
 }
 #undef lbl_80409004
 #undef lbl_8040AE4C
+
+s32 Action_SetAIOverrideControl(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if (NuStrICmp(str_Bool_FALSE, params[i]) == 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_20c_s *)(target + 0x20c))->aiOverrideControl = on;
+    }
+    return 1;
+}
+
+extern s32 str_ScriptState_Base[];
+void ResetAICreature(void *, void *);
+
+s32 Action_Activate(void *sys, s32 arg1, void *arg2) {
+    u8 *owner;
+    u8 *object;
+
+    if (arg2 != NULL && (owner = *(u8 **)((u8 *)arg2 + 0x50)) != NULL && (object = *(u8 **)owner) != NULL) {
+        if (object[0x346] == 0xff) {
+            *(u32 *)(owner + 0x20c) |= 0x80000;
+            fn_8007EBD0(arg1, str_ScriptState_Base);
+        } else {
+            ResetAICreature(object, sys);
+        }
+    }
+    return 1;
+}
+
+s32 Action_SetFlag(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+    u32 bit;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        for (i = 0; i + 1 < count; i += 2) {
+            bit = NuAToI(params[i]);
+            if (bit < 32) {
+                if (NuStrICmp(params[i + 1], (char *)str_Bool_ON) == 0)
+                    (*(struct gameaiscript_flags_s **)((u8 *)lbl_80409410 + 0x1b4))->flags[((u8 *)packet->owner)[0x291]] |= 1LL << bit;
+                else
+                    (*(struct gameaiscript_flags_s **)((u8 *)lbl_80409410 + 0x1b4))->flags[((u8 *)packet->owner)[0x291]] &= ~(1LL << bit);
+            }
+        }
+    }
+    return 1;
+}
