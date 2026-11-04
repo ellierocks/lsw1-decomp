@@ -1566,8 +1566,8 @@ DOL: dvdfs owns `.data 801F5C00..801F5FF0` and `.sdata 8040A068..8040A070`, and 
   `cbForStateMotorStopped` and `DVDCheckDisk`; and `fn_8016A2B0` is `DVDCancelAsync`.
   The former `DVDCancelAsync` at `801435B8` (different code) becomes `fn_801435B8`.
 - **Source.** Both donors are unchanged copies apart from two defines at the top of
-  `dvd.c`. `memcmp` maps to `Menu_SetupDisplay`, the retail label CARD already uses
-  for it. The global `LastState` maps to `LastState_8040A9A8`, because OSResetSW owns
+  `dvd.c`. `memcmp` used to map to `Menu_SetupDisplay`; that label was newlib `memcmp`
+  and is now the real `memcmp` from [SN runtime](sn_runtime.md). The global `LastState` maps to `LastState_8040A9A8`, because OSResetSW owns
   the `LastState` symbol.
 - **BSS.** Both units use `external_bss=True`. Their statics lose `scope:local` so that
   `strip_unused.py` can map them by name. `CancelAllSyncComplete` and `ResetCount`

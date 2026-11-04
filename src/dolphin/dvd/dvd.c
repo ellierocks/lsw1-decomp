@@ -1,4 +1,3 @@
-#define memcmp Menu_SetupDisplay
 #define LastState LastState_8040A9A8
 #include <dolphin.h>
 #include <dolphin/os.h>

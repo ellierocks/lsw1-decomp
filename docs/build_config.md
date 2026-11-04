@@ -337,6 +337,16 @@ pins or patching the linked image. MWLD support remains available in the build
 generator for its original configurations. The current whole image matches
 retail. See [SDK import evidence](sdk_import.md) for ranges and limits.
 
+## SN runtime
+
+`src/sn` holds the newlib libc and libgcc objects. They use the `prodg` compiler
+with `cflags_sn_libc` / `cflags_sn_libgcc`, which add the `ngccc` target defines the
+production rule lacks, `-G 1024` and `-fno-common`; the objects are `Matching`
+under the `sn_runtime` lib and the `runtime` progress category. A unit that owns
+`.sdata2` (the libgcc division objects) needs its split ranges and a symbol per
+`__clz_tab` copy, since dtk rejects a split inside a symbol. See
+[SN runtime](sn_runtime.md) for flags, provenance and boundaries.
+
 ## Splitter and startup constraints
 
 `tools/build_patched_dtk.sh` pins DTK and applies

@@ -374,7 +374,7 @@ s32 Action_DontPush(void* sys, void* process, struct ai_action_packet_s* packet,
     return 1;
 }
 
-extern u64 UI_DrawText();
+extern u64 __ashldi3();
 extern f32 lbl_8019C59C[];
 extern f32 lbl_8019C5A0[];
 
@@ -390,7 +390,7 @@ f32 Condition_InTriggerArea(void* sys, void* process, u8* packet, char* params, 
             area = inputArea;
         }
         if (area != 0) {
-            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, owner[0x291])) != 0) {
+            if ((*(u64*)(area + 0x30) & __ashldi3(0, 1, owner[0x291])) != 0) {
                 return lbl_8019C59C[0];
             }
         }
@@ -412,7 +412,7 @@ f32 Condition_OpponentInTriggerArea(void* sys, void* process, u8* packet, char* 
             area = inputArea;
         }
         if (area != 0) {
-            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, owner[0x291])) != 0) {
+            if ((*(u64*)(area + 0x30) & __ashldi3(0, 1, owner[0x291])) != 0) {
                 return lbl_8019C5F8[0];
             }
         }
@@ -434,7 +434,7 @@ f32 Condition_PlayerInTriggerArea(u8* sys, void* process, u8* packet, char* para
             area = *(u8**)(packet + 0xf8);
         }
         if (area != 0) {
-            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, (*(u8**)(sys + 0x1380))[0x291])) != 0) {
+            if ((*(u64*)(area + 0x30) & __ashldi3(0, 1, (*(u8**)(sys + 0x1380))[0x291])) != 0) {
                 return lbl_8019C5D0[0];
             }
         }
@@ -781,7 +781,7 @@ f32 Condition_Player2InTriggerArea(u8* sys, void* process, u8* packet, char* par
             area = *(u8**)(packet + 0xf8);
         }
         if (area != 0) {
-            if ((*(u64*)(area + 0x30) & UI_DrawText(0, 1, (*(u8**)(sys + 0x1384))[0x291])) != 0) {
+            if ((*(u64*)(area + 0x30) & __ashldi3(0, 1, (*(u8**)(sys + 0x1384))[0x291])) != 0) {
                 return lbl_8019C5D8[0];
             }
         }

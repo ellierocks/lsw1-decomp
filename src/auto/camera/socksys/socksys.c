@@ -129,7 +129,7 @@ void fn_800955A8(struct socksys_list_s* list, struct socksys_anim_s* anim)
 
 struct relation_object { u8 pad00[0x20c]; s32 flags; u8 pad210[0x81]; u8 index; };
 struct relation_pool { s32 stride; struct relation_object* objects; u64 masks[64]; };
-extern u64 UI_DrawText();
+extern u64 __ashldi3();
 extern void* memset();
 void fn_80095128(struct relation_pool* pool, struct relation_object* object)
 {
@@ -143,7 +143,7 @@ void fn_80095128(struct relation_pool* pool, struct relation_object* object)
             for (i = 64; i != 0; i--) {
                 if (p->flags < 0) {
                     u64* mask = &masks[p->index];
-                    *mask &= ~UI_DrawText(1ULL, object->index);
+                    *mask &= ~__ashldi3(1ULL, object->index);
                 }
                 p = (struct relation_object*)((u8*)p + pool->stride);
             }
