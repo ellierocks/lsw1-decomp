@@ -202,10 +202,13 @@ class PermwatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             Path(tmp, "queue_targets.txt").write_text("a\nb\n\nb\n")
             Path(tmp, "queue_targets-x.txt").write_text("c\n")
-            self.assertEqual(pw.load_targets(tmp, pw.DEFAULT_UNIT, None), ["a", "b"])
-            self.assertEqual(pw.load_targets(tmp, "x", None), ["c"])
-            self.assertEqual(pw.load_targets(tmp, pw.DEFAULT_UNIT, ["p,q", "r"]), ["p", "q", "r"])
-            self.assertEqual(pw.load_targets(tmp, "missing", None), [])
+            def targets(unit, explicit=None):
+                return pw.load_queue(tmp, unit, explicit)["targets"]
+
+            self.assertEqual(targets(pw.DEFAULT_UNIT), ["a", "b"])
+            self.assertEqual(targets("x"), ["c"])
+            self.assertEqual(targets(pw.DEFAULT_UNIT, ["p,q", "r"]), ["p", "q", "r"])
+            self.assertEqual(targets("missing"), [])
 
     def test_snapshot_states(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -217,10 +220,11 @@ class PermwatchTests(unittest.TestCase):
                     (d / o).mkdir()
                 if log is not None:
                     (d / "overnight.log").write_text(log)
-            finished, matched, total, status, rows = pw.progress(tmp, ["fresh", "good", "improved"])
+            info = pw.load_queue(tmp, pw.DEFAULT_UNIT, ["fresh", "good", "improved"])
+            finished, matched, total, status, rows, active, pending = pw.progress(tmp, info)
             states = {r["name"]: r["state"] for r in rows}
             self.assertEqual(states, {"fresh": "queued", "good": "match", "improved": "done"})
-            self.assertEqual((finished, matched, total), (2, 1, 3))
+            self.assertEqual((finished, matched, total, active, pending), (2, 1, 3, 0, 1))
             self.assertIn("improved 500→200", status)
 
     def test_once_without_targets_fails(self):
@@ -238,10 +242,10 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         self.assertIn("systemctl --user stop", r.stdout)
 
-    def test_missing_target_directory_points_at_setup(self):
+    def test_missing_target_directory_is_set_up_by_the_queue(self):
         r = self.run_launcher("--dry-run", "1", "1", "no_such_target_xyz")
-        self.assertEqual(r.returncode, 2)
-        self.assertIn("permute_setup.py no_such_target_xyz", r.stderr)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("permute_setup.py no_such_target_xyz first", r.stdout)
 
     def test_dry_run_prints_command_and_queue_without_writing(self):
         perm = ROOT / "work" / "permute"
@@ -254,9 +258,10 @@ class LauncherTests(unittest.TestCase):
             self.assertIn("--unit=second", r.stdout)
             self.assertIn("systemd-inhibit --what=sleep:idle --mode=block", r.stdout)
             self.assertIn("zz_dry_run_target", r.stdout)
-            self.assertIn("timeout -k 60 1.5h", r.stdout)
-            self.assertIn("queue_targets-second.txt", r.stdout)
+            self.assertIn("timeout -k 60 min(1.5h, time left)", r.stdout)
+            self.assertIn("backlog-second.txt", r.stdout)
             self.assertFalse((perm / "queue_targets-second.txt").exists())
+            self.assertFalse((perm / "backlog-second.txt").exists())
         finally:
             made.rmdir()
             if not had_work:
