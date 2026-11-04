@@ -161,6 +161,23 @@ class QueueTests(unittest.TestCase):
             self.assertFalse((Path(directory) / 'missing.json').exists())
 
 
+class BaselineTimerTests(unittest.TestCase):
+    def test_baseline_moves_setup_timer_to_matching(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            timing = root / 'work' / 'sprint_timing.json'
+            timing.parent.mkdir()
+            phase(timing, 'setup')
+            snap = {'functions': 1, 'code': 2, 'strict_only_functions': 0}
+            with mock.patch.object(sprint_finish, 'ROOT', root), \
+                    mock.patch.object(sprint_finish, 'BASELINE', root / 'work' / 'sprint_baseline.json'), \
+                    mock.patch.object(sprint_finish, 'snapshot', return_value=snap), \
+                    mock.patch('sys.stdout'):
+                self.assertEqual(sprint_finish.main(['--baseline', '--allow-behind', '--queue', 'a']), 0)
+            self.assertEqual(json.loads(timing.read_text())['active'], 'matching')
+
+
 class MergeModeTests(unittest.TestCase):
     def git(self, cwd, *args):
         subprocess.run(['git', '-C', str(cwd), '-c', 'user.name=t', '-c', 'user.email=t@t',
