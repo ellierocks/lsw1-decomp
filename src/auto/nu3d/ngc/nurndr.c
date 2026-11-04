@@ -468,3 +468,58 @@ void fn_80027C58(struct nurndr_v3_s *arg0, s16 arg1, f32 farg0) {
         lbl_8040AD6C++;
     }
 }
+
+void (*fn_80009948(s32 *, s32))(s32 *, ...);
+void *memset(void *, s32, u32);
+extern s32 lbl_801914A0[];
+extern s32 lbl_80191510[];
+extern u8 lbl_802198A4[];
+extern s32 lbl_80407D80;
+
+void *NuAnimDataChunkDestroy(s32 arg0) {
+    void *p;
+    s32 size = arg0 * 4 + 0x18;
+
+    lbl_80407D80 -= size;
+    if (lbl_80407D80 < 0) {
+        fn_80009948(lbl_801914A0, 0x466)(lbl_80191510);
+        return NULL;
+    }
+    p = lbl_802198A4 + lbl_80407D80;
+    memset(p, 0, size);
+    return p;
+}
+
+extern struct nurndr_v3_s lbl_8033EACC;
+extern f32 lbl_80407CD0;
+extern f32 lbl_80407CD4;
+extern u32 lbl_8040AD68;
+
+void fn_80027C0C(struct nurndr_v3_s *arg0, u32 arg1, f32 farg0, f32 farg1) {
+    lbl_8033EACC = *arg0;
+    lbl_8040AD68 = ((arg1 << 1) & 0xFE000000) + ((arg1 >> 1) & 0x7F7F7F);
+    lbl_80407CD0 = farg0;
+    lbl_80407CD4 = farg1;
+}
+
+extern f32 lbl_8019159C[];
+extern struct nurndr_v3_s lbl_80313250;
+extern struct nurndr_v3_s lbl_8031325C;
+
+void fn_800265C4(struct nurndr_v3_s *arg0) {
+    struct nurndr_v3_s t;
+    s32 ix, iy, iz;
+
+    t.x = (arg0->x - lbl_80313250.x) / lbl_8031325C.x;
+    t.y = (arg0->y - lbl_80313250.y) / lbl_8031325C.y;
+    t.z = (arg0->z - lbl_80313250.z) / lbl_8031325C.z;
+    ix = (s32)(t.x + lbl_8019159C[0]) - 0x10000;
+    t.x -= ix;
+    iy = (s32)(t.y + lbl_8019159C[0]) - 0x10000;
+    t.y -= iy;
+    iz = (s32)(t.z + lbl_8019159C[0]) - 0x10000;
+    t.z -= iz;
+    arg0->x = t.x * lbl_8031325C.x + lbl_80313250.x;
+    arg0->y = t.y * lbl_8031325C.y + lbl_80313250.y;
+    arg0->z = t.z * lbl_8031325C.z + lbl_80313250.z;
+}
