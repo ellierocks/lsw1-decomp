@@ -149,6 +149,35 @@ def const_rodata(body: str) -> str:
                   lambda m: f"extern const {m[1]}{m[2]}[];" if m[2] in rodata else m[0], body, flags=re.M)
 
 
+def base_pointer(body: str) -> str:
+    """BODY with each run of two or more consecutive statements that address one global
+    through m2c's `(s8 *)(G) + off` wrapped in a block that reads G through a local
+    `s8 *G_p`. ProDG then forms G's address once (`lis/addi`, then `off(r9)` loads)
+    instead of folding each offset into its own `G+off@ha/@l` pair (fn_800B0120)."""
+    lines = body.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        m = re.match(r"^([ \t]+)\S", lines[i])
+        syms = set(re.findall(r"\(s8 \*\)\((\w+)\) \+ ", lines[i])) if m else set()
+        sym = next((g for g in sorted(syms) if not g.startswith(("arg", "var_", "temp_", "sp"))), None)
+        j = i
+        if sym:
+            ind = m[1]
+            while (j + 1 < len(lines) and lines[j + 1].startswith(ind) and not lines[j + 1][len(ind)].isspace()
+                   and f"(s8 *)({sym}) + " in lines[j + 1] and lines[j + 1].rstrip().endswith(";")):
+                j += 1
+        if sym and j > i and lines[i].rstrip().endswith(";"):
+            out.append(f"{ind}{{")
+            out.append(f"{ind}    s8 *{sym}_p = (s8 *){sym};")
+            out.extend("    " + ln.replace(f"(s8 *)({sym})", f"{sym}_p") for ln in lines[i:j + 1])
+            out.append(f"{ind}}}")
+            i = j + 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return "\n".join(out)
+
+
 def both_rewrites(body: str) -> str:
     return const_rodata(store_in_arms(body))
 
@@ -562,11 +591,12 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
-            strided = byte_strides(body)
-            if strided != body:
-                stride_res, strided = score_draft(name, source, strided)
-                if improves(stride_res, res):
-                    res, body = {**stride_res, "byte_strides": True}, strided
+            for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
+                alt = repair(body)
+                if alt != body:
+                    alt_res, alt = score_draft(name, source, alt)
+                    if improves(alt_res, res):
+                        res, body = {**alt_res, repair.__name__: True}, alt
             padded = pad_signature(body, name)
             if padded != body:
                 pad_res, padded = score_draft(name, source, padded)

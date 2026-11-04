@@ -111,6 +111,16 @@ class SweepRewriteTest(unittest.TestCase):
         indexed = "void f(void) {\n    s32 *p;\n    p += 0xC;\n    p[1] = 1;\n}\n"
         self.assertEqual(sweep.byte_strides(indexed), indexed)
 
+    def test_base_pointer(self):
+        body = ("void f(void) {\n    if (x) {\n"
+                "        (*(s8 *)((s8 *)(MenuHeader) + (0x174))) = -1;\n"
+                "        (*(f32 *)((s8 *)(MenuHeader) + (0x138))) = 0.0f;\n    }\n"
+                "    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n}\n")
+        out = sweep.base_pointer(body)
+        self.assertIn("        {\n            s8 *MenuHeader_p = (s8 *)MenuHeader;\n"
+                      "            (*(s8 *)(MenuHeader_p + (0x174))) = -1;\n", out)
+        self.assertIn("    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n", out)  # a single access stays
+
 
 if __name__ == "__main__":
     unittest.main()
