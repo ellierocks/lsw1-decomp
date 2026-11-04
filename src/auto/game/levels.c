@@ -4067,7 +4067,7 @@ void fn_800ABEB0(void *arg0, s32 arg1) {
 }
 #undef fn_800B9ED4
 
-s32 fn_800D4D64(void *);
+void fn_800D4D64(void *);
 
 void fn_800ABC50(void *arg0) {
     f32 temp_f0;
@@ -4303,4 +4303,61 @@ s32 fn_800CC5D8(void) {
         r = (lbl_803E0199[0] ^ 0x15) == 0;
     }
     return r;
+}
+
+typedef struct { s32 v[3]; } DbgVec;
+extern void *lbl_80409004;
+void DebugMenu_ToggleOption1(s32 arg0, s32 arg1) {
+    if (lbl_80409004 != NULL) {
+        lbl_801D5744[0] = arg0;
+        if (arg0 != 0) {
+            lbl_801D5744[9] = arg1;
+            *(DbgVec *)&lbl_801D5744[1] = *(DbgVec *)((s8 *)lbl_80409004 + 0x90);
+            return;
+        }
+        lbl_801D5744[9] = arg0;
+    }
+}
+
+s32 fn_800CFE9C(void *arg0, void *arg1, f32 farg0, f32 farg1) {
+    f32 temp_f0;
+    f32 temp_f0_2;
+    f32 temp_f12;
+    f32 temp_f13;
+    f32 temp_f2;
+    f32 temp_f2_2;
+
+    temp_f2_2 = farg0 + farg1;
+    temp_f2 = temp_f2_2 * temp_f2_2;
+    temp_f12 = (*(f32 *)((s8 *)(arg1) + (4))) - (*(f32 *)((s8 *)(arg0) + (4)));
+    temp_f13 = (*(f32 *)((s8 *)(arg1) + (0))) - (*(f32 *)((s8 *)(arg0) + (0)));
+    temp_f0_2 = (*(f32 *)((s8 *)(arg1) + (8))) - (*(f32 *)((s8 *)(arg0) + (8)));
+    temp_f0 = (temp_f0_2 * temp_f0_2) + ((temp_f13 * temp_f13) + (temp_f12 * temp_f12));
+    return temp_f0 <= temp_f2;
+}
+
+typedef struct { u8 pad[0x14]; s16 id; u8 rest[0xE0 - 0x16]; } MenuFrame;
+extern s32 gRegisteredMenuDefinitions[];
+s32 fn_800B2ED4(void) {
+    s16 id = ((MenuFrame *)gMenuStack)[gMenuDepth].id;
+    if (id == -1) {
+        return -1;
+    }
+    return *(s32 *)((s8 *)gRegisteredMenuDefinitions + id * 0x1C);
+}
+
+extern f32 lbl_8019FEA8[];
+extern f32 lbl_80408E9C;
+void fn_800ABD50(void *arg0) {
+    f32 zero = lbl_8019FEA8[0];
+    s8 *p = (s8 *)*(s32 *)((s8 *)*(void **)((s8 *)arg0 + 0xEEC) + 0x61C) + 0x40;
+    if (*(f32 *)(p + 0xC) > zero) {
+        *(f32 *)(p + 0xC) -= lbl_80408E9C;
+    }
+    if (*(f32 *)(p + 4) > zero) {
+        *(f32 *)(p + 4) -= lbl_80408E9C;
+    }
+    if (*(u8 *)(p + 0x10) != 0) {
+        *(u8 *)(p + 0x10) -= 1;
+    }
 }
