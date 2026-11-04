@@ -226,6 +226,21 @@ Output lands in `work/permute/NAME/output-*`. Minimise the change by hand, port 
 into the unit source and accept it only with `verify_fn.py NAME --build
 --strict-symbols`.
 
+Run anything that outlives the session with `tools/permute_long.sh [--unit NAME] SLOTS
+HOURS TARGET...` after `permute_setup.py` has made each directory; never `setsid` or
+`nohup`. It starts a transient `systemd-run --user` unit (default `lsw1-permute`) that
+holds a `sleep:idle` block inhibitor, so the session ending neither kills the queue nor
+lets the idle policy suspend the PC. `--dry-run` prints the command and queue. Stop it
+with `systemctl --user stop <unit>`; it records `work/permute/queue_targets.txt`,
+`queue.log` and `queue_summary.txt`. Watch with `tools/permwatch.py` (`--once` prints a
+snapshot; `--targets` overrides the queue). Review every improved output with
+`tools/permute_review.py NAME [OUTPUT_DIR]` (default: best score). It diffs `source.c`
+against `base.c`: the normalised target body, every changed top-level declaration
+(prototype return types, extern types, structs, typedefs) and flags for `void *`
+arithmetic, removed `volatile` and locals read before assignment. A changed
+prototype with an identical body is a real result: the `fn_800FC5C0` match came from
+`fn_80095558` returning `void`.
+
 Record a candidate with
 `hillclimb.py try` when it improves the incumbent or settles a hypothesis;
 exploratory attempts do not need ledger entries.
