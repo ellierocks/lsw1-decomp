@@ -3545,3 +3545,98 @@ found:
     InitSplinePosition(object + 0x69c, spline, looping, 0.0f);
     return 0;
 }
+
+extern char str_JumpType_JUMP[];
+extern char str_JumpType_DBLJUMP[];
+extern char str_JumpType_R2D2GLIDE[];
+extern char str_JumpType_ZIPUP[];
+extern char str_JumpType_USEHATCH[];
+extern char str_JumpType_JARJARJUMP[];
+extern char str_JumpType_HOVERTUBE[];
+extern char str_JumpType_FORGOODIES[];
+extern char str_JumpType_FORBADDIES[];
+extern char str_JumpType_OBSTACLE[];
+extern char str_JumpType_JUMP_NOW[];
+extern char str_JumpType_DONT_JUMP_NOW[];
+extern char str_JumpType_BLOCK[];
+extern char str_JumpType_BIGJUMP[];
+
+s32 ParseAIPathCnxFlag(char *name)
+{
+    if (NuStrICmp(name, str_JumpType_JUMP) == 0)
+        return 1;
+    if (NuStrICmp(name, str_JumpType_DBLJUMP) == 0)
+        return 2;
+    if (NuStrICmp(name, str_JumpType_R2D2GLIDE) == 0)
+        return 4;
+    if (NuStrICmp(name, str_JumpType_ZIPUP) == 0)
+        return 8;
+    if (NuStrICmp(name, str_JumpType_USEHATCH) == 0)
+        return 0x10;
+    if (NuStrICmp(name, str_JumpType_JARJARJUMP) == 0)
+        return 0x20;
+    if (NuStrICmp(name, str_JumpType_HOVERTUBE) == 0)
+        return 0x40;
+    if (NuStrICmp(name, str_JumpType_FORGOODIES) == 0)
+        return 0x80;
+    if (NuStrICmp(name, str_JumpType_FORBADDIES) == 0)
+        return 0x100;
+    if (NuStrICmp(name, str_JumpType_OBSTACLE) == 0)
+        return 0x20000000;
+    if (NuStrICmp(name, str_JumpType_JUMP_NOW) == 0)
+        return 0x400;
+    if (NuStrICmp(name, str_JumpType_DONT_JUMP_NOW) == 0)
+        return 0x800;
+    if (NuStrICmp(name, str_JumpType_BLOCK) == 0)
+        return 0x80000000;
+    if (NuStrICmp(name, str_JumpType_BIGJUMP) == 0)
+        return 0x1000;
+    return 0;
+}
+
+struct gameaiscript_18_s {
+    s32 w[6];
+};
+
+extern void NuMtxToQuat(void *, void *, s32, f32);
+extern char str_ScriptParam_TgtCharacter[];
+extern char str_ScriptAction_Slam[];
+extern char str_ScriptParam_JumpFactor[];
+
+s32 Action_BigJump(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 factor = 1.0f;
+    s32 slam = 0;
+    u8 *target = 0;
+    u8 *object;
+    char *p;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (object = (u8 *)packet->owner->object) == 0)
+        return 1;
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_TgtCharacter)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 14, 0);
+            else if (NuStrICmp(params[i], str_ScriptAction_Slam) == 0)
+                slam = 1;
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_JumpFactor)) != 0) {
+                factor = AIParamToFloat(packet, p + 12);
+                if (factor < 0.0f)
+                    factor = 0.0f;
+            }
+        }
+        if (target != 0) {
+            NuMtxToQuat(object, target + 0x1c4, slam, factor);
+            *(struct gameaiscript_18_s *)(object + 0x3ac) = *(struct gameaiscript_18_s *)(target + 0x3ac);
+            *(struct gameaiscript_vec_s *)(object + 0x3c4) = *(struct gameaiscript_vec_s *)(target + 0x3c4);
+        }
+    }
+    {
+        s32 r = 1;
+        if ((*(u8 **)(object + 0xeec))[0x7df] == 0x24)
+            r = 0;
+        return r;
+    }
+}
