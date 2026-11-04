@@ -720,3 +720,132 @@ s32 NuTexReadBitmapMM(struct nurndr_v3_s *arg0, struct nurndr_v3_s *arg1) {
     fn_8002DD60(&m, &lbl_801B18C4);
     return 1;
 }
+
+void DCFlushRange(void *, u32);
+s32 fn_8002BF48(void *, s32);
+s32 fn_8002C090(u32 *, struct nurndr_mtx_s *, void *, s32);
+s32 fn_8002D770(void *, s32 *);
+extern s32 lbl_803127F0[];
+extern void *lbl_80407D50;
+struct nurndr_qvtx_s {
+    struct nurndr_v3_s pos;
+    u32 colour;
+    s16 u, v;
+};
+struct nurndr_mtl_s {
+    u8 pad00[0x58];
+    u8 *bits[4];
+    s32 sel;
+    u8 pad6c[8];
+    u32 flags;
+};
+struct nurndr_pass_s {
+    struct nurndr_mtl_s *mtl;
+    s32 bit;
+    u8 pad08[0x1c];
+    s8 *dl;
+};
+
+void NuTexReadBitmapMMEx(void *arg0) {
+    u32 *alloc;
+    u8 *buf;
+    u8 *desc;
+    s32 n;
+    s32 i;
+    u32 pad;
+    s32 size;
+    s32 tex;
+    struct nurndr_c58_s *e;
+    struct nurndr_qvtx_s *out;
+    struct nurndr_v3_s p;
+    u8 c[4];
+    u32 col;
+    f32 r;
+    struct nurndr_pass_s *pass;
+    s32 bit;
+
+    n = lbl_8040AD6C;
+    if (n != 0) {
+        if (arg0 == NULL) {
+            arg0 = lbl_80407D50;
+        }
+        alloc = lbl_8040ACF0;
+        buf = (u8 *)((((*alloc + 3) & ~3) + 0x1f) & ~0x1f);
+        *alloc = (u32)(buf + 4);
+        for (i = 0; i < n; i++) {
+            e = &lbl_8033EAD8[i];
+            p = e->pos;
+            col = e->h << 24;
+            c[0] = col;
+            c[1] = col >> 8;
+            c[2] = col >> 16;
+            c[3] = col >> 24;
+            r = e->f;
+            out = (struct nurndr_qvtx_s *)*alloc;
+            out[0].pos.x = p.x - r;
+            out[0].pos.y = p.y;
+            out[0].pos.z = p.z - r;
+            out[0].colour = *(u32 *)c;
+            out[0].u = 0;
+            out[0].v = 0;
+            out[1].pos.x = p.x + r;
+            out[1].pos.y = p.y;
+            out[1].pos.z = p.z - r;
+            out[1].colour = *(u32 *)c;
+            out[1].u = 0x3fff;
+            out[1].v = 0;
+            out[2].pos.x = p.x + r;
+            out[2].pos.y = p.y;
+            out[2].pos.z = p.z + r;
+            out[2].colour = *(u32 *)c;
+            out[2].u = 0x3fff;
+            out[2].v = 0x3fff;
+            out[3].pos.x = p.x - r;
+            out[3].pos.y = p.y;
+            out[3].pos.z = p.z + r;
+            out[3].colour = *(u32 *)c;
+            out[3].u = 0;
+            out[3].v = 0x3fff;
+            *alloc += 0x50;
+        }
+        buf[0] = 0;
+        buf[1] = 0x80;
+        *(s16 *)(buf + 2) = lbl_8040AD6C * 4;
+        pad = ((*alloc + 0x1f) & ~0x1f) - *alloc;
+        for (i = 0; (u32)i < pad; i++) {
+            *(u8 *)(*alloc)++ = 0;
+        }
+        size = *alloc - (u32)buf;
+        DCFlushRange(buf, size);
+        tex = fn_8002C090(alloc, &lbl_801B0F08, arg0, 0);
+        desc = (u8 *)((*alloc + 3) & ~3);
+        *alloc = (u32)(desc + 0x50);
+        desc[0] = 1;
+        *(s32 *)(desc + 4) = 0xe80;
+        *(u8 **)(desc + 0x24) = buf;
+        *(s32 *)(desc + 0x28) = size;
+        *(s32 *)(desc + 0xc) = 0;
+        *(s32 *)(desc + 0x10) = 0;
+        *(s32 *)(desc + 0x14) = 0;
+        *(s32 *)(desc + 0x1c) = 0;
+        *(s32 *)(desc + 0x18) = 0;
+        *(s16 *)(desc + 8) = 0;
+        *(s16 *)(desc + 0x2c) = 0;
+        *(s32 *)(desc + 0x30) = 0;
+        pass = *(struct nurndr_pass_s **)((u8 *)arg0 + 0xcc);
+        pass->mtl->flags |= 0x40000000;
+        bit = pass->bit;
+        pass->mtl->bits[pass->mtl->sel][bit / 8] |= 1 << (bit % 8);
+        fn_8002D770(pass, lbl_803127F0);
+        fn_8002BF48(pass, 2);
+        pass->dl[0] = 0x8c;
+        pass->dl[1] = 3;
+        *(s32 *)(pass->dl + 4) = tex;
+        pass->dl += 8;
+        pass->dl[0] = 0x82;
+        pass->dl[1] = 3;
+        *(u8 **)(pass->dl + 4) = desc;
+        pass->dl += 8;
+        lbl_8040AD6C = 0;
+    }
+}
