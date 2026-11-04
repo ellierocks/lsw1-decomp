@@ -247,3 +247,126 @@ void fn_80027A48(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, void *arg5, s
     fn_800377AC(temp_f28, temp_f29, lbl_80191604[0]);
     fn_80037864();
 }
+
+s32 fn_8003777C(f32, f32);
+extern f32 lbl_80191558[];
+extern f32 lbl_8019155C[];
+extern f32 lbl_80191560[];
+
+void fn_80025C38(s32 arg0, s32 arg1, s32 arg2, s32 arg3, u32 arg4, void *arg5, s32 arg6) {
+    f32 temp_f28;
+    f32 temp_f29;
+    f32 temp_f30;
+    f32 temp_f31;
+    void *var_r29;
+
+    temp_f28 = (f32) (f64) arg0 * lbl_80191558[0];
+    var_r29 = arg5;
+    temp_f29 = (f32) (f64) arg1 * lbl_80191558[0];
+    temp_f31 = (f32) (f64) arg2 * lbl_80191558[0];
+    temp_f30 = (f32) (f64) arg3 * lbl_80191558[0];
+    if (var_r29 == NULL) {
+        var_r29 = lbl_80407D4C;
+    }
+    if ((s32) (*(u8 *)((s8 *)(var_r29) + (0xC0))) != 1) {
+        (*(u8 *)((s8 *)(var_r29) + (0xC0))) = 1U;
+        fn_80024CD4(var_r29);
+    }
+    fn_800374C8(4, 7, var_r29);
+    fn_8003777C(lbl_8019155C[0], lbl_8019155C[0]);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28, temp_f29, lbl_8019155C[0]);
+    fn_8003777C(lbl_80191560[0], lbl_8019155C[0]);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28 + temp_f31, temp_f29, lbl_8019155C[0]);
+    fn_8003777C(lbl_80191560[0], lbl_80191560[0]);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28 + temp_f31, temp_f29 + temp_f30, lbl_8019155C[0]);
+    fn_8003777C(lbl_8019155C[0], lbl_80191560[0]);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28, temp_f29 + temp_f30, lbl_8019155C[0]);
+    fn_80037864();
+}
+
+s32 fn_8003777C(f32, f32);
+extern f32 lbl_80191570[];
+extern f32 lbl_80191574[];
+extern f32 lbl_80191578[];
+
+void fn_80025DEC(s32 arg0, s32 arg1, s32 arg2, s32 arg3, u32 *arg4, void *arg5, s32 arg6) {
+    f32 temp_f28;
+    f32 temp_f29;
+    f32 temp_f30;
+    f32 temp_f31;
+    void *var_r29;
+
+    temp_f28 = (f32) (f64) arg0 * lbl_80191570[0];
+    var_r29 = arg5;
+    temp_f29 = (f32) (f64) arg1 * lbl_80191570[0];
+    temp_f31 = (f32) (f64) arg2 * lbl_80191570[0];
+    temp_f30 = (f32) (f64) arg3 * lbl_80191570[0];
+    if (var_r29 == NULL) {
+        var_r29 = lbl_80407D4C;
+    }
+    if ((s32) (*(u8 *)((s8 *)(var_r29) + (0xC0))) != 1) {
+        (*(u8 *)((s8 *)(var_r29) + (0xC0))) = 1U;
+        fn_80024CD4(var_r29);
+    }
+    fn_800374C8(4, 7, var_r29);
+    fn_8003777C(lbl_80191574[0], lbl_80191574[0]);
+    fn_80037788(arg4[0]);
+    fn_800377AC(temp_f28, temp_f29, lbl_80191574[0]);
+    fn_8003777C(lbl_80191578[0], lbl_80191574[0]);
+    fn_80037788(arg4[1]);
+    fn_800377AC(temp_f28 + temp_f31, temp_f29, lbl_80191574[0]);
+    fn_8003777C(lbl_80191578[0], lbl_80191578[0]);
+    fn_80037788(arg4[3]);
+    fn_800377AC(temp_f28 + temp_f31, temp_f29 + temp_f30, lbl_80191574[0]);
+    fn_8003777C(lbl_80191574[0], lbl_80191578[0]);
+    fn_80037788(arg4[2]);
+    fn_800377AC(temp_f28, temp_f29 + temp_f30, lbl_80191574[0]);
+    fn_80037864();
+}
+
+s32 fn_8003777C(f32, f32);
+extern f32 lbl_801915F0[];
+extern f32 lbl_801915F4[];
+
+s32 fn_8003777C(f32, f32);
+extern f32 lbl_801915F0[];
+extern f32 lbl_801915F4[];
+
+void fn_80027868(s32 arg0, s32 arg1, s32 arg2, s32 arg3, f32 farg0, f32 farg1, f32 farg2, f32 farg3, u32 arg4, void *arg5, s32 arg6) {
+    f32 temp_f28;
+    f32 temp_f29;
+    f32 temp_f30;
+    f32 temp_f31;
+    void *var_r31;
+
+    temp_f28 = (f32) (f64) arg0 * lbl_801915F0[0];
+    temp_f29 = (f32) (f64) arg1 * lbl_801915F0[0];
+    var_r31 = arg5;
+    temp_f31 = (f32) (f64) arg2 * lbl_801915F0[0];
+    temp_f30 = (f32) (f64) arg3 * lbl_801915F0[0];
+    if (var_r31 == NULL) {
+        var_r31 = lbl_80407D4C;
+    }
+    if ((s32) (*(u8 *)((s8 *)(var_r31) + (0xC0))) != 1) {
+        (*(u8 *)((s8 *)(var_r31) + (0xC0))) = 1U;
+        fn_80024CD4(var_r31);
+    }
+    fn_800374C8(4, 7, var_r31);
+    fn_8003777C(farg0, farg1);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28, temp_f29, lbl_801915F4[0]);
+    fn_8003777C(farg2, farg1);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28 + temp_f31, temp_f29, lbl_801915F4[0]);
+    fn_8003777C(farg2, farg3);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28 + temp_f31, temp_f29 + temp_f30, lbl_801915F4[0]);
+    fn_8003777C(farg0, farg3);
+    fn_80037788(arg4);
+    fn_800377AC(temp_f28, temp_f29 + temp_f30, lbl_801915F4[0]);
+    fn_80037864();
+}
