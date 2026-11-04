@@ -344,24 +344,31 @@ def stack_arrays(body: str) -> str:
             body = re.sub(rf"\b{v}\b", f"{b}[{i}]", body)
     return body
 
-WIDE_PTR = re.compile(r"^(?P<ind>[ \t]+)(?:s16|u16|s32|u32|f32|f64|s64|u64) \*(?P<v>\w+);$", re.M)
+WIDE_PTR = re.compile(r"^(?P<ind>[ \t]+)(?P<t>s16|u16|s32|u32|f32|f64|s64|u64) \*(?P<v>\w+);$", re.M)
+PTR_SIZES = {"s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4, "f64": 8, "s64": 8, "u64": 8}
 
 
 def byte_strides(body: str) -> str:
     """BODY with each typed local pointer that m2c steps by a byte count (`p += 0x9C` on an
-    `s32 *`, which C scales by 4) declared `void *`, which GCC steps by bytes. Only pointers
-    never dereferenced directly (`*p`, `p[i]`, `p->f`) change; m2c reads them through
-    `(s8 *)(p) + off` casts. fn_800D9824 matched once its `s32 *` became a byte pointer."""
+    `s32 *`, which C scales by 4) stepped by bytes again. A pointer only read through
+    `(s8 *)(p) + off` casts is declared `void *`, which GCC steps by bytes (fn_800D9824);
+    one dereferenced directly keeps its type and steps by elements when the count divides
+    (`s16 *p; p += 2` becomes `p += 1`, fn_800C48A4)."""
     for m in reversed(list(WIDE_PTR.finditer(body))):
         v = re.escape(m["v"])
-        if not re.search(rf"\b{v} [+-]= (?:0x[0-9A-Fa-f]+|\d+);", body):
+        steps = list(re.finditer(rf"\b{v} ([+-])= (0x[0-9A-Fa-f]+|\d+);", body))
+        if not steps:
             continue
         rest = body[:m.start()] + body[m.end():]
-        if re.search(rf"\*\s*\(?{v}\b(?!\s*\))|\b{v}\s*(?:\[|->)|\*\({v}\s*[+-]", rest):
+        if not re.search(rf"\*\s*\(?{v}\b(?!\s*\))|\b{v}\s*(?:\[|->)|\*\({v}\s*[+-]", rest):
+            body = body[:m.start()] + f"{m['ind']}void *{m['v']};" + body[m.end():]
             continue
-        body = body[:m.start()] + f"{m['ind']}void *{m['v']};" + body[m.end():]
+        size = PTR_SIZES[m["t"]]
+        if any(int(st[2], 0) % size for st in steps):
+            continue
+        for st in reversed(steps):
+            body = body[:st.start()] + f"{m['v']} {st[1]}= {int(st[2], 0) // size};" + body[st.end():]
     return body
-
 
 # m2c guesses each callee's prototype from one call site, so a callee read with a
 # different argument count elsewhere (or a variadic one) fails to compile. Matched code

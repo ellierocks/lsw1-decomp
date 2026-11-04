@@ -107,9 +107,11 @@ class SweepRewriteTest(unittest.TestCase):
                 "    (*(u8 *)((s8 *)(p) + (0x8B))) = 0U;\n    p += 0x9C;\n}\n")
         self.assertIn("    void *p;\n", sweep.byte_strides(body))
         deref = "void f(void) {\n    s32 *p;\n    p += 0xC;\n    *p = 1;\n}\n"
-        self.assertEqual(sweep.byte_strides(deref), deref)
-        indexed = "void f(void) {\n    s32 *p;\n    p += 0xC;\n    p[1] = 1;\n}\n"
-        self.assertEqual(sweep.byte_strides(indexed), indexed)
+        self.assertEqual(sweep.byte_strides(deref), deref.replace("p += 0xC;", "p += 3;"))
+        odd = "void f(void) {\n    s32 *p;\n    p += 6;\n    *p = 1;\n}\n"
+        self.assertEqual(sweep.byte_strides(odd), odd)
+        indexed = "void f(void) {\n    s16 *p;\n    p += 2;\n    p[1] = 1;\n}\n"
+        self.assertIn("p += 1;", sweep.byte_strides(indexed))
 
     def test_base_pointer(self):
         body = ("void f(void) {\n    if (x) {\n"
