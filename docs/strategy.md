@@ -119,9 +119,8 @@ SISamplingRate promotes its two functions, initialized data and four-byte
 ### Phase 3: agent draft-and-climb for game code
 
 Throughput is the measure. Run Phase 3 as [sprints](sprint_workflow.md): one
-thread, one unit, an explicit queue, measured active time and score-based limits per function, and one
-PR that merges as soon as CI passes. Parallel work means separate sprint threads on
-separate units, not workers inside a thread. Grow the shared `nu2` and game headers
+unit, an explicit queue and one PR. Concurrent sprints take separate units, tracked
+by branch name. Grow the shared `nu2` and game headers
 inside sprints: confirm a field when a queued function accesses it. Results and
 failure modes from the earlier multi-unit batches are in
 [batch history](phase3_batches.md).
@@ -234,9 +233,8 @@ sprints and strict promotion gates; asset coverage is not matching progress.
    full sprint setup/finish cost for a tiny queue merely because
    it is nearly complete. The selector ranks first-wave bytes, not predicted
    speed; inspect code shapes before choosing. Run one
-   [sprint](sprint_workflow.md) in its own worktree branch, keeping the attempt
-   budget so difficult targets do not consume the easy gains. Preserve the queue across
-   context checkpoints; finish accounting must include every selected target.
+   [sprint](sprint_workflow.md) in its own worktree branch; finish accounting must
+   include every selected target.
 3. Record a plateau in the task's `status.md` and the PR with its best score, its
    remaining mismatch and one concrete next hypothesis. Then move on.
 4. When the plan changes, update this file in the same PR. Sprint results stay in

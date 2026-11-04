@@ -128,7 +128,7 @@ def queue_add(path: Path, names):
 
 
 def near_miss(exact, target):
-    """True when a mismatch is close enough that it must not be parked on attempt count."""
+    """True when a mismatch is at least NEAR_MISS_RATIO exact."""
     return target > 0 and exact < target and exact / target >= NEAR_MISS_RATIO
 
 
