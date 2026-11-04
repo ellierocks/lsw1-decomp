@@ -173,6 +173,10 @@ class MergeModeTests(unittest.TestCase):
         self.origin, self.work = root / 'origin.git', root / 'work'
         subprocess.run(['git', 'init', '-q', '--bare', '-b', 'main', str(self.origin)], check=True)
         subprocess.run(['git', 'clone', '-q', str(self.origin), str(self.work)], check=True, capture_output=True)
+        # merge_main() runs plain git, so the clone needs its own identity (CI has none).
+        for key, value in [('user.name', 't'), ('user.email', 't@t'), ('commit.gpgsign', 'false'),
+                           ('core.hooksPath', '/dev/null')]:
+            subprocess.run(['git', '-C', str(self.work), 'config', key, value], check=True)
         (self.work / 'f').write_text('1\n')
         self.git(self.work, 'add', 'f')
         self.git(self.work, 'commit', '-qm', 'base')
