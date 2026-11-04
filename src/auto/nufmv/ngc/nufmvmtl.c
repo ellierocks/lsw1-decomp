@@ -79,3 +79,43 @@ void fn_80048348(s32 *arg0)
   *arg0 += 0x10000;
   lbl_8040AE44 = (lbl_80408310 = 0);
 }
+
+s32 AIRegisterDMACallback(s32 (*)());
+s32 AISetDSPSampleRate(s32);
+s32 AIStartDMA();
+s32 HVQM4PlayerExGetAudioSamples();
+s32 (*fn_80009948(s32 *, s32))();
+s32 (*fn_80009970(s32 *, s32))();
+s32 fn_800485EC();
+extern s32 lbl_80194624[];
+extern s32 lbl_801946B0[];
+extern s32 lbl_801946C4[];
+extern s32 lbl_80408364;
+extern s32 lbl_80408368;
+extern s32 lbl_8040AE48;
+
+void fn_80049A14(void) {
+    s32 temp_r3;
+
+    if ((s32) lbl_80408368 != 0) {
+        temp_r3 = HVQM4PlayerExGetAudioSamples();
+        if ((u32) (temp_r3 + 0xFFFF4456) <= 1U) {
+            AISetDSPSampleRate(1);
+            goto block_8;
+        }
+        if (temp_r3 == 0x7D1C) {
+            AISetDSPSampleRate(0);
+            goto block_8;
+        }
+        if (temp_r3 == 0) {
+            fn_80009970(lbl_80194624, 0xFD)(lbl_801946B0);
+            return;
+        }
+        fn_80009948(lbl_80194624, 0x100)(lbl_801946C4, temp_r3);
+block_8:
+        lbl_80408364 = 0;
+        lbl_8040AE48 = AIRegisterDMACallback(fn_800485EC);
+        fn_800485EC();
+        AIStartDMA();
+    }
+}

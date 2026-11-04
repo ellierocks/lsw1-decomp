@@ -163,3 +163,24 @@ void fn_80037B80(s32 arg0) {
         lbl_80407FAC = 0;
     }
 }
+
+s32 (*fn_80009948(s32 *, s32))();
+extern s32 GXEurgb60Hz480IntDf[];
+extern s32 GXMpal480IntDf[];
+extern s32 GXNtsc480IntDf[];
+extern s32 GXPal264Int[];
+extern s32 GXPal528IntDf[];
+extern s32 lbl_8019253C[];
+extern s32 lbl_80192678[];
+extern s32 lbl_8040A3CC;
+
+s32 fn_80037228(void) {
+    if (((s32) lbl_8040A3CC == GXNtsc480IntDf) || ((s32) lbl_8040A3CC == GXEurgb60Hz480IntDf) || ((s32) lbl_8040A3CC == GXMpal480IntDf)) {
+        return 0x3C;
+    }
+    if (((s32) lbl_8040A3CC == GXPal528IntDf) || ((s32) lbl_8040A3CC == GXPal264Int)) {
+        return 0x32;
+    }
+    fn_80009948(lbl_8019253C, 0x64E)(lbl_80192678);
+    return 0;
+}

@@ -79,3 +79,27 @@ extern void *lbl_80409410;
 void fn_80146EF4(void) {
     fn_801451A4((*(s32 *)((s8 *)(lbl_80409410) + (0x1984))));
 }
+
+s32 PodraceCreateMine();
+s32 (*fn_80009948(s32 *, s32))();
+void fn_8010BD90(void);
+s32 fn_80142BA8(s32, s32);
+s32 memset();
+extern void *lbl_80409410;
+extern s32 lbl_80409C94;
+extern s32 str_Assert_Podrace_NotWorking[];
+extern s32 str_SourceFile_Podrace[];
+
+void fn_8014FD18(void) {
+    s32 temp_r0;
+
+    temp_r0 = (*(s32 *)((s8 *)(lbl_80409410) + (0x198C)));
+    lbl_80409C94 = temp_r0;
+    if (temp_r0 == 0) {
+        fn_80009948(str_SourceFile_Podrace, 0x326)(str_Assert_Podrace_NotWorking);
+    }
+    memset(lbl_80409C94, 0, 0xB020);
+    fn_80142BA8(lbl_80409C94, 0x20);
+    PodraceCreateMine();
+    fn_8010BD90();
+}

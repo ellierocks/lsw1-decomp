@@ -532,3 +532,23 @@ void Menu_ResetStack(void) {
     (*(s16 *)((s8 *)(gMenuStack) + (0x14))) = -1;
     gMenuDepth = 0;
 }
+
+extern s32 gRegisteredMenuDefinitions[];
+
+void fn_80078E90(void *arg0) {
+    s16 temp_r0;
+    void *temp_r11;
+    void *temp_r11_2;
+
+    temp_r0 = (*(s16 *)((s8 *)(arg0) + (0x14)));
+    if (temp_r0 != -1) {
+        temp_r11 = (temp_r0 * 0x1C) + ((s8 *)gRegisteredMenuDefinitions);
+        if ((s16) (*(s16 *)((s8 *)(temp_r11) + (0x14))) != -1) {
+            (*(s16 *)((s8 *)(temp_r11) + (0x14))) = (s16) (*(u16 *)((s8 *)(arg0) + (8)));
+        }
+        temp_r11_2 = ((*(s16 *)((s8 *)(arg0) + (0x14))) * 0x1C) + ((s8 *)gRegisteredMenuDefinitions);
+        if ((s16) (*(s16 *)((s8 *)(temp_r11_2) + (0x16))) != -1) {
+            (*(s16 *)((s8 *)(temp_r11_2) + (0x16))) = (s16) (*(u16 *)((s8 *)(arg0) + (0xA)));
+        }
+    }
+}
