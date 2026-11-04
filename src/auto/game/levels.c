@@ -663,7 +663,7 @@ void fn_800BDF60(void) {
 
 s32 fn_800AC0C0(f32, f32);
 s32 fn_800C3B54(s32 *);
-s32 fn_800CC3FC();
+void fn_800CC3FC();
 s32 fn_800CCA04(s32, s32 *);
 extern void *gPlayerPointers[];
 extern s32 lbl_801A29B8[];
@@ -3818,4 +3818,142 @@ void fn_800AC728(void *arg0, s32 arg1, s32 arg2, s16 arg3) {
         return;
     }
     fl->b40 = 0;
+}
+
+s32 fn_800130F4(s32 *);
+extern s32 lbl_802DA1F8[];
+void fn_800CC500(void) {
+    s32 i;
+    for (i = 0; i <= 7; i++) {
+        if (fn_800130F4(lbl_802DA1F8 + i * 3) != 0) {
+            fn_80013200(lbl_802DA1F8 + i * 3, 0);
+        }
+    }
+}
+
+extern s32 lbl_802E0BBC[];
+void fn_800CEF44(void) {
+    s8 *p = (s8 *)lbl_802E0BBC;
+    if (*(s16 *)(p + 8) != 0 && *(s16 *)(p + 8) <= 2) {
+        fn_800D7ED8((s32)*(f32 *)(p + 4) + 1, *(s16 *)(p + 0xA), 0);
+        *(s16 *)(p + 0xA) = 0;
+    }
+}
+
+extern f32 lbl_801A4EE0[];
+extern s32 lbl_801D6774[];
+void fn_800CE144(void) {
+    u8 *p = (u8 *)lbl_8040B060;
+    p[0] = 0;
+    p[1] = 0;
+    lbl_8040B168 = lbl_801A4EE0[0];
+    fn_800C3A24(lbl_801D6774);
+}
+
+extern f32 lbl_801A4F10[];
+extern void *lbl_802E0BE4[];
+void fn_800CF03C(void) {
+    s32 v;
+    if (lbl_802E0BE4[0] != NULL && *(f32 *)((s8 *)lbl_802E0BE4[0] + 0x28) == lbl_801A4F10[0] && lbl_80409008 == NULL) {
+        if ((s32)lbl_80409004 == gPlayer1Pointer[0]) {
+            v = gPlayer1Pointer[1];
+        } else {
+            v = gPlayer1Pointer[0];
+        }
+        if (v != 0) {
+            fn_800D95B8(v);
+        }
+    }
+}
+
+extern f32 lbl_801A4EF0[];
+extern s32 lbl_802E0B9C[];
+void fn_800CE43C(void) {
+    s32 *p = lbl_802E0B9C;
+    if (p[1] != 0 && (void *)p[0] != NULL && *(f32 *)((s8 *)p[0] + 0x28) == lbl_801A4EF0[0]) {
+        fn_800D95B8((void *)p[1]);
+    }
+}
+
+s32 fn_800C8CE4();
+extern s32 lbl_8040B110;
+extern s32 lbl_8040B190;
+void fn_800CC3FC(s32 arg0) {
+    s32 t = arg0;
+    if (t != 0 && t != lbl_8040B110) {
+        NuStrCpy((s32 *)lbl_801DC964, t);
+        fn_800C8CE4();
+        lbl_8040B110 = t;
+        lbl_8040B190 = t;
+    }
+}
+
+extern f32 lbl_801A4F9C[];
+extern f32 lbl_80408E9C;
+u16 fn_800CFF84(s32 arg0, s32 arg1, f32 farg0) {
+    f32 f;
+    s32 d;
+    f = farg0 * lbl_80408E9C;
+    if (f > lbl_801A4F9C[0]) {
+        f = lbl_801A4F9C[0];
+    }
+    d = arg1 - arg0;
+    if (d > 0x8000) {
+        d -= 0x10000;
+    } else if (d < -0x8000) {
+        d += 0x10000;
+    }
+    return (u16)(s32)((f32)arg0 + (f32)d * f);
+}
+
+extern f32 lbl_801A511C[];
+extern f32 lbl_801A5120[];
+extern void *lbl_80408DF0;
+extern void *lbl_804093A8;
+extern s32 lbl_8040AFC4;
+void fn_800D3ACC(void *arg0) {
+    s8 *a = arg0;
+    f32 x, hi, lo;
+    s32 v;
+    s8 *t;
+    if (lbl_8040AFC4 != 0 && (x = *(f32 *)(a + 0x1048)) < (hi = *(f32 *)((s8 *)lbl_804093A8 + 0x84))) {
+        lo = *(f32 *)((s8 *)lbl_804093A8 + 0x80);
+        if (x > lo) {
+            *(f32 *)(a + 0x1050) = lbl_801A5120[0] - (x - lo) / (hi - lo);
+        } else {
+            *(f32 *)(a + 0x1050) = lbl_801A5120[0];
+        }
+    } else {
+        *(f32 *)(a + 0x1050) = lbl_801A511C[0];
+    }
+    if (lbl_8040AFC4 > 0 && *(s16 *)(a + 0x1074) != 0x75) {
+        if (*(u8 *)(a + 0x28F) != 0
+            && (v = *(s32 *)(*(s8 **)(*(s32 *)((s8 *)lbl_80408DF0 + 0x20) + **(s16 **)(a + 0x60) * 0x48 + 0x20) + 0xAC)) != 0) {
+            *(s32 *)(a + 0x1060) = v;
+        } else {
+            x = *(f32 *)(a + 0x1048);
+            t = *(s8 **)(*(s8 **)(a + 0x64) + 0x20);
+            if (x > *(f32 *)(t + 0xB4)) {
+                *(s32 *)(a + 0x1060) = *(s32 *)(t + 0xA8);
+            } else if (x > *(f32 *)(t + 0xB0)) {
+                *(s32 *)(a + 0x1060) = *(s32 *)(t + 0xA4);
+            } else {
+                *(s32 *)(a + 0x1060) = *(s32 *)(t + 0xA0);
+            }
+        }
+        switch (*(s16 *)(a + 0x1074)) {
+        case 0x71:
+            if (*(s8 *)(a + 0x1085) <= 1) {
+                *(s32 *)(a + 0x1060) &= ~0x10;
+            }
+            break;
+        case 0x43:
+            if (*(s32 *)(a + 0xF28) & 0x40000) {
+                *(s32 *)(a + 0x1060) |= 0x20;
+            } else {
+                *(s32 *)(a + 0x1060) |= 0x40;
+            }
+            break;
+        }
+    }
 }
