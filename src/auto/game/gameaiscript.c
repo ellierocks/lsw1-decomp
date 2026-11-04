@@ -4577,3 +4577,111 @@ s32 Action_MakeExplosion(void *sys, void *process, struct gameaiscript_packet_s 
     }
     return 1;
 }
+
+extern char str_ScriptFlag_DontCheckTerrain[];
+extern struct gameaiscript_vec_s lbl_803E04C4;
+extern struct gameaiscript_vec_s lbl_801D5964;
+extern void InitPlayerShadow(u8 *);
+extern void SetPlayerOnSurface(u8 *, s32);
+
+s32 Action_SnapToOrigin(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 checkTerrain = 1;
+    u8 *obj = 0;
+    u8 *start;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            obj = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                obj = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if (NuStrIStr(params[i], str_ScriptFlag_DontCheckTerrain) != 0)
+                checkTerrain = 0;
+        }
+        if (obj != 0 && (*(u32 *)(obj + 0x208) & 0x400)) {
+            start = *(u8 **)((u8 *)sys + 0x14) + obj[0x346] * 0xa8;
+            *(struct gameaiscript_vec_s *)(*(u8 **)(obj + 0x2f0) + 0x6c) = *(struct gameaiscript_vec_s *)(start + 0x30);
+            *(u16 *)(obj + 0x27e) = *(u16 *)(start + 0x3e);
+            *(u16 *)(obj + 0x1066) = *(u16 *)(start + 0x3e);
+            *(u16 *)(obj + 0x1068) = *(u16 *)(start + 0x3e);
+            *(u32 *)(obj + 0x3b8) &= ~0x8000;
+            *(struct gameaiscript_vec_s *)(obj + 0x9c) = lbl_803E04C4 = *(struct gameaiscript_vec_s *)(obj + 0x90)
+                = *(struct gameaiscript_vec_s *)(obj + 0xa8) = *(struct gameaiscript_vec_s *)(*(u8 **)(obj + 0x2f0) + 0x6c);
+            *(struct gameaiscript_vec_s *)(obj + 0x1c4) = *(struct gameaiscript_vec_s *)(obj + 0x1dc)
+                = *(struct gameaiscript_vec_s *)(obj + 0x6c);
+            *(struct gameaiscript_vec_s *)(obj + 0x78) = lbl_801D5964;
+            InitPlayerShadow(obj);
+            if (checkTerrain != 0)
+                SetPlayerOnSurface(obj, 0);
+        }
+    }
+    return 1;
+}
+
+extern char lbl_801AD870[];
+extern char lbl_801AD7E0[];
+extern char lbl_801AD7A0[];
+extern char str_Bool_FALSE[];
+struct gameaiscript_cnx_s {
+    s32 unk0;
+    u32 flags[2];
+};
+
+extern struct gameaiscript_cnx_s *fn_8008A6D4(void *, void *, char *, char *, s32 *);
+
+s32 Action_SetPathCnxFlag(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 idx;
+    s32 both = 0;
+    u32 flags = 0;
+    s32 on = 1;
+    u32 clear = 0;
+    char *from = 0;
+    char *to = 0;
+    struct gameaiscript_cnx_s *cnx;
+    char *p;
+    s32 type;
+    s32 i;
+
+    if (sys != 0 && *(u8 **)((u8 *)sys + 0xc) != 0 && **(u8 **)((u8 *)sys + 0xc) != 0 && firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], lbl_801AD870)) != 0)
+                from = p + 5;
+            else if ((p = NuStrIStr(params[i], lbl_801AD7E0)) != 0)
+                to = p + 3;
+            else if ((type = ParseAIPathCnxFlag(params[i])) != 0) {
+                flags |= type;
+                if (type == 0x400)
+                    clear |= 0x800;
+                else if (type == 0x800)
+                    clear |= 0x400;
+                else if (type == 0x20000000)
+                    both = 1;
+            } else if (NuStrICmp(params[i], lbl_801AD7A0) == 0)
+                both = 1;
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                on = 0;
+        }
+        if (from != 0 && to != 0
+            && (cnx = fn_8008A6D4(sys, *(void **)(*(u8 **)((u8 *)sys + 0xc) + 8), from, to, &idx)) != 0) {
+            if (on != 0) {
+                cnx->flags[idx] |= flags;
+                cnx->flags[idx] &= ~clear;
+            } else
+                cnx->flags[idx] &= ~flags;
+            if (both != 0) {
+                if (on != 0) {
+                    cnx->flags[idx == 0] |= flags;
+                    cnx->flags[idx == 0] &= ~clear;
+                } else
+                    cnx->flags[idx == 0] &= ~flags;
+            }
+        }
+    }
+    return 1;
+}
