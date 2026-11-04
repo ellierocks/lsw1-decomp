@@ -280,6 +280,41 @@ cflags_prodg = [
     "-DDEBUG=1" if args.debug else "-DNDEBUG=1",
 ]
 
+# SN runtime (newlib libc and libgcc DImode helpers, src/sn). Retail flags: `-O2 -mfast-cast`,
+# newlib built with -fno-common, small data threshold 1024. The ProDG driver (ngccc) injects the
+# target defines below before cc1 runs; the production prodg rule does not, and without
+# `__GNUC__=2` the libgcc `mode(DI)` types and newlib's `_ANSI_ARGS_` paths compile differently.
+# See docs/sn_runtime.md.
+cflags_sn_target_defs = [
+    "-D__GNUC__=2",
+    "-D__GNUC_MINOR__=95",
+    "-DPPC",
+    "-D__PPC__",
+    "-D__PPC",
+    "-D__CHAR_UNSIGNED__",
+    "-D_BIG_ENDIAN",
+    "-D__BIG_ENDIAN__",
+    "-D__PTRDIFF_TYPE__=int",
+    "-D__SIZE_TYPE__=unsigned",
+    "-D_CALL_SYSV",
+    "-D__SN__",
+    "-DSN_TARGET_NGC",
+    "-D__NOASMPP__",
+    "-D_LANGUAGE_C",
+    "-D__LANGUAGE_C",
+    "-DLANGUAGE_C",
+]
+cflags_sn_libc = [
+    "-O2",
+    "-mfast-cast",
+    "-fno-common",
+    "-G 1024",
+    "-I src/sn/include",
+    "-DNDEBUG=1",
+    *cflags_sn_target_defs,
+]
+cflags_sn_libgcc = [*cflags_sn_libc, "-I src/sn/libgcc"]
+
 config.linker_version = "GC/1.3.2"
 # Use the retail SN linker; MWLD remains the fallback for template REL support.
 config.prodg_linker_version = PRODG_VERSION
@@ -526,6 +561,47 @@ config.libs = [
         SDKObject("gx/GXPerf", Matching),
     ]),
     {
+        "lib": "sn_runtime",
+        "mw_version": config.linker_version,
+        "cflags": cflags_base,
+        "progress_category": "runtime",
+        "objects": [
+            Object(Matching, "sn/libc/ctype/isdigit.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/ctype/tolower.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/ctype/toupper.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdlib/exit.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdlib/strtoul.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/memcmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/memcpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/memset.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strcasecmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strcat.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strcmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strcpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strlen.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strncmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strncpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/strstr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdlib/strtol.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/ctype/isspace.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/memchr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/reent/closer.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/reent/fstatr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/reent/lseekr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/reent/readr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/reent/writer.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libgcc/_ashldi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libgcc/_ashrdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libgcc/_divdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libgcc/_lshrdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libgcc/_moddi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libgcc/_udivdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libgcc/_umoddi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
+            Object(Matching, "sn/libc/stdio/vprintf.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/string/memmove.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+        ],
+    },
+    {
         "lib": "Runtime.PPCEABI.H",
         "mw_version": config.linker_version,
         "cflags": cflags_runtime,
@@ -561,6 +637,7 @@ def link_order_callback(module_id: int, objects: List[str]) -> List[str]:
 config.progress_categories = [
     ProgressCategory("game", "Game Code"),
     ProgressCategory("sdk", "SDK Code"),
+    ProgressCategory("runtime", "SN Runtime"),
 ]
 config.progress_each_module = args.verbose
 # Optional extra arguments to `objdiff-cli report generate`

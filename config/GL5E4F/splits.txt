@@ -320,8 +320,105 @@ auto/game/chris.c:
 	.rodata     start:0x801AF010 end:0x801AF668
 
 auto/game/podrace.c:
-	.text       start:0x80146194 end:0x8015BEF4
+	.text       start:0x80146194 end:0x801503A0
 	.rodata     start:0x801AF668 end:0x801B0460
+
+sn/libc/ctype/isdigit.c:
+	.text       start:0x80154168 end:0x8015417C
+
+sn/libc/ctype/tolower.c:
+	.text       start:0x8015417C end:0x80154198
+
+sn/libc/ctype/toupper.c:
+	.text       start:0x80154198 end:0x801541B4
+
+sn/libc/stdlib/exit.c:
+	.text       start:0x801552DC end:0x8015535C
+
+sn/libc/stdlib/strtoul.c:
+	.text       start:0x80155A50 end:0x80155C20
+
+sn/libc/string/memcmp.c:
+	.text       start:0x80155C20 end:0x80155CB0
+
+sn/libc/string/memcpy.c:
+	.text       start:0x80155CB0 end:0x80155D54
+
+sn/libc/string/memset.c:
+	.text       start:0x80155D54 end:0x80155DE8
+
+sn/libc/string/strcasecmp.c:
+	.text       start:0x80155DE8 end:0x80155E7C
+
+sn/libc/string/strcat.c:
+	.text       start:0x80155E7C end:0x80155F0C
+
+sn/libc/string/strcmp.c:
+	.text       start:0x80155F0C end:0x80155FB4
+
+sn/libc/string/strcpy.c:
+	.text       start:0x80155FB4 end:0x80156038
+
+sn/libc/string/strlen.c:
+	.text       start:0x80156038 end:0x801560A4
+
+sn/libc/string/strncmp.c:
+	.text       start:0x801560A4 end:0x80156184
+
+sn/libc/string/strncpy.c:
+	.text       start:0x80156184 end:0x80156250
+
+sn/libc/string/strstr.c:
+	.text       start:0x80156250 end:0x801562B8
+
+sn/libc/stdlib/strtol.c:
+	.text       start:0x8015927C end:0x80159464
+
+sn/libc/ctype/isspace.c:
+	.text       start:0x80159464 end:0x80159478
+
+sn/libc/string/memchr.c:
+	.text       start:0x8015A1E8 end:0x8015A2A8
+
+sn/libc/reent/closer.c:
+	.text       start:0x8015A788 end:0x8015A7D8
+
+sn/libc/reent/fstatr.c:
+	.text       start:0x8015A7D8 end:0x8015A830
+
+sn/libc/reent/lseekr.c:
+	.text       start:0x8015A830 end:0x8015A888
+
+sn/libc/reent/readr.c:
+	.text       start:0x8015A888 end:0x8015A8E0
+
+sn/libc/reent/writer.c:
+	.text       start:0x8015A8E0 end:0x8015A938
+
+sn/libgcc/_ashldi3.c:
+	.text       start:0x8015AA00 end:0x8015AA40
+
+sn/libgcc/_ashrdi3.c:
+	.text       start:0x8015AA40 end:0x8015AA80
+
+sn/libgcc/_divdi3.c:
+	.text       start:0x8015AA80 end:0x8015AFFC
+	.sdata2     start:0x8040B308 end:0x8040B408
+
+sn/libgcc/_lshrdi3.c:
+	.text       start:0x8015B004 end:0x8015B044
+
+sn/libgcc/_moddi3.c:
+	.text       start:0x8015B044 end:0x8015B578
+	.sdata2     start:0x8040B408 end:0x8040B508
+
+sn/libgcc/_udivdi3.c:
+	.text       start:0x8015B578 end:0x8015BA5C
+	.sdata2     start:0x8040B508 end:0x8040B608
+
+sn/libgcc/_umoddi3.c:
+	.text       start:0x8015BA5C end:0x8015BEF4
+	.sdata2     start:0x8040B608 end:0x8040B708
 
 dolphin/base/PPCArch.c:
 	.text       start:0x8015BEF4 end:0x8015C008
@@ -702,6 +799,12 @@ dolphin/gx/GXTransform.c:
 dolphin/gx/GXPerf.c:
 	.text       start:0x8018392C end:0x8018432C
 	.data       start:0x801FB4F8 end:0x801FB640
+
+sn/libc/stdio/vprintf.c:
+	.text       start:0x8018BD4C end:0x8018BD80
+
+sn/libc/string/memmove.c:
+	.text       start:0x8018BD80 end:0x8018BE6C
 
 dolphin/os/OSFatal.c:
 	.text       start:0x8018BE6C end:0x8018CAFC

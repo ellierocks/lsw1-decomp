@@ -16,7 +16,7 @@ reorders the work by yield:
 | Lane | Code share | Nature |
 |---|---|---|
 | Dolphin SDK import | about 12–15% | Integration: matched donor C already exists |
-| `libsn` / libc | about 1% | Needs SN's GPL GCC source build |
+| `libsn` / libc | about 1% | newlib and libgcc DImode imported from upstream ([SN runtime](sn_runtime.md)); libsn and the debugger driver stay assembly |
 | Small leaf functions (agent + permuter) | many functions | High throughput once tooling exists |
 | Nu2 engine with CrashWOC/LSW2 donors | large | Algorithms carry over; code generation must be rematched |
 | Game logic | the rest | Slowest; depends on shared types |
@@ -73,7 +73,8 @@ blockers:
 - the HVQM4 decoder (`8018432C..8018A10C`), which has no donor source;
 - the debugger driver (`8018A10C..8018AB8C`), which needs a hand-written
   `DebuggerDriver.c`;
-- `libsn`/libc, which needs SN's GCC source build (see RE4).
+- `libsn` (`dummy`, `FSasync`, `sndvd`), which has no upstream source. The newlib and libgcc
+  objects are imported; the remaining runtime misses are in [SN runtime](sn_runtime.md#not-imported).
 
 SISamplingRate promotes its two functions, initialized data and four-byte
 `SamplingRate` `.sbss`. BSS is verified by layout (see
@@ -212,7 +213,7 @@ sprints and strict promotion gates; asset coverage is not matching progress.
 1. Choose by expected verified code bytes per unit of effort, not phase number.
    The SDK donor queue is exhausted. Prioritize game/Nu2 matching in existing
    units; do remaining Phase 2 boundary and data work when it directly unblocks
-   a promising unit. Keep libsn, debugger and HVQM4 research deferred until a
+   a promising unit. Keep libsn, debugger, HVQM4 and the remaining [SN runtime](sn_runtime.md#not-imported) misses deferred until a
    concrete donor or implementation lead changes their expected yield.
 2. Run the sweep first (see Phase 3), then take the sprint queue from the top of
    `work/sweep/results.json`, grouped by unit. Fetch, inspect `git worktree list`, and run

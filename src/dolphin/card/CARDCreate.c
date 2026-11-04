@@ -1,6 +1,3 @@
-#define memcmp Menu_SetupDisplay
-#define strncpy lbl_80156184
-
 #include <dolphin/card.h>
 
 #include "__card.h"
