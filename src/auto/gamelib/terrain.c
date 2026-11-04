@@ -242,3 +242,39 @@ void fn_8004BDD0(void *arg0) {
         }
     }
 }
+
+f32 NuASin(s32);
+f32 NuAngDiff(s32);
+extern void *lbl_8040AE5C;
+
+void fn_8004F590(void *arg0)
+{
+  f32 temp_f11;
+  f32 *new_var3;
+  f32 temp_f12;
+  f32 temp_f13;
+  f32 temp_f13_2;
+  f32 temp_f1;
+  f32 temp_f29;
+  f32 *new_var;
+  s8 *new_var2;
+  f32 temp_f30;
+  f32 temp_f31;
+  new_var2 = (s8 *) arg0;
+  temp_f29 = NuAngDiff((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x44)))));
+  temp_f30 = NuASin((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x44)))));
+  temp_f31 = NuAngDiff((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x48)))));
+  temp_f1 = NuASin((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x48)))));
+  temp_f11 = (*((f32 *) (((s8 *) arg0) + 0))) - (*((f32 *) (((s8 *) lbl_8040AE5C) + 0x1C)));
+  temp_f12 = *((f32 *) (new_var2 + 4));
+  temp_f13 = (*((f32 *) (new_var2 + 8))) - (*((f32 *) (((s8 *) lbl_8040AE5C) + 0x24)));
+  new_var3 = (f32 *) (((s8 *) lbl_8040AE5C) + 0x20);
+  new_var = (f32 *) (((s8 *) lbl_8040AE5C) + 0x50);
+  if (!temp_f11)
+  {
+  }
+  *((f32 *) (((s8 *) arg0) + 0)) = (f32) ((temp_f13 * temp_f31) + (temp_f11 * temp_f1));
+  temp_f13_2 = (temp_f13 * temp_f1) - (temp_f11 * temp_f31);
+  *((f32 *) (((s8 *) arg0) + 8)) = (f32) ((((temp_f12 + (*new_var)) - (*new_var3)) * temp_f29) + (temp_f13_2 * temp_f30));
+  *((f32 *) (((s8 *) arg0) + 4)) = (f32) ((((temp_f12 + (*new_var)) - (*new_var3)) * temp_f30) - (temp_f13_2 * temp_f29));
+}
