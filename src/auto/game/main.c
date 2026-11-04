@@ -228,3 +228,22 @@ void fn_8009F0B8(s32 arg0)
     }
   }
 }
+
+void Menu_ResetStack(void);
+s32 fn_8006DCD4(void *, void *);
+void fn_8006DF18(void);
+void fn_8006E184(void);
+void fn_80078E90(void *);
+extern s32 gMenuDepth;
+extern s32 gMenuStack[];
+extern s32 lbl_8019EACC[];
+extern s32 lbl_8040912C;
+
+void Menu_CleanupAndReset(void) {
+    lbl_8040912C = 0;
+    fn_80078E90((gMenuDepth * 0xE0) + ((s8 *)gMenuStack));
+    Menu_ResetStack();
+    fn_8006DF18();
+    fn_8006E184();
+    fn_8006DCD4(lbl_8019EACC, 0);
+}

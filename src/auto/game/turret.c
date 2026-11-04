@@ -167,3 +167,16 @@ struct NUTURRET_s* CreateTurretSys(char** cursor, char** end, u32 value)
     }
     return turret;
 }
+
+#define fn_8002D9E8 ((s32 (*)(s32 *, s32 *, void *, void *, void *, void *))fn_8002D9E8)
+#define fn_8002DAD0 ((s32 (*)(s32 *))fn_8002DAD0)
+extern s32 lbl_801E1720[];
+extern s32 lbl_801E1744[];
+extern s32 lbl_801E1768[];
+
+void fn_8013FB08(void) {
+    fn_8002D9E8(lbl_801E1744, lbl_801E1720, ((s8 *)lbl_801E1744) + 0xC, ((s8 *)lbl_801E1720) + 0xC, ((s8 *)lbl_801E1744) + 0x18, ((s8 *)lbl_801E1720) + 0x18);
+    fn_8002DAD0(lbl_801E1768);
+}
+#undef fn_8002D9E8
+#undef fn_8002DAD0
