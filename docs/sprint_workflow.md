@@ -204,9 +204,9 @@ attempts cost usage. The 180 s burst in the table above stays part of each funct
 Hand off whenever the model has stopped finding improvements:
 
 - **Model → permuter.** A function at 95% exact or better whose last two attempts did not
-  improve is parked straight into the unattended queue: `permute_setup.py NAME`, then
-  `tools/permute_long.sh 2 1 NAME...` (2 slots, 1 h each; longer overnight runs are the user's
-  call, and a second queue beside a running one needs `--unit NAME`). Do not spend
+  improve is parked straight into the unattended queue: `tools/permute_long.sh --add NAME` when
+  a queue is running, otherwise `tools/permute_long.sh 2 1 NAME...` (2 slots, 1 h each; the queue
+  runs `permute_setup.py` itself). Do not spend
   the remaining attempts in the table on it. Its parked row's next hypothesis is the queued run.
 - **Keep working meanwhile.** Start the next wave while the queue runs. When nothing else is
   ready, end the turn or thread instead of waiting, and pause the timer (`--phase paused`).
@@ -218,6 +218,10 @@ Hand off whenever the model has stopped finding improvements:
   score-0 output with `score_fn.py --apply` and `verify_fn.py --strict-symbols`. Give an improved
   but nonzero output two model attempts from the new base, then re-queue it. Targets that did
   not improve stay parked without further model attempts.
+- **Overnight runs** are the user's call. Give them a backlog well beyond what the slots can
+  use, so early matches do not leave slots idle:
+  `tools/permute_long.sh 7 2 --total 8 $(python3 tools/permute_backlog.py --slots 7 --hours 8 --per 2 --limit 60)`.
+  Targets not started stay in the backlog for the next run.
 
 ## Finish (one pass)
 
