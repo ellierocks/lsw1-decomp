@@ -3957,3 +3957,12 @@ void fn_800D3ACC(void *arg0) {
         }
     }
 }
+
+extern f32 lbl_8019FEF8[];
+extern f32 lbl_8019FEFC[];
+
+void fn_800AC058(s32 arg0, s32 arg1) {
+    if (arg0 != 0) {
+        fn_80044F28(arg0, 0, (f32) (f64) arg1 / lbl_8019FEF8[0], lbl_8019FEFC[0], lbl_8019FEFC[0]);
+    }
+}
