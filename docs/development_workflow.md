@@ -80,6 +80,25 @@ Before merging:
 After merging, confirm on the forge that the PR is merged and note the merge commit.
 Delete the topic branch once it is merged.
 
+### Worktree cleanup
+
+Sprint research (parked `status.md` notes, candidates, permuter outputs) lives in each
+worktree's ignored `work/`, so it must not be lost when the worktree goes. After a merge,
+run from any checkout:
+
+```sh
+python3 tools/worktree_cleanup.py                 # dry run
+python3 tools/worktree_cleanup.py --apply --remote
+```
+
+It copies the `work/` of every merged, clean worktree idle for 6 hours or more (`--min-idle`) to the
+main checkout's `work/archive/worktrees/NAME/` before running `git worktree remove`. It then
+deletes local and `origin` branches merged into `origin/main` that no worktree uses, and rebuilds
+`work/archive/worktrees/INDEX.md`: every parked or plateaued function with its state on main,
+permuter base→best score and status note. Unmerged or dirty worktrees are kept. Pass
+`--keep PATH_OR_BRANCH` for one whose thread is still active. Start the next sprint on a parked
+function from `INDEX.md` rather than from an old worktree.
+
 ## Secrets
 
 `ORIG_KEY` is the passphrase for `orig/GL5E4F/sys/main.dol.enc`. It is set as an
