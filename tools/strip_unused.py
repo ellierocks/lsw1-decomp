@@ -244,6 +244,48 @@ def externalize_bss(elf, table, section='.bss', dead=None):
     elf.sections[bss][8] = 1
 
 
+def globalize_bss(elf, target_bind):
+    """Give compiled `.bss`/`.sbss` objects the binding the retail split declares.
+
+    The donor source keeps `static` because MWCC lays out and addresses statics differently
+    from globals, but another object (a dtk auto unit, a game unit) may reference the retail
+    name. Raising the binding changes object metadata only; the symbol table is re-partitioned
+    so locals still precede globals, with relocations and the `.comment` records following.
+    """
+    symtab = elf.index('.symtab')
+    strs = elf.contents[elf.sections[symtab][6]]
+    syms = [list(struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]
+    changed = False
+    for s in syms:
+        if s[5] == 0 or s[5] >= elf.shnum or elf.names[s[5]] not in ('.bss', '.sbss') or s[3] & 15 != STT_OBJECT:
+            continue
+        name = strs[s[0]:strs.index(b'\x00', s[0])].decode()
+        if s[3] >> 4 == STB_LOCAL and target_bind.get((elf.names[s[5]], name), STB_LOCAL) != STB_LOCAL:
+            s[3] = target_bind[(elf.names[s[5]], name)] << 4 | s[3] & 15
+            changed = True
+    if not changed:
+        return
+    order = [i for i, s in enumerate(syms) if s[3] >> 4 == STB_LOCAL] + [i for i, s in enumerate(syms) if s[3] >> 4 != STB_LOCAL]
+    remap = {old: new for new, old in enumerate(order)}
+    elf.contents[symtab] = bytearray().join(struct.pack('>IIIBBH', *syms[i]) for i in order)
+    elf.sections[symtab][7] = sum(1 for s in syms if s[3] >> 4 == STB_LOCAL)
+    for i, sh in enumerate(elf.sections):
+        if sh[1] != SHT_RELA:
+            continue
+        out = bytearray()
+        for o in range(0, len(elf.contents[i]), 12):
+            r_off, r_info, r_add = struct.unpack('>IIi', elf.contents[i][o:o + 12])
+            out += struct.pack('>IIi', r_off, remap[r_info >> 8] << 8 | r_info & 255, r_add)
+        elf.contents[i] = out
+    if '.comment' in elf.names:
+        ci = elf.index('.comment')
+        body = elf.contents[ci]
+        hdr = len(body) - 8 * len(syms)
+        if hdr >= 0:
+            recs = [body[hdr + 8 * k:hdr + 8 * k + 8] for k in range(len(syms))]
+            elf.contents[ci] = bytearray(body[:hdr]) + bytearray().join(recs[i] for i in order)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--target', required=True, type=Path)
@@ -256,12 +298,14 @@ def main():
     sti = target.index('.symtab')
     strings = target.contents[target.sections[sti][6]]
     keep = {}
+    target_bind = {}
     for off in range(0, len(target.contents[sti]), 16):
         name, value, size, info, other, sec = struct.unpack('>IIIBBH', target.contents[sti][off:off + 16])
         if sec == 0 or sec >= target.shnum:
             continue
         nm = strings[name:strings.index(b'\x00', name)].decode()
         keep.setdefault(target.names[sec], set()).add(nm)
+        target_bind[(target.names[sec], nm)] = info >> 4
     if not keep:
         sys.exit('strip_unused: target has no defined symbols')
     elf = Elf(open(args.object, 'rb').read())
@@ -270,6 +314,7 @@ def main():
         dead = dead_function_ranges(elf, keep)
         for section in ('.bss', '.sbss'):
             externalize_bss(elf, table, section, dead)
+    globalize_bss(elf, target_bind)
     symtab = elf.index('.symtab')
     strtab = elf.sections[symtab][6]
     syms = [list(struct.unpack('>IIIBBH', elf.contents[symtab][o:o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]

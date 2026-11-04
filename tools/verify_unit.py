@@ -82,6 +82,97 @@ def refuse(reason):
     LAST_REFUSAL = reason
     return None
 LOCAL_BRANCH_OPCODES = {10: 18, 11: 16}
+STT_SECTION, STT_FILE = 3, 4
+
+
+def bss_symbols(elf, section):
+    """Defined symbols of one uninitialised section as [(offset, size, name)], or None if unusable."""
+    found = []
+    for sym in elf.symbols:
+        if sym.shndx != section.index or sym.sym_type in (STT_SECTION, STT_FILE):
+            continue
+        if sym.sym_type == 0 and not sym.size and sym.name.startswith("..."):
+            continue  # MWCC section anchor such as `...bss.0`: marks no object
+        if not sym.name or not sym.size:
+            return None
+        found.append((sym.value, sym.size, sym.name))
+    return sorted(found)
+
+
+def bss_layout_refusal(name, t, m, target, mine):
+    """Why the compiled `.bss`/`.sbss` does not reproduce the retail layout, or None when it does.
+
+    BSS has no retail bytes, so zero contents prove nothing. Proof is by layout:
+    (a) the compiled section is exactly as large as the retail split range;
+    (b) the split's symbols tile the range without a gap, and each compiled symbol has the
+        same name and offset in the target, with the same size. Alignment padding the compiler
+        left before the next object (under MAX_ALIGN_TAIL bytes, ending exactly at the next
+        symbol) may be a dtk `gap_*` symbol or make the target symbol larger;
+    the relocation and linked-address halves of the policy live in prove_unit and
+    check_linked_bss.
+    """
+    if m.size != t.size:
+        return f"{name}: compiled section is 0x{m.size:x} bytes, the retail split range 0x{t.size:x}"
+    ts, ms = bss_symbols(target, t), bss_symbols(mine, m)
+    if ts is None or ms is None:
+        return f"{name}: a {'target' if ts is None else 'compiled'} symbol has no name or no size"
+    if not ts or not ms:
+        return f"{name}: {'target' if not ts else 'compiled'} object defines no symbol in the section"
+    end = 0
+    for offset, size, sym in ts:
+        if offset != end:
+            return (f"{name}: unexplained {'gap' if offset > end else 'overlap'} in the retail symbols "
+                    f"before {sym} at +0x{offset:x} (previous symbol ends at +0x{end:x})")
+        end = offset + size
+    if end != t.size:
+        return f"{name}: retail symbols end at +0x{end:x}, section is 0x{t.size:x} bytes"
+    if len(ms) != len({offset for offset, _, _ in ms}):
+        return f"{name}: two compiled symbols share an offset"
+    # dtk names an unclaimed stretch `gap_NN_ADDR_section`. It is explained only as alignment
+    # padding: it follows a compiled object directly, is shorter than MAX_ALIGN_TAIL and ends
+    # exactly at the next compiled object (or the section end). Anything else stays a retail
+    # symbol with no compiled counterpart.
+    ends = {offset + size for offset, size, _ in ms}
+    starts = sorted({offset for offset, _, _ in ms} | {m.size})
+    ts = [(o, s, n) for o, s, n in ts
+          if not (n.startswith("gap_") and o in ends and s < MAX_ALIGN_TAIL and o + s in starts)]
+    retail = {offset: (size, sym) for offset, size, sym in ts}
+    for index, (offset, size, sym) in enumerate(ms):
+        if offset not in retail:
+            return f"{name}: compiled symbol {sym} at +0x{offset:x} has no retail symbol at that offset"
+        rsize, rname = retail[offset]
+        if rname != sym:
+            return f"{name}: compiled symbol {sym} at +0x{offset:x} is {rname} in the retail split"
+        if rsize == size:
+            continue
+        following = ms[index + 1][0] if index + 1 < len(ms) else m.size
+        if not size < rsize < size + MAX_ALIGN_TAIL or offset + rsize != following:
+            return (f"{name}: {sym} at +0x{offset:x} is 0x{size:x} bytes, retail 0x{rsize:x} "
+                    "(not alignment padding before the next object)")
+    if len(ms) != len(ts):
+        extra = sorted({o for o, _, _ in ts} - {o for o, _, _ in ms})
+        return f"{name}: retail symbol at +0x{extra[0]:x} has no compiled counterpart ({len(ts) - len(ms)} missing)"
+    return None
+
+
+def check_linked_bss(ranges, mine, linked):
+    """Return an error string unless every compiled BSS symbol sits at its retail address in the link.
+
+    `linked` maps names to sets of linked addresses. Every relocation into the section
+    from any unit resolves through these symbols, so an object at the retail address
+    here means references from other units resolve to the retail address too.
+    """
+    for section in mine.sections:
+        if section.sh_type != 8 or section.name not in ranges:
+            continue
+        start = ranges[section.name][0]
+        for sym in mine.symbols:
+            if sym.shndx != section.index or sym.sym_type in (STT_SECTION, STT_FILE):
+                continue
+            if start + sym.value not in linked.get(sym.name, ()):
+                return (f"{section.name}: {sym.name} is not linked at retail 0x{start + sym.value:08x} "
+                        f"(linked at {sorted(f'0x{a:08x}' for a in linked.get(sym.name, ())) or 'nowhere'})")
+    return None
 
 
 def prove_unit(target, mine, ranges, symbols, dol):
@@ -132,14 +223,19 @@ def prove_unit(target, mine, ranges, symbols, dol):
         if t.size != end - start or t.sh_type != m.sh_type or t.flags != m.flags:
             return refuse(f"{name}: split range 0x{end - start:x}, target 0x{t.size:x}, donor 0x{m.size:x}, "
                           "or type/flags differ")
+        # BSS has no retail bytes: do not infer uninitialised layout from zeroes. Prove it
+        # by layout instead (size, symbol offsets and sizes); relocations into it are
+        # resolved by address through the code and data sections that use them.
+        if t.sh_type == 8:
+            reason = bss_layout_refusal(name, t, m, target, mine)
+            if reason:
+                return refuse(reason)
+            continue
         # The linker aligns the next object, so a donor data section may end
         # before its retail range. Only a short all-zero tail is accepted.
         pad = t.size - m.size
-        if pad and not (0 < pad < MAX_ALIGN_TAIL and not t.flags & 4 and t.sh_type != 8):
+        if pad and not (0 < pad < MAX_ALIGN_TAIL and not t.flags & 4):
             return refuse(f"{name}: donor section is {pad} bytes short of the retail range")
-        # BSS has no retail bytes: do not infer uninitialised layout from zeroes.
-        if t.sh_type == 8:
-            return refuse(f"{name}: uninitialised sections have no retail bytes to prove")
         tb, mb, rb = bytearray(target.section_bytes(t)), bytearray(mine.section_bytes(m)), dol.read(start, t.size)
         if rb is None or len(tb) != t.size or len(mb) != m.size or len(rb) != t.size:
             return refuse(f"{name}: cannot read retail bytes")
@@ -215,6 +311,15 @@ def prove_unit(target, mine, ranges, symbols, dol):
     return {name: start for name, (start, _) in ranges.items()}
 
 
+def linked_symbol_addresses(elf):
+    """{name: {address}} for the defined symbols of the linked image."""
+    result = {}
+    for sym in elf.symbols:
+        if sym.shndx and sym.name and sym.sym_type not in (STT_SECTION, STT_FILE):
+            result.setdefault(sym.name, set()).add(sym.value)
+    return result
+
+
 def verify_functions(vf, unit):
     """Strictly verify every function of the unit's object in one process.
 
@@ -266,12 +371,20 @@ def main(argv=None):
         notes = []
         dol = vf.load_dol(vf.DOL_PATH, notes)
         ranges = split_ranges(vf.SPLITS.read_text(), args.unit)
-        proof = prove_unit(vf.Elf(target_path), vf.Elf(source_path), ranges, vf.SymbolTable(), dol)
+        mine = vf.Elf(source_path)
+        proof = prove_unit(vf.Elf(target_path), mine, ranges, vf.SymbolTable(), dol)
+        refusal = LAST_REFUSAL
+        if proof is not None and any(s.sh_type == 8 and s.name in proof for s in mine.sections):
+            # The BSS layout is proved; the link must also have put it at the retail addresses.
+            linked_path = vf.ROOT / "build/GL5E4F/main.elf"
+            vf.ensure_fresh(linked_path, args.unit, args.build, False)
+            refusal = check_linked_bss(ranges, mine, linked_symbol_addresses(vf.Elf(linked_path)))
+            proof = None if refusal else proof
     except (vf.ToolError, OSError, ValueError, IndexError, TypeError, struct.error) as exc:
         print(f"FAIL: {args.unit}: {exc}", file=sys.stderr)
         return 1
     if proof is None:
-        print(f"FAIL: {args.unit}: full section and relocation proof did not succeed: {LAST_REFUSAL}")
+        print(f"FAIL: {args.unit}: full section and relocation proof did not succeed: {refusal}")
         return 1
     print(f"PASS: {args.unit}: {len(proof)} complete sections match retail")
     if not args.functions:

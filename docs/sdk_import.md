@@ -88,11 +88,72 @@ range are not matched by the donor, or when the range overlaps an existing split
 Those need the manual steps below (or, for statics that only dead-stripped functions
 used, `strip_unused.py --external-bss` now drops them; see GXDisplayList below).
 
-Keep file-scope statics as the donor wrote them and let `--external-bss` replace their
-storage: declaring them `extern` changes MWCC's code (it reloads values around
-callbacks), so the importer always uses `external_bss=True` for units with `.bss` or
-`.sbss`. `strip_unused.py` maps the donor's static names to `symbols.txt` objects by
-name, which is why the importer renames the retail `lbl_` labels to the donor names.
+Keep file-scope statics as the donor wrote them: declaring them `extern` changes MWCC's
+code (it reloads values around callbacks). A fresh import starts on the fallback, so the
+importer emits `external_bss=True` for units with `.bss` or `.sbss`, and `--external-bss`
+replaces the storage. `strip_unused.py` maps the donor's static names to `symbols.txt`
+objects by name, which is why the importer renames the retail `lbl_` labels to the donor
+names. Once the unit's code is verified, promote its BSS as described next.
+
+### Promoting a unit's `.bss`/`.sbss`
+
+BSS has no retail bytes, so it is proved by **layout**, never by zero contents. A unit
+owns its `.bss`/`.sbss` (a `.bss`/`.sbss` range in its `splits.txt` entry and
+`external_bss=False`) only when all of these hold:
+
+1. The compiled section size equals the retail split range.
+2. Every compiled symbol has a retail symbol with the same name, offset and size. The
+   retail symbols tile the range with no gap or overlap. Alignment padding (under 32
+   bytes, ending exactly at the next compiled object or the section end) may be either
+   a dtk `gap_NN_ADDR_bss` symbol or extra size on the retail symbol. A zero-size MWCC
+   `...bss.0` anchor is not an object. Merged retail symbols (`gxData`, `u64` halves)
+   are split in `symbols.txt` first, as above, and only where the donor sizes tile them.
+3. Every relocation into the section, from any unit, resolves to the retail address.
+   `verify_unit.py --build` links the unit's objects with the shipped linker script and
+   requires each compiled symbol to sit at `range start + offset` in `main.elf`.
+4. The full linked image stays byte-identical to retail (the `bash build.sh` gate).
+
+`tools/verify_unit.py dolphin/<unit> --build` enforces 1–3 and fails on any unexplained gap
+or extra symbol; `build.sh` enforces 4. Work through it like this:
+
+- Take the base of each donor static from `symbols.txt` (compile the unit raw, subtract
+  the object offset). The base must be consistent across the section, and the unit
+  order must follow `.text` order: BSS starts ascend with the `.text` starts.
+- The range is `[base, base + compiled section size)`. A trailing alignment pad stays
+  with dtk's gap unit, so the end need not be 8-aligned, but dtk rejects a gap unit
+  that starts at an odd address (AXSPB below).
+- Keep statics `static` in C. MWCC lays out and addresses a non-static uninitialised
+  global differently (it moves it after the statics, which also shifts `.text`).
+  `strip_unused.py` instead raises the compiled binding to what the target object
+  declares, so another unit (a dtk auto unit, a game unit) can reference
+  `AlarmForTimeout`, `AlarmForBreak` or `__AXUpdates` by their retail names.
+  Mark such symbols `scope:global` in `symbols.txt`.
+- Shrink a symbol's `symbols.txt` size only when it overhangs the unit's range end.
+  Do not grow a size to swallow interior padding: objdiff then scores the section as a
+  partial match and credits no data bytes, whereas a `gap_` symbol keeps the full
+  match. Delete an unreferenced filler label (`lbl_8030FBB4` in OSFatal) so dtk can
+  emit the gap itself.
+- Common symbols follow MWCC's emission, so a non-static uninitialised global in a donor
+  would be COMMON and land after the section's statics. No promoted unit has one; if you meet one
+  the layout check will fail on the offset, and the unit stays on the fallback.
+
+**Units promoted so far** (bytes of `.bss` + `.sbss`): OS 164, OSExec 8, OSFont 16, OSError 68,
+OSResetSW 32, OSRtc 84, OSThread 2,564, OSFatal 728, EXIBios 196, SIBios 512, vi 428, Pad 128,
+dvdfs 32, dvd 244, dvdqueue 32, dvdlow 208, AXAlloc 260, AXAux 11,572, AXCL 1,556, AXOut 19,124,
+AXVPB 71,692, CARDBios 580, GXInit 1,584 (`.bss` only, after splitting `gxData`) and
+SISamplingRate 4 (`SamplingRate`, folded back from the old `SISamplingRateBSS` unit).
+
+**Remaining exceptions** (still `--external-bss`, reason recorded):
+
+| Unit | Why it stays on the fallback |
+|---|---|
+| `ax/AXSPB` | The compiled `.bss` is `0x36` bytes; the gap unit dtk would need starts at the odd address `0x802FCB16`, and dtk aborts (`Invalid alignment for split`). The donor size is a MWCC-vs-retail rounding problem, not a layout mismatch. |
+| `gx/GXDisplayList` | Defines `DisplayListFifo`, `OldCPUFifo` and `__savedGXdata`, but retail has no symbols for them: they sit unnamed in dtk's `lbl_8030EB90` (0x5D8, the tail of the old 0xb88 `gxData`). Requirement (b) cannot be proved without per-symbol offsets, and no xref evidence has been gathered to split the label. Without a retail range the compiled BSS would grow the image. |
+| `os/OSReset` | Carries the flag but defines no BSS statics; harmless, left alone. |
+
+`ai/ai` is not on the fallback and has no retail `.bss`/`.sbss` range: its
+`profile` and `__ai_src_time_*` are debug-only, so nothing needs owning.
+| Game and Nu2 units | Out of scope. See [build_config](build_config.md#bss-layout-policy) for how the same rule applies later. |
 
 Several units can be imported in parallel worktrees: each touches `splits.txt`,
 `configure.py`, `symbols.txt` and this file at different lines, so conflicts are
@@ -621,12 +682,13 @@ the complete `.text` and `.data` sections, including relocations. The splits are
 `.text` `80167178..80167280` and `.data` `801F5B40..801F5BD8`. `XYPAL` and the
 `SISetSamplingRate` diagnostic string are named at their donor-proved addresses.
 
-The four-byte `SamplingRate` at `.sbss` `8040A920..8040A924` remains an
-assembly fallback: the complete-unit verifier deliberately does not accept BSS
-as proved data. The vendored source therefore references DTK's exact split-local
-name, `SamplingRate_8040A920`, rather than defining storage in the C unit. This
-keeps the BSS unchanged and out of the promoted unit; no BSS proof is claimed.
-The full image remains byte-identical to retail (SHA-1
+The four-byte `SamplingRate` at `.sbss` `8040A920..8040A924` was first left as
+an assembly fallback (a separate `SISamplingRateBSS` unit) because the verifier
+did not yet accept BSS. Under the layout policy it is now owned by the unit:
+`SISamplingRate.c` defines `static u32 SamplingRate;`, the split carries
+`.sbss 8040A920..8040A924`, and `verify_unit.py` proves the section by layout
+(see [Promoting a unit's `.bss`/`.sbss`](#promoting-a-units-bsssbss)). The
+full image remains byte-identical to retail (SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`).
 
 Reproduction:
@@ -864,8 +926,9 @@ Three causes blocked the earlier plateau, and none was a version difference:
   register and const-pointer variants of the extern cannot reproduce this. The
   donor-literal source (`static GXFifoObj FifoObj; static GXData gxData;` with
   `&FifoObj` at each use) matches all 384 instructions.
-- **BSS ownership.** The retail BSS stays in fallback objects, but the compiled
-  object defined the statics. `tools/strip_unused.py --external-bss` now turns
+- **BSS ownership (superseded).** GXInit now owns `.bss 8030E560..8030EB90`
+  under the layout policy and no longer uses `--external-bss`; the text below
+  records the earlier fallback. `tools/strip_unused.py --external-bss` turned
   those `.bss` definitions into undefined references to the fallback symbols
   and empties the section. It accepts an object only when each name exists as a
   `.bss` entry in `symbols.txt`, its size fits, the whole section shares one
@@ -953,7 +1016,8 @@ Evidence and limits:
 - **BSS and small data.** Static BSS stays in fallback. OSError and OSReset use
   `external_bss=True`; CARD units refer to the shared card control block as
   `lbl_8030E320`; `db` declares `__DBInterface` and `DBVerbose` as externs for
-  retail's `.sbss` symbols. BSS is never promoted.
+  retail's `.sbss` symbols. BSS was not promoted at this stage; see
+  [Promoting a unit's `.bss`/`.sbss`](#promoting-a-units-bsssbss).
 - **Verifier change.** DTK emits a relocation for a branch back to its own
   function entry, while MWCC resolves it in the object. `verify_fn.py` accepts
   the pair as equal only when the assembled branch (same opcode, word-aligned)
@@ -1020,7 +1084,8 @@ Evidence and limits:
   the donor statics (`__AID_Callback`, `bound_32KHz`, `__AR_Size`,
   `__ARQRequestPendingLo`, `Chan`, ...). The 8-byte `OSTime` statics replace the
   paired 4-byte placeholders. `WaitingQueue` in dvdqueue is externalized BSS.
-  BSS is never promoted.
+  BSS was not promoted at this stage; see
+  [Promoting a unit's `.bss`/`.sbss`](#promoting-a-units-bsssbss).
 - **Version strings.** `__AIVersion`, `__ARVersion` and `__ARQVersion` are
   `.sdata` pointers to `.data` strings. Each pointer is padded to 8 bytes in
   retail; the 4-byte padding stays in fallback because DTK splits must be
@@ -1283,7 +1348,7 @@ Retrospective items from Batch 6, fixed in the tools rather than by hand:
 | `gx/GXDisplayList` | Imports and proves with the new drop rule. |
 | Includes | `-i src/dolphin` root and donor lookup. |
 | Failure output | Key lines first. |
-| `SISamplingRateBSS.c` | The "Missing configuration" message was a deliberate sbss-only fallback split with no `Object`; it is now a `NonMatching` object and the DOL is unchanged. |
+| `SISamplingRateBSS.c` | The "Missing configuration" message was a deliberate sbss-only fallback split with no `Object`; it was later folded back into `SISamplingRate` (`.sbss 8040A920..8040A924`) once BSS became layout-verifiable. |
 
 `sdk_probe.anchor` now prefers identical code over a name that sits on a different
 function and never lets two donor functions claim one retail function, which is what let

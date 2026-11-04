@@ -8,9 +8,6 @@ Sections:
 	.sbss       type:bss align:4
 	.sdata2     type:rodata align:32
 
-dolphin/si/SISamplingRateBSS.c:
-	.sbss       start:0x8040A920 end:0x8040A924
-
 auto/nucore/nufile_1.c:
 	.text       start:0x800034A0 end:0x800056E0
 
@@ -332,7 +329,9 @@ dolphin/base/PPCArch.c:
 dolphin/os/OS.c:
 	.text       start:0x8015C008 end:0x8015CAD4
 	.data       start:0x801E2338 end:0x801E2530
+	.bss        start:0x802F3AE0 end:0x802F3B4C
 	.sdata      start:0x80409FC8 end:0x80409FD8
+	.sbss       start:0x8040A828 end:0x8040A860
 
 dolphin/os/OSAlarm.c:
 	.text       start:0x8015CAD4 end:0x8015D2AC
@@ -361,17 +360,20 @@ dolphin/os/OSContext.c:
 dolphin/os/OSError.c:
 	.text       start:0x8015E598 end:0x8015EC44
 	.data       start:0x801E2F48 end:0x801E3264
+	.bss        start:0x802F3B50 end:0x802F3B94
 	.sdata      start:0x80409FE8 end:0x80409FF0
 
 dolphin/os/OSExec.c:
 	.text       start:0x8015EC44 end:0x8015F5A4
 	.data       start:0x801E3268 end:0x801E3273
 	.sdata      start:0x80409FF0 end:0x80409FF3
+	.sbss       start:0x8040A880 end:0x8040A888
 
 dolphin/os/OSFont.c:
 	.text       start:0x8015F5A4 end:0x80160130
 	.data       start:0x801E3278 end:0x801E3D88
 	.sdata      start:0x80409FF8 end:0x8040A000
+	.sbss       start:0x8040A888 end:0x8040A898
 	.sdata2     start:0x8040B708 end:0x8040B710
 
 dolphin/os/OSInterrupt.c:
@@ -397,9 +399,11 @@ dolphin/os/OSReset.c:
 
 dolphin/os/OSResetSW.c:
 	.text       start:0x80161398 end:0x80161724
+	.sbss       start:0x8040A8C8 end:0x8040A8E8
 
 dolphin/os/OSRtc.c:
 	.text       start:0x80161724 end:0x8016220C
+	.bss        start:0x802F3BA0 end:0x802F3BF4
 
 dolphin/os/OSSemaphore.c:
 	.text       start:0x8016220C end:0x80162334
@@ -410,7 +414,9 @@ dolphin/os/OSSync.c:
 dolphin/os/OSThread.c:
 	.text       start:0x801623B8 end:0x801637C4
 	.data       start:0x801E3E68 end:0x801E4678
+	.bss        start:0x802F3BF8 end:0x802F45F0
 	.sdata      start:0x8040A000 end:0x8040A008
+	.sbss       start:0x8040A8E8 end:0x8040A8F4
 
 dolphin/os/OSTime.c:
 	.text       start:0x801637C4 end:0x801638A0
@@ -422,7 +428,9 @@ dolphin/os/OSMutex.c:
 dolphin/exi/EXIBios.c:
 	.text       start:0x80163984 end:0x80165360
 	.data       start:0x801F5918 end:0x801F5A28
+	.bss        start:0x802F45F0 end:0x802F46B0
 	.sdata      start:0x8040A008 end:0x8040A040
+	.sbss       start:0x8040A8F8 end:0x8040A8FC
 
 dolphin/exi/EXIUart.c:
 	.text       start:0x80165360 end:0x80165918
@@ -430,11 +438,13 @@ dolphin/exi/EXIUart.c:
 dolphin/si/SIBios.c:
 	.text       start:0x80165918 end:0x80167178
 	.data       start:0x801F5A28 end:0x801F5B40
+	.bss        start:0x802F46B0 end:0x802F48B0
 	.sdata      start:0x8040A040 end:0x8040A054
 
 dolphin/si/SISamplingRate.c:
 	.text       start:0x80167178 end:0x80167280
 	.data       start:0x801F5B40 end:0x801F5BD8
+	.sbss       start:0x8040A920 end:0x8040A924
 
 dolphin/db/db.c:
 	.text       start:0x80167280 end:0x8016736C
@@ -456,14 +466,18 @@ dolphin/dvd/dvdfs.c:
 	.text       start:0x80167780 end:0x801680C8
 	.data       start:0x801F5C00 end:0x801F5FF0
 	.sdata      start:0x8040A068 end:0x8040A070
+	.sbss       start:0x8040A930 end:0x8040A950
 
 dolphin/dvd/dvd.c:
 	.text       start:0x801680C8 end:0x8016A850
 	.data       start:0x801F5FF0 end:0x801F6178
+	.bss        start:0x802F48C0 end:0x802F4958
 	.sdata      start:0x8040A070 end:0x8040A090
+	.sbss       start:0x8040A950 end:0x8040A9AC
 
 dolphin/dvd/dvdqueue.c:
 	.text       start:0x8016A850 end:0x8016AA48
+	.bss        start:0x802F4958 end:0x802F4978
 
 dolphin/dvd/dvderror.c:
 	.text       start:0x8016AA48 end:0x8016ABE0
@@ -486,12 +500,15 @@ dolphin/dvd/fstload.c:
 
 dolphin/dvd/dvdlow.c:
 	.text       start:0x8016B044 end:0x8016BE88
+	.bss        start:0x802F49E8 end:0x802F4AB8
 	.sdata      start:0x8040A0E0 end:0x8040A0E4
 
 dolphin/vi/vi.c:
 	.text       start:0x8016BEC0 end:0x8016E058
 	.data       start:0x801F6748 end:0x801F6B30
+	.bss        start:0x802F4AB8 end:0x802F4C00
 	.sdata      start:0x8040A0E8 end:0x8040A0F8
+	.sbss       start:0x8040AA10 end:0x8040AA74
 
 dolphin/pad/Padclamp.c:
 	.text       start:0x8016E058 end:0x8016E29C
@@ -500,7 +517,9 @@ dolphin/pad/Padclamp.c:
 dolphin/pad/Pad.c:
 	.text       start:0x8016E29C end:0x8016FBE4
 	.data       start:0x801F6B30 end:0x801F6B88
+	.bss        start:0x802F4C00 end:0x802F4C50
 	.sdata      start:0x8040A0F8 end:0x8040A118
+	.sbss       start:0x8040AA78 end:0x8040AAA8
 
 dolphin/ai/ai.c:
 	.text       start:0x8016FBE4 end:0x801704C8
@@ -524,15 +543,23 @@ dolphin/ax/AX.c:
 
 dolphin/ax/AXAlloc.c:
 	.text       start:0x8017237C end:0x80172844
+	.bss        start:0x802F4C50 end:0x802F4D50
+	.sbss       start:0x8040AB38 end:0x8040AB3C
 
 dolphin/ax/AXAux.c:
 	.text       start:0x80172844 end:0x80172CCC
+	.bss        start:0x802F4D60 end:0x802F7A60
+	.sbss       start:0x8040AB40 end:0x8040AB74
 
 dolphin/ax/AXCL.c:
 	.text       start:0x80172CCC end:0x80173404
+	.bss        start:0x802F7A60 end:0x802F8060
+	.sbss       start:0x8040AB78 end:0x8040AB8C
 
 dolphin/ax/AXOut.c:
 	.text       start:0x80173404 end:0x80173C10
+	.bss        start:0x802F8060 end:0x802FCAE0
+	.sbss       start:0x8040AB90 end:0x8040ABC4
 
 dolphin/ax/AXSPB.c:
 	.text       start:0x80173C10 end:0x801740D8
@@ -540,6 +567,8 @@ dolphin/ax/AXSPB.c:
 dolphin/ax/AXVPB.c:
 	.text       start:0x801740D8 end:0x801753CC
 	.data       start:0x801F6CA8 end:0x801F6D80
+	.bss        start:0x802FCB20 end:0x8030E320
+	.sbss       start:0x8040ABF0 end:0x8040ABFC
 	.sdata2     start:0x8040B7A0 end:0x8040B7D8
 
 dolphin/ax/AXComp.c:
@@ -563,7 +592,9 @@ dolphin/dsp/dsp_task.c:
 dolphin/card/CARDBios.c:
 	.text       start:0x80175F78 end:0x801773A0
 	.data       start:0x801FA880 end:0x801FA8D8
+	.bss        start:0x8030E320 end:0x8030E560
 	.sdata      start:0x8040A148 end:0x8040A150
+	.sbss       start:0x8040AC40 end:0x8040AC44
 
 dolphin/card/CARDBlock.c:
 	.text       start:0x801773A0 end:0x801777A4
@@ -614,6 +645,7 @@ dolphin/card/CARDRdwr.c:
 dolphin/gx/GXInit.c:
 	.text       start:0x8017C77C end:0x8017DB08
 	.data       start:0x801FAA80 end:0x801FACBC
+	.bss        start:0x8030E560 end:0x8030EB90
 	.sdata      start:0x8040A160 end:0x8040A164
 	.sdata2     start:0x8040B7D8 end:0x8040B800
 
@@ -673,6 +705,7 @@ dolphin/gx/GXPerf.c:
 
 dolphin/os/OSFatal.c:
 	.text       start:0x8018BE6C end:0x8018CAFC
+	.bss        start:0x8030FBA8 end:0x8030FE80
 	.sdata      start:0x8040A2A8 end:0x8040A2AC
 	.sdata2     start:0x8040BCF0 end:0x8040BD30
 
