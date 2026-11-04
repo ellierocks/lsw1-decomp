@@ -2537,3 +2537,42 @@ s32 Action_SetLevelFlag(s32 pad0, s32 pad1, s32 pad2, void *arg3, s32 arg4, s32 
 #undef NuAToI
 #undef NuStrICmp
 #undef str_Bool_ON
+
+extern f32 lbl_801AEB70[];
+extern f32 lbl_801AEB74[];
+
+f32 Condition_ToNode(s32 arg0, s32 pad1, void *arg2, s32 pad3, s32 arg4) {
+    if ((arg2 != NULL) && (arg4 != 0) && (arg0 != 0) && ((s32) ((*(s32 *)((s8 *)((*(void **)((s8 *)(arg2) + (0x10C)))) + (0x78))) + (*(u8 *)((*(s32 *)((s8 *)(arg2) + (0x110))) + ((*(u8 *)((s8 *)(arg2) + (0x114))) == 0)) * 0x58)) == arg4)) {
+        return lbl_801AEB70[0];
+    }
+    return lbl_801AEB74[0];
+}
+
+extern f32 lbl_801AE9E8[];
+extern f32 lbl_801AE9EC[];
+
+f32 Condition_OnObject(s32 pad0, s32 pad1, void *arg2, s32 pad3, s32 arg4) {
+    f32 temp_f0;
+    f32 temp_f13;
+    s16 temp_r11;
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = *temp_r5;
+            if ((temp_r5_2 != NULL) && (arg4 != -1) && ((*(s32 *)((s8 *)(temp_r5_2) + (0x284))) & 0xFFFF00)) {
+                temp_r11 = (*(s16 *)((s8 *)(temp_r5_2) + (0x282)));
+                if (temp_r11 == arg4) {
+                    temp_f13 = (*(f32 *)((s8 *)(temp_r5_2) + (0x70)));
+                    temp_f0 = (*(f32 *)((s8 *)((*(void **)((s8 *)(((temp_r11 * 0x6C) + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))))) + (0x40)))) + (0x34)));
+                    if (temp_f13 >= temp_f0) {
+                        return lbl_801AE9E8[0];
+                    }
+                }
+            }
+        }
+    }
+    return lbl_801AE9EC[0];
+}
