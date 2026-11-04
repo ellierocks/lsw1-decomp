@@ -3,7 +3,8 @@
 
 Most ProDG plateaus in Phase 3 were solved by one of a few mechanical changes. Instead of
 trying them by hand, point this tool at the unit source (no markers needed) and it varies
-only the named function:
+only the named function. `--body FILE` searches a draft that is not in the unit yet
+(spliced in as `score_fn.py --body` does):
 
   - declaration order of the leading locals (stack slot layout and register order),
   - `x = c ? a : b;` against an explicit if/else with the store in each branch,
@@ -228,10 +229,16 @@ def main(argv=None) -> int:
     ap.add_argument("--compiled-symbol", help="passed to score_fn.py")
     ap.add_argument("--compiler", choices=("prodg", "sdk"), help="passed to score_fn.py")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="passed to score_fn.py")
+    ap.add_argument("--body", type=Path, metavar="FILE",
+                    help="search a draft definition (as for score_fn.py --body) spliced into SOURCE, "
+                         "without editing SOURCE")
     ap.add_argument("--dry-run", action="store_true", help="list the dimensions and variant count, then exit")
     args = ap.parse_args(argv)
     try:
         text = args.source.read_text()
+        if args.body:
+            from score_fn import splice_body
+            text = splice_body(text, args.name, args.body.read_text())
         fn = find_function(text, args.name)
         dims, _ = build_dimensions(fn)
         dims += sign_param_dims(fn)

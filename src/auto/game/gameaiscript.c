@@ -3002,3 +3002,170 @@ s32 Action_ForceFreeze(void *sys, void *process, struct gameaiscript_packet_s *p
     }
     return 1;
 }
+
+struct gameaiscript_vec_s {
+    f32 x, y, z;
+};
+
+s32 Action_SetLastSafePathPos(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = (u8 *)packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else
+                NuStrICmp(str_Bool_FALSE, params[i]);
+        }
+        if (target != 0) {
+            *(struct gameaiscript_vec_s *)(target + 0x1dc) = *(struct gameaiscript_vec_s *)(target + 0x6c);
+            *(struct gameaiscript_vec_s *)(target + 0x1c4) = *(struct gameaiscript_vec_s *)(target + 0x1dc);
+        }
+    }
+    return 1;
+}
+
+extern f32 lbl_801AE9E0[];
+extern f32 lbl_801AE9E4[];
+
+f32 Condition_EitherPlayerOnObject(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 obj)
+{
+    u8 *p;
+    s32 o;
+
+    if ((p = lbl_80409004) != 0 && obj != -1 && (*(s32 *)(p + 0x284) & 0xFFFF00) &&
+        *(s16 *)(p + 0x282) == obj &&
+        *(f32 *)(p + 0x70) >= *(f32 *)(*(u8 **)(obj * 0x6c + *(s32 *)((u8 *)lbl_8040AE4C + 0x68) + 0x40) + 0x34))
+        return lbl_801AE9E0[0];
+    if ((p = lbl_80409008) != 0 && obj != -1 && (*(s32 *)(p + 0x284) & 0xFFFF00)) {
+        o = *(s16 *)(p + 0x282);
+        if (o == obj &&
+            *(f32 *)(p + 0x70) >= *(f32 *)(*(u8 **)(o * 0x6c + *(s32 *)((u8 *)lbl_8040AE4C + 0x68) + 0x40) + 0x34))
+            return lbl_801AE9E0[0];
+    }
+    return lbl_801AE9E4[0];
+}
+
+extern void fn_800A41D8(void *, s32, s32);
+
+s32 Action_SetFormationCommander(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *f;
+    u8 *m;
+    s16 s;
+    s32 a;
+    s32 b;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0 &&
+        (f = *(u8 **)((u8 *)packet + 0xf0)) != 0 && *((u8 *)packet + 0xf4) == f[7] - 1 &&
+        (f[8] == 1 || (u8)(f[7] % f[8]) == 1)) {
+        *(u32 *)((u8 *)packet + 0x1a0) |= 0x40;
+        s = *(s16 *)(object + 0x1074);
+        if (s == 2 || s == 0x40 || s == 0x41) {
+            fn_800A41D8(object, 0x3f, *(s16 *)(object + 0x1074));
+            m = *(u8 **)(object + 0x64);
+            object[0x1085] = (*(u8 **)(m + 0x20))[0xc2];
+            object[0x1084] = (*(u8 **)(m + 0x20))[0xc2];
+        } else if (s == 0x65) {
+            fn_800A41D8(object, 0x67, 0x65);
+            m = *(u8 **)(object + 0x64);
+            object[0x1085] = (*(u8 **)(m + 0x20))[0xc2];
+            object[0x1084] = (*(u8 **)(m + 0x20))[0xc2];
+        }
+    }
+    return 1;
+}
+
+extern void *NuCameraGetViewMtx(void);
+extern void SetHeadTarget(void *, s32, s32, f32, f32, f32);
+extern char lbl_801ADA04[];
+extern f32 lbl_801AEBF8[];
+extern f32 lbl_801AEBFC[];
+
+extern void *NuCameraGetViewMtx(void);
+extern void SetHeadTarget(void *, s32, s32, f32, f32, f32);
+extern char lbl_801ADA04[];
+extern f32 lbl_801AEBF8[];
+extern f32 lbl_801AEBFC[];
+
+s32 Action_FaceCamera(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *m;
+    s32 i;
+    f32 t;
+    f32 z;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+        if (firstTime != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(lbl_801ADA04, params[i]) == 0)
+                    *((u8 *)packet + 0xb2) = 1;
+                else
+                    *(f32 *)((u8 *)process + 0x40) = AIParamToFloat(process, params[i]);
+            }
+        }
+        if ((m = NuCameraGetViewMtx()) != 0) {
+            *(u8 **)((u8 *)packet + 0x19c) = m + 0x30;
+            if (*((u8 *)packet + 0xb2) != 0)
+                SetHeadTarget(object, *(s32 *)(object + 0x43c), 4, 1.0f, 0.0f, 0.0f);
+        }
+        t = *(f32 *)((u8 *)process + 0x40);
+        z = lbl_801AEBFC[0];
+        if (t > z) {
+            t -= time;
+            *(f32 *)((u8 *)process + 0x40) = t;
+            if (t <= z)
+                *(f32 *)((u8 *)process + 0x40) = z;
+            else
+                goto fail;
+        } else
+            goto fail;
+    }
+done:
+    return 1;
+fail:
+    return 0;
+}
+
+s32 Action_SetHoverPhase(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *ai;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0 &&
+        *(s16 *)(object + 0x1074) == 7) {
+        if (firstTime != 0) {
+            *((u8 *)packet + 0xb2) = 1;
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                    *((u8 *)packet + 0xb2) = 0;
+            }
+        }
+        if (*((u8 *)packet + 0xb2) != 0) {
+            if ((ai = *(u8 **)(object + 0xeec))[0x7cb] == 1)
+                goto done;
+        } else if ((ai = *(u8 **)(object + 0xeec))[0x7cb] != 1)
+            goto done;
+        goto set;
+    }
+done:
+    return 1;
+    do {
+set:
+        *(u32 *)(*(u8 **)(ai + 0x61c) + 8) |= 0x20;
+    } while (0);
+    return 0;
+}
