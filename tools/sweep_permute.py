@@ -11,7 +11,8 @@ Reads `work/sweep/results.json` from `sweep.py`, takes MISMATCH rows at or above
 `permute_setup.py --source` (scored by the strict verifier, so score 0 means a strict
 MATCH) and runs it with `--stop-on-zero` under a wall-clock limit. A score-0 output's
 function replaces the draft's definition and `score_fn.py --body` rescoring confirms it;
-`--apply` writes confirmed matches into the unit source. Run `bash build.sh` and
+`--apply` writes confirmed matches into the unit source; `--apply-saved` writes the last
+run's confirmed matches without permuting again. Run `bash build.sh` and
 `verify_fn.py --strict-symbols` afterwards, as for the sweep. Results go to
 `work/sweep/permute_results.json`. No model or agent is involved.
 """
@@ -124,6 +125,31 @@ def permute_one(row: dict, seconds: float, jobs: int) -> dict:
     return {**res, "verdict": "MATCH" if check["verdict"] == "MATCH" else f"RESCORE-{check['verdict']}"}
 
 
+def apply_matches(rows: list[dict], sweep_rows: list[dict]) -> None:
+    """Write each MATCH row's `permuted.c` into its unit, one at a time so each unit's
+    rescoring sees the previous write; the row's verdict becomes APPLIED or NOT-APPLIED."""
+    sources = {t["name"]: t["source"] for t in sweep_rows}
+    for r in sorted((r for r in rows if r["verdict"] == "MATCH"), key=lambda r: r["name"]):
+        body = (sweep.OUT / r["name"] / "permuted.c").read_text()
+        ok = sweep.score(r["name"], sources[r["name"]], body, apply=True)["verdict"] == "MATCH"
+        r["verdict"] = "APPLIED" if ok else "NOT-APPLIED"
+
+
+def apply_saved(sweep_rows: list[dict]) -> int:
+    """`--apply-saved`: apply the last run's confirmed matches instead of permuting again."""
+    prev = sweep.OUT / "permute_results.json"
+    if not prev.is_file():
+        print("error: no work/sweep/permute_results.json; run sweep_permute.py first", file=sys.stderr)
+        return 2
+    rows = json.loads(prev.read_text())
+    apply_matches(rows, sweep_rows)
+    prev.write_text(json.dumps(rows, indent=1) + "\n")
+    for r in rows:
+        if r["verdict"] in ("APPLIED", "NOT-APPLIED"):
+            print(f"  {r['name']:<28} {r['verdict']}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int, default=20, help="near-misses to permute")
@@ -134,6 +160,8 @@ def main(argv=None) -> int:
     ap.add_argument("--improved", action="store_true",
                     help="only the previous run's IMPROVED rows (a longer second pass)")
     ap.add_argument("--apply", action="store_true", help="write confirmed matches into unit sources")
+    ap.add_argument("--apply-saved", action="store_true",
+                    help="write the MATCH rows of the last run's permute_results.json without permuting again")
     args = ap.parse_args(argv)
     results = sweep.OUT / "results.json"
     if not results.is_file():
@@ -142,6 +170,8 @@ def main(argv=None) -> int:
     if not (permute_setup.permuter_checkout() / "permuter.py").is_file():
         print("error: decomp-permuter not fetched; run bash tools/fetch_permuter.sh", file=sys.stderr)
         return 2
+    if args.apply_saved:
+        return apply_saved(json.loads(results.read_text()))
     todo = queue(json.loads(results.read_text()), args.min_ratio, 10**6 if args.improved else args.limit)
     if args.improved:
         prev = sweep.OUT / "permute_results.json"
@@ -165,16 +195,11 @@ def main(argv=None) -> int:
             print(f"  {r['name']:<28} {r['start']:>9} -> {r['verdict']}"
                   + (f" (score {r['best_score']})" if r.get("best_score") else ""), file=sys.stderr)
     if args.apply:
-        # One at a time, so each unit's rescoring sees the previous write.
-        for r in sorted((r for r in rows if r["verdict"] == "MATCH"), key=lambda r: r["name"]):
-            row = next(t for t in todo if t["name"] == r["name"])
-            body = (sweep.OUT / r["name"] / "permuted.c").read_text()
-            ok = sweep.score(r["name"], row["source"], body, apply=True)["verdict"] == "MATCH"
-            r["verdict"] = "APPLIED" if ok else "NOT-APPLIED"
+        apply_matches(rows, todo)
     (sweep.OUT / "permute_results.json").write_text(json.dumps(rows, indent=1) + "\n")
     won = [r for r in rows if r["verdict"] in ("MATCH", "APPLIED")]
     print(f"permuted {len(rows)}: {len(won)} strict matches, {sum(r['size'] for r in won):,} bytes"
-          + ("" if args.apply else " (rerun with --apply to write them)"))
+          + ("" if args.apply else " (write them with --apply-saved)"))
     print(f"results: {(sweep.OUT / 'permute_results.json').relative_to(ROOT)}")
     return 0
 

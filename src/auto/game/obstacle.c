@@ -3698,3 +3698,83 @@ void FallLandCode(void *arg0) {
             AnimDuration(*(s16 *)(p + 0x1074), *(s16 *)(*(u8 **)(p + 0xEEC) + 0x7A2), 0.0f, 0.0f, 1);
     }
 }
+
+extern f32 lbl_801A9478[];
+extern f32 lbl_801A947C[];
+
+s32 fn_800F8414(void *arg0, s32 arg1, s32 arg2)
+{
+  f32 temp_f0;
+  f32 temp_f0_2;
+  f32 temp_f13;
+  f32 temp_f13_2;
+  s32 var_r6;
+  void *temp_r11;
+  void *temp_r11_2;
+  void *temp_r7;
+  void *temp_r8;
+  void *temp_r9;
+  var_r6 = 0;
+  if (((s16) (*((s16 *) (((s8 *) arg0) + 0x1074)))) == 0x4A)
+  {
+    var_r6 = (*((u8 *) (((s8 *) (*((void **) (((s8 *) arg0) + 0xEEC)))) + 0x7B4))) == 0;
+  }
+  temp_r7 = *((void **) (((s8 *) arg0) + 0xEEC));
+  temp_r8 = *((void **) (((s8 *) arg0) + 0x64));
+  if (arg1 != 0)
+  {
+    temp_r11 = *((void **) (((s8 *) temp_r8) + 0x20));
+    temp_f13 = *((f32 *) (((s8 *) (*((void **) (((s8 *) temp_r7) + 0x61C)))) + 0x28));
+    temp_f0 = ((*((f32 *) (((s8 *) temp_r11) + 0x10))) + (*((f32 *) (((s8 *) temp_r11) + 0x14)))) * lbl_801A9478[0];
+    if (temp_f13 <= temp_f0)
+    {
+      if ((var_r6 != 0) && (((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x144)))) != 0))
+      {
+        *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x51;
+        return;
+      }
+      if (((arg2 != 0) && ((*((f32 *) (((s8 *) temp_r7) + 0x6BC))) == lbl_801A947C[0])) && (((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x114)))) != 0))
+      {
+        *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x45;
+        return;
+      }
+      *((s16 *) (((s8 *) arg0) + 0x4E)) = 5;
+      return;
+    }
+  }
+  temp_r9 = *((void **) (((s8 *) temp_r8) + 0x20));
+  temp_f13_2 = *((f32 *) (((s8 *) (*((void **) (((s8 *) temp_r7) + 0x61C)))) + 0x28));
+  temp_f0_2 = ((*((f32 *) (((s8 *) temp_r9) + 0x14))) + (*((f32 *) (((s8 *) temp_r9) + 0x18)))) * lbl_801A9478[0];
+  if (temp_f13_2 <= temp_f0_2)
+  {
+    ;
+    if ((var_r6 != 0) && (((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x148)))) != 0))
+    {
+      *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x52;
+      return;
+    }
+    if (((arg2 != 0) && ((*((f32 *) (((s8 *) temp_r7) + 0x6BC))) == lbl_801A947C[0])) && (((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x118)))) != 0))
+    {
+      *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x46;
+      return;
+    }
+    if ((((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x17C)))) != 0) && ((*((s32 *) (((s8 *) arg0) + 0xF28))) & 0x2000))
+    {
+      *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x5F;
+      return;
+    }
+    *((s16 *) (((s8 *) arg0) + 0x4E)) = 0;
+    return;
+  }
+  if ((var_r6 != 0) && (((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x14C)))) != 0))
+  {
+    *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x53;
+    return;
+  }
+  if (((arg2 != 0) && ((*((f32 *) (((s8 *) temp_r7) + 0x6BC))) == lbl_801A947C[0])) && (((s32) (*((s32 *) (((s8 *) (*((void **) (((s8 *) (*((void **) (((s8 *) arg0) + 0x60)))) + 0xC)))) + 0x68)))) != 0))
+  {
+    *((s16 *) (((s8 *) arg0) + 0x4E)) = 0x1A;
+    return;
+  }
+  *((s16 *) (((s8 *) arg0) + 0x4E)) = 4;
+}

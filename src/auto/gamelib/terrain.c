@@ -282,3 +282,35 @@ void fn_8004F590(void *arg0)
 s32 HVQM4PlayerExControlCheckNormal(void *arg0) {
     return (*(s32 *)((s8 *)(arg0) + (0x3A8))) == 0;
 }
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+void HVQM4BufaSetSend(void *arg0, void *arg1) {
+    OSDisableInterrupts();
+    if ((void *) (*(void **)((s8 *)(arg0) + (8))) == NULL) {
+        (*(void **)((s8 *)(arg0) + (8))) = arg1;
+        (*(void **)((s8 *)(arg0) + (0xC))) = arg1;
+    } else {
+        (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xC)))) + (4))) = arg1;
+        (*(void **)((s8 *)(arg0) + (0xC))) = arg1;
+    }
+    (*(s32 *)((s8 *)(arg1) + (4))) = 0;
+    OSRestoreInterrupts();
+}
+
+s32 OSDisableInterrupts();
+s32 OSRestoreInterrupts();
+
+void HVQM4BufvSetDisp(void *arg0, void *arg1) {
+    OSDisableInterrupts();
+    if ((void *) (*(void **)((s8 *)(arg0) + (4))) == NULL) {
+        (*(void **)((s8 *)(arg0) + (4))) = arg1;
+        (*(void **)((s8 *)(arg0) + (8))) = arg1;
+    } else {
+        (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (8)))) + (8))) = arg1;
+        (*(void **)((s8 *)(arg0) + (8))) = arg1;
+    }
+    (*(s32 *)((s8 *)(arg1) + (8))) = 0;
+    OSRestoreInterrupts();
+}

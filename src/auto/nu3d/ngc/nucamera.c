@@ -78,3 +78,18 @@ void NuPs2CreateSkin(void) {
 void NuCameraCalcFrustrumPlanes(s32 *arg0) {
     NuAnimCurveSetApplyBlendToJoint2(arg0, 0);
 }
+
+void fn_80021738(void *arg0, void *arg1, s32 arg2) {
+    void *temp_r11;
+
+    temp_r11 = (*(void **)((s8 *)(arg1) + (0x1A0)));
+    if (temp_r11 != NULL) {
+        (*(void **)((s8 *)(arg0) + (0))) = arg1;
+        (*(s32 *)((s8 *)(arg0) + (4))) = 0;
+        (*(void **)((s8 *)(arg0) + (8))) = (void *) ((*(s32 *)((s8 *)((*(void **)((s8 *)(arg1) + (0x1A0)))) + (0x70))) + (arg2 * 0xD0));
+        return;
+    }
+    (*(void **)((s8 *)(arg0) + (0))) = arg1;
+    (*(s32 *)((s8 *)(arg0) + (4))) = (s32) ((*(s32 *)((s8 *)(arg1) + (0x24))) + (arg2 * 0x50));
+    (*(void **)((s8 *)(arg0) + (8))) = temp_r11;
+}

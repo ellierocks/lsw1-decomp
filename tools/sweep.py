@@ -149,11 +149,57 @@ def const_rodata(body: str) -> str:
                   lambda m: f"extern const {m[1]}{m[2]}[];" if m[2] in rodata else m[0], body, flags=re.M)
 
 
+def base_pointer(body: str) -> str:
+    """BODY with each run of two or more consecutive statements that address one global
+    through m2c's `(s8 *)(G) + off` wrapped in a block that reads G through a local
+    `s8 *G_p`. ProDG then forms G's address once (`lis/addi`, then `off(r9)` loads)
+    instead of folding each offset into its own `G+off@ha/@l` pair (fn_800B0120)."""
+    lines = body.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        m = re.match(r"^([ \t]+)\S", lines[i])
+        syms = set(re.findall(r"\(s8 \*\)\((\w+)\) \+ ", lines[i])) if m else set()
+        sym = next((g for g in sorted(syms) if not g.startswith(("arg", "var_", "temp_", "sp"))), None)
+        j = i
+        if sym:
+            ind = m[1]
+            while (j + 1 < len(lines) and lines[j + 1].startswith(ind) and not lines[j + 1][len(ind)].isspace()
+                   and f"(s8 *)({sym}) + " in lines[j + 1] and lines[j + 1].rstrip().endswith(";")):
+                j += 1
+        if sym and j > i and lines[i].rstrip().endswith(";"):
+            out.append(f"{ind}{{")
+            out.append(f"{ind}    s8 *{sym}_p = (s8 *){sym};")
+            out.extend("    " + ln.replace(f"(s8 *)({sym})", f"{sym}_p") for ln in lines[i:j + 1])
+            out.append(f"{ind}}}")
+            i = j + 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return "\n".join(out)
+
+
 def both_rewrites(body: str) -> str:
     return const_rodata(store_in_arms(body))
 
 
 VARIANTS = (store_in_arms, const_rodata, both_rewrites)
+MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
+
+
+def swap_stores(body: str, limit: int = 8) -> list[str]:
+    """BODY with one pair of adjacent independent memory stores swapped, for each such pair:
+    GCC's scheduler often emits a function's last stores in the other order."""
+    lines, out = body.split("\n"), []
+    for i in range(len(lines) - 1):
+        a, b = MEM_STORE.match(lines[i]), MEM_STORE.match(lines[i + 1])
+        if not (a and b) or a["ind"] != b["ind"] or a["lhs"] == b["lhs"]:
+            continue
+        if a["lhs"] in b["rhs"] or b["lhs"] in a["rhs"]:
+            continue
+        out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
+        if len(out) == limit:
+            break
+    return out
 
 
 # m2c declares only the arguments a function reads, named by register: GPR `argN` is
@@ -252,7 +298,8 @@ def call_args(text: str, start: int) -> tuple[list[str], int] | None:
     return None
 
 
-FLOAT_GE = re.compile(r"\(\((?P<a>[^()]+) == (?P<b>[^()]+)\) \|\| \((?P=a) (?P<op>[<>]) (?P=b)\)\)(?: != 0)?")
+FLOAT_GE = re.compile(r"(?P<o>\()?\((?P<a>[^()]+) == (?P<b>(?:[^()]|\([^()]*\))+)\) \|\| "
+                      r"\((?P=a) (?P<op>[<>]) (?P=b)\)(?(o)\))(?: != 0)?")
 
 
 def float_ge(body: str) -> str:
@@ -315,6 +362,46 @@ def stack_arrays(body: str) -> str:
             body = re.sub(rf"\b{v}\b", f"{b}[{i}]", body)
     return body
 
+WIDE_PTR = re.compile(r"^(?P<ind>[ \t]+)(?P<t>s16|u16|s32|u32|f32|f64|s64|u64) \*(?P<v>\w+);$", re.M)
+PTR_SIZES = {"s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4, "f64": 8, "s64": 8, "u64": 8}
+
+
+EMPTY_FRAME = re.compile(r"\A\s*stwu r1, -(0x[0-9A-Fa-f]+)\(r1\)\s+addi r1, r1, \1\s+blr\s*\Z")
+EMPTY_BODY = re.compile(r"(\)\s*\{)\s*(\})\s*\Z")
+
+
+def empty_frame(body: str, asm: str) -> str:
+    """An empty function whose target still opens a stack frame: GCC keeps the frame for an unused
+    volatile local, so give the empty body a volatile array sized to the frame (8-byte header)."""
+    insns = "\n".join(m.group(1) for m in re.finditer(r"\*/\s*(.+)$", asm, re.M))
+    m = EMPTY_FRAME.match(insns)
+    if not m or not EMPTY_BODY.search(body):
+        return body
+    words = max(1, (int(m.group(1), 16) - 8) // 4)
+    return EMPTY_BODY.sub(lambda b: f"{b.group(1)}\n    volatile s32 pad[{words}];\n{b.group(2)}\n", body)
+
+
+def byte_strides(body: str) -> str:
+    """BODY with each typed local pointer that m2c steps by a byte count (`p += 0x9C` on an
+    `s32 *`, which C scales by 4) stepped by bytes again. A pointer only read through
+    `(s8 *)(p) + off` casts is declared `void *`, which GCC steps by bytes (fn_800D9824);
+    one dereferenced directly keeps its type and steps by elements when the count divides
+    (`s16 *p; p += 2` becomes `p += 1`, fn_800C48A4)."""
+    for m in reversed(list(WIDE_PTR.finditer(body))):
+        v = re.escape(m["v"])
+        steps = list(re.finditer(rf"\b{v} ([+-])= (0x[0-9A-Fa-f]+|\d+);", body))
+        if not steps:
+            continue
+        rest = body[:m.start()] + body[m.end():]
+        if not re.search(rf"\*\s*\(?{v}\b(?!\s*\))|\b{v}\s*(?:\[|->)|\*\({v}\s*[+-]", rest):
+            body = body[:m.start()] + f"{m['ind']}void *{m['v']};" + body[m.end():]
+            continue
+        size = PTR_SIZES[m["t"]]
+        if any(int(st[2], 0) % size for st in steps):
+            continue
+        for st in reversed(steps):
+            body = body[:st.start()] + f"{m['v']} {st[1]}= {int(st[2], 0) // size};" + body[st.end():]
+    return body
 
 # m2c guesses each callee's prototype from one call site, so a callee read with a
 # different argument count elsewhere (or a variadic one) fails to compile. Matched code
@@ -397,6 +484,9 @@ def raw_protos(text: str) -> dict[str, list[str]]:
     return out
 
 
+FN_ALIAS = re.compile(r"^#define (?P<fn>\w+) \(\((?P<ret>[^()]*?)\s*\(\*\)\([^()]*\)\)(?P=fn)\)$")
+
+
 def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = False) -> str:
     """BODY with m2c's callee declarations replaced by known or cr1eq-implied ones and
     each call's argument list trimmed or zero-padded to the declared count. MAC adds the
@@ -409,6 +499,14 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
     repo, variadic, raw = repo_protos(), variadic_calls(asm), raw_protos(unit_text)
     lines, arity = [], {}
     for ln in head.splitlines():
+        a = FN_ALIAS.match(ln)
+        if a and a["fn"] in unit:
+            # `alias_decl` kept m2c's guessed parameters for a callee the unit defines; the
+            # return type stays m2c's (it decides the conversion), the parameters are the unit's.
+            params = unit[a["fn"]][1]
+            arity[a["fn"]] = params
+            lines.append(f"#define {a['fn']} (({a['ret']}(*)({', '.join(params) or 'void'})){a['fn']})")
+            continue
         d = PROTO.match(ln) if ln.endswith(";") and not ln.startswith("extern") else None
         fn = d[2] if d else None
         if not fn or fn == name:
@@ -533,6 +631,17 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
+            framed = empty_frame(body, (OUT / name / "asm.s").read_text())
+            if framed != body:
+                framed_res, framed = score_draft(name, source, framed)
+                if improves(framed_res, res):
+                    res, body = {**framed_res, "empty_frame": True}, framed
+            for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
+                alt = repair(body)
+                if alt != body:
+                    alt_res, alt = score_draft(name, source, alt)
+                    if improves(alt_res, res):
+                        res, body = {**alt_res, repair.__name__: True}, alt
             padded = pad_signature(body, name)
             if padded != body:
                 pad_res, padded = score_draft(name, source, padded)
@@ -581,14 +690,14 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
         return res, body
     seen = {body}
-    for variant in VARIANTS:
-        alt = variant(body)
+    alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    for vname, alt in alts:
         if alt in seen:
             continue
         seen.add(alt)
         alt_res, alt = score_draft(name, source, alt)
         if better(alt_res, res):
-            res, body = {**alt_res, "context": res.get("context"), "rewrite": variant.__name__}, alt
+            res, body = {**alt_res, "context": res.get("context"), "rewrite": vname}, alt
             if res["verdict"] == "MATCH":
                 break
     return res, body

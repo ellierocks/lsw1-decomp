@@ -93,6 +93,53 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    g(1);\n    g(3);\n", out)
         self.assertIn("    k(lbl_K[0]);\n", out)
 
+    def test_fix_prototypes_alias_takes_unit_params(self):
+        # alias_decl kept m2c's guessed parameter for a callee the unit defines as (void):
+        # the call must lose the argument (fn_800ABEB0 calling fn_800B9ED4).
+        body = ("#define h ((s32 (*)(f32 *))h)\nextern const f32 lbl_K[];\n\n"
+                "void f(void) {\n    x = h(lbl_K);\n}\n#undef h\n")
+        out = sweep.fix_prototypes(body, "f", "\tbl h\n", "u16 h(void) {\n    return 1;\n}\n")
+        self.assertIn("#define h ((s32(*)(void))h)\n", out)
+        self.assertIn("    x = h();\n", out)
+
+    def test_byte_strides(self):
+        body = ("s32 f(void) {\n    s32 *p;\n    p = lbl;\n"
+                "    (*(u8 *)((s8 *)(p) + (0x8B))) = 0U;\n    p += 0x9C;\n}\n")
+        self.assertIn("    void *p;\n", sweep.byte_strides(body))
+        deref = "void f(void) {\n    s32 *p;\n    p += 0xC;\n    *p = 1;\n}\n"
+        self.assertEqual(sweep.byte_strides(deref), deref.replace("p += 0xC;", "p += 3;"))
+        odd = "void f(void) {\n    s32 *p;\n    p += 6;\n    *p = 1;\n}\n"
+        self.assertEqual(sweep.byte_strides(odd), odd)
+        indexed = "void f(void) {\n    s16 *p;\n    p += 2;\n    p[1] = 1;\n}\n"
+        self.assertIn("p += 1;", sweep.byte_strides(indexed))
+
+    def test_float_ge_bare_return(self):
+        self.assertEqual(sweep.float_ge("    return (t == lbl_1[0]) || (t > lbl_1[0]);"), "    return (t >= lbl_1[0]);")
+        self.assertEqual(sweep.float_ge("if (((a == f(b)) || (a < f(b))) != 0)"), "if ((a <= f(b)))")
+
+    def test_swap_stores(self):
+        body = "void f(s32 *p) {\n    *(s32 *)(p + 1) = 0;\n    p->a = 2;\n    x = p->a;\n    p->b = p->a;\n}\n"
+        self.assertEqual(sweep.swap_stores(body),
+                         ["void f(s32 *p) {\n    p->a = 2;\n    *(s32 *)(p + 1) = 0;\n    x = p->a;\n    p->b = p->a;\n}\n"])
+
+    def test_empty_frame(self):
+        asm = ("/* 0 0  94 21 FF E8 */\tstwu r1, -0x18(r1)\n/* 4 4  38 21 00 18 */\taddi r1, r1, 0x18\n"
+               "/* 8 8  4E 80 00 20 */\tblr\n")
+        self.assertEqual(sweep.empty_frame("void f(void) {\n\n}\n", asm),
+                         "void f(void) {\n    volatile s32 pad[4];\n}\n")
+        self.assertEqual(sweep.empty_frame("void f(void) {\n    g = 1;\n}\n", asm), "void f(void) {\n    g = 1;\n}\n")
+        self.assertEqual(sweep.empty_frame("void f(void) {\n}\n", "/* 0 0  4E 80 00 20 */\tblr\n"), "void f(void) {\n}\n")
+
+    def test_base_pointer(self):
+        body = ("void f(void) {\n    if (x) {\n"
+                "        (*(s8 *)((s8 *)(MenuHeader) + (0x174))) = -1;\n"
+                "        (*(f32 *)((s8 *)(MenuHeader) + (0x138))) = 0.0f;\n    }\n"
+                "    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n}\n")
+        out = sweep.base_pointer(body)
+        self.assertIn("        {\n            s8 *MenuHeader_p = (s8 *)MenuHeader;\n"
+                      "            (*(s8 *)(MenuHeader_p + (0x174))) = -1;\n", out)
+        self.assertIn("    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n", out)  # a single access stays
+
 
 if __name__ == "__main__":
     unittest.main()
