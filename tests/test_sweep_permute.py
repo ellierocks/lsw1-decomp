@@ -33,6 +33,21 @@ class SweepPermuteTest(unittest.TestCase):
             score, path = sp.best_output(Path(tmp))
             self.assertEqual((score, path.name), (0, "output-0-2"))
 
+    def test_apply_saved_writes_recorded_matches(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "f").mkdir()
+            (out / "f" / "permuted.c").write_text("void f(void) {}\n")
+            (out / "permute_results.json").write_text(
+                '[{"name": "f", "verdict": "MATCH", "size": 4}, {"name": "g", "verdict": "IMPROVED", "size": 8}]')
+            calls = []
+            with mock.patch.object(sp.sweep, "OUT", out), mock.patch.object(
+                    sp.sweep, "score", lambda n, src, body, apply=False: calls.append((n, src, apply)) or {"verdict": "MATCH"}):
+                self.assertEqual(sp.apply_saved([{"name": "f", "source": "src/u.c"}]), 0)
+            self.assertEqual(calls, [("f", "src/u.c", True)])
+            self.assertIn('"APPLIED"', (out / "permute_results.json").read_text())
+
 
 if __name__ == "__main__":
     unittest.main()
