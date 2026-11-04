@@ -14,6 +14,12 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
 
 ## Scope
 
+- **Build before sweeping a fresh checkout.** Run `bash build.sh` to completion if
+  the checkout has no generated target assembly. Bootstrap supplies tools and retail
+  input, but does not split the DOL. Do not overlap this initial build with scoring:
+  rebuilding the shared `wibo` executable can make compiler launches fail with
+  `Text file busy`. A sweep with `NO-ASM` rows is incomplete; build, then rerun
+  the affected units before using its ranking.
 - **Sweep first.** Run `python3 tools/sweep.py --apply` before choosing the unit; it takes
   the automatic m2c matches across the whole game for free. Then run
   `python3 tools/sweep_permute.py --apply`, which runs the permuter unattended on the
