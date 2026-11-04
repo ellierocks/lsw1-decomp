@@ -32,9 +32,8 @@ rather than a game function, skip to `tools/sdk_import_unit.py` in
 
 Follow the yield priorities in [strategy](strategy.md#choosing-a-task): match
 existing game/Nu2 units first, and resolve splits or data when they unblock a
-promising unit. The SDK donor queue is exhausted. Claim one library,
-TU or function per worktree branch. Phase 3 game code runs as one-unit
-[sprints](sprint_workflow.md). Run `python3 tools/sweep.py --apply` first: it m2c-drafts
+promising unit. The SDK donor queue is exhausted. The [sprint reference](sprint_workflow.md) explains ownership detection and queue
+helpers. `python3 tools/sweep.py --apply` can collect automatic matches: it m2c-drafts
 and strict-scores every ready target unattended, applies the matches, and ranks the rest by
 near-miss bytes in `work/sweep/results.json`. `python3 tools/next_target.py --by-unit` ranks units by
 bytes in the first ten ready targets, with ownership filtering. Inspect related
@@ -144,9 +143,10 @@ records that limit as the note itself. Keep the review in the PR or plateau hand
 units use the Dolphin lane and are exempt.
 
 Record a candidate with `try` when it improves the best score or settles a
-hypothesis. When `hillclimb.py` reports `PARK` (8 attempts without improvement by
-default), write the best score, the remaining mismatch and one next hypothesis in
-`work/NAME/status.md`, then pick another target from step 2.
+hypothesis. `hillclimb.py` reports `PARK` when its configured search budget is exhausted.
+Choose whether to adjust `--patience`/`--max-attempts` on the same ledger or park the
+target with its best score, remaining mismatch and next hypothesis. Keep the history;
+a default search budget is not a limit on the agent's task.
 
 ## 6. Rules that do not bend
 

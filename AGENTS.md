@@ -8,10 +8,13 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 ## Task routing
 
 - Start with [strategy](docs/strategy.md) for the current phase; update it when the plan changes.
-- Phase 3 game/Nu2 matching runs as one-unit [sprints](docs/sprint_workflow.md): one
-  unit, one `t3/sprint-<unit-leaf>` branch and one PR, recorded with its PR template.
-  Sprints fix the tooling gaps they hit in the same PR, then rerun the fixed tools to
-  collect the matches they now find ([improve the workflow](docs/sprint_workflow.md#improve-the-workflow-as-you-go)).
+- **Improve the workflow as you go.** Fix drafting, m2c, sweep and search tools when
+  that unlocks matches more effectively than hand-editing each function. Preserve
+  reproducible patches, test the fix and rerun it on affected targets to collect the
+  wins. See [workflow improvement](docs/sprint_workflow.md#improve-the-workflow-as-you-go).
+- [Sprint tools](docs/sprint_workflow.md) cover target selection, ownership detection,
+  queue accounting and verification. Choose scope and search effort for the task;
+  T3 owns orchestration and continuation.
 - Matching: follow the [quickstart](docs/matching_quickstart.md) for bootstrap,
   target selection, scoring and handoff, and [C matching](docs/code_matching_workflow.md)
   for strict verification and promotion. SDK work uses [SDK import](docs/sdk_import.md#importing-a-unit-quickly).
@@ -20,11 +23,9 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
   target/donor revision; retain accepted facts, rejected transfers or an explicit
   no-hit/unavailable limit in the PR or plateau handoff. With no name hit, `hillclimb.py`
   records the no-hit limit itself.
-- Binary evidence: [Ghidra and REA](docs/research.md#ghidra-and-rea). Read
-  `work/NAME/ghidra.c` (from `draft_fn.py`) next to the m2c draft for control flow,
-  loops and switches. Before adding a header field or naming a global, run
-  `ghidra_decompile.py xrefs` on it. Use REA's MCP tools for callers, strings and data
-  tables. Skip both for paired-single code and confirm everything against target assembly.
+- Binary evidence: [Ghidra and REA](docs/research.md#ghidra-and-rea) provide decompiles,
+  callers and cross-references. Confirm proposed types and names against target
+  assembly; donor output and generated C are evidence, not the acceptance oracle.
 - Naming and research: [research](docs/research.md); check rejected renames first.
   [Nu2](docs/nu2_engine_reference.md), [menus](docs/menu_system.md) and
   [scripts](docs/scripts.md) hold subsystem evidence. Confirm donor types against LSW1 accesses.

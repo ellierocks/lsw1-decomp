@@ -105,8 +105,10 @@ def main(argv=None):
                 print(json.dumps(dict(identity, **summary, ledger=str(directory),
                                       donor_review=attempts[-1].get('opensaga') if attempts else None), indent=2))
                 return 0
-            if summary['state'] in ('VERIFIED', 'PARK') or len(attempts) >= args.max_attempts:
-                ap.error('target verified or budget exhausted; inspect ledger and select another target')
+            if summary['state'] == 'VERIFIED':
+                ap.error('target already verified; inspect ledger for the matching candidate')
+            if summary['state'] == 'PARK' or len(attempts) >= args.max_attempts:
+                ap.error('configured budget exhausted; inspect ledger, adjust --patience/--max-attempts for further search, or park the target')
             donor = ({'result': 'sdk-not-applicable'} if args.unit.startswith('dolphin/')
                      else opensaga.lookup(args.function))
             previous = attempts[-1].get('opensaga', {}) if attempts else {}

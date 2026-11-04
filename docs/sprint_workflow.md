@@ -1,13 +1,9 @@
 # Sprint workflow
 
-Phase 3 matching runs as **sprints**: one unit, one branch, one PR. Setup and finish costs
-(build, baseline, merge, CI) are paid once, so a sprint should cover as much of its unit as
-is tractable. Earlier multi-unit batches are recorded in
-[Phase 3 batch history](phase3_batches.md).
-
-[Strategy](strategy.md) decides which lane comes next. This page covers the tools and the
-evidence a sprint must produce. [Quickstart](matching_quickstart.md) steps 3 to 5 are the
-per-function loop.
+This is a reference for matching tools and evidence, not a prescribed agent schedule.
+Choose targets, search methods, scope and effort for the requested outcome. T3 owns
+orchestration and continuation. [Strategy](strategy.md) describes current opportunities;
+[quickstart](matching_quickstart.md) covers setup and scoring.
 
 ## Scope
 
@@ -17,57 +13,48 @@ per-function loop.
   rebuilding the shared `wibo` executable can make compiler launches fail with
   `Text file busy`. A sweep with `NO-ASM` rows is incomplete; build, then rerun
   the affected units before using its ranking.
-- **Sweep first.** Run `python3 tools/sweep.py --apply` before choosing the unit; it takes
-  the automatic m2c matches across the whole game. Then run
-  `python3 tools/sweep_permute.py --apply`, which runs the permuter unattended on the
-  biggest near-misses. Rank units by near-miss bytes in `work/sweep/results.json`
-  (size × exact ratio, 90% exact or better first). Each queued function's starting draft
-  is `work/sweep/NAME/sweep_draft.c`. Automatic sweep and permuter base scoring pass
-  `score_fn.py --no-queue`, so they do not add outside targets to an existing sprint
-  queue. Interactive scoring still adds targets; use `--no-queue` explicitly for
-  exploratory scans.
-- **One unit per sprint.** Pick it from the sweep ranking or `next_target.py --by-unit`,
-  then list its ready functions with `--unit UNIT --limit 40`. Siblings with one shape (a
-  `Curve` and `Curve2` pair, setters, loop-per-parameter actions) reuse one draft's
-  structure.
+- **Automatic matches.** `sweep.py --apply` drafts and strict-scores ready targets;
+  `sweep_permute.py --apply` searches near-misses. Use fresh results or rerun affected
+  targets when sources or tools change. `work/sweep/results.json` ranks opportunities;
+  `work/sweep/NAME/sweep_draft.c` holds drafts. Automatic scoring uses `--no-queue`;
+  interactive scoring adds targets to an existing queue unless given that flag.
+- `next_target.py --by-unit` ranks units; `--unit UNIT --limit N` lists targets.
+  Related functions can share types and draft shapes. Unit selection is a useful
+  grouping, not a limit on a tool fix's scope or on collecting its matches.
 - **Ownership is by branch name.** Run `python3 tools/git_origin.py fetch origin` first.
   `--by-unit` then skips units owned by an open `t3/sprint-*` PR (asked through `gh`;
   `--no-remote` turns that off) or by any local or `origin` sprint branch not yet merged
-  into `origin/main`, which covers a pushed sprint with no PR yet. Name the branch
-  `t3/sprint-<unit-leaf>` and push it early. `work/` claim markers are local to each
+  into `origin/main`, which covers a pushed sprint with no PR yet. For a single-unit sprint, use
+  `t3/sprint-<unit-leaf>` for automatic ownership detection. Other branch names and
+  cross-unit work are not covered by this heuristic; inspect active work before editing. `work/` claim markers are local to each
   worktree and invisible elsewhere. Units are ranked by bytes in their first ten ready
   targets; `*` marks ten or fewer functions left, not promotion readiness.
-- **Headers come with their consumers.** Add a shared-header field only when a function
-  in the queue reads or writes it, and confirm it in the same sprint. Keep everything else
-  as `char unk[N]` or a local view.
+- **Shared types need evidence.** Confirm fields against target accesses and their
+  consumers; leave unknown layout as padding or local views.
 - **Promotion needs data too.** Check all owned sections before counting on a promotion
   path; matching every function does not emit missing data.
 
 ## Improve the workflow as you go
 
-Fixing a tool gap mid-run pays off in every unit that has the same gap. In
-[#87](https://github.com/ellierocks/lsw1-decomp/pull/87), four mid-run `fix(tools)` commits
-(sweep compile repairs, `__ashldi3` shifts, the float `cror` fold, initialized locals in
-`variant_search.py`) brought in matches outside the unit and let searches find fixes that
-had been made by hand.
+Improve the tools as part of matching, rather than repeatedly repairing their output by
+hand. Drafting fixes, m2c patches, sweep repairs and new search dimensions can unlock
+whole classes of functions. Do not wait for an arbitrary repeat count when the cause
+and benefit are already clear.
 
-- **Fix repeated gaps.** When the same manual workaround, compile error or search gap
-  recurs, fix the tool in this branch with a regression test in `tests/`, committed as
-  `fix(tools): ...` or `feat(tools): ...`.
-- **Then collect the wins.** Rerun the fixed tool where it can now succeed: for a sweep fix,
-  `sweep.py --apply` on the affected units (the whole game when the fix is general); for a
-  search tool, this sprint's parked near-misses. Matches outside the unit go into their own
-  `feat(match)` commit in the same PR. Verify them strictly like any other match.
-- **Encode hand wins.** If a hand change that produced a match is mechanical, add it as a
-  search dimension or a sweep repair pass; otherwise record it as one quirk bullet in
-  [C matching](code_matching_workflow.md#measure-and-iterate).
-- **Redesigns are leads, not sprint work.** Record them in the PR's Workflow line. Never
-  weaken the oracle (verifier strictness, compiler pins, split boundaries) to get a match.
-- **Record the yield.** The finish record's Workflow line lists the branch's tooling
-  commits; add what each one unlocked. A parked row whose plateau comes from a tool gap
-  says so in its `next:`.
+Keep fixes reproducible and test the behavior they change. m2c changes belong in
+`tools/patches/m2c-*.patch`, applied by `tools/fetch_m2c.sh` to its pinned checkout.
+Use an isolated `M2C` checkout for experiments so other worktrees' shared cache is not
+silently changed. Preserve the patch in the repo rather than leaving a cache-only fix.
+
+Rerun the improved tool on affected targets and collect its strict matches, including
+other units when relevant. Explain what the fix unlocked and retain useful compiler or
+layout findings in the owning reference. Choose the implementation and commit structure
+that fits the work; tool improvements are part of the task, not automatically a separate
+project. Never weaken verification, compiler pins or split boundaries to manufacture wins.
 
 ## Kickoff
+
+For the queue-based sprint helper:
 
 1. Take the unit's near-misses from `work/sweep/results.json`, then fill with
    `python3 tools/next_target.py --unit UNIT --limit 40`.
@@ -111,7 +98,7 @@ require them.
 - `sprint_finish.py --phase setup|matching|tooling|finish|paused` starts or switches the
   timer (`--baseline` moves a timer still in setup to `matching`); `--timing` reports it.
   A gap between tool events counts as active time only up to the **idle cap** (15 min;
-  `--idle-cap SECONDS` or `LSW1_IDLE_CAP`), so an unpaused stall cannot inflate the figure.
+  `--idle-cap SECONDS` or `LSW1_IDLE_CAP`), which limits the contribution from idle gaps.
   An interrupted run resumes its existing timer. Missing historical measurements remain
   unknown.
 - `tools/sprint_bench.py` (`start --model MODEL --launched-at EPOCH`,
@@ -135,24 +122,24 @@ Do not project whole-project completion from one easy-function run.
 
 ## Per-function search
 
-- Write new functions only through `score_fn.py --body try.c --apply`. A function not yet
+- To score and apply a candidate without installing a mismatch, use `score_fn.py --body try.c --apply`. A function not yet
   in SOURCE is appended for scoring, and SOURCE changes only on a strict MATCH, so parking
   needs no cleanup.
 - At 95% exact or better `score_fn.py` prints `NEAR MISS`. Common causes are expression or
   operand order for a commutative instruction, how a pointer is formed (`&a[i][j]`,
   `a[i] + j`, an explicit field), declaration or initialisation placement, and inline
   helper boundaries. In #55, hoisting one `i = 0` moved `fn_8013D9FC` from 51/71 to 70/71.
-- **Type a shared struct before drafting its family.** When several queued functions share
-  one object, run `ghidra_decompile.py xrefs` and add the accessed fields to the header.
+- Shared types can help a family of functions; `ghidra_decompile.py xrefs` supplies
+  access evidence before adding fields.
   Casts such as `*(s32*)((char*)p + 0x74c)` hide aliasing that changes the schedule.
 
-| Tool | Use and bound |
+| Tool | Behavior |
 |---|---|
 | `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, writes the unit only on a strict MATCH |
-| `hillclimb.py try` | ledger of recorded candidates; reports `PARK` after 8 consecutive attempts without improvement ([defaults](code_matching_workflow.md#measure-and-iterate)) |
-| `variant_search.py NAME src/UNIT.c -j 8` | once the draft is within about 10 instructions; over `--limit` it tries the fewest-change variants first |
-| `order_search.py --climb` | when only statement order differs (up to 7 statements) |
-| Permuter | at about 90% exact or better, after m2c cleanup, with a `/* permute: begin */` focus region; bursts of at most 180 s (`timeout 180`) |
+| `hillclimb.py try` | ledger of recorded candidates; configurable `--patience`, `--max-attempts` and verifier `--timeout` ([defaults](code_matching_workflow.md#measure-and-iterate)) |
+| `variant_search.py NAME src/UNIT.c -j 8` | searches source rewrites; over `--limit` it tries the fewest-change variants first |
+| `order_search.py` | exhaustive statement-order search defaults to `--limit 5040` (7!); `--climb` handles larger spaces with a configurable `--budget` (default 2000 scored variants) |
+| Permuter | searches candidate rewrites; `/* permute: begin */` focuses mutations. Choose runtime and parallelism for the target and available resources |
 
 The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has
 no name hit, `hillclimb.py` records the no-hit limit itself; pass a note only when you
@@ -162,9 +149,10 @@ hypothesis.
 
 ### Long permuter runs
 
-Unattended long runs (`tools/permute_long.sh`) start only when the user asks for one; a
-parked near-miss records a permuter run as its next hypothesis for the user to queue.
-The queue survives the session.
+`tools/permute_long.sh` manages persistent local queues with explicit slot and time
+limits. Choose those limits for the task and host; the queue survives the session.
+See [permuter operation](code_matching_workflow.md#measure-and-iterate) for output
+review and stopping the managed jobs.
 
 - Read `work/permute/queue_summary.txt` (or `tools/permwatch.py --once`) for results.
   Review each improved target with `tools/permute_review.py NAME`, comparing prototypes
@@ -207,8 +195,8 @@ if it passes.
 
 ## Records
 
-The PR body is the sprint record. There is no per-sprint section in `strategy.md` and no
-tracked timing file.
+Keep matching results and tool improvements in the PR rather than duplicating them
+in strategy or timing files. This template is an example of the evidence to retain:
 
 ```markdown
 Sprint: `UNIT` (N matched, M parked)

@@ -106,10 +106,24 @@ class HillclimbTests(unittest.TestCase):
             self.assertEqual(first['opensaga'], second['opensaga'])
             self.assertIsNone(second['score'])
             self.assertEqual(second['stderr'], 'compile failed')
+            # A larger search budget resumes the same ledger without discarding evidence.
+            original_records = [p.read_bytes() for p in records]
+            resumed = args + ['--patience', '3', '--max-attempts', '2']
+            with mock.patch.object(hc, 'ROOT', root), \
+                 mock.patch.object(hc.opensaga, 'lookup', return_value=unavailable), \
+                 mock.patch.object(hc.subprocess, 'run', return_value=proc) as run, \
+                 mock.patch.object(hc.subprocess, 'check_output', return_value='head\n'), \
+                 mock.patch('builtins.print'):
+                with self.assertRaises(SystemExit):
+                    hc.main(resumed)
+                run.assert_not_called()
+                self.assertEqual(hc.main(resumed + ['--max-attempts', '4']), 1)
+            self.assertEqual([p.read_bytes() for p in records], original_records)
+            self.assertEqual(len(list((root / 'work/hillclimb').glob('*/*.json'))), 3)
             (root / 'configure.py').write_text('changed compiler flags')
             with mock.patch.object(hc, 'ROOT', root), self.assertRaises(SystemExit):
                 hc.main(args)
-            self.assertEqual(len(list((root / 'work/hillclimb').glob('*/*.json'))), 2)
+            self.assertEqual(len(list((root / 'work/hillclimb').glob('*/*.json'))), 3)
 
     def test_task_script_uses_strict_oracle(self):
         script = packs.gen_verify('Foo', 0x80000000, 8, 'numath')
