@@ -1843,3 +1843,80 @@ All three units pass three complete sections and every function strictly (23, 22
 OSMemory still passes six of six. The whole DOL remains byte-identical to retail, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
 Portable workflow checks and 178 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped).
+
+## HVQM4 decoder (parked)
+
+The decoder now has a split and a source candidate at
+[`src/dolphin/hvqm4/hvqm4dec.c`](../src/dolphin/hvqm4/hvqm4dec.c), registered
+**NonMatching**. Its 43 functions cover `8018432C..8018A10C` (24,032 bytes).
+Eighteen functions (5,440 bytes) strictly verify; **zero code or data bytes are
+promoted**. The normal build retains assembly fallback for the complete unit.
+The debugger range beginning at `8018A10C` is unchanged.
+
+The source adapts CC0 MSSB reconstruction code at commit
+`407dbcbe70f8be5d167d0b1f0a229f38e0359019`
+([upstream PR #27](https://github.com/nlopez99/mssb-decomp/pull/27)), with
+LSW1-specific control flow, structures and sound routines. Tilka/hvqm4 supplied
+algorithm/layout evidence, not copied implementation. See the source provenance
+comment. No Hudson SDK archive was needed. The successful configuration is
+GC/1.2.5n with the existing dolsdk2004 release flags (`-O4,p -inline auto`);
+the initial MSSB `-inline noauto` lead is not the accepted configuration.
+`score_fn.py --mw-version VER --mw-flags 'FLAGS'` supports alternate compiler
+experiments without changing build pins or the verification oracle.
+
+Strict results, checked against the retail DOL and symbol destinations:
+
+| Verified function | Bytes |
+|---|---:|
+| `setHVQPlaneDesc` | 284 |
+| `IpicBlockDec` | 324 |
+| `IpicLineDec` | 212 |
+| `initMCHandler` | 140 |
+| `_MotionComp_00` | 156 |
+| `_MotionComp_10` | 412 |
+| `_MotionComp_01` | 428 |
+| `_MotionComp_11` | 684 |
+| `fn_80188758` | 32 |
+| `HVQM4InitSeqObj` | 36 |
+| `HVQM4BuffSize` | 116 |
+| `HVQM4DecodePpic` | 36 |
+| `HVQM4DecodeBpic` | 1,448 |
+| `HVQM4DecSoundCreate` | 84 |
+| `HVQM4DecSoundClose` | 56 |
+| `HVQM4DecSoundDecode` | 344 |
+| `HVQM4DecodePcm16Ch1` | 288 |
+| `HVQM4DecodePcm16Ch2` | 360 |
+
+The remaining 25 functions mismatch. Closest are `HVQM4SetBuffer` (280/281
+instructions exact; stack-pop versus `mtlr` scheduling) and `HVQM4DecodeIpic`
+(322/324; plane-pointer initialization and epilogue scheduling). Targeted macro
+changes made `HVQM4DecodeBpic` exact; bounded `variant_search.py` passes on the
+two remaining near-matches did not improve them. Larger gaps remain in Huffman,
+basis/nest, inter-picture and ADPCM decoding; those bodies are candidates, not
+verified implementations. Resume with the two scheduling differences, then the
+small bit readers before their inlined callers.
+
+Owned data ranges are `.rodata` `801B0604..801B0640`, `.data`
+`801FB640..801FD048`, `.bss` `8030F168..8030FBA8`, and `.sbss`
+`8040ACB0..8040ACD0`. BSS storage is externalized to fallback. The full-unit gate
+currently refuses the candidate because its initialized sections differ from the
+split's section set including BSS; this is an expected refusal, not a proof of
+initialized data or of internal BSS layout. Complete code, initialized section and
+relocation proof, an approved BSS treatment and linked-range identity remain
+mandatory before promotion. Do not change the oracle or boundaries to clear it.
+
+Reproduce from a bootstrapped checkout:
+
+```sh
+bash build.sh
+python3 tools/matching_progress.py
+python3 tools/verify_fn.py HVQM4DecodeBpic --unit dolphin/hvqm4/hvqm4dec --build --strict-symbols
+python3 tools/verify_unit.py dolphin/hvqm4/hvqm4dec --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+```
+
+The full-unit command is expected to fail until the above blockers are resolved;
+run `verify_fn.py --strict-symbols` individually for the table entries. At parking,
+`bash build.sh` and the linked-image comparison pass with **zero differing bytes**
+across the whole image. Local experimental variants and detailed logs remain in
+ignored `work/hvqm4/`; the source and this handoff retain the reviewable result.

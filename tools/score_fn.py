@@ -61,12 +61,16 @@ SDK_FLAGS = ["-nodefaults", "-proc", "gekko", "-fp", "hard", "-Cpp_exceptions", 
              "-DSDK_REVISION=1", "-DRELEASE"]
 
 
+MW_VERSION = "1.2.5n"
+MW_FLAGS = SDK_FLAGS
+
+
 def missing_toolchain(compiler: str) -> list[Path]:
     needed = [BUILD / "tools" / "wibo", BUILD / "tools" / "dtk_patched"]
     if compiler == "prodg":
         needed += [BUILD / "compilers" / PRODG_VERSION / "cc1.exe", BUILD / "binutils" / "powerpc-eabi-as"]
     else:
-        needed += [BUILD / "compilers" / "GC" / "1.2.5n" / "mwcceppc.exe"]
+        needed += [BUILD / "compilers" / "GC" / MW_VERSION / "mwcceppc.exe"]
     return [p for p in needed if not p.exists()]
 
 
@@ -96,8 +100,8 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
     inc = []
     for f in extra:
         inc.append("-i" if f == "-I" else f.replace("-I", "-i", 1) if f.startswith("-I") else f)
-    err = run([str(BUILD / "tools" / "wibo"), str(BUILD / "compilers" / "GC" / "1.2.5n" / "mwcceppc.exe"),
-               *SDK_FLAGS, "-I-", *inc, "-c", str(source), "-o", str(raw)])
+    err = run([str(BUILD / "tools" / "wibo"), str(BUILD / "compilers" / "GC" / MW_VERSION / "mwcceppc.exe"),
+               *MW_FLAGS, "-I-", *inc, "-c", str(source), "-o", str(raw)])
     return err or run([str(BUILD / "tools" / "dtk_patched"), "elf", "fixup", str(raw), str(out)])
 
 
@@ -130,6 +134,10 @@ def main(argv=None) -> int:
     ap.add_argument("--compiler", choices=("prodg", "sdk"), default="prodg")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="extra include dir")
     ap.add_argument("-D", dest="defines", action="append", default=[], help="extra define")
+    ap.add_argument("--mw-version", default="1.2.5n", metavar="VER",
+                    help="with --compiler sdk: directory under build/compilers/GC (default 1.2.5n)")
+    ap.add_argument("--mw-flags", metavar="FLAGS",
+                    help="with --compiler sdk: replace the dolsdk2004 release flags (shell-quoted string)")
     ap.add_argument("--compile-only", action="store_true", help="only compile (needs -o)")
     ap.add_argument("-o", type=Path, help="keep the object here")
     ap.add_argument("--json", action="store_true")
@@ -145,6 +153,10 @@ def main(argv=None) -> int:
                     help="evaluate a source-built cc1 (tools/sn-gcc/build.sh); with GDBG=1/LADBG=1 and "
                          "a diagnostics build its allocation trace lands in compiler.log")
     args = ap.parse_args(argv)
+    global MW_VERSION, MW_FLAGS
+    MW_VERSION = args.mw_version
+    import shlex
+    MW_FLAGS = shlex.split(args.mw_flags) if args.mw_flags else SDK_FLAGS
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]
     if args.compile_only and not args.o:
         ap.error("--compile-only needs -o")

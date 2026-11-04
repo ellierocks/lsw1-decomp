@@ -671,6 +671,13 @@ dolphin/gx/GXPerf.c:
 	.text       start:0x8018392C end:0x8018432C
 	.data       start:0x801FB4F8 end:0x801FB640
 
+dolphin/hvqm4/hvqm4dec.c:
+	.text       start:0x8018432C end:0x8018A10C
+	.rodata     start:0x801B0604 end:0x801B0640
+	.data       start:0x801FB640 end:0x801FD048
+	.bss        start:0x8030F168 end:0x8030FBA8
+	.sbss       start:0x8040ACB0 end:0x8040ACD0
+
 dolphin/os/OSFatal.c:
 	.text       start:0x8018BE6C end:0x8018CAFC
 	.sdata      start:0x8040A2A8 end:0x8040A2AC

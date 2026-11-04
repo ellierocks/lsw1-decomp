@@ -93,3 +93,7 @@ does not link it (see `docs/sdk_import.md`).
 static `OnReset` is `PADOnReset`, because OSMemory already has a local `OnReset`, and its
 static `Type` is `PADType`, because SIBios has a local `Type`. Each owns
 its initialized data; BSS stays in fallback storage.
+
+`hvqm4/hvqm4dec.c` is a NonMatching reconstruction, separate from the
+dolsdk2004 imports. Its provenance is recorded in the source and the
+[HVQM4 handoff](../../docs/sdk_import.md#hvqm4-decoder-parked).
