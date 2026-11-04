@@ -260,3 +260,19 @@ void fn_80064984(void) {
         fn_800275E0(0);
     }
 }
+
+extern s16 lbl_8040A5D4;
+#define lbl_8040AE4C (*(s32 *(*))&lbl_8040AE4C)
+
+s16 fn_8005A43C(void) {
+    void *temp_r11;
+
+    if ((s16) lbl_8040A5D4 != -1) {
+        temp_r11 = (lbl_8040A5D4 * 0x38) + *lbl_8040AE4C;
+        if ((s32) (*(s32 *)((s8 *)(temp_r11) + (0x2C))) == 1) {
+            return (*(s16 *)((s8 *)(temp_r11) + (0x30)));
+        }
+    }
+    return -1;
+}
+#undef lbl_8040AE4C

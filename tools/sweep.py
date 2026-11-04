@@ -188,7 +188,7 @@ def pad_signature(body: str, name: str) -> str:
 
 
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
-                      r"previous declaration of [`'‘](\w+)")
+                      r"previous declaration of [`'‘](\w+)|[`'‘](\w+)' redeclared as different kind")
 
 
 def drop_decl(body: str, sym: str, name: str) -> str | None:
@@ -201,6 +201,33 @@ def drop_decl(body: str, sym: str, name: str) -> str | None:
     return "\n".join(kept) + "\n" if len(kept) != len(lines) else None
 
 
+DECL_LINE = re.compile(r"^(?:extern\s+)?(?P<decl>[^;{}()=#]*?\b(?P<sym>\w+)\b(?P<rest>\s*(?:\[[^\]]*\]\s*)*|\s*\([^;{}]*\)\s*));\s*$")
+
+
+def alias_decl(body: str, sym: str, name: str) -> str | None:
+    """Replace m2c's top-level declaration of SYM, which conflicts with the unit's, by a macro
+    that reads SYM through m2c's type: `#define g (*(T *(*))&g)` for data and
+    `#define f ((R (*)(A))f)` for a function. The body keeps m2c's typing, the code generated
+    for the access is the same, and an `#undef` after the body restores the unit's type."""
+    if sym == name:
+        return None
+    lines = body.splitlines()
+    for i, ln in enumerate(lines):
+        if ln.startswith((" ", "\t")) or not re.search(rf"\b{re.escape(sym)}\b", ln):
+            continue
+        m = DECL_LINE.match(ln.strip())
+        if not m or m["sym"] != sym or m["decl"].lstrip().startswith(("static", "typedef")):
+            continue
+        decl = re.sub(r"^extern\s+", "", ln.strip()[:-1].strip())
+        abstract = re.sub(rf"\b{re.escape(sym)}\b", "(*)", decl, count=1)
+        if m["rest"].strip().startswith("("):
+            lines[i] = f"#define {sym} (({abstract}){sym})"
+        else:
+            lines[i] = f"#define {sym} (*({abstract})&{sym})"
+        return "\n".join(lines) + f"\n#undef {sym}\n"
+    return None
+
+
 # m2c names a stack slot by offset and declares only the slots it sees by name, so an
 # out-parameter `f(&sp8)` whose later words are read as `spC`/`sp10` leaves them
 # undeclared. Fold such slots into an array based at the nearest lower declared slot.
@@ -208,8 +235,61 @@ SP_DECL = re.compile(r"^(?P<ind>[ \t]+)(?P<t>[su](?:8|16|32)|f32) (?P<v>sp(?P<of
 SIZES = {"s8": 1, "u8": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4}
 
 
+def call_args(text: str, start: int) -> tuple[list[str], int] | None:
+    """The comma-separated arguments of the call whose `(` is at START, and the index after `)`."""
+    depth, args, cur = 0, [], start + 1
+    for i in range(start, len(text)):
+        if text[i] == "(":
+            depth += 1
+        elif text[i] == ")":
+            depth -= 1
+            if depth == 0:
+                args.append(text[cur:i].strip())
+                return args, i + 1
+        elif text[i] == "," and depth == 1:
+            args.append(text[cur:i].strip())
+            cur = i + 1
+    return None
+
+
+FLOAT_GE = re.compile(r"\(\((?P<a>[^()]+) == (?P<b>[^()]+)\) \|\| \((?P=a) (?P<op>[<>]) (?P=b)\)\)(?: != 0)?")
+
+
+def float_ge(body: str) -> str:
+    """m2c's `cror` fold `((a == b) || (a > b)) != 0` written as the source's `a >= b`."""
+    return FLOAT_GE.sub(lambda m: f"({m['a']} {m['op']}= {m['b']})", body)
+
+
+def native_shifts(body: str) -> str:
+    """m2c's libgcc `__ashldi3(0, LO, N)` calls written as the 64-bit shift ProDG lowers to
+    them (`1LL << n`); the call order of the argument loads then follows the source."""
+    out, pos = [], 0
+    for m in re.finditer(r"\b__ashldi3\(", body):
+        if m.start() < pos:
+            continue
+        parsed = call_args(body, m.end() - 1)
+        if not parsed or len(parsed[0]) != 3 or parsed[0][0] != "0":
+            continue
+        (_, lo, n), end = parsed
+        value = f"{lo}LL" if re.fullmatch(r"\d+", lo) else f"(u64)(u32)({lo})"
+        out += [body[pos:m.start()], f"({value} << {n})"]
+        pos = end
+    return "".join(out) + body[pos:]
+
+
 def stack_arrays(body: str) -> str:
-    """BODY with undeclared `spXX` slots folded into an array at a declared lower slot."""
+    """BODY with undeclared `spXX` slots folded into an array at a declared lower slot,
+    m2c's `**(T *)` double dereference typed as `**(T **)`, and m2c's `unkspXX` sub-word
+    stack reads declared as locals so the draft compiles (a ranked start, not a match)."""
+    body = re.sub(r"\*\*\((\w+) \*\)", r"**(\1 **)", body)
+    body = native_shifts(body)
+    body = float_ge(body)
+    unk = sorted(set(re.findall(r"\bunksp[0-9A-F]+\b", body)) - set(
+        re.findall(r"^[ \t]+[\w ]+?\**\s*(unksp[0-9A-F]+);", body, flags=re.M)))
+    if unk:
+        head = re.search(r"^[^\n]*\)\s*\{\n", body, flags=re.M)
+        if head:
+            body = body[:head.end()] + "".join(f"    s32 {v};\n" for v in unk) + body[head.end():]
     body = re.sub(r"&(sp[0-9A-F]+)\[0\]", r"&\1", body)  # m2c's `&sp20[0]` for an undeclared slot
     declared = {m["v"]: m for m in SP_DECL.finditer(body)}
     all_decl = set(re.findall(r"^[ \t]+[\w ]+?\**\s*(sp[0-9A-F]+)(?:\[\w*\])?;", body, flags=re.M))
@@ -485,9 +565,14 @@ def sweep_one(t: dict) -> dict:
     res, body = best
     if res["verdict"] in ("MATCH", "MISMATCH"):
         (OUT / name / "sweep_draft.c").write_text(body)
+    elif res["verdict"] == "COMPILE-ERROR" and body:
+        (OUT / name / "sweep_error.c").write_text(body)  # the failing draft, for repair work
     err = res.pop("error", "").strip()
     if res["verdict"] in ("COMPILE-ERROR", "ERROR") and err:
-        res["error"] = err.splitlines()[-1][:200]
+        msgs = [ln for ln in err.splitlines() if re.search(r":\d+: ", ln)
+                and not re.search(r"\(Each undeclared|for each function it appears in|previous declaration|"
+                                  r"this is the first entry", ln)]
+        res["error"] = (msgs[0] if msgs else err.splitlines()[-1])[:200]
     return {**row, **res}
 
 
@@ -517,7 +602,7 @@ def score_draft(name: str, source: str, body: str) -> tuple[dict, str]:
             break
         syms = [next(g for g in m.groups() if g) for m in CONFLICT.finditer(res.get("error", ""))]
         for sym in syms:
-            if (new := drop_decl(body, sym, name)):
+            if (new := alias_decl(body, sym, name) or drop_decl(body, sym, name)):
                 body = new
                 break
         else:
@@ -542,6 +627,9 @@ def main(argv=None) -> int:
     ap.add_argument("-j", type=int, default=16, help="parallel jobs")
     ap.add_argument("--apply", action="store_true", help="write strict MATCHes into their unit sources")
     ap.add_argument("--top", type=int, default=30, help="near-misses to print")
+    ap.add_argument("--retry", metavar="VERDICT", action="append",
+                    help="resweep only the targets the last results.json gave VERDICT, or the named "
+                         "target (repeatable, e.g. COMPILE-ERROR), and merge the new rows into it")
     args = ap.parse_args(argv)
     if not (draft_fn.m2c_dir() / "m2c.py").is_file():
         print("error: m2c not fetched; run bash tools/fetch_m2c.sh", file=sys.stderr)
@@ -551,6 +639,13 @@ def main(argv=None) -> int:
               file=sys.stderr)
         return 2
     todo = targets(args)
+    previous = []
+    if args.retry:
+        previous = json.loads((OUT / "results.json").read_text())
+        names = {r["name"] for r in previous if r["verdict"] in args.retry or r["name"] in args.retry}
+        todo = [t for t in todo if t["name"] in names]
+        previous = [r for r in previous if r["name"] not in {t["name"] for t in todo}
+                    and not r.get("applied")]
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
     with ThreadPoolExecutor(args.j) as pool:
@@ -568,9 +663,19 @@ def main(argv=None) -> int:
     if args.apply:
         for row in sorted((r for r in rows if r["verdict"] == "MATCH"), key=lambda r: (r["source"], r["name"])):
             body = (OUT / row["name"] / "sweep_draft.c").read_text()
-            if score(row["name"], row["source"], body, apply=True)["verdict"] == "MATCH":
+            ok = score(row["name"], row["source"], body, apply=True)["verdict"] == "MATCH"
+            if not ok:  # an earlier match in the same unit can now conflict with its externs
+                res, body = score_draft(row["name"], row["source"], body)
+                ok = res["verdict"] == "MATCH" and score(
+                    row["name"], row["source"], body, apply=True)["verdict"] == "MATCH"
+                if ok:
+                    (OUT / row["name"] / "sweep_draft.c").write_text(body)
+            if ok:
                 applied.append(row["name"])
                 row["applied"] = True
+    if previous:
+        print(f"resweep: {len(rows)} targets; {len(previous)} rows kept from the last results.json")
+    rows += previous
     for r in rows:
         r["closeness"] = (r["exact"] / r["target"]) if r.get("target") else 0.0
     rows.sort(key=lambda r: (r["verdict"] != "MATCH", -(r["size"] * r["closeness"])))

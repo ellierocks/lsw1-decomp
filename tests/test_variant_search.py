@@ -45,6 +45,14 @@ class DiscoveryTests(unittest.TestCase):
         self.assertIn("ternary-all", names)
         self.assertTrue(any(n.startswith("sign-param") for n in names))
 
+    def test_initialized_locals_join_the_decl_order_and_long_lists_are_capped(self):
+        decls = "\n".join(f"    s32 v{i} = {i};" for i in range(vs.MAX_DECLS + 2))
+        fn = vs.find_function(f"void h(void)\n{{\n{decls}\n    g();\n}}\n", "h")
+        dims, _ = vs.build_dimensions(fn)
+        order = [d for d in dims if d.kind == "order"]
+        self.assertEqual(len(order), 1)
+        self.assertEqual(len(order[0].options[0]), vs.MAX_DECLS)
+
     def test_combos_try_fewest_changes_first_and_respect_the_cap(self):
         fn = vs.find_function(SOURCE, "f")
         dims, _ = vs.build_dimensions(fn)

@@ -185,3 +185,46 @@ void fn_8009D504(void *arg0) {
     sp8 = (*(s32 *)((s8 *)(arg0) + (0x14)));
     fn_800092F0(arg0 + 0x18, (*(s32 *)((s8 *)(arg0) + (0x10))), &sp8, 0);
 }
+
+s32 fn_8009EC80(s32);
+s32 fn_800B2ED4(void);
+s32 fn_8011EAA8(s32);
+extern f32 lbl_8019EAEC[];
+extern s32 lbl_803D9A58[];
+extern u8 lbl_803E028C[];
+extern s32 lbl_80408EA8;
+extern f32 lbl_80408F00;
+extern s32 lbl_80408FE0;
+extern s32 lbl_80409118;
+extern s32 lbl_8040912C;
+extern s32 lbl_8040913C;
+extern s32 lbl_804093B0;
+extern void *lbl_80409410;
+extern s32 lbl_8040AFA8;
+extern s32 lbl_8040AFAC;
+extern s32 lbl_8040AFB0;
+extern s32 lbl_8040AFB4;
+
+void fn_8009F0B8(s32 arg0)
+{
+  s32 temp_r3;
+  s32 temp_r9;
+  void *new_var;
+  s32 var_r0;
+  void *temp_r9_2;
+  void *temp_r9_3;
+  if (((s32) lbl_8040912C) == 0)
+  {
+    temp_r9 = arg0 * 0x5C;
+    new_var = (s8 *) lbl_803D9A58;
+    if (((((((s32) (*((u8 *) (((s8 *) (temp_r9 + new_var)) + 0x24)))) == 0) || ((temp_r9 = (*((s32 *) (((s8 *) (*((s32 *) (new_var + temp_r9)))) + 0x6C))) & 0x20000000, (temp_r9 == 0) == 0))) || (((s32) lbl_80408FE0) != 0)) || ((temp_r3 = fn_800B2ED4(), (temp_r3 == 1) != 0))) || ((var_r0 = 1, (temp_r3 == 0x1A) != 0)))
+    {
+      var_r0 = 0;
+    }
+    new_var = (void *) 0;
+    if (((((((((((((var_r0 != 0) && (((s32) lbl_8040913C) == (-1))) && (((s32) lbl_804093B0) == (-1))) && (lbl_80408F00 == lbl_8019EAEC[0])) && (((s32) lbl_80408EA8) == 0)) && (((s32) lbl_80409118) == 0)) && (((s32) lbl_8040AFA8) == 0)) && ((((s32) (*((s32 *) (((s8 *) lbl_80409410) + 0x19C)))) != 0x15) || (((s32) lbl_803E028C[0]) != 5))) && (((temp_r9_2 = *((void **) (((s8 *) lbl_80409410) + 0x1AC)), (temp_r9_2 == new_var) != 0)) || (!((*((u8 *) (((s8 *) temp_r9_2) + 0x32))) & 4)))) && (((temp_r9_3 = *((void **) (((s8 *) lbl_80409410) + 0x1A8)), (temp_r9_3 == new_var) != 0)) || (!((*((s32 *) (((s8 *) (*((void **) (((s8 *) lbl_80409410) + 0x1A8)))) + 4))) & 0x1000)))) && (fn_800B2ED4() == (-1))) && ((((s32) lbl_8040AFAC) == 0) || (fn_8011EAA8(lbl_8040AFB0) != 0))) && (((s32) lbl_8040AFB4) == 0))
+    {
+      fn_8009EC80(arg0);
+    }
+  }
+}

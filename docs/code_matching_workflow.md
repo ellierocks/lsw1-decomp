@@ -190,6 +190,15 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   register when it is a 4- or 8-byte scalar. Declared at its real size (the 12-byte
   `NuSpecialFind` result), `addi rN, r1, 8` is recomputed before each call instead
   (`Condition_OnObjectInit`).
+- A float `bge`/`ble` skip with no `cror` comes from a negated less-than,
+  `if (!(a < b)) continue;`; `if (a >= b)` emits `cror` + `bso`
+  (`Condition_LocatedCollectable`).
+- When the target loads a pointer into a volatile register and copies it to a callee-saved
+  one only on a later path (`mr r30, r4`), give the first load its own local and assign the
+  long-lived variable inside that branch (`Condition_LocatedCollectable`).
+- Array-indexed loops over `gPlayer1Pointer[i]` give the signed `cmpw` pointer compare
+  that a pointer-increment loop does not; `goto` to a label after `return 1;` places a
+  `return 0` block out of line (`Action_RaceOpponent`, `Action_SetDoomedEscapeLocator`).
 
 ### Store and load order search
 

@@ -3,9 +3,11 @@
 
 Most ProDG plateaus in Phase 3 were solved by one of a few mechanical changes. Instead of
 trying them by hand, point this tool at the unit source (no markers needed) and it varies
-only the named function:
+only the named function. `--body FILE` searches a draft that is not in the unit yet
+(spliced in as `score_fn.py --body` does):
 
-  - declaration order of the leading locals (stack slot layout and register order),
+  - declaration order of the leading locals, initialized ones included (stack slot layout,
+    register order and prologue scheduling; the first MAX_DECLS when there are more),
   - `x = c ? a : b;` against an explicit if/else with the store in each branch,
   - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local.
 
@@ -43,7 +45,7 @@ DEFAULT_LIMIT = 2000
 MAX_DECLS = 6
 SIGN_PAIRS = {"s32": "u32", "u32": "s32", "s16": "u16", "u16": "s16", "s8": "u8", "u8": "s8"}
 DECL_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<type>(?:struct \w+|[A-Za-z_]\w*)\s*\**)\s*(?P<name>\w+)"
-                     r"(?P<array>\[\w*\])?;[ \t]*$")
+                     r"(?P<array>\[\w*\])?(?:\s*=\s*[^;]+)?;[ \t]*$")
 TERNARY_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<lhs>[^=?;{}()]+?)\s=\s(?P<cond>[^?;{}]+?)\s\?\s"
                         r"(?P<a>[^?:;{}]+?)\s:\s(?P<b>[^?:;{}]+?);[ \t]*$")
 TYPE_RE = re.compile(r"\b(s32|u32|s16|u16|s8|u8)\b")
@@ -106,10 +108,12 @@ def build_dimensions(fn: Function) -> tuple[list[Dimension], list[str]]:
     lines = fn.body.split("\n")
     dims: list[Dimension] = []
     s, e = leading_decls(lines)
-    decl_lines = lines[s:e]
-    if 2 <= len(decl_lines) <= MAX_DECLS:
-        dims.append(Dimension(f"decl-order[{s}:{e}]", "order", s,
-                              list(itertools.permutations(range(len(decl_lines))))))
+    # Initialized locals count too: their order steers prologue scheduling. Past MAX_DECLS,
+    # only the leading ones are permuted (the factorial grows too fast for more).
+    n = min(e - s, MAX_DECLS)
+    if n >= 2:
+        dims.append(Dimension(f"decl-order[{s}:{s + n}]", "order", s,
+                              list(itertools.permutations(range(n)))))
     ternaries = {}
     for i, line in enumerate(lines):
         m = TERNARY_RE.match(line)
@@ -228,10 +232,16 @@ def main(argv=None) -> int:
     ap.add_argument("--compiled-symbol", help="passed to score_fn.py")
     ap.add_argument("--compiler", choices=("prodg", "sdk"), help="passed to score_fn.py")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="passed to score_fn.py")
+    ap.add_argument("--body", type=Path, metavar="FILE",
+                    help="search a draft definition (as for score_fn.py --body) spliced into SOURCE, "
+                         "without editing SOURCE")
     ap.add_argument("--dry-run", action="store_true", help="list the dimensions and variant count, then exit")
     args = ap.parse_args(argv)
     try:
         text = args.source.read_text()
+        if args.body:
+            from score_fn import splice_body
+            text = splice_body(text, args.name, args.body.read_text())
         fn = find_function(text, args.name)
         dims, _ = build_dimensions(fn)
         dims += sign_param_dims(fn)

@@ -721,7 +721,13 @@ s32 Action_SetPlayType(void *sys, void *process, struct gameaiscript_packet_s *p
 /* Character flag word at +0xF24, written by Action_Kill, Action_Respawnable,
  * Action_SetTaggable and Action_CannotDropIn. */
 struct gameaiscript_f24_s {
-    u32 unk0 : 23;
+    u32 unk0 : 3;
+    u32 keepWeaponOut : 1; /* Action_KeepWeaponOut */
+    u32 unk4 : 1;
+    u32 buttonMash : 1; /* Action_AttackButtonMash */
+    u32 unk6 : 2;
+    u32 canAttack : 1; /* Action_CanAttack */
+    u32 unk9 : 14;
     u32 respawn : 1;
     u32 respawnAtOrigin : 1;
     u32 unk19 : 3;
@@ -1314,9 +1320,14 @@ s32 Action_SetJumping(void *sys, void *process, struct gameaiscript_packet_s *pa
     return 1;
 }
 
-/* Character flag word at +0x20C; bit 0x4000 set by Action_SetIgnoreAntinodes_Level. */
+/* Character flag word at +0x20C; bit 0x4000 set by Action_SetIgnoreAntinodes_Level,
+ * bit 0x800000 by Action_SetAIOverrideControl. */
 struct gameaiscript_20c_s {
-    u32 unk0 : 17;
+    u32 unk0 : 1;
+    u32 dontPush : 1; /* Action_DontPush_Level */
+    u32 unk2 : 6;
+    u32 aiOverrideControl : 1;
+    u32 unk9 : 8;
     u32 ignoreAntinodes : 1;
     u32 unk12 : 14;
 };
@@ -2468,4 +2479,2525 @@ f32 Condition_SockDistanceToPlayer(s32 pad0, s32 pad1, void *arg2) {
         }
     }
     return lbl_801AEB00[0];
+}
+
+u64 __ashldi3(s32, s32, u32);
+extern s8 str_Bool_ON[];
+
+s32 Action_SetAreaFlag(s32 pad0, s32 pad1, s32 pad2, void *arg3, s32 arg4, s32 arg5) {
+    s32 var_r28;
+    u32 temp_r3;
+    void *var_r30;
+
+    if (arg5 != 0) {
+        var_r28 = 0;
+        if (arg4 > 1) {
+            var_r30 = arg3;
+            do {
+                temp_r3 = NuAToI((*(s8 **)((s8 *)(var_r30) + (0))));
+                if (temp_r3 <= 0x1FU) {
+                    if (NuStrICmp((*(s8 **)((s8 *)(var_r30) + (4))), str_Bool_ON) == 0) {
+                        lbl_8040B188 |= (u32) (1LL << temp_r3);
+                    } else {
+                        lbl_8040B188 &= ~(u32) (1LL << temp_r3);
+                    }
+                }
+                var_r28 += 2;
+                var_r30 += 8;
+            } while ((s32) (var_r28 + 1) < arg4);
+        }
+    }
+    return 1;
+}
+
+#define NuAToI ((u32 (*)(s32))NuAToI)
+#define NuStrICmp ((s32 (*)(s32, s32 *))NuStrICmp)
+u64 __ashldi3(s32, s32, u32);
+extern void *lbl_80409410;
+#define str_Bool_ON (*(s32 (*)[])&str_Bool_ON)
+
+s32 Action_SetLevelFlag(s32 pad0, s32 pad1, s32 pad2, void *arg3, s32 arg4, s32 arg5) {
+    s32 *temp_r30;
+    s32 *temp_r30_2;
+    s32 var_r28;
+    u32 temp_r3;
+    void *var_r31;
+
+    if (arg5 != 0) {
+        var_r28 = 0;
+        if (arg4 > 1) {
+            var_r31 = arg3;
+            do {
+                temp_r3 = NuAToI((*(s32 *)((s8 *)(var_r31) + (0))));
+                if (temp_r3 <= 0x1FU) {
+                    if (NuStrICmp((*(s32 *)((s8 *)(var_r31) + (4))), str_Bool_ON) == 0) {
+                        temp_r30 = (*(s32 **)((s8 *)(lbl_80409410) + (0x1B4)));
+                        *temp_r30 |= (u32) (1LL << temp_r3);
+                    } else {
+                        temp_r30_2 = (*(s32 **)((s8 *)(lbl_80409410) + (0x1B4)));
+                        *temp_r30_2 &= ~(u32) (1LL << temp_r3);
+                    }
+                }
+                var_r28 += 2;
+                var_r31 += 8;
+            } while ((s32) (var_r28 + 1) < arg4);
+        }
+    }
+    return 1;
+}
+#undef NuAToI
+#undef NuStrICmp
+#undef str_Bool_ON
+
+extern f32 lbl_801AEB70[];
+extern f32 lbl_801AEB74[];
+
+f32 Condition_ToNode(s32 arg0, s32 pad1, void *arg2, s32 pad3, s32 arg4) {
+    if ((arg2 != NULL) && (arg4 != 0) && (arg0 != 0) && ((s32) ((*(s32 *)((s8 *)((*(void **)((s8 *)(arg2) + (0x10C)))) + (0x78))) + (*(u8 *)((*(s32 *)((s8 *)(arg2) + (0x110))) + ((*(u8 *)((s8 *)(arg2) + (0x114))) == 0)) * 0x58)) == arg4)) {
+        return lbl_801AEB70[0];
+    }
+    return lbl_801AEB74[0];
+}
+
+extern f32 lbl_801AE9E8[];
+extern f32 lbl_801AE9EC[];
+
+f32 Condition_OnObject(s32 pad0, s32 pad1, void *arg2, s32 pad3, s32 arg4) {
+    f32 temp_f0;
+    f32 temp_f13;
+    s16 temp_r11;
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = *temp_r5;
+            if ((temp_r5_2 != NULL) && (arg4 != -1) && ((*(s32 *)((s8 *)(temp_r5_2) + (0x284))) & 0xFFFF00)) {
+                temp_r11 = (*(s16 *)((s8 *)(temp_r5_2) + (0x282)));
+                if (temp_r11 == arg4) {
+                    temp_f13 = (*(f32 *)((s8 *)(temp_r5_2) + (0x70)));
+                    temp_f0 = (*(f32 *)((s8 *)((*(void **)((s8 *)(((temp_r11 * 0x6C) + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))))) + (0x40)))) + (0x34)));
+                    if (temp_f13 >= temp_f0) {
+                        return lbl_801AE9E8[0];
+                    }
+                }
+            }
+        }
+    }
+    return lbl_801AE9EC[0];
+}
+
+extern char str_PlayerID_Player1[];
+extern char str_Entity_Player[];
+extern char str_PlayerID_Player2[];
+
+/* Character flag word at +0x440, written by Action_SetZeroAcceleration. */
+struct gameaiscript_440_s {
+    u32 unk0 : 9;
+    u32 clockwise : 1;
+    u32 unk10 : 9;
+    u32 zeroAcceleration : 1;
+    u32 unk14 : 7;
+    u32 rangeMode : 2; /* Action_SetMaxMovementRange */
+    u32 unk1d : 3;
+};
+
+s32 Action_SetZeroAcceleration(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 on = 1;
+    u8 *target = 0;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if (NuStrIStr(params[i], str_PlayerID_Player1) != 0 || NuStrIStr(params[i], str_Entity_Player) != 0)
+                target = lbl_80409004;
+            else if (NuStrIStr(params[i], str_PlayerID_Player2) != 0)
+                target = lbl_80409008;
+            else if (NuStrIStr(params[i], str_Bool_FALSE) != 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_440_s *)(target + 0x440))->zeroAcceleration = on;
+    }
+    return 1;
+}
+
+void fn_800ABA78(u8 *);
+void ResetPlayerContexts(void *);
+
+s32 Action_ResetContext(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0)
+            target = packet->owner->object;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                    target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            }
+        }
+        if (target != 0) {
+            fn_800ABA78(target);
+            ResetPlayerContexts(*(void **)(target + 0xeec));
+        }
+    }
+    return 1;
+}
+
+s32 Action_KeepWeaponOut(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0)
+            target = packet->owner->object;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                    on = 0;
+                else if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                    target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            }
+        }
+        if (target != 0)
+            ((struct gameaiscript_f24_s *)(target + 0xf24))->keepWeaponOut = on;
+    }
+    return 1;
+}
+
+s32 Action_AddToSet(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+    s32 set;
+
+    if (firstTime != 0 && packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0) {
+        for (i = 0; i < count; i++) {
+            set = (s32)AIParamToFloat(packet, params[i]);
+            if ((u32)set < 8)
+                object[0x1082] |= 1LL << set;
+        }
+    }
+    return 1;
+}
+
+extern char str_ScriptParam_State[];
+extern void *fn_8008386C(char *, void *);
+extern void AIScriptProcessorInit(void *, void *, void *, s32, s32, s32, s32, void *, void *);
+
+s32 Action_SetScriptState(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    char *state = 0;
+    char *p;
+    void *found;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_State)) != 0)
+                state = p + 6;
+        }
+        if (target != 0 && state != 0) {
+            found = fn_8008386C(state, *(void **)(target + 0x2a0));
+            if (found != 0) {
+                *(s32 *)(target + 0x2d8) = 0;
+                AIScriptProcessorInit(sys, target + 0x2a0, target + 0x2a0, 0, 0, 0, 0,
+                    *(void **)(target + 0x2a0), found);
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_801091AC(void *, char *);
+
+s32 Action_ResetDoorTrigger(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrIStr(params[i], str_ScriptParam_Name) != 0) {
+                i++;
+                if (i < count)
+                    fn_801091AC(lbl_80409410, params[i]);
+            }
+        }
+    }
+    return 1;
+}
+
+extern f32 lbl_801AEAD0[];
+extern f32 lbl_801AEAD4[];
+extern void *lbl_80409410;
+
+f32 Condition_AnimationFinished(s32 pad0, s32 pad1, s32 pad2, s32 pad3, void *arg4) {
+    f32 *temp_r9;
+    f32 temp_f0;
+    f32 temp_f13;
+
+    if ((arg4 != NULL) && ((s32) (*(s32 *)((s8 *)(arg4) + (0x50))) >= 0)) {
+        temp_r9 = *(s32 *)(((*(u8 *)((s8 *)(arg4) + (0x5C))) * 4) + (*(s32 *)((s8 *)((*(void **)((s8 *)(lbl_80409410) + (0x1C0)))) + (0x50))));
+        if (temp_r9 != NULL) {
+            temp_f13 = (*(f32 *)((s8 *)(arg4) + (0x4C)));
+            temp_f0 = *temp_r9;
+            if ((temp_f13 >= temp_f0)) {
+                return lbl_801AEAD0[0];
+            }
+        }
+    }
+    return lbl_801AEAD4[0];
+}
+
+extern f32 lbl_801AE9D8[];
+extern f32 lbl_801AE9DC[];
+#define lbl_80409004 (*(void *(*))&lbl_80409004)
+#define lbl_8040AE4C (*(void *(*))&lbl_8040AE4C)
+
+f32 Condition_PlayerOnObject(s32 pad0, s32 pad1, s32 pad2, s32 pad3, s32 arg4) {
+    f32 temp_f0;
+    f32 temp_f13;
+    s16 temp_r11;
+
+    if (((void *) lbl_80409004 != NULL) && (arg4 != -1) && ((*(s32 *)((s8 *)(lbl_80409004) + (0x284))) & 0xFFFF00)) {
+        temp_r11 = (*(s16 *)((s8 *)(lbl_80409004) + (0x282)));
+        if (temp_r11 == arg4) {
+            temp_f13 = (*(f32 *)((s8 *)(lbl_80409004) + (0x70)));
+            temp_f0 = (*(f32 *)((s8 *)((*(void **)((s8 *)(((temp_r11 * 0x6C) + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68))))) + (0x40)))) + (0x34)));
+            if ((temp_f13 >= temp_f0)) {
+                return lbl_801AE9D8[0];
+            }
+        }
+    }
+    return lbl_801AE9DC[0];
+}
+#undef lbl_80409004
+#undef lbl_8040AE4C
+
+s32 Action_SetAIOverrideControl(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if (NuStrICmp(str_Bool_FALSE, params[i]) == 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_20c_s *)(target + 0x20c))->aiOverrideControl = on;
+    }
+    return 1;
+}
+
+extern s32 str_ScriptState_Base[];
+void ResetAICreature(void *, void *);
+
+s32 Action_Activate(void *sys, s32 arg1, void *arg2) {
+    u8 *owner;
+    u8 *object;
+
+    if (arg2 != NULL && (owner = *(u8 **)((u8 *)arg2 + 0x50)) != NULL && (object = *(u8 **)owner) != NULL) {
+        if (object[0x346] == 0xff) {
+            *(u32 *)(owner + 0x20c) |= 0x80000;
+            fn_8007EBD0(arg1, str_ScriptState_Base);
+        } else {
+            ResetAICreature(object, sys);
+        }
+    }
+    return 1;
+}
+
+s32 Action_SetFlag(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+    u32 bit;
+
+    if (packet != 0 && packet->owner != 0 && firstTime != 0) {
+        for (i = 0; i + 1 < count; i += 2) {
+            bit = NuAToI(params[i]);
+            if (bit < 32) {
+                if (NuStrICmp(params[i + 1], (char *)str_Bool_ON) == 0)
+                    (*(struct gameaiscript_flags_s **)((u8 *)lbl_80409410 + 0x1b4))->flags[((u8 *)packet->owner)[0x291]] |= 1LL << bit;
+                else
+                    (*(struct gameaiscript_flags_s **)((u8 *)lbl_80409410 + 0x1b4))->flags[((u8 *)packet->owner)[0x291]] &= ~(1LL << bit);
+            }
+        }
+    }
+    return 1;
+}
+
+extern u8 *FindTurret(void *, char *);
+
+s32 Action_ActivateTurret(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 on = 1;
+    u8 *turret = 0;
+    s32 i;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrIStr(params[i], str_ScriptParam_Name) != 0) {
+                i++;
+                if (i < count)
+                    turret = FindTurret(*(void **)((u8 *)lbl_80409410 + 0x578), params[i]);
+            } else if (NuStrIStr(params[i], str_Bool_FALSE) != 0)
+                on = 0;
+        }
+        if (turret != 0) {
+            if (on != 0)
+                *(u16 *)(turret + 0x6e) &= ~1;
+            else
+                *(u16 *)(turret + 0x6e) |= 1;
+        }
+    }
+    return 1;
+}
+
+extern void fn_80013200(void *, s32);
+extern void *memset(void *, s32, u32);
+
+s32 Action_SetVisibility(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 on = 1;
+    u8 special[0xc];
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        memset(special, 0, sizeof(special));
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), special, p + 5, 1);
+            else if (NuStrIStr(params[i], str_Bool_FALSE) != 0)
+                on = 0;
+        }
+        if (fn_800130F4(special) != 0)
+            fn_80013200(special, on);
+    }
+    return 1;
+}
+
+extern f32 lbl_801AEC00[];
+s32 Action_FaceCharacter(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char *p;
+    s32 i;
+    f32 t;
+    f32 z;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                *(s32 *)((u8 *)packet + 0xb4) = GetNamedGameObject(sys, p + 10, 0);
+        }
+    }
+    if (packet != 0 && *(s32 *)((u8 *)packet + 0xb4) != 0)
+        *(s32 *)((u8 *)packet + 0x19c) = *(s32 *)((u8 *)packet + 0xb4) + 0x6c;
+    t = *(f32 *)((u8 *)process + 0x40);
+    z = lbl_801AEC00[0];
+    if (t > z) {
+        t -= time;
+        *(f32 *)((u8 *)process + 0x40) = t;
+        if (t <= z) {
+            *(f32 *)((u8 *)process + 0x40) = z;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern f32 fn_8000C038(void);
+extern f32 lbl_801AEBB0[];
+extern char str_ScriptDir_AntiClockwise[];
+extern char str_ScriptDir_Clockwise[];
+extern char str_ScriptDir_Reverse[];
+extern char str_ScriptTarget_Random2[];
+
+s32 Action_SetCircleDirection(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target;
+    struct gameaiscript_440_s *f;
+    s32 i;
+
+
+    if (packet != 0 && packet->owner != 0 && (target = (u8 *)packet->owner->object) != 0 &&
+        firstTime != 0 && count != 0) {
+
+        for (i = 0; i < count; i++) {
+            f = (struct gameaiscript_440_s *)(target + 0x440);
+            if (NuStrICmp(params[i], str_ScriptDir_Clockwise) == 0)
+                f->clockwise = 1;
+            else if (NuStrICmp(params[i], str_ScriptDir_AntiClockwise) == 0)
+                f->clockwise = 0;
+            else if (NuStrICmp(params[i], str_ScriptDir_Reverse) == 0)
+                f->clockwise = !f->clockwise;
+            else if (NuStrICmp(params[i], str_ScriptTarget_Random2) == 0) {
+                if (fn_8000C038() > 0.5f)
+                    f->clockwise = 1;
+                else
+                    f->clockwise = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_801034C4(void *, s32);
+extern s32 lbl_804099E4;
+
+s32 Action_ForceFreeze(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *target;
+    char *p;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0) {
+        if (firstTime != 0) {
+            lbl_804099E4 = lbl_804099E4 == 0;
+            if (lbl_80409008 != 0 && lbl_804099E4 != 0)
+                target = lbl_80409008;
+            else
+                target = lbl_80409004;
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                    target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            }
+            fn_801034C4(object, (s32)target);
+        }
+        if (*(u8 **)(*(u8 **)(object + 0xeec) + 0x650) != 0) {
+            target = *(u8 **)(*(u8 **)(object + 0xeec) + 0x650);
+            AIMoveInstruction(packet, (s32)(target + 0x3c4), target + 0x3ac, 2, *(f32 *)(target + 0x33c), 0.75f);
+            *(u8 **)((u8 *)packet + 0x19c) = target + 0x6c;
+        }
+        return 0;
+    }
+    return 1;
+}
+
+struct gameaiscript_vec_s {
+    f32 x, y, z;
+};
+
+s32 Action_SetLastSafePathPos(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = (u8 *)packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else
+                NuStrICmp(str_Bool_FALSE, params[i]);
+        }
+        if (target != 0) {
+            *(struct gameaiscript_vec_s *)(target + 0x1dc) = *(struct gameaiscript_vec_s *)(target + 0x6c);
+            *(struct gameaiscript_vec_s *)(target + 0x1c4) = *(struct gameaiscript_vec_s *)(target + 0x1dc);
+        }
+    }
+    return 1;
+}
+
+extern f32 lbl_801AE9E0[];
+extern f32 lbl_801AE9E4[];
+
+f32 Condition_EitherPlayerOnObject(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 obj)
+{
+    u8 *p;
+    s32 o;
+
+    if ((p = lbl_80409004) != 0 && obj != -1 && (*(s32 *)(p + 0x284) & 0xFFFF00) &&
+        *(s16 *)(p + 0x282) == obj &&
+        *(f32 *)(p + 0x70) >= *(f32 *)(*(u8 **)(obj * 0x6c + *(s32 *)((u8 *)lbl_8040AE4C + 0x68) + 0x40) + 0x34))
+        return lbl_801AE9E0[0];
+    if ((p = lbl_80409008) != 0 && obj != -1 && (*(s32 *)(p + 0x284) & 0xFFFF00)) {
+        o = *(s16 *)(p + 0x282);
+        if (o == obj &&
+            *(f32 *)(p + 0x70) >= *(f32 *)(*(u8 **)(o * 0x6c + *(s32 *)((u8 *)lbl_8040AE4C + 0x68) + 0x40) + 0x34))
+            return lbl_801AE9E0[0];
+    }
+    return lbl_801AE9E4[0];
+}
+
+extern void fn_800A41D8(void *, s32, s32);
+
+s32 Action_SetFormationCommander(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *f;
+    u8 *m;
+    s16 s;
+    s32 a;
+    s32 b;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0 &&
+        (f = *(u8 **)((u8 *)packet + 0xf0)) != 0 && *((u8 *)packet + 0xf4) == f[7] - 1 &&
+        (f[8] == 1 || (u8)(f[7] % f[8]) == 1)) {
+        *(u32 *)((u8 *)packet + 0x1a0) |= 0x40;
+        s = *(s16 *)(object + 0x1074);
+        if (s == 2 || s == 0x40 || s == 0x41) {
+            fn_800A41D8(object, 0x3f, *(s16 *)(object + 0x1074));
+            m = *(u8 **)(object + 0x64);
+            object[0x1085] = (*(u8 **)(m + 0x20))[0xc2];
+            object[0x1084] = (*(u8 **)(m + 0x20))[0xc2];
+        } else if (s == 0x65) {
+            fn_800A41D8(object, 0x67, 0x65);
+            m = *(u8 **)(object + 0x64);
+            object[0x1085] = (*(u8 **)(m + 0x20))[0xc2];
+            object[0x1084] = (*(u8 **)(m + 0x20))[0xc2];
+        }
+    }
+    return 1;
+}
+
+extern void *NuCameraGetViewMtx(void);
+extern void SetHeadTarget(void *, s32, s32, f32, f32, f32);
+extern char lbl_801ADA04[];
+extern f32 lbl_801AEBF8[];
+extern f32 lbl_801AEBFC[];
+
+extern void *NuCameraGetViewMtx(void);
+extern void SetHeadTarget(void *, s32, s32, f32, f32, f32);
+extern char lbl_801ADA04[];
+extern f32 lbl_801AEBF8[];
+extern f32 lbl_801AEBFC[];
+
+s32 Action_FaceCamera(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *m;
+    s32 i;
+    f32 t;
+    f32 z;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+        if (firstTime != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(lbl_801ADA04, params[i]) == 0)
+                    *((u8 *)packet + 0xb2) = 1;
+                else
+                    *(f32 *)((u8 *)process + 0x40) = AIParamToFloat(process, params[i]);
+            }
+        }
+        if ((m = NuCameraGetViewMtx()) != 0) {
+            *(u8 **)((u8 *)packet + 0x19c) = m + 0x30;
+            if (*((u8 *)packet + 0xb2) != 0)
+                SetHeadTarget(object, *(s32 *)(object + 0x43c), 4, 1.0f, 0.0f, 0.0f);
+        }
+        t = *(f32 *)((u8 *)process + 0x40);
+        z = lbl_801AEBFC[0];
+        if (t > z) {
+            t -= time;
+            *(f32 *)((u8 *)process + 0x40) = t;
+            if (t <= z)
+                *(f32 *)((u8 *)process + 0x40) = z;
+            else
+                goto fail;
+        } else
+            goto fail;
+    }
+done:
+    return 1;
+fail:
+    return 0;
+}
+
+s32 Action_SetHoverPhase(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *ai;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0 &&
+        *(s16 *)(object + 0x1074) == 7) {
+        if (firstTime != 0) {
+            *((u8 *)packet + 0xb2) = 1;
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                    *((u8 *)packet + 0xb2) = 0;
+            }
+        }
+        if (*((u8 *)packet + 0xb2) != 0) {
+            if ((ai = *(u8 **)(object + 0xeec))[0x7cb] == 1)
+                goto done;
+        } else if ((ai = *(u8 **)(object + 0xeec))[0x7cb] != 1)
+            goto done;
+        goto set;
+    }
+done:
+    return 1;
+    do {
+set:
+        *(u32 *)(*(u8 **)(ai + 0x61c) + 8) |= 0x20;
+    } while (0);
+    return 0;
+}
+
+extern void *lbl_80408F58;
+extern u8 *CheckAIMessage(void *, char *, s32);
+extern char str_ScriptParam_Value[];
+extern char str_ScriptParam_Increment[];
+extern char str_ScriptParam_Decrement[];
+
+s32 Action_SetMessage(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 v = 0.0f;
+    s32 mode = 0;
+    char *name = 0;
+    char *p;
+    u8 *m;
+    s32 i;
+
+    if (firstTime != 0 && lbl_80408F58 != 0 && count != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0) {
+                name = p + 5;
+                AIParamToFloat(packet, p);
+            } else if ((p = NuStrIStr(params[i], str_ScriptParam_Value)) != 0)
+                v = AIParamToFloat(packet, p + 6);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Increment)) != 0) {
+                mode = 1;
+                v = AIParamToFloat(packet, p + 10);
+            } else if ((p = NuStrIStr(params[i], str_ScriptParam_Decrement)) != 0) {
+                mode = -1;
+                v = AIParamToFloat(packet, p + 10);
+            }
+        }
+        if (name != 0 && (m = CheckAIMessage(lbl_80408F58, name, 0)) != 0) {
+            switch (mode) {
+            case -1:
+                *(f32 *)(m + 0x28) -= v;
+                break;
+            case 0:
+                *(f32 *)(m + 0x28) = v;
+                break;
+            case 1:
+                *(f32 *)(m + 0x28) += v;
+                break;
+            }
+        }
+    }
+    return 1;
+}
+
+extern char str_ScriptParam_Multiply[];
+extern char str_ScriptParam_MaxDefault[];
+extern char str_ScriptParam_Max[];
+
+s32 Action_SetRunSpeed(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 mul = 1.0f;
+    f32 max = 3.4028235e38f;
+    f32 speed = 0.0f;
+    s32 multiply = 0;
+    u8 *object;
+    char *p;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0 && firstTime != 0) {
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptParam_Multiply)) != 0) {
+                    multiply = 1;
+                    mul = AIParamToFloat(packet, p + 9);
+                } else if (NuStrICmp(params[i], str_ScriptParam_MaxDefault) == 0)
+                    max = *(f32 *)(*(u8 **)(*(u8 **)(object + 0x64) + 0x20) + 0x18);
+                else if ((p = NuStrIStr(params[i], str_ScriptParam_Max)) != 0)
+                    max = AIParamToFloat(packet, p + 4);
+                else
+                    speed = AIParamToFloat(packet, params[i]);
+            }
+        }
+        if (multiply != 0) {
+            if (*(f32 *)(object + 0xf10) == 0.0f)
+                *(f32 *)(object + 0xf10) = *(f32 *)(*(u8 **)(*(u8 **)(object + 0x64) + 0x20) + 0x18);
+            *(f32 *)(object + 0xf10) *= mul;
+            if (*(f32 *)(object + 0xf10) > max)
+                *(f32 *)(object + 0xf10) = max;
+        } else
+            *(f32 *)(object + 0xf10) = speed;
+    }
+    return 1;
+}
+
+extern f32 fn_8000CDFC(void *, void *, void *);
+extern void AISysCharacterSetPathCnx(void *, void *, void *, s32);
+
+extern f32 fn_8000CDFC(void *, void *, void *);
+extern void AISysCharacterSetPathCnx(void *, void *, void *, s32);
+
+s32 Action_GoToLevelPath(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *pk = (u8 *)packet;
+    u8 *node;
+    s32 path;
+    struct { f32 x, y, z, w, u, v; } tmp;
+
+    if (packet == 0 || packet->owner == 0)
+        return 1;
+    if (firstTime != 0) {
+        if (sys != 0 && (path = *(s32 *)(pk + 0x10c)) != 0 && *(s32 *)(pk + 0x110) != 0) {
+            if (path == *(s32 *)(*(u8 **)((u8 *)sys + 0xc) + 8))
+                return 1;
+            AISysCharacterSetPath(pk, *(s32 *)(*(u8 **)((u8 *)sys + 0xc) + 8));
+            AISysGetCharacterPathPos(*(s32 *)((u8 *)lbl_80409410 + 0x2e8), packet->owner, pk, 0xff, 1);
+            return 1;
+        }
+    } else if ((node = *(u8 **)(pk + 0xb4)) != 0) {
+        if (fn_8000CDFC((u8 *)packet->owner + 0x6c, node + 4, &tmp) < *(f32 *)(node + 0x14)) {
+            memset(pk + 0x10c, 0, 0x18);
+            AISysCharacterSetPath(pk, *(s32 *)(*(u8 **)((u8 *)sys + 0xc) + 8));
+            if (node[0x2b] & 1)
+                AISysCharacterSetPathCnx(pk, (u8 *)packet->owner + 0x6c,
+                    (void *)(*(s32 *)(*(u8 **)(pk + 0x10c) + 0x7c) + *(u16 *)(node + 0x2c) * 0x28), 0);
+            return 1;
+        }
+        AIMoveInstruction(pk, (s32)(node + 4), pk + 0xcc, 1, 0.0f, *(f32 *)(pk + 0x134));
+    }
+    return 0;
+}
+
+extern char lbl_801AD834[];
+extern char lbl_801AD83C[];
+
+s32 Action_SnapWeaponOut(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 side = -1;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0)
+            target = (u8 *)packet->owner->object;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                    target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+                else if ((p = NuStrIStr(params[i], lbl_801AD83C)) != 0)
+                    side = NuStrICmp(p + 9, lbl_801AD834) == 0;
+                else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                    on = 0;
+            }
+        }
+        if (target != 0) {
+            if (on != 0) {
+                (*(u8 **)(target + 0xeec))[0x7b4] = 1;
+                *(f32 *)(*(u8 **)(target + 0xeec) + 0x6bc) = 1.0f;
+                if (side != -1)
+                    ((struct gameaiscript_f24_s *)(target + 0xf24))->keepWeaponOut = side;
+            } else {
+                (*(u8 **)(target + 0xeec))[0x7b4] = on;
+                *(f32 *)(*(u8 **)(target + 0xeec) + 0x6bc) = 0.0f;
+                ((struct gameaiscript_f24_s *)(target + 0xf24))->keepWeaponOut = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern char str_ScriptParam_Multiplier[];
+extern char str_ScriptParam_SnapToSpeed[];
+extern void fn_80098190(s32, void *, s32, s32, void *);
+extern void fn_80098858(void *);
+extern void CurrentStart(void *, s32, s32);
+
+s32 Action_UseCurrentSpeed(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 snap = 0;
+    u8 *object;
+    char *p;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0xf24) |= 0x400;
+        *(f32 *)(object + 0xf04) = 1.0f;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                *(u32 *)(object + 0xf24) &= ~0x400;
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Multiplier)) != 0)
+                *(f32 *)(object + 0xf04) = AIParamToFloat(packet, p + 11);
+            else if (NuStrICmp(params[i], str_ScriptParam_SnapToSpeed) == 0)
+                snap = 1;
+        }
+        if ((*(u32 *)(object + 0xf24) & 0x4400) == 0x400) {
+            *(u32 *)(object + 0xf24) |= 0x4000;
+            if (snap == 0)
+                return 1;
+            fn_80098190(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), object + 0x6c, (s8)object[0x601],
+                *(s16 *)(object + 0x602), object + 0x600);
+            fn_80098858(*(u8 **)(object + 0xeec) + 0x14c);
+        }
+        if (snap != 0)
+            CurrentStart(object, 1, 1);
+    }
+    return 1;
+}
+
+struct gameaiscript_sockpos_s {
+    u8 unk0[8];
+    struct gameaiscript_vec_s pos;
+    u8 unk14[0x20];
+};
+
+extern f32 lbl_804099FC;
+extern void MoveSockPosition(s32, void *, f32, struct gameaiscript_sockpos_s *);
+extern void NuVecRotateX(struct gameaiscript_vec_s *, struct gameaiscript_vec_s *, s32);
+extern void NuVecRotateY(struct gameaiscript_vec_s *, struct gameaiscript_vec_s *, s32);
+extern void NuVecAdd(struct gameaiscript_vec_s *, struct gameaiscript_vec_s *, struct gameaiscript_vec_s *);
+extern s32 NuAngAdd(s32, s32);
+
+s32 Action_FollowSock(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *sock;
+    struct gameaiscript_vec_s v;
+    struct gameaiscript_sockpos_s info;
+
+    if (packet == 0 || packet->owner == 0 || (object = (u8 *)packet->owner->object) == 0)
+        return 1;
+    sock = object + 0x600;
+    if (!(*(u32 *)(object + 0xf24) & 0x4000))
+        fn_80098190(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), object + 0x6c, (s8)object[0x601],
+            *(s16 *)(object + 0x602), sock);
+    if (*(u32 *)(object + 0xf24) & 0x10000)
+        MoveSockPosition(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), sock, -lbl_804099FC, &info);
+    else
+        MoveSockPosition(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), sock, lbl_804099FC, &info);
+    if (*(f32 *)(object + 0xf18) != 0.0f || *(f32 *)(object + 0xf1c) != 0.0f) {
+        v.x = *(f32 *)(object + 0xf18);
+        v.y = *(f32 *)(object + 0xf1c);
+        v.z = 0.0f;
+        NuVecRotateX(&v, &v, *(u16 *)(object + 0x624));
+        if (*(u32 *)(object + 0xf24) & 0x10000)
+            NuVecRotateY(&v, &v, *(u16 *)(object + 0x626));
+        else
+            NuVecRotateY(&v, &v, NuAngAdd(*(u16 *)(object + 0x626), 0x8000));
+    } else
+        v.x = v.y = v.z = 0.0f;
+    NuVecAdd(&v, &v, &info.pos);
+    AIMoveInstruction(packet, (s32)&v, 0, 1, 0.0f, 0.0f);
+    return 0;
+}
+
+extern void *fn_800076C4(void *);
+extern void *fn_800076CC(void *, void *);
+extern void fn_800E3928(void *, s32, char *, s32);
+extern char str_ScriptParam_NameEq[];
+s32 Action_PlaySfx(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time);
+
+void GameAIScriptAddLevelSfx(void *level, void *scripts)
+{
+    u8 *script;
+    u8 *state;
+    u8 *action;
+    char *p;
+    s32 i;
+
+    if (scripts == 0)
+        return;
+    for (script = fn_800076C4(scripts); script != 0; script = fn_800076CC(scripts, script)) {
+        for (state = fn_800076C4(script + 0x10); state != 0; state = fn_800076CC(script + 0x10, state)) {
+            for (action = fn_800076C4(state + 0x10); action != 0; action = fn_800076CC(state + 0x10, action)) {
+                if (*(u8 **)(action + 0x10) != 0 && *(void **)(*(u8 **)(action + 0x10) + 4) == (void *)Action_PlaySfx) {
+                    for (i = 0; i < *(s32 *)(action + 0xc); i++) {
+                        if ((p = NuStrIStr((*(char ***)(action + 8))[i], str_ScriptParam_NameEq)) != 0)
+                            fn_800E3928(level, 0, p + 5, -1);
+                    }
+                }
+            }
+        }
+    }
+}
+
+extern s32 lbl_8040B058;
+extern u8 *lbl_80409430;
+extern char str_ScriptScope_Default2[];
+extern char str_ScriptTarget_AllNonParty[];
+extern char str_ScriptTarget_Locator[];
+
+s32 Action_SetMaxMovementRange(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 range = 0.0f;
+    s32 all = 0;
+    s32 mode = 1;
+    u8 *c;
+    u8 *object;
+    s32 i;
+    s32 n;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(str_ScriptScope_Default2, params[i]) == 0)
+                range = lbl_8040900C;
+            else if (NuStrICmp(str_ScriptTarget_AllNonParty, params[i]) == 0)
+                all = 1;
+            else if (NuStrICmp(str_ScriptTarget_Locator, params[i]) == 0)
+                mode = 2;
+            else
+                range = AIParamToFloat(process, params[i]);
+        }
+        if (all != 0) {
+            n = lbl_8040B058;
+            c = lbl_80409430;
+            for (i = 0; i < n; i++, c += 0x1098) {
+                if (*(s32 *)(c + 0x20c) < 0 && (*(u32 *)(c + 0x208) & 0x400)) {
+                    *(f32 *)(c + 0x448) = range;
+                    if (range > 0.0f)
+                        ((struct gameaiscript_440_s *)(c + 0x440))->rangeMode = 1;
+                    else
+                        ((struct gameaiscript_440_s *)(c + 0x440))->rangeMode = 0;
+                }
+            }
+        } else if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+            *(f32 *)(object + 0x448) = range;
+            if (range > 0.0f)
+                ((struct gameaiscript_440_s *)(object + 0x440))->rangeMode = mode;
+            else
+                ((struct gameaiscript_440_s *)(object + 0x440))->rangeMode = 0;
+        }
+    }
+    return 1;
+}
+
+extern s32 sprintf(char *, const char *, ...);
+extern void *NuSplineFind(void *, char *);
+extern void InitSplinePosition(void *, void *, s32, f32);
+extern char str_Format_StringTwoDigits[];
+extern char str_ScriptFlag_Looping[];
+
+s32 Action_SetRandomSpline(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 looping = 0;
+    u8 *object;
+    void *spline;
+    s32 n;
+    s32 i;
+    char name[64];
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+        n = 0;
+        for (i = 1; i < count; i++) {
+            if (NuStrIStr(params[i], str_ScriptFlag_Looping) != 0)
+                looping = 1;
+        }
+        for (i = 0; i <= 9; i++) {
+            sprintf(name, str_Format_StringTwoDigits, params[0], i);
+            if (NuSplineFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), name) != 0)
+                n++;
+        }
+        n = n * fn_8000C038();
+        sprintf(name, str_Format_StringTwoDigits, params[0], n);
+        if ((spline = NuSplineFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), name)) != 0)
+            goto found;
+    }
+    return 1;
+found:
+    InitSplinePosition(object + 0x69c, spline, looping, 0.0f);
+    return 0;
+}
+
+extern char str_JumpType_JUMP[];
+extern char str_JumpType_DBLJUMP[];
+extern char str_JumpType_R2D2GLIDE[];
+extern char str_JumpType_ZIPUP[];
+extern char str_JumpType_USEHATCH[];
+extern char str_JumpType_JARJARJUMP[];
+extern char str_JumpType_HOVERTUBE[];
+extern char str_JumpType_FORGOODIES[];
+extern char str_JumpType_FORBADDIES[];
+extern char str_JumpType_OBSTACLE[];
+extern char str_JumpType_JUMP_NOW[];
+extern char str_JumpType_DONT_JUMP_NOW[];
+extern char str_JumpType_BLOCK[];
+extern char str_JumpType_BIGJUMP[];
+
+s32 ParseAIPathCnxFlag(char *name)
+{
+    if (NuStrICmp(name, str_JumpType_JUMP) == 0)
+        return 1;
+    if (NuStrICmp(name, str_JumpType_DBLJUMP) == 0)
+        return 2;
+    if (NuStrICmp(name, str_JumpType_R2D2GLIDE) == 0)
+        return 4;
+    if (NuStrICmp(name, str_JumpType_ZIPUP) == 0)
+        return 8;
+    if (NuStrICmp(name, str_JumpType_USEHATCH) == 0)
+        return 0x10;
+    if (NuStrICmp(name, str_JumpType_JARJARJUMP) == 0)
+        return 0x20;
+    if (NuStrICmp(name, str_JumpType_HOVERTUBE) == 0)
+        return 0x40;
+    if (NuStrICmp(name, str_JumpType_FORGOODIES) == 0)
+        return 0x80;
+    if (NuStrICmp(name, str_JumpType_FORBADDIES) == 0)
+        return 0x100;
+    if (NuStrICmp(name, str_JumpType_OBSTACLE) == 0)
+        return 0x20000000;
+    if (NuStrICmp(name, str_JumpType_JUMP_NOW) == 0)
+        return 0x400;
+    if (NuStrICmp(name, str_JumpType_DONT_JUMP_NOW) == 0)
+        return 0x800;
+    if (NuStrICmp(name, str_JumpType_BLOCK) == 0)
+        return 0x80000000;
+    if (NuStrICmp(name, str_JumpType_BIGJUMP) == 0)
+        return 0x1000;
+    return 0;
+}
+
+struct gameaiscript_18_s {
+    s32 w[6];
+};
+
+extern void NuMtxToQuat(void *, void *, s32, f32);
+extern char str_ScriptParam_TgtCharacter[];
+extern char str_ScriptAction_Slam[];
+extern char str_ScriptParam_JumpFactor[];
+
+s32 Action_BigJump(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 factor = 1.0f;
+    s32 slam = 0;
+    u8 *target = 0;
+    u8 *object;
+    char *p;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (object = (u8 *)packet->owner->object) == 0)
+        return 1;
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_TgtCharacter)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 14, 0);
+            else if (NuStrICmp(params[i], str_ScriptAction_Slam) == 0)
+                slam = 1;
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_JumpFactor)) != 0) {
+                factor = AIParamToFloat(packet, p + 12);
+                if (factor < 0.0f)
+                    factor = 0.0f;
+            }
+        }
+        if (target != 0) {
+            NuMtxToQuat(object, target + 0x1c4, slam, factor);
+            *(struct gameaiscript_18_s *)(object + 0x3ac) = *(struct gameaiscript_18_s *)(target + 0x3ac);
+            *(struct gameaiscript_vec_s *)(object + 0x3c4) = *(struct gameaiscript_vec_s *)(target + 0x3c4);
+        }
+    }
+    {
+        s32 r = 1;
+        if ((*(u8 **)(object + 0xeec))[0x7df] == 0x24)
+            r = 0;
+        return r;
+    }
+}
+
+struct gameaiscript_f28b_s {
+    u32 unk0 : 15;
+    u32 escapeTakeDamage : 1; /* Action_SetDoomedEscapeLocator */
+    u32 stillDoTakeHitAnim : 1;
+    u32 unk11 : 10;
+    u32 invulnerable : 1;
+    u32 unk1c : 4;
+};
+
+extern s32 (*lbl_80408D08)(char *);
+extern s32 (*lbl_80408D10)(u8);
+extern char str_ScriptParam_Type[];
+extern char str_ScriptParam_Character[];
+extern char str_Bool_FALSE[];
+extern char str_ScriptFlag_StillDoTakeHitAnim[];
+
+s32 Action_SetInvulnerable(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 types[10];
+    s32 on = 1;
+    s32 ntypes = 0;
+    s32 takeHit = 0;
+    u8 *target = 0;
+    char *p;
+    s32 t;
+    s32 i;
+    s32 j;
+    s32 n;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Type)) != 0) {
+                p += 5;
+                if (lbl_80408D08 != 0 && lbl_80408D10 != 0) {
+                    t = lbl_80408D08(p);
+                    if (t != 0xff) {
+                        t = lbl_80408D10(t);
+                        if (t != 0xff && ntypes < 10)
+                            types[ntypes++] = t;
+                    }
+                }
+            } else if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0) {
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            } else if (NuStrICmp(params[i], str_Bool_FALSE) == 0) {
+                on = 0;
+            } else if (NuStrICmp(params[i], str_ScriptFlag_StillDoTakeHitAnim) == 0) {
+                takeHit = 1;
+            }
+        }
+        if (ntypes != 0) {
+            target = lbl_80409430;
+            for (i = 0; i < lbl_8040B058; i++, target += 0x1098) {
+                if ((*(u32 *)(target + 0x20c) & 0x80080000) == 0x80080000
+                    && (*(u32 *)(target + 0x208) & 0x400)) {
+                    for (j = 0; j < ntypes; j++) {
+                        if (*(s16 *)(target + 0x1074) == types[j]) {
+                            if (on != 0) {
+                                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 1;
+                                ((struct gameaiscript_f28b_s *)(target + 0xf28))->stillDoTakeHitAnim = takeHit;
+                            } else {
+                                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (target != 0 && (*(u32 *)(target + 0x208) & 0x400)) {
+            if (on != 0) {
+                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 1;
+                ((struct gameaiscript_f28b_s *)(target + 0xf28))->stillDoTakeHitAnim = takeHit;
+            } else {
+                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_800E6394(char *, f32, s32, f32, void *);
+extern char str_ScriptParam_NameEq[];
+extern char lbl_801AD878[];
+extern char lbl_801AD884[];
+extern char lbl_801AD890[];
+extern char lbl_801AD89C[];
+extern char str_ScriptParam_XEq[];
+extern char str_ScriptParam_YEq[];
+extern char str_ScriptParam_ZEq[];
+
+s32 Action_PlaySfx(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 repDelay = 0.0f;
+    struct gameaiscript_vec_s v = { 3.4028235e38f, 3.4028235e38f, 3.4028235e38f };
+    s8 playCount = 1;
+    f32 startDelay = repDelay;
+    char *name = 0;
+    void *pos = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_NameEq)) != 0)
+                name = p + 5;
+            else if ((p = NuStrIStr(params[i], lbl_801AD878)) != 0)
+                playCount = AIParamToFloat(packet, p + 10);
+            else if ((p = NuStrIStr(params[i], lbl_801AD884)) != 0)
+                repDelay = AIParamToFloat(packet, p + 9);
+            else if ((p = NuStrIStr(params[i], lbl_801AD890)) != 0)
+                startDelay = AIParamToFloat(packet, p + 11);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_XEq)) != 0)
+                v.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_YEq)) != 0)
+                v.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_ZEq)) != 0)
+                v.z = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], lbl_801AD89C)) != 0)
+                pos = (u8 *)GetNamedGameObject(sys, p + 14, 0) + 0x90;
+        }
+        if (pos == 0 && v.x != 3.4028235e38f && v.y != 3.4028235e38f && v.z != 3.4028235e38f)
+            pos = &v;
+        if (name != 0)
+            fn_800E6394(name, startDelay, playCount, repDelay, pos);
+    }
+    return 1;
+}
+
+s32 Action_DontPush_Level(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 types[10];
+    s32 on = 1;
+    s32 ntypes = 0;
+    u8 *target = 0;
+    char *p;
+    s32 t;
+    s32 i;
+    s32 j;
+    s32 n;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Type)) != 0) {
+                p += 5;
+                if (lbl_80408D08 != 0 && lbl_80408D10 != 0) {
+                    t = lbl_80408D08(p);
+                    if (t != 0xff) {
+                        t = lbl_80408D10(t);
+                        if (t != 0xff && ntypes < 10)
+                            types[ntypes++] = t;
+                    }
+                }
+            } else if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0) {
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            } else if (NuStrICmp(params[i], str_Bool_FALSE) == 0) {
+                on = 0;
+            }
+        }
+        if (ntypes != 0) {
+            target = lbl_80409430;
+            for (i = 0; i < lbl_8040B058; i++, target += 0x1098) {
+                if ((*(u32 *)(target + 0x20c) & 0x80080000) == 0x80080000
+                    && (*(u32 *)(target + 0x208) & 0x400)) {
+                    for (j = 0; j < ntypes; j++) {
+                        if (*(s16 *)(target + 0x1074) == types[j]) {
+                            ((struct gameaiscript_20c_s *)(target + 0x20c))->dontPush = on;
+                        }
+                    }
+                }
+            }
+        } else {
+            ((struct gameaiscript_20c_s *)(target + 0x20c))->dontPush = on;
+        }
+    }
+    return 1;
+}
+
+struct gameaiscript_part_s {
+    void *mtx;
+    u32 unk4;
+    void *dir;
+    u32 unkc[2];
+    f32 unk14;
+    f32 unk18;
+    f32 unk1c;
+    u32 unk20;
+    void *special;
+    s32 unk28;
+    u32 unk2c;
+    s32 unk30;
+    u32 unk34[4];
+    void *collide;
+    u32 unk48[17];
+    f32 unk8c;
+    u32 unk90[5];
+};
+
+extern struct gameaiscript_part_s lbl_801BB478;
+extern f32 lbl_80409710;
+extern f32 lbl_80409714;
+extern f32 lbl_80408E9C;
+extern void fn_80103A78(void *, void *, void *, f32, f32);
+extern void fn_8000DC80(void *, void *);
+extern void fn_80072410(void *);
+extern void NewRumble(void *, f32);
+extern s32 PartCollide();
+extern char str_ScriptParam_X[];
+extern char str_ScriptParam_Y[];
+extern char str_ScriptParam_Z[];
+
+s32 Action_AddPart(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 special[0xc];
+    struct gameaiscript_vec_s pos;
+    u8 dir[0x10];
+    u8 mtx[0x40];
+    struct gameaiscript_part_s part;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        memset(special, 0, sizeof(special));
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), special, p + 5, 1);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_X)) != 0)
+                pos.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Y)) != 0)
+                pos.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Z)) != 0)
+                pos.z = AIParamToFloat(packet, p + 2);
+        }
+        if (fn_800130F4(special) != 0) {
+            fn_80103A78(dir, &pos, lbl_80409004, lbl_80409714, lbl_80409710);
+            fn_8000DC80(mtx, &pos);
+            part = lbl_801BB478;
+            part.mtx = mtx;
+            part.dir = dir;
+            part.unk14 = 0.1f;
+            part.unk18 = 0.1f;
+            part.unk1c = lbl_80409710;
+            part.unk28 = 0;
+            part.special = special;
+            part.unk30 = 0x29b;
+            part.collide = PartCollide;
+            part.unk8c = lbl_80408E9C;
+            fn_80072410(&part);
+            NewRumble(**(void ***)(*(u8 **)(lbl_80409004 + 0xeec) + 0x61c), 0.5f);
+        }
+    }
+    return 1;
+}
+
+extern s32 PARTLookupType(char *);
+extern void fn_80074D14(s32, void *, s32);
+extern char str_ScriptParam_DXEq[];
+extern char str_ScriptParam_DYEq[];
+extern char str_ScriptParam_DZEq[];
+
+s32 Action_AddPartDebris(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 special[0xc];
+    struct gameaiscript_vec_s pos;
+    struct gameaiscript_vec_s delta;
+    s32 type = -1;
+    char *p;
+    u8 *obj;
+    s32 i;
+
+    memset(&delta, 0, sizeof(delta));
+    if (firstTime != 0) {
+        memset(special, 0, sizeof(special));
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                type = PARTLookupType(p + 5);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_DXEq)) != 0)
+                delta.x = AIParamToFloat(packet, p + 3);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_DYEq)) != 0)
+                delta.y = AIParamToFloat(packet, p + 3);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_DZEq)) != 0)
+                delta.z = AIParamToFloat(packet, p + 3);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_XEq)) != 0)
+                pos.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_YEq)) != 0)
+                pos.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_ZEq)) != 0)
+                pos.z = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0) {
+                if ((obj = (u8 *)GetNamedGameObject(sys, p + 10, 0)) != 0)
+                    pos = *(struct gameaiscript_vec_s *)(obj + 0x90);
+            }
+        }
+        if (type != -1) {
+            NuVecAdd(&pos, &pos, &delta);
+            fn_80074D14(type, &pos, 1);
+        }
+    }
+    return 1;
+}
+
+extern void *AIPathFindNode(void *, void *, char *);
+
+void *Condition_FromNodeInit(void *sys, char *param)
+{
+    u8 *level;
+
+    if (sys != 0 && (level = *(u8 **)((u8 *)sys + 0xc)) != 0 && level[0] != 0)
+        return AIPathFindNode(sys, *(void **)(level + 8), param);
+    return 0;
+}
+
+s32 Condition_HintAvailableInit(void *process, char *param)
+{
+    if (param == 0)
+        return 0;
+    return NuAToI(param);
+}
+
+f32 Condition_ObstacleFinished(void *sys, void *process, void *packet, char *param, u8 *obstacle)
+{
+    if (obstacle != 0) {
+        if (obstacle[0x22] == 2) {
+            if (obstacle[0x23] != 0)
+                return 1.0f;
+        } else if (obstacle[0x1f] != 0 || (*(u32 *)(obstacle + 0x18) & 0x1000)) {
+            return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+void *Condition_ToNodeInit(void *sys, char *param)
+{
+    u8 *level;
+
+    if (sys != 0 && (level = *(u8 **)((u8 *)sys + 0xc)) != 0 && level[0] != 0)
+        return AIPathFindNode(sys, *(void **)(level + 8), param);
+    return 0;
+}
+
+f32 Condition_Player2Active(void)
+{
+    if (lbl_80409008 != 0)
+        return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_PlayerDistanceAlongSock(void)
+{
+    if (lbl_80409004 != 0)
+        return *(f32 *)(lbl_80409004 + 0x62c);
+    return 0.0f;
+}
+
+s32 Condition_RespawnLocatorIsInit(void *process, char *param)
+{
+    if (param == 0)
+        return 0;
+    return ((s32 (*)(void *, char *))AIPathFindLocator)(process, param);
+}
+
+u8 *Condition_TurretAliveInit(void *process, char *param)
+{
+    return FindTurret(*(void **)((u8 *)lbl_80409410 + 0x578), param);
+}
+
+u8 *Condition_MessageInit(void *process, char *param)
+{
+    u8 *r = 0;
+
+    if (param != 0 && process != 0 && lbl_80408F58 != 0)
+        r = CheckAIMessage(lbl_80408F58, param, 0);
+    return r;
+}
+
+extern s32 fn_8011EBF4(void *, s32);
+
+s32 Condition_CutSceneFinishedInit(void *process, char *param)
+{
+    s32 idx = FindCutScene(param);
+
+    return idx != -1 ? fn_8011EBF4(lbl_80409410, idx) : 0;
+}
+
+f32 Condition_FurthestPlayerDistanceAlongSock(void)
+{
+    u8 *p2;
+
+    if (lbl_80409004 != 0) {
+        p2 = lbl_80409008;
+        if (p2 != 0 && *(f32 *)(p2 + 0x62c) > *(f32 *)(lbl_80409004 + 0x62c))
+            return *(f32 *)(p2 + 0x62c);
+        return *(f32 *)(lbl_80409004 + 0x62c);
+    }
+    return 0.0f;
+}
+
+extern void fn_80107A6C(void *, s32);
+
+s32 Action_ActivateGadget(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    void *obstacle = 0;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++)
+            obstacle = ((void *(*)(void *, char *))FindObstacle)(lbl_80409410, params[i]);
+        if (obstacle != 0)
+            fn_80107A6C(obstacle, 0);
+    }
+    return 1;
+}
+
+extern void fn_80108930(void *, s32, s32);
+
+s32 Action_EndLoopingAnimation(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char *name = 0;
+    void *obstacle;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++)
+            name = params[i];
+        if (name != 0 && (obstacle = ((void *(*)(void *, char *))FindObstacle)(lbl_80409410, name)) != 0)
+            fn_80108930(obstacle, 0, 0);
+    }
+    return 1;
+}
+
+f32 Condition_PlayerOnDoorTrigger(void *sys, void *process, void *packet, char *param, u8 *door)
+{
+    s32 i;
+
+    if (door != 0) {
+        for (i = 0; i < door[6]; i++) {
+            if (*(u8 **)(((u8 **)(door + 0x14))[i] + 0xa0) == lbl_80409004)
+                return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+f32 Condition_Side(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param, s32 side)
+{
+    u8 *c;
+
+    if (packet != 0 && (c = (u8 *)packet->owner) != 0) {
+        if (side == 1) {
+            if (*(u32 *)(c + 0x208) & 5)
+                return 0.0f;
+            return 1.0f;
+        }
+        if (side == -1) {
+            if (*(u32 *)(c + 0x208) & 1)
+                return 1.0f;
+        } else if (side == 0) {
+            if (*(u32 *)(c + 0x208) & 4)
+                return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+f32 Condition_EitherPlayerOnDoorTrigger(void *sys, void *process, void *packet, char *param, u8 *door)
+{
+    u8 *who;
+    s32 i;
+
+    if (door != 0) {
+        for (i = 0; i < door[6]; i++) {
+            who = *(u8 **)(((u8 **)(door + 0x14))[i] + 0xa0);
+            if (who == lbl_80409004)
+                return 1.0f;
+            if (lbl_80409008 != 0 && who == lbl_80409008)
+                return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+struct gameaiscript_iama_s {
+    u8 unk0[0xc];
+    char *name;
+    u8 unk10[0x38];
+};
+extern struct gameaiscript_iama_s lbl_801D2DD0[];
+
+s32 Condition_IAmAInit(void *process, char *param)
+{
+    s32 i;
+
+    if (param != 0 && process != 0) {
+        for (i = 0; i <= 0x84; i++) {
+            if (NuStrICmp(lbl_801D2DD0[i].name, param) == 0)
+                return i;
+        }
+    }
+    return -1;
+}
+
+struct gameaiscript_level_s {
+    u8 unk0[0x1d0];
+    u32 beenTo : 1;
+    u32 unk1d0 : 31;
+    u8 unk1d4[4];
+};
+extern struct gameaiscript_level_s lbl_803EB190[];
+
+f32 Condition_BeenToLevel(void *sys, void *process, void *packet, char *param, s32 level)
+{
+    if (level != -1)
+        return lbl_803EB190[level].beenTo;
+    return 0.0f;
+}
+
+s32 Action_AttackButtonMash(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+        ((struct gameaiscript_f24_s *)(object + 0xf24))->buttonMash = 1;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                    ((struct gameaiscript_f24_s *)(object + 0xf24))->buttonMash = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern s32 lbl_804093AC;
+extern s32 GetCounterLocator(s32);
+extern char str_CharacterName_Dexter[];
+
+s32 Action_SetCounterLocator(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 dexter = 0;
+    u8 *object;
+    s32 i;
+
+    if (lbl_804093AC == 0x7b && firstTime != 0 && packet != 0 && packet->owner != 0
+        && (object = (u8 *)packet->owner->object) != 0) {
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(params[i], str_CharacterName_Dexter) == 0)
+                    dexter = 1;
+            }
+        }
+        *(s32 *)(object + 0x39c) = GetCounterLocator(dexter);
+    }
+    return 1;
+}
+
+extern u8 lbl_801D68EC[];
+
+s32 Condition_BeenToLevelInit(void *process, char *param)
+{
+    s32 i;
+
+    if (param != 0 && process != 0 && *(u8 **)((u8 *)lbl_80409410 + 0x1ac) != 0) {
+        for (i = 0; i < (*(u8 **)((u8 *)lbl_80409410 + 0x1ac))[0x3a]; i++) {
+            if (NuStrICmp(param, *(char **)(lbl_801D68EC
+                    + (*(s16 **)*(u8 **)((u8 *)lbl_80409410 + 0x1ac))[i] * 0xa8)) == 0)
+                return i;
+        }
+    }
+    return -1;
+}
+
+f32 fn_8012D13C(u8 *a)
+{
+    u8 *b;
+
+    if (a != 0 && (b = *(u8 **)(a + 4)) != 0) {
+        switch (b[0xb0]) {
+        case 0:
+            return *(f32 *)(*(u8 **)(*(u8 **)(a + 0x64) + 0x20) + 0x18) * lbl_80408E9C;
+        case 1:
+            return *(f32 *)(*(u8 **)(*(u8 **)(a + 0x64) + 0x20) + 0x14) * lbl_80408E9C;
+        case 2:
+            return *(f32 *)(*(u8 **)(*(u8 **)(a + 0x64) + 0x20) + 0x10) * lbl_80408E9C;
+        }
+    }
+    return 0.0f;
+}
+
+struct gameaiscript_cam_s {
+    u8 unk0[0xd0];
+    struct gameaiscript_vec_s dir;
+};
+extern u8 gCameraState[];
+extern void NuVecSub(void *, void *, void *);
+
+f32 Condition_BehindCamera(void *sys, void *process, struct gameaiscript_packet_s *packet)
+{
+    struct gameaiscript_vec_s d;
+    u8 *object;
+
+    if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
+        NuVecSub(&d, object + 0x90, gCameraState);
+        if (d.x * ((struct gameaiscript_cam_s *)MenuHeader)->dir.x
+                + d.y * ((struct gameaiscript_cam_s *)MenuHeader)->dir.y
+                + d.z * ((struct gameaiscript_cam_s *)MenuHeader)->dir.z < 0.0f)
+            return 1.0f;
+    }
+    return 0.0f;
+}
+
+s32 Action_CanAttack(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                on = 1;
+        }
+        if (target != 0)
+            ((struct gameaiscript_f24_s *)(target + 0xf24))->canAttack = on;
+    }
+    return 1;
+}
+
+struct gameaiscript_obs18_s {
+    u32 unk0 : 23;
+    u32 stayOpen : 1;
+    u32 unk18 : 2;
+    u32 unk1a : 1;
+    u32 unk1b : 5;
+};
+
+s32 Action_DoorSetStayOpen(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char *name = 0;
+    s32 on = 1;
+    u8 *obstacle;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                on = 0;
+            else
+                name = params[i];
+        }
+        if ((obstacle = ((u8 *(*)(void *, char *))FindObstacle)(lbl_80409410, name)) != 0) {
+            if (on != 0) {
+                ((struct gameaiscript_obs18_s *)(obstacle + 0x18))->stayOpen = 1;
+            } else {
+                ((struct gameaiscript_obs18_s *)(obstacle + 0x18))->stayOpen = 0;
+                ((struct gameaiscript_obs18_s *)(obstacle + 0x18))->unk1a = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern char lbl_801AD82C[];
+extern void fn_80105500(void *, s32, s32, s32);
+
+s32 Action_SetObstacleChainPhase(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 phase = -1;
+    u8 *obstacle = 0;
+    char *p;
+    s32 chain;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], lbl_801AD82C)) != 0)
+                phase = AIParamToFloat(packet, p + 6);
+            else
+                obstacle = ((u8 *(*)(void *, char *))FindObstacle)(lbl_80409410, params[i]);
+        }
+        if (obstacle != 0 && (chain = (s8)obstacle[0x71]) != -1)
+            fn_80105500(lbl_80409410, chain, phase - 1, 0);
+    }
+    return 1;
+}
+
+extern char lbl_801AD810[];
+
+s32 Action_SetPath(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *path = *(u8 **)((u8 *)sys + 0xc);
+    char *p;
+    s32 i;
+    s32 j;
+
+    if (firstTime != 0 && path != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], lbl_801AD810)) != 0) {
+                p += 5;
+                for (j = 0; j < path[0]; j++) {
+                    if (NuStrICmp((*(char ***)(path + 4))[j], p) == 0)
+                        break;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+f32 Condition_SockXDistanceToPlayer(void *sys, void *process, struct gameaiscript_packet_s *packet)
+{
+    struct gameaiscript_vec_s a;
+    struct gameaiscript_vec_s b;
+    u8 *object;
+    s32 sock;
+
+    if (packet != 0 && packet->owner != 0 && lbl_80409004 != 0) {
+        object = (u8 *)packet->owner->object;
+        if ((sock = (s8)lbl_80409004[0x601]) != -1 && sock == (s8)object[0x601]) {
+            NuVecSub(&a, lbl_80409004 + 0x6c, lbl_80409004 + 0x608);
+            NuVecRotateY(&a, &a, -*(u16 *)(lbl_80409004 + 0x626));
+            NuVecSub(&b, object + 0x6c, object + 0x608);
+            NuVecRotateY(&b, &b, -*(u16 *)(object + 0x626));
+            return a.x - b.x;
+        }
+    }
+    return 0.0f;
+}
+
+f32 Condition_UsingForce(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param, u8 *target)
+{
+    u8 *object;
+    u8 *f;
+    u8 **list;
+    s32 using;
+    s32 i;
+    s32 *n;
+
+    if (packet != 0 && packet->owner != 0) {
+        object = (u8 *)packet->owner->object;
+        if (object == 0)
+            goto no;
+        f = *(u8 **)(*(u8 **)(object + 0xeec) + 0x620);
+        if (f == 0 || !(*(u16 *)(f + 0x20) & 0x1000))
+            goto no;
+        if (target == 0)
+            goto yes;
+        if ((list = *(u8 ***)(target + 0x6c)) != 0) {
+            n = (s32 *)((u8 *)list + 0x200);
+            for (i = 0; i < *n; i++) {
+                if (f == *list++)
+                    goto yes;
+            }
+            goto no;
+        }
+        if (f != target)
+            goto no;
+    yes:
+        using = 1;
+        goto done;
+    no:
+        using = 0;
+    done:
+        if (using != 0)
+            return 1.0f;
+    }
+    return 0.0f;
+}
+
+f32 Condition_PlayerUsingForce(void *sys, void *process, void *packet, char *param, u8 *target)
+{
+    u8 *f;
+    u8 **list;
+    s32 using;
+    s32 i;
+    s32 *n;
+
+    /* The force object is re-read through the player each time it is used. */
+    if (lbl_80409004 == 0)
+        goto no;
+    f = *(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620);
+    if (*(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620) == 0 || !(*(u16 *)(f + 0x20) & 0x1000))
+        goto no;
+    if (target == 0)
+        goto yes;
+    if ((list = *(u8 ***)(target + 0x6c)) != 0) {
+        n = (s32 *)((u8 *)list + 0x200);
+        for (i = 0; i < *n; i++) {
+            if (*(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620) == *list++)
+                goto yes;
+        }
+        goto no;
+    }
+    if (*(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620) != target)
+        goto no;
+yes:
+    using = 1;
+    goto done;
+no:
+    using = 0;
+done:
+    if (using != 0)
+        return 1.0f;
+    return 0.0f;
+}
+
+struct gameaiscript_vec3_s { f32 x, y, z; };
+extern s32 NuAngSub(s32, s32);
+
+f32 Condition_MaulShouldRunAway(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param)
+{
+    struct gameaiscript_vec3_s pos = {5.5f, 0.0f, 3.65f};
+    struct gameaiscript_vec3_s d;
+    u8 *o;
+    s32 i;
+    u8 *pl;
+    s32 ang;
+
+    o = *(u8 **)((u8 *)packet + 0x50);
+    if (o != 0) {
+        d.x = *(f32 *)(o + 0x90) - pos.x;
+        d.z = *(f32 *)(o + 0x98) - pos.z;
+        ang = fn_8000ABDC(d.x, d.z);
+        for (i = 0; i < 2; i++) {
+            pl = gPlayer1Pointer[i];
+            if (pl != 0 && *(s32 *)(pl + 0x20c) < 0) {
+                d.x = *(f32 *)(pl + 0x90) - pos.x;
+                d.z = *(f32 *)(pl + 0x98) - pos.z;
+                if (d.x * d.x + d.z * d.z < 25.0f
+                    && NuAngSub(fn_8000ABDC(d.x, d.z), ang) <= 0xe37)
+                    return 1.0f;
+            }
+        }
+    }
+    return 0.0f;
+}
+
+s32 Action_SetNearestSpline(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char name[64];
+    f32 best = 900.0f;
+    u8 *bestSpline = 0;
+    s32 looping = 0;
+    u8 *o;
+    u8 *sp;
+    f32 *pt;
+    f32 dx, dz, d;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (o = packet->owner->object) == 0)
+        return 1;
+    for (i = 1; i < count; i++) {
+        if (NuStrIStr(params[i], str_ScriptFlag_Looping) != 0)
+            looping = 1;
+    }
+    for (i = 0; i <= 9; i++) {
+        sprintf(name, str_Format_StringTwoDigits, params[0], i);
+        sp = NuSplineFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), name);
+        if (sp != 0) {
+            pt = *(f32 **)(sp + 8);
+            dx = *(f32 *)(o + 0x6c) - pt[0];
+            dz = *(f32 *)(o + 0x74) - pt[2];
+            d = dx * dx + dz * dz;
+            if (d < best) {
+                bestSpline = sp;
+                best = d;
+            }
+        }
+    }
+    if (bestSpline != 0) {
+        InitSplinePosition(o + 0x69c, bestSpline, looping, 0.0f);
+        return 0;
+    }
+    return 1;
+}
+
+extern void *lbl_80408F74;
+extern s32 FindGameDebris(void *, char *);
+extern void fn_80063E14(s32 *, void *, void *, s32);
+
+s32 Action_MakeExplosion(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 handle = -1;
+    struct gameaiscript_vec_s v = { 3.4028235e38f, 3.4028235e38f, 3.4028235e38f };
+    s32 type = 0x1f;
+    u8 *obj = 0;
+    char *p;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+        obj = packet->owner->object;
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_XEq)) != 0)
+                v.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_YEq)) != 0)
+                v.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_ZEq)) != 0)
+                v.z = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Type)) != 0)
+                type = FindGameDebris(lbl_80408F74, p + 5);
+        }
+        if (v.x != 3.4028235e38f && v.y != 3.4028235e38f && v.z != 3.4028235e38f)
+            fn_80063E14(&handle, *(void **)(*(u8 **)(*(u8 **)((u8 *)lbl_80409410 + 0x1b8) + 8) + type * 0x14), &v, 1);
+        else if (obj != 0)
+            fn_80063E14(&handle, *(void **)(*(u8 **)(*(u8 **)((u8 *)lbl_80409410 + 0x1b8) + 8) + type * 0x14), obj + 0x90, 1);
+    }
+    return 1;
+}
+
+extern char str_ScriptFlag_DontCheckTerrain[];
+extern struct gameaiscript_vec_s lbl_803E04C4;
+extern struct gameaiscript_vec_s lbl_801D5964;
+extern void InitPlayerShadow(u8 *);
+extern void SetPlayerOnSurface(u8 *, s32);
+
+s32 Action_SnapToOrigin(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 checkTerrain = 1;
+    u8 *obj = 0;
+    u8 *start;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            obj = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                obj = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if (NuStrIStr(params[i], str_ScriptFlag_DontCheckTerrain) != 0)
+                checkTerrain = 0;
+        }
+        if (obj != 0 && (*(u32 *)(obj + 0x208) & 0x400)) {
+            start = *(u8 **)((u8 *)sys + 0x14) + obj[0x346] * 0xa8;
+            *(struct gameaiscript_vec_s *)(*(u8 **)(obj + 0x2f0) + 0x6c) = *(struct gameaiscript_vec_s *)(start + 0x30);
+            *(u16 *)(obj + 0x27e) = *(u16 *)(start + 0x3e);
+            *(u16 *)(obj + 0x1066) = *(u16 *)(start + 0x3e);
+            *(u16 *)(obj + 0x1068) = *(u16 *)(start + 0x3e);
+            *(u32 *)(obj + 0x3b8) &= ~0x8000;
+            *(struct gameaiscript_vec_s *)(obj + 0x9c) = lbl_803E04C4 = *(struct gameaiscript_vec_s *)(obj + 0x90)
+                = *(struct gameaiscript_vec_s *)(obj + 0xa8) = *(struct gameaiscript_vec_s *)(*(u8 **)(obj + 0x2f0) + 0x6c);
+            *(struct gameaiscript_vec_s *)(obj + 0x1c4) = *(struct gameaiscript_vec_s *)(obj + 0x1dc)
+                = *(struct gameaiscript_vec_s *)(obj + 0x6c);
+            *(struct gameaiscript_vec_s *)(obj + 0x78) = lbl_801D5964;
+            InitPlayerShadow(obj);
+            if (checkTerrain != 0)
+                SetPlayerOnSurface(obj, 0);
+        }
+    }
+    return 1;
+}
+
+extern char lbl_801AD870[];
+extern char lbl_801AD7E0[];
+extern char lbl_801AD7A0[];
+extern char str_Bool_FALSE[];
+struct gameaiscript_cnx_s {
+    s32 unk0;
+    u32 flags[2];
+};
+
+extern struct gameaiscript_cnx_s *fn_8008A6D4(void *, void *, char *, char *, s32 *);
+
+s32 Action_SetPathCnxFlag(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 idx;
+    s32 both = 0;
+    u32 flags = 0;
+    s32 on = 1;
+    u32 clear = 0;
+    char *from = 0;
+    char *to = 0;
+    struct gameaiscript_cnx_s *cnx;
+    char *p;
+    s32 type;
+    s32 i;
+
+    if (sys != 0 && *(u8 **)((u8 *)sys + 0xc) != 0 && **(u8 **)((u8 *)sys + 0xc) != 0 && firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], lbl_801AD870)) != 0)
+                from = p + 5;
+            else if ((p = NuStrIStr(params[i], lbl_801AD7E0)) != 0)
+                to = p + 3;
+            else if ((type = ParseAIPathCnxFlag(params[i])) != 0) {
+                flags |= type;
+                if (type == 0x400)
+                    clear |= 0x800;
+                else if (type == 0x800)
+                    clear |= 0x400;
+                else if (type == 0x20000000)
+                    both = 1;
+            } else if (NuStrICmp(params[i], lbl_801AD7A0) == 0)
+                both = 1;
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                on = 0;
+        }
+        if (from != 0 && to != 0
+            && (cnx = fn_8008A6D4(sys, *(void **)(*(u8 **)((u8 *)sys + 0xc) + 8), from, to, &idx)) != 0) {
+            if (on != 0) {
+                cnx->flags[idx] |= flags;
+                cnx->flags[idx] &= ~clear;
+            } else
+                cnx->flags[idx] &= ~flags;
+            if (both != 0) {
+                if (on != 0) {
+                    cnx->flags[idx == 0] |= flags;
+                    cnx->flags[idx == 0] &= ~clear;
+                } else
+                    cnx->flags[idx == 0] &= ~flags;
+            }
+        }
+    }
+    return 1;
+}
+
+struct gameaiscript_splinepos_s {
+    u8 unk0[7];
+    u8 finished;
+    u32 unk8;
+    u32 unkC;
+    struct gameaiscript_vec_s pos;
+};
+
+extern char str_ScriptFlag_KillAtEnd[];
+extern char str_ScriptFlag_ClearSpline[];
+extern s32 lbl_804099F8;
+extern f32 lbl_804099F4;
+extern void MoveSplinePosition(struct gameaiscript_splinepos_s *, f32);
+
+s32 Action_FollowSpline(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    struct gameaiscript_vec_s v;
+    struct gameaiscript_splinepos_s tmp;
+    f32 z = 0.0f;
+    f32 speed;
+    u8 *obj;
+    u8 *pk;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (obj = packet->owner->object) != 0) {
+        pk = (u8 *)packet;
+        if (firstTime != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrIStr(params[i], str_ScriptFlag_KillAtEnd) != 0)
+                    pk[0xb2] = 1;
+                if (NuStrIStr(params[i], str_ScriptFlag_ClearSpline) != 0)
+                    pk[0xb3] = 1;
+            }
+        }
+        if (lbl_804099F8 != 0 && *(s32 *)(obj + 0x69c) != 0) {
+            if (*(u32 *)(obj + 0xf24) & 0x400)
+                speed = *(f32 *)(*(u8 **)(obj + 0xeec) + 0x730) * *(f32 *)(obj + 0xf04);
+            else if (*(f32 *)(obj + 0x45c) > 0.0f)
+                speed = *(f32 *)(obj + 0x45c);
+            else
+                speed = *(f32 *)(*(u8 **)(*(u8 **)(obj + 0x64) + 0x20) + 0xc);
+            MoveSplinePosition((struct gameaiscript_splinepos_s *)(obj + 0x69c), speed * lbl_80408E9C);
+            if (((struct gameaiscript_splinepos_s *)(obj + 0x69c))->finished != 0) {
+                if (pk[0xb2] != 0)
+                    fn_800D3054(obj, 5);
+                else {
+                    v.z = z;
+                    v.x = 0.0f;
+                    v.y = 0.0f;
+                    NuVecRotateY(&v, &v, -*(u16 *)(obj + 0x27e));
+                    NuVecAdd(&v, (struct gameaiscript_vec_s *)(obj + 0x6c), &v);
+                    AIMoveInstruction(packet, (s32)&v, 0, 1, 0.0f, 0.0f);
+                }
+                if (pk[0xb3] != 0)
+                    memset(obj + 0x69c, 0, 0x1c);
+            } else {
+                tmp = *(struct gameaiscript_splinepos_s *)(obj + 0x69c);
+                MoveSplinePosition(&tmp, lbl_804099F4 * speed);
+                AIMoveInstruction(packet, (s32)&tmp.pos, 0, 1, 0.0f, 0.0f);
+            }
+            goto moved;
+        }
+    }
+    return 1;
+moved:
+    return 0;
+}
+
+extern char str_ScriptParam_Distance[];
+extern char str_ScriptParam_Tolerance[];
+
+s32 Action_ZamMovement(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    struct gameaiscript_sockpos_s info;
+    u8 *obj;
+    u8 *pk;
+    char *p;
+    f32 avg;
+    f32 d;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (obj = packet->owner->object) == 0)
+        return 1;
+    pk = (u8 *)packet;
+    if (firstTime != 0) {
+        (*(u8 **)(obj + 0xeec))[0x7e6] = 1;
+        obj[0x351] = 1;
+        *(f32 *)(obj + 0xf04) = 1.0f;
+        *(u32 *)(obj + 0xf24) |= 0x4400;
+        *(f32 *)(pk + 0xb8) = 10.0f;
+        *(f32 *)(pk + 0xbc) = 1.0f;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Distance)) != 0)
+                *(f32 *)(pk + 0xb8) = AIParamToFloat(packet, p + 9);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Tolerance)) != 0)
+                *(f32 *)(pk + 0xbc) = AIParamToFloat(packet, p + 10);
+        }
+    }
+    MoveSockPosition(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600, lbl_804099FC, &info);
+    if (lbl_80409004 != 0) {
+        if (lbl_80409008 != 0)
+            avg = (fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), lbl_80409004 + 0x600)
+                   + fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), lbl_80409008 + 0x600)) * 0.5f;
+        else
+            avg = fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), lbl_80409004 + 0x600);
+        d = avg + *(f32 *)(pk + 0xb8) - fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600);
+        if (*(f32 *)(obj + 0xf04) < 1.0f) {
+            if (d > 0.0f)
+                *(f32 *)(obj + 0xf04) = 1.0f;
+        } else if (*(f32 *)(obj + 0xf04) > 1.0f) {
+            if (d < 0.0f)
+                *(f32 *)(obj + 0xf04) = 1.0f;
+        } else if (d > *(f32 *)(pk + 0xbc))
+            *(f32 *)(obj + 0xf04) = 1.2f;
+        else if (d < -*(f32 *)(pk + 0xbc))
+            *(f32 *)(obj + 0xf04) = 0.8f;
+    } else
+        *(f32 *)(obj + 0xf04) = 1.0f;
+    AIMoveInstruction(packet, (s32)&info.pos, 0, 1, 0.0f, 0.0f);
+    return 0;
+}
+
+s32 Action_RaceOpponent(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    struct gameaiscript_sockpos_s info;
+    struct gameaiscript_vec_s out;
+    struct gameaiscript_vec_s a;
+    struct gameaiscript_vec_s b;
+    u8 *obj;
+    u8 *pk;
+    u8 *opp;
+    char *p;
+    f32 d;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (obj = packet->owner->object) == 0)
+        return 1;
+    pk = (u8 *)packet;
+    if (firstTime != 0) {
+        (*(u8 **)(obj + 0xeec))[0x7e6] = 1;
+        obj[0x351] = 1;
+        *(u32 *)(obj + 0xf24) |= 0x4400;
+        *(f32 *)(obj + 0xf04) = 1.0f;
+        *(f32 *)(pk + 0xb8) = 10.0f;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Distance)) != 0)
+                *(f32 *)(pk + 0xb8) = AIParamToFloat(packet, p + 9);
+        }
+    }
+    MoveSockPosition(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600, lbl_804099FC, &info);
+    if ((opp = *(u8 **)(pk + 0x64)) != 0 && *(u8 **)(opp + 4) != 0) {
+        d = fn_8009CB2C(*(void **)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600)
+            - fn_8009CB2C(*(void **)((u8 *)lbl_80409410 + 0x2dc), opp + 0x600) - *(f32 *)(pk + 0xb8);
+        if (d > *(f32 *)(pk + 0xb8) * 0.5f)
+            *(f32 *)(obj + 0xf04) = 0.9f;
+        else if (d < -(*(f32 *)(pk + 0xb8) * 0.5f))
+            *(f32 *)(obj + 0xf04) = 1.1f;
+        else
+            *(f32 *)(obj + 0xf04) = 1.0f;
+        NuVecSub(&a, opp + 0x6c, opp + 0x608);
+        NuVecRotateY(&a, &a, -*(u16 *)(opp + 0x626));
+        NuVecSub(&b, obj + 0x6c, obj + 0x608);
+        NuVecRotateY(&b, &b, -*(u16 *)(obj + 0x626));
+        out.z = 0.0f;
+        out.y = 0.0f;
+        out.x = b.x * 0.5f + a.x * 0.5f;
+        NuVecAdd(&out, &out, &info.pos);
+    } else {
+        *(f32 *)(obj + 0xf04) = 1.0f;
+        out = info.pos;
+    }
+    AIMoveInstruction(packet, (s32)&out, 0, 1, 0.0f, 0.0f);
+    return 0;
+}
+
+extern s32 NuRand(s32);
+extern char str_ScriptScope_Personal[];
+extern char str_ScriptScope_Indexed[];
+extern char str_ScriptAction_TakeDamage[];
+extern char str_ScriptTarget_Random[];
+extern char str_Format_StringInt[];
+extern char str_Format_StringString[];
+
+s32 Action_SetDoomedEscapeLocator(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char name[64];
+    s32 personal = 0;
+    s32 indexed = 0;
+    s32 random = 0;
+    s32 takeDamage = 0;
+    char *base = 0;
+    u8 *obj = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            obj = packet->owner->object;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                    obj = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+                else if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                    base = p + 5;
+                else if (NuStrIStr(params[i], str_ScriptScope_Personal) != 0)
+                    personal = 1;
+                else if (NuStrIStr(params[i], str_ScriptScope_Indexed) != 0)
+                    indexed = 1;
+                else if (NuStrIStr(params[i], str_ScriptAction_TakeDamage) != 0)
+                    takeDamage = 1;
+                else if ((p = NuStrIStr(params[i], str_ScriptTarget_Random)) != 0)
+                    random = AIParamToFloat(packet, p + 9);
+            }
+            if (obj != 0) {
+                *(s32 *)(obj + 0xf38) = 0;
+                ((struct gameaiscript_f28b_s *)(obj + 0xf28))->escapeTakeDamage = 0;
+                if (base != 0) {
+                    if (indexed != 0 && (s8)obj[0x284] != -1)
+                        sprintf(name, str_Format_StringInt, base, (s8)obj[0x284]);
+                    else if (personal != 0 && *(u8 **)(obj + 0x64) != 0)
+                        sprintf(name, str_Format_StringString, base, *(char **)(*(u8 **)(obj + 0x64) + 0xc));
+                    else if (random != 0)
+                        sprintf(name, str_Format_StringInt, base, NuRand(0) % random);
+                    else
+                        sprintf(name, base);
+                    if ((*(s32 *)(obj + 0xf38) = ((s32 (*)(void *, char *))AIPathFindLocator)(sys, name)) != 0)
+                        ((struct gameaiscript_f28b_s *)(obj + 0xf28))->escapeTakeDamage = takeDamage;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+struct gameaiscript_pathstate_s {
+    s32 node;
+    u8 *unk4;
+    s32 unk8;
+    u32 unkC;
+    s32 unk10;
+    s32 unk14;
+};
+
+extern void fn_8008B4D8(void *, u8 *, struct gameaiscript_pathstate_s *, s32, s32);
+extern f32 fn_8000ED40(f32);
+
+f32 Condition_LocatedCollectable(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param)
+{
+    struct gameaiscript_vec_s d;
+    f32 best = 3.4028235e38f;
+    u8 *obj;
+    u8 *c;
+    u8 *col;
+    f32 dist;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (obj = packet->owner->object) != 0) {
+        if ((col = *(u8 **)(obj + 0x660)) != 0) {
+            if (*(s32 *)(obj + 0x664) == 0) {
+                c = col;
+                if (!(c[0x3b] & 1)) {
+                if (((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unkC & 0x8000)
+                    return 1.0f;
+                fn_8008B4D8(sys, c, (struct gameaiscript_pathstate_s *)(obj + 0x66c), 0, 1);
+                if (((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unkC & 0x8000) {
+                    c[0x3b] |= 2;
+                    c[0x3d] = *((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unk4;
+                    return 1.0f;
+                }
+                if (obj[0x668] != *(u16 *)(obj + 0x678))
+                    return 0.0f;
+                c[0x3b] |= 1;
+                *(u8 **)(obj + 0x660) = 0;
+                }
+            } else
+                *(u8 **)(obj + 0x660) = 0;
+        }
+        c = *(u8 **)((u8 *)lbl_80409410 + 0x71c);
+        for (i = *(s32 *)((u8 *)lbl_80409410 + 0x734) - 1; i >= 0; i--, c += 0x40) {
+            if (c[0x39] == 0 || (c[0x3b] & 1))
+                continue;
+            d.x = *(f32 *)(obj + 0x90) - *(f32 *)(c + 0);
+            if (!(fn_8000ED40(d.x) < best))
+                continue;
+            d.z = *(f32 *)(obj + 0x98) - *(f32 *)(c + 8);
+            if (!(fn_8000ED40(d.z) < best))
+                continue;
+            d.y = *(f32 *)(obj + 0x94) - *(f32 *)(c + 4);
+            if (!(fn_8000ED40(d.y) < best))
+                continue;
+            dist = d.x * d.x + d.y * d.y + d.z * d.z;
+            if (!(dist < best))
+                continue;
+            *(u8 **)(obj + 0x660) = c;
+            best = dist;
+            *(s32 *)(obj + 0x664) = 0;
+            if (c[0x3b] & 2) {
+                ((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unk4 = 0;
+                *(u16 *)(obj + 0x678) = c[0x3d];
+            } else if ((*(u32 *)((u8 *)packet + 0x118) & 0x8000)
+                && *(s32 *)((u8 *)packet + 0x10c) == *(s32 *)(*(u8 **)((u8 *)sys + 0xc) + 8)) {
+                *(struct gameaiscript_pathstate_s *)(obj + 0x66c) = *(struct gameaiscript_pathstate_s *)((u8 *)packet + 0x10c);
+                ((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unkC &= ~0x8000;
+            } else
+                memset(obj + 0x66c, 0, 0x18);
+            obj[0x668] = obj[0x679];
+        }
+    }
+    return 0.0f;
 }

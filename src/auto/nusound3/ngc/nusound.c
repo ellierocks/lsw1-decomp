@@ -224,3 +224,12 @@ void fn_80044F6C(s32 arg0, s32 arg1) {
     }
     lbl_80407F38 = 1;
 }
+
+s32 (*fn_80009970(s32 *, s32))();
+extern s32 lbl_80193F2C[];
+extern s32 lbl_801940DC[];
+
+s32 fn_80045004(void) {
+    fn_80009970(lbl_80193F2C, 0x3F7)(lbl_801940DC);
+    return 1;
+}
