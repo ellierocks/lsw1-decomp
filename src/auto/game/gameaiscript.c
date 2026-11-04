@@ -723,7 +723,11 @@ s32 Action_SetPlayType(void *sys, void *process, struct gameaiscript_packet_s *p
 struct gameaiscript_f24_s {
     u32 unk0 : 3;
     u32 keepWeaponOut : 1; /* Action_KeepWeaponOut */
-    u32 unk4 : 19;
+    u32 unk4 : 1;
+    u32 buttonMash : 1; /* Action_AttackButtonMash */
+    u32 unk6 : 2;
+    u32 canAttack : 1; /* Action_CanAttack */
+    u32 unk9 : 14;
     u32 respawn : 1;
     u32 respawnAtOrigin : 1;
     u32 unk19 : 3;
@@ -4167,12 +4171,6 @@ f32 Condition_BeenToLevel(void *sys, void *process, void *packet, char *param, s
     return 0.0f;
 }
 
-struct gameaiscript_f24b_s {
-    u32 unk0 : 5;
-    u32 buttonMash : 1;
-    u32 unk6 : 26;
-};
-
 s32 Action_AttackButtonMash(void *sys, void *process, struct gameaiscript_packet_s *packet,
     char **params, s32 count, s32 firstTime, f32 time)
 {
@@ -4180,11 +4178,11 @@ s32 Action_AttackButtonMash(void *sys, void *process, struct gameaiscript_packet
     s32 i;
 
     if (packet != 0 && packet->owner != 0 && (object = (u8 *)packet->owner->object) != 0) {
-        ((struct gameaiscript_f24b_s *)(object + 0xf24))->buttonMash = 1;
+        ((struct gameaiscript_f24_s *)(object + 0xf24))->buttonMash = 1;
         if (count != 0) {
             for (i = 0; i < count; i++) {
                 if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
-                    ((struct gameaiscript_f24b_s *)(object + 0xf24))->buttonMash = 0;
+                    ((struct gameaiscript_f24_s *)(object + 0xf24))->buttonMash = 0;
             }
         }
     }
@@ -4267,5 +4265,209 @@ f32 Condition_BehindCamera(void *sys, void *process, struct gameaiscript_packet_
                 + d.z * ((struct gameaiscript_cam_s *)MenuHeader)->dir.z < 0.0f)
             return 1.0f;
     }
+    return 0.0f;
+}
+
+s32 Action_CanAttack(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                on = 1;
+        }
+        if (target != 0)
+            ((struct gameaiscript_f24_s *)(target + 0xf24))->canAttack = on;
+    }
+    return 1;
+}
+
+struct gameaiscript_obs18_s {
+    u32 unk0 : 23;
+    u32 stayOpen : 1;
+    u32 unk18 : 2;
+    u32 unk1a : 1;
+    u32 unk1b : 5;
+};
+
+s32 Action_DoorSetStayOpen(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char *name = 0;
+    s32 on = 1;
+    u8 *obstacle;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                on = 0;
+            else
+                name = params[i];
+        }
+        if ((obstacle = ((u8 *(*)(void *, char *))FindObstacle)(lbl_80409410, name)) != 0) {
+            if (on != 0) {
+                ((struct gameaiscript_obs18_s *)(obstacle + 0x18))->stayOpen = 1;
+            } else {
+                ((struct gameaiscript_obs18_s *)(obstacle + 0x18))->stayOpen = 0;
+                ((struct gameaiscript_obs18_s *)(obstacle + 0x18))->unk1a = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern char lbl_801AD82C[];
+extern void fn_80105500(void *, s32, s32, s32);
+
+s32 Action_SetObstacleChainPhase(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 phase = -1;
+    u8 *obstacle = 0;
+    char *p;
+    s32 chain;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], lbl_801AD82C)) != 0)
+                phase = AIParamToFloat(packet, p + 6);
+            else
+                obstacle = ((u8 *(*)(void *, char *))FindObstacle)(lbl_80409410, params[i]);
+        }
+        if (obstacle != 0 && (chain = (s8)obstacle[0x71]) != -1)
+            fn_80105500(lbl_80409410, chain, phase - 1, 0);
+    }
+    return 1;
+}
+
+extern char lbl_801AD810[];
+
+s32 Action_SetPath(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *path = *(u8 **)((u8 *)sys + 0xc);
+    char *p;
+    s32 i;
+    s32 j;
+
+    if (firstTime != 0 && path != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], lbl_801AD810)) != 0) {
+                p += 5;
+                for (j = 0; j < path[0]; j++) {
+                    if (NuStrICmp((*(char ***)(path + 4))[j], p) == 0)
+                        break;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+f32 Condition_SockXDistanceToPlayer(void *sys, void *process, struct gameaiscript_packet_s *packet)
+{
+    struct gameaiscript_vec_s a;
+    struct gameaiscript_vec_s b;
+    u8 *object;
+    s32 sock;
+
+    if (packet != 0 && packet->owner != 0 && lbl_80409004 != 0) {
+        object = (u8 *)packet->owner->object;
+        if ((sock = (s8)lbl_80409004[0x601]) != -1 && sock == (s8)object[0x601]) {
+            NuVecSub(&a, lbl_80409004 + 0x6c, lbl_80409004 + 0x608);
+            NuVecRotateY(&a, &a, -*(u16 *)(lbl_80409004 + 0x626));
+            NuVecSub(&b, object + 0x6c, object + 0x608);
+            NuVecRotateY(&b, &b, -*(u16 *)(object + 0x626));
+            return a.x - b.x;
+        }
+    }
+    return 0.0f;
+}
+
+f32 Condition_UsingForce(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param, u8 *target)
+{
+    u8 *object;
+    u8 *f;
+    u8 **list;
+    s32 using;
+    s32 i;
+    s32 *n;
+
+    if (packet != 0 && packet->owner != 0) {
+        object = (u8 *)packet->owner->object;
+        if (object == 0)
+            goto no;
+        f = *(u8 **)(*(u8 **)(object + 0xeec) + 0x620);
+        if (f == 0 || !(*(u16 *)(f + 0x20) & 0x1000))
+            goto no;
+        if (target == 0)
+            goto yes;
+        if ((list = *(u8 ***)(target + 0x6c)) != 0) {
+            n = (s32 *)((u8 *)list + 0x200);
+            for (i = 0; i < *n; i++) {
+                if (f == *list++)
+                    goto yes;
+            }
+            goto no;
+        }
+        if (f != target)
+            goto no;
+    yes:
+        using = 1;
+        goto done;
+    no:
+        using = 0;
+    done:
+        if (using != 0)
+            return 1.0f;
+    }
+    return 0.0f;
+}
+
+f32 Condition_PlayerUsingForce(void *sys, void *process, void *packet, char *param, u8 *target)
+{
+    u8 *f;
+    u8 **list;
+    s32 using;
+    s32 i;
+    s32 *n;
+
+    /* The force object is re-read through the player each time it is used. */
+    if (lbl_80409004 == 0)
+        goto no;
+    f = *(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620);
+    if (*(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620) == 0 || !(*(u16 *)(f + 0x20) & 0x1000))
+        goto no;
+    if (target == 0)
+        goto yes;
+    if ((list = *(u8 ***)(target + 0x6c)) != 0) {
+        n = (s32 *)((u8 *)list + 0x200);
+        for (i = 0; i < *n; i++) {
+            if (*(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620) == *list++)
+                goto yes;
+        }
+        goto no;
+    }
+    if (*(u8 **)(*(u8 **)(lbl_80409004 + 0xeec) + 0x620) != target)
+        goto no;
+yes:
+    using = 1;
+    goto done;
+no:
+    using = 0;
+done:
+    if (using != 0)
+        return 1.0f;
     return 0.0f;
 }
