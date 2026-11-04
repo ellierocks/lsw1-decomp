@@ -111,9 +111,10 @@ class SearchTests(unittest.TestCase):
         self.assertTrue(result["best"]["changes"][0].startswith("ternary"))
         self.assertLess(result["tried"], result["total"])
 
-    def test_refuses_searches_over_the_limit(self):
-        with self.assertRaises(vs.VariantError):
-            vs.search("f", SOURCE, lambda t, i: report("MISMATCH", 0), jobs=1, limit=2)
+    def test_searches_over_the_limit_are_truncated_not_refused(self):
+        result = vs.search("f", SOURCE, lambda t, i: report("MISMATCH", 0), jobs=1, limit=2)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result["tried"], 2)
 
     def test_compile_errors_are_counted_not_scored(self):
         calls = {"n": 0}

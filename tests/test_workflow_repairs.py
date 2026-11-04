@@ -41,6 +41,19 @@ class DraftRepairs(unittest.TestCase):
         self.assertIn('second(void) { return 3; }', out)
         self.assertNotIn('return 2;', out)
 
+    def test_splice_drops_externs_and_structs_the_unit_already_has(self):
+        source = ('struct v { int x; };\nf32 helper(void *, void *);\nextern u8 table[];\n'
+                  'int first(void) { return 1; }\n')
+        body = ('struct v { int x; };\nstruct w { int y; };\nextern s32 helper(void *);\n'
+                'extern u8 table[];\nextern void (*cb)(void);\nint first(void) { return 2; }')
+        out = score_fn.splice_body(source, 'first', body)
+        self.assertEqual(out.count('struct v {'), 1)
+        self.assertIn('struct w { int y; };', out)
+        self.assertNotIn('extern s32 helper', out)
+        self.assertEqual(out.count('table[]'), 1)
+        self.assertIn('extern void (*cb)(void);', out)
+        self.assertIn('return 2;', out)
+
 
 class GitTransport(unittest.TestCase):
     def invoke(self, results):

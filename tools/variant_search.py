@@ -16,9 +16,10 @@ only the named function. `--body FILE` searches a draft that is not in the unit 
 Variants are tried fewest-changes first, so the smallest edit that matches wins. Every one is
 compiled with `score_fn.py` (strict verifier, same score order as hillclimb.py). The search
 stops at the first strict MATCH. At most `--max-changes` dimensions (default 2; a
-whole declaration permutation or all ternaries together count as one) change at once, and it
-refuses spaces larger than `--limit` (default 2000, about 5 minutes serially, under a minute
-with -j 8). The best variant is written to
+whole declaration permutation or all ternaries together count as one) change at once. A space
+larger than `--limit` (default 2000, about 5 minutes serially, under a minute with -j 8) is
+truncated to its first `--limit` variants, which are the fewest-change ones, instead of being
+refused. The best variant is written to
 `work/variant_search/NAME/best.c` (or `-o`); the checkout is never edited. Accept it only
 through `verify_fn.py --build --strict-symbols` after porting it into the unit source.
 
@@ -192,10 +193,11 @@ def search(name: str, text: str, scorer, *, jobs: int, limit: int, max_changes: 
     if not dims:
         raise VariantError(f"{name} has no cheap variants (no leading locals, ternary stores or integer types)")
     total = count(dims, max_changes)
-    if total > limit:
-        raise VariantError(f"{total} variants exceed --limit {limit}; lower --max-changes or raise --limit")
+    truncated = total > limit
+    if truncated and log:
+        log(f"{total} variants exceed --limit {limit}; trying the first {limit} (fewest changes first)")
     best, tried, errors = None, 0, 0
-    it = combos(dims, max_changes)
+    it = itertools.islice(combos(dims, max_changes), limit)
     with ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
         while True:
             batch = list(itertools.islice(it, max(1, jobs) * 4))
@@ -217,7 +219,7 @@ def search(name: str, text: str, scorer, *, jobs: int, limit: int, max_changes: 
             if best and best["report"].get("returncode") == 0 and best["report"]["verdict"] == "MATCH":
                 break
     return {"total": total, "tried": tried, "errors": errors, "best": best,
-            "dimensions": [d.name for d in dims]}
+            "truncated": truncated, "dimensions": [d.name for d in dims]}
 
 
 def main(argv=None) -> int:
@@ -225,7 +227,7 @@ def main(argv=None) -> int:
     ap.add_argument("name", help="retail function name in symbols.txt (also the C function name)")
     ap.add_argument("source", type=Path, help="C file containing the draft")
     ap.add_argument("-j", "--jobs", type=int, default=1, help="parallel compiles")
-    ap.add_argument("--limit", type=int, default=DEFAULT_LIMIT, help="refuse larger searches (default 2000)")
+    ap.add_argument("--limit", type=int, default=DEFAULT_LIMIT, help="try at most this many variants, fewest changes first (default 2000)")
     ap.add_argument("--max-changes", type=int, default=2,
                     help="change at most this many dimensions at once (default 2)")
     ap.add_argument("-o", "--output", type=Path, help="write the best variant here")

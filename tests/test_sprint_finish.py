@@ -2,6 +2,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 from tools import sprint_finish
 from tools import sprint_metrics as metrics
@@ -70,6 +71,20 @@ class SprintFinishTests(unittest.TestCase):
             record['cached_input_tokens'] = 101
             with self.assertRaises(ValueError):
                 record_usage(path, record)
+
+
+class DiffAndWorkflowTests(unittest.TestCase):
+    def test_defined_functions_skips_prototypes_pointers_and_calls(self):
+        text = ('s32 proto(void);\nvoid (*hook)(void);\nstatic int a(void)\n{\n    call(1);\n}\n'
+                'struct s *b(int x,\n    int y) {\n    if (x) {\n    }\n}\n')
+        self.assertEqual(sprint_finish.defined_functions(text), ['a', 'b'])
+
+    def test_tool_commits_keep_only_tooling_subjects(self):
+        log = 'feat(match): x\nfix(tools): sweep repair\ndocs: y\nfeat(tools): new search\n'
+        done = subprocess.CompletedProcess([], 0, log, '')
+        with unittest.mock.patch.object(sprint_finish, 'run', return_value=done):
+            self.assertEqual(sprint_finish.tool_commits('base'),
+                             ['fix(tools): sweep repair', 'feat(tools): new search'])
 
 
 class IdleAwareTimingTests(unittest.TestCase):

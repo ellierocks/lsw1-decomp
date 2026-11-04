@@ -17,7 +17,10 @@ side-by-side TARGET/MINE listing (mismatched rows marked `!!`). `--body FILE`
 scores FILE in place of NAME's definition without editing SOURCE (`--apply`
 writes it back on a strict MATCH), so one unit source can host many trials.
 When SOURCE has no definition of NAME yet, the body is appended instead, so a
-new function never needs a placeholder or a cleanup pass after a plateau:
+new function never needs a placeholder or a cleanup pass after a plateau. Top-level
+`extern` declarations and `struct NAME { ... };` definitions in the body that SOURCE already
+declares are dropped (SOURCE's version wins), so a draft that carries m2c's guessed prototypes
+does not fail on a conflicting redeclaration:
 
     python3 tools/score_fn.py fn_X src/auto/u.c --body /tmp/try.c --diff --apply
 
@@ -42,6 +45,7 @@ import argparse
 import contextlib
 import io
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -126,14 +130,51 @@ def note_queue(name: str, baseline: Path = ROOT / "work" / "sprint_baseline.json
         print(f"queue: added {name} to the sprint queue", file=sys.stderr)
 
 
+_STRUCT_DEF = re.compile(r"^struct\s+(\w+)\s*\{(?:[^{}]|\{[^{}]*\})*\};[ \t]*\n?", re.M)
+_EXTERN = re.compile(r"^extern\b[^;{]*?\(?\*?\s*(\w+)\s*\)?\s*[\[(;][^;{]*;[ \t]*\n?", re.M)
+
+
+def _declares(text: str, ident: str) -> bool:
+    """True when an unindented line of `text` declares or defines `ident` at file scope."""
+    pat = re.compile(rf"^(?![ \t#/*]).*\b{re.escape(ident)}\s*[\[(;)]", re.M)
+    return bool(pat.search(text))
+
+
+def drop_redeclared(context: str, body: str) -> tuple[str, list[str]]:
+    """Remove body-level externs and struct definitions that `context` already declares."""
+    dropped: list[str] = []
+
+    def struct(m):
+        if re.search(rf"^struct\s+{m.group(1)}\s*\{{", context, re.M):
+            dropped.append(f"struct {m.group(1)}")
+            return ""
+        return m.group(0)
+
+    def extern(m):
+        if _declares(context, m.group(1)):
+            dropped.append(m.group(1))
+            return ""
+        return m.group(0)
+
+    body = _STRUCT_DEF.sub(struct, body)
+    return _EXTERN.sub(extern, body), dropped
+
+
 def splice_body(text: str, name: str, body: str) -> str:
     from variant_search import VariantError, find_function
     body = body.strip("\n")
     try:
         fn = find_function(text, name)
-        return fn.before + body + fn.tail[1:]
+        context = fn.before + fn.tail[1:]
     except VariantError:
-        return text.rstrip("\n") + "\n\n" + body + "\n"
+        fn, context = None, text
+    body, dropped = drop_redeclared(context, body)
+    if dropped:
+        print(f"note: dropped body declarations SOURCE already has: {', '.join(dropped)}", file=sys.stderr)
+    body = body.strip("\n")
+    if fn is not None:
+        return fn.before + body + fn.tail[1:]
+    return text.rstrip("\n") + "\n\n" + body + "\n"
 
 
 def main(argv=None) -> int:
