@@ -145,6 +145,15 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
 - A wrong callee return type changes the caller's schedule: `fn_80095558` returns
   `void` (r3 is never set), and declaring it `s32` cost `fn_800FC5C0` one `stb`/`li`
   pair. Check the callee's epilogue before keeping an `s32` prototype.
+- m2c drafts list only the arguments a function reads, so `f(void *arg2)` compiles with
+  the value in `r3` instead of `r5`. Write the full handler signature, e.g.
+  `(sys, process, packet, params, count, firstTime, time)` for script actions or
+  `(sys, process, packet, name, data)` for conditions. In `auto/game/gameaiscript`
+  this alone matched 51 drafts.
+- An out-parameter whose address is passed to several calls is kept in a callee-saved
+  register when it is a 4- or 8-byte scalar. Declared at its real size (the 12-byte
+  `NuSpecialFind` result), `addi rN, r1, 8` is recomputed before each call instead
+  (`Condition_OnObjectInit`).
 
 ### Store and load order search
 
