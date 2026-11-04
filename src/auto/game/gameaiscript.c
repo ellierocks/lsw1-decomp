@@ -2469,3 +2469,71 @@ f32 Condition_SockDistanceToPlayer(s32 pad0, s32 pad1, void *arg2) {
     }
     return lbl_801AEB00[0];
 }
+
+u64 __ashldi3(s32, s32, u32);
+extern s8 str_Bool_ON[];
+
+s32 Action_SetAreaFlag(s32 pad0, s32 pad1, s32 pad2, void *arg3, s32 arg4, s32 arg5) {
+    s32 var_r28;
+    u32 temp_r3;
+    void *var_r30;
+
+    if (arg5 != 0) {
+        var_r28 = 0;
+        if (arg4 > 1) {
+            var_r30 = arg3;
+            do {
+                temp_r3 = NuAToI((*(s8 **)((s8 *)(var_r30) + (0))));
+                if (temp_r3 <= 0x1FU) {
+                    if (NuStrICmp((*(s8 **)((s8 *)(var_r30) + (4))), str_Bool_ON) == 0) {
+                        lbl_8040B188 |= (u32) (1LL << temp_r3);
+                    } else {
+                        lbl_8040B188 &= ~(u32) (1LL << temp_r3);
+                    }
+                }
+                var_r28 += 2;
+                var_r30 += 8;
+            } while ((s32) (var_r28 + 1) < arg4);
+        }
+    }
+    return 1;
+}
+
+#define NuAToI ((u32 (*)(s32))NuAToI)
+#define NuStrICmp ((s32 (*)(s32, s32 *))NuStrICmp)
+u64 __ashldi3(s32, s32, u32);
+extern void *lbl_80409410;
+#define str_Bool_ON (*(s32 (*)[])&str_Bool_ON)
+
+s32 Action_SetLevelFlag(s32 pad0, s32 pad1, s32 pad2, void *arg3, s32 arg4, s32 arg5) {
+    s32 *temp_r30;
+    s32 *temp_r30_2;
+    s32 var_r28;
+    u32 temp_r3;
+    void *var_r31;
+
+    if (arg5 != 0) {
+        var_r28 = 0;
+        if (arg4 > 1) {
+            var_r31 = arg3;
+            do {
+                temp_r3 = NuAToI((*(s32 *)((s8 *)(var_r31) + (0))));
+                if (temp_r3 <= 0x1FU) {
+                    if (NuStrICmp((*(s32 *)((s8 *)(var_r31) + (4))), str_Bool_ON) == 0) {
+                        temp_r30 = (*(s32 **)((s8 *)(lbl_80409410) + (0x1B4)));
+                        *temp_r30 |= (u32) (1LL << temp_r3);
+                    } else {
+                        temp_r30_2 = (*(s32 **)((s8 *)(lbl_80409410) + (0x1B4)));
+                        *temp_r30_2 &= ~(u32) (1LL << temp_r3);
+                    }
+                }
+                var_r28 += 2;
+                var_r31 += 8;
+            } while ((s32) (var_r28 + 1) < arg4);
+        }
+    }
+    return 1;
+}
+#undef NuAToI
+#undef NuStrICmp
+#undef str_Bool_ON
