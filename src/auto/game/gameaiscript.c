@@ -4685,3 +4685,127 @@ s32 Action_SetPathCnxFlag(void *sys, void *process, struct gameaiscript_packet_s
     }
     return 1;
 }
+
+struct gameaiscript_splinepos_s {
+    u8 unk0[7];
+    u8 finished;
+    u32 unk8;
+    u32 unkC;
+    struct gameaiscript_vec_s pos;
+};
+
+extern char str_ScriptFlag_KillAtEnd[];
+extern char str_ScriptFlag_ClearSpline[];
+extern s32 lbl_804099F8;
+extern f32 lbl_804099F4;
+extern void MoveSplinePosition(struct gameaiscript_splinepos_s *, f32);
+
+s32 Action_FollowSpline(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    struct gameaiscript_vec_s v;
+    struct gameaiscript_splinepos_s tmp;
+    f32 z = 0.0f;
+    f32 speed;
+    u8 *obj;
+    u8 *pk;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (obj = packet->owner->object) != 0) {
+        pk = (u8 *)packet;
+        if (firstTime != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrIStr(params[i], str_ScriptFlag_KillAtEnd) != 0)
+                    pk[0xb2] = 1;
+                if (NuStrIStr(params[i], str_ScriptFlag_ClearSpline) != 0)
+                    pk[0xb3] = 1;
+            }
+        }
+        if (lbl_804099F8 != 0 && *(s32 *)(obj + 0x69c) != 0) {
+            if (*(u32 *)(obj + 0xf24) & 0x400)
+                speed = *(f32 *)(*(u8 **)(obj + 0xeec) + 0x730) * *(f32 *)(obj + 0xf04);
+            else if (*(f32 *)(obj + 0x45c) > 0.0f)
+                speed = *(f32 *)(obj + 0x45c);
+            else
+                speed = *(f32 *)(*(u8 **)(*(u8 **)(obj + 0x64) + 0x20) + 0xc);
+            MoveSplinePosition((struct gameaiscript_splinepos_s *)(obj + 0x69c), speed * lbl_80408E9C);
+            if (((struct gameaiscript_splinepos_s *)(obj + 0x69c))->finished != 0) {
+                if (pk[0xb2] != 0)
+                    fn_800D3054(obj, 5);
+                else {
+                    v.z = z;
+                    v.x = 0.0f;
+                    v.y = 0.0f;
+                    NuVecRotateY(&v, &v, -*(u16 *)(obj + 0x27e));
+                    NuVecAdd(&v, (struct gameaiscript_vec_s *)(obj + 0x6c), &v);
+                    AIMoveInstruction(packet, (s32)&v, 0, 1, 0.0f, 0.0f);
+                }
+                if (pk[0xb3] != 0)
+                    memset(obj + 0x69c, 0, 0x1c);
+            } else {
+                tmp = *(struct gameaiscript_splinepos_s *)(obj + 0x69c);
+                MoveSplinePosition(&tmp, lbl_804099F4 * speed);
+                AIMoveInstruction(packet, (s32)&tmp.pos, 0, 1, 0.0f, 0.0f);
+            }
+            goto moved;
+        }
+    }
+    return 1;
+moved:
+    return 0;
+}
+
+extern char str_ScriptParam_Distance[];
+extern char str_ScriptParam_Tolerance[];
+
+s32 Action_ZamMovement(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    struct gameaiscript_sockpos_s info;
+    u8 *obj;
+    u8 *pk;
+    char *p;
+    f32 avg;
+    f32 d;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (obj = packet->owner->object) == 0)
+        return 1;
+    pk = (u8 *)packet;
+    if (firstTime != 0) {
+        (*(u8 **)(obj + 0xeec))[0x7e6] = 1;
+        obj[0x351] = 1;
+        *(f32 *)(obj + 0xf04) = 1.0f;
+        *(u32 *)(obj + 0xf24) |= 0x4400;
+        *(f32 *)(pk + 0xb8) = 10.0f;
+        *(f32 *)(pk + 0xbc) = 1.0f;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Distance)) != 0)
+                *(f32 *)(pk + 0xb8) = AIParamToFloat(packet, p + 9);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Tolerance)) != 0)
+                *(f32 *)(pk + 0xbc) = AIParamToFloat(packet, p + 10);
+        }
+    }
+    MoveSockPosition(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600, lbl_804099FC, &info);
+    if (lbl_80409004 != 0) {
+        if (lbl_80409008 != 0)
+            avg = (fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), lbl_80409004 + 0x600)
+                   + fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), lbl_80409008 + 0x600)) * 0.5f;
+        else
+            avg = fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), lbl_80409004 + 0x600);
+        d = avg + *(f32 *)(pk + 0xb8) - fn_8009CB2C(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600);
+        if (*(f32 *)(obj + 0xf04) < 1.0f) {
+            if (d > 0.0f)
+                *(f32 *)(obj + 0xf04) = 1.0f;
+        } else if (*(f32 *)(obj + 0xf04) > 1.0f) {
+            if (d < 0.0f)
+                *(f32 *)(obj + 0xf04) = 1.0f;
+        } else if (d > *(f32 *)(pk + 0xbc))
+            *(f32 *)(obj + 0xf04) = 1.2f;
+        else if (d < -*(f32 *)(pk + 0xbc))
+            *(f32 *)(obj + 0xf04) = 0.8f;
+    } else
+        *(f32 *)(obj + 0xf04) = 1.0f;
+    AIMoveInstruction(packet, (s32)&info.pos, 0, 1, 0.0f, 0.0f);
+    return 0;
+}
