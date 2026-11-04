@@ -3640,3 +3640,132 @@ s32 Action_BigJump(void *sys, void *process, struct gameaiscript_packet_s *packe
         return r;
     }
 }
+
+struct gameaiscript_f28b_s {
+    u32 unk0 : 16;
+    u32 stillDoTakeHitAnim : 1;
+    u32 unk11 : 10;
+    u32 invulnerable : 1;
+    u32 unk1c : 4;
+};
+
+extern s32 (*lbl_80408D08)(char *);
+extern s32 (*lbl_80408D10)(u8);
+extern char str_ScriptParam_Type[];
+extern char str_ScriptParam_Character[];
+extern char str_Bool_FALSE[];
+extern char str_ScriptFlag_StillDoTakeHitAnim[];
+
+s32 Action_SetInvulnerable(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 types[10];
+    s32 on = 1;
+    s32 ntypes = 0;
+    s32 takeHit = 0;
+    u8 *target = 0;
+    char *p;
+    s32 t;
+    s32 i;
+    s32 j;
+    s32 n;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Type)) != 0) {
+                p += 5;
+                if (lbl_80408D08 != 0 && lbl_80408D10 != 0) {
+                    t = lbl_80408D08(p);
+                    if (t != 0xff) {
+                        t = lbl_80408D10(t);
+                        if (t != 0xff && ntypes < 10)
+                            types[ntypes++] = t;
+                    }
+                }
+            } else if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0) {
+                target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            } else if (NuStrICmp(params[i], str_Bool_FALSE) == 0) {
+                on = 0;
+            } else if (NuStrICmp(params[i], str_ScriptFlag_StillDoTakeHitAnim) == 0) {
+                takeHit = 1;
+            }
+        }
+        if (ntypes != 0) {
+            target = lbl_80409430;
+            for (i = 0; i < lbl_8040B058; i++, target += 0x1098) {
+                if ((*(u32 *)(target + 0x20c) & 0x80080000) == 0x80080000
+                    && (*(u32 *)(target + 0x208) & 0x400)) {
+                    for (j = 0; j < ntypes; j++) {
+                        if (*(s16 *)(target + 0x1074) == types[j]) {
+                            if (on != 0) {
+                                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 1;
+                                ((struct gameaiscript_f28b_s *)(target + 0xf28))->stillDoTakeHitAnim = takeHit;
+                            } else {
+                                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (target != 0 && (*(u32 *)(target + 0x208) & 0x400)) {
+            if (on != 0) {
+                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 1;
+                ((struct gameaiscript_f28b_s *)(target + 0xf28))->stillDoTakeHitAnim = takeHit;
+            } else {
+                ((struct gameaiscript_f28b_s *)(target + 0xf28))->invulnerable = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_800E6394(char *, f32, s32, f32, void *);
+extern char str_ScriptParam_NameEq[];
+extern char lbl_801AD878[];
+extern char lbl_801AD884[];
+extern char lbl_801AD890[];
+extern char lbl_801AD89C[];
+extern char str_ScriptParam_XEq[];
+extern char str_ScriptParam_YEq[];
+extern char str_ScriptParam_ZEq[];
+
+s32 Action_PlaySfx(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    f32 repDelay = 0.0f;
+    struct gameaiscript_vec_s v = { 3.4028235e38f, 3.4028235e38f, 3.4028235e38f };
+    s8 playCount = 1;
+    f32 startDelay = repDelay;
+    char *name = 0;
+    void *pos = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_NameEq)) != 0)
+                name = p + 5;
+            else if ((p = NuStrIStr(params[i], lbl_801AD878)) != 0)
+                playCount = AIParamToFloat(packet, p + 10);
+            else if ((p = NuStrIStr(params[i], lbl_801AD884)) != 0)
+                repDelay = AIParamToFloat(packet, p + 9);
+            else if ((p = NuStrIStr(params[i], lbl_801AD890)) != 0)
+                startDelay = AIParamToFloat(packet, p + 11);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_XEq)) != 0)
+                v.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_YEq)) != 0)
+                v.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_ZEq)) != 0)
+                v.z = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], lbl_801AD89C)) != 0)
+                pos = (u8 *)GetNamedGameObject(sys, p + 14, 0) + 0x90;
+        }
+        if (pos == 0 && v.x != 3.4028235e38f && v.y != 3.4028235e38f && v.z != 3.4028235e38f)
+            pos = &v;
+        if (name != 0)
+            fn_800E6394(name, startDelay, playCount, repDelay, pos);
+    }
+    return 1;
+}
