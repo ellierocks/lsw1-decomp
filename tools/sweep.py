@@ -252,6 +252,14 @@ def call_args(text: str, start: int) -> tuple[list[str], int] | None:
     return None
 
 
+FLOAT_GE = re.compile(r"\(\((?P<a>[^()]+) == (?P<b>[^()]+)\) \|\| \((?P=a) (?P<op>[<>]) (?P=b)\)\)(?: != 0)?")
+
+
+def float_ge(body: str) -> str:
+    """m2c's `cror` fold `((a == b) || (a > b)) != 0` written as the source's `a >= b`."""
+    return FLOAT_GE.sub(lambda m: f"({m['a']} {m['op']}= {m['b']})", body)
+
+
 def native_shifts(body: str) -> str:
     """m2c's libgcc `__ashldi3(0, LO, N)` calls written as the 64-bit shift ProDG lowers to
     them (`1LL << n`); the call order of the argument loads then follows the source."""
@@ -275,6 +283,7 @@ def stack_arrays(body: str) -> str:
     stack reads declared as locals so the draft compiles (a ranked start, not a match)."""
     body = re.sub(r"\*\*\((\w+) \*\)", r"**(\1 **)", body)
     body = native_shifts(body)
+    body = float_ge(body)
     unk = sorted(set(re.findall(r"\bunksp[0-9A-F]+\b", body)) - set(
         re.findall(r"^[ \t]+[\w ]+?\**\s*(unksp[0-9A-F]+);", body, flags=re.M)))
     if unk:
