@@ -99,7 +99,8 @@ and the first difference. Change one source choice per attempt, guided by that
 first difference. `--diff` adds the disassembled TARGET/MINE listing (mismatched rows
 marked `!!`) instead of hex words. `--body try.c` scores `try.c`, one full definition
 of NAME plus any new externs, in place of NAME in the unit source without editing it.
-`--apply` writes it in only on a strict MATCH:
+Externs and `struct` definitions the unit already declares are dropped from the body, so
+m2c's guessed prototypes cannot conflict. `--apply` writes it in only on a strict MATCH:
 
 ```sh
 python3 tools/score_fn.py NAME src/UNIT.c --body /tmp/try.c --diff --apply

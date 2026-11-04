@@ -258,7 +258,9 @@ bit) for each parameter and local. It varies only the named function in the unit
 python3 tools/variant_search.py NAME src/UNIT.c -j 8 [--dry-run] [--max-changes 2]
 ```
 
-Variants are tried fewest-changes first and the search stops at the first strict `MATCH`. A
+Variants are tried fewest-changes first and the search stops at the first strict `MATCH`.
+A space larger than `--limit` (default 2000) is truncated to its first `--limit` variants
+instead of being refused. A
 whole declaration permutation, or all ternaries together, count as one change. The best
 variant goes to `work/variant_search/NAME/best.c`; port it and accept it with
 `verify_fn.py --build --strict-symbols`. It reproduced both the `Curve2` local-order fix and the

@@ -162,7 +162,9 @@ time, more than any agent sprint so far. Check its output with `bash build.sh` a
 ranked in `work/sweep/results.json` by size × exact-instruction ratio; that ranking is the
 sprint queue. Large near-misses (90% exact or better) come before small fresh targets,
 because the draft is already most of the way there. Rerun the sweep after header or
-tool changes that could turn more drafts into matches. Then run `python3 tools/sweep_permute.py --apply`.
+tool changes that could turn more drafts into matches. Tool fixes compound across
+units, so each sprint fixes the gaps it hits and reruns the tools in the same PR
+([improve the workflow](sprint_workflow.md#improve-the-workflow-as-you-go)). Then run `python3 tools/sweep_permute.py --apply`.
 It permutes the top near-misses (90% exact or better, largest first) with the strict-scored
 permuter under a time limit per function and applies any strict match. Agents take what is
 left.
