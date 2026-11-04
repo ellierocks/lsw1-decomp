@@ -168,3 +168,15 @@ class PublishFlowTests(unittest.TestCase):
         git(other, 'push', '-q', 'origin', 'HEAD:main')
         self.run_job(work, 'push', 'refs/heads/main', self.FRESH)
         self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')
+
+
+    def test_push_rejection_keeps_remote_reason_in_actions_log(self):
+        hook = self.origin / 'hooks/pre-receive'
+        hook.write_text('#!/bin/sh\necho "fixture: progress push rejected" >&2\nexit 1\n')
+        hook.chmod(0o755)
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.run_job(self.checkout('rejected-run', 'main'), 'push', 'refs/heads/main', self.FRESH)
+        self.assertIn('fixture: progress push rejected', errors.getvalue())
+        self.assertEqual([c[0] for c in self.forge.calls], ['GET'])
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')

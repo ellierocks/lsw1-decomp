@@ -21,6 +21,17 @@ live in [C matching](code_matching_workflow.md).
   change evolves: what changed, why, and what was verified.
 - A PR may carry several commits, but each should build and pass the portable checks.
 
+If GitHub SSH fails with `Permission denied (publickey)` while `gh` is authenticated,
+use `python3 tools/git_origin.py fetch origin` or
+`python3 tools/git_origin.py push -u origin HEAD`. The wrapper retries that specific
+failure over HTTPS using the current `gh` login, with command-local configuration;
+it does not change origin or stored credentials. Other failures remain failures.
+`sprint_finish.py` uses this wrapper for its bounded fetch.
+
+Binary tool downloads replace a completed temporary file atomically, so a running
+shared `wibo` is never truncated and failed downloads retain the installed binary.
+Finish initial setup before sweeping; archive extraction still needs a quiet toolchain.
+
 ## Checks
 
 Portable checks need no retail input and run in CI on every PR:
@@ -174,7 +185,8 @@ The flow uses no pull requests. `tools/update_readme.py` reads the branch head a
 dispatches the workflow through the GitHub API; all ref updates go through git.
 `tests/test_update_readme.py` runs the whole cycle against a real git origin. Older
 main runs skip publication after main advances. Failed checks leave the progress
-branch unmerged.
+branch unmerged. Git failures print their captured remote diagnostics before
+raising, so Actions logs retain the actual rejection reason.
 
 To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.
 Only the CI publication step needs repository contents and actions write

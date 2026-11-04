@@ -46,12 +46,14 @@ def run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, **kw)
 
 
-def fetch(timeout: float = FETCH_TIMEOUT, cmd=("git", "fetch", "-q", "origin")) -> bool:
+def fetch(timeout: float = FETCH_TIMEOUT, cmd=None) -> bool:
     """`git fetch origin` with a timeout, so a stalled SSH connection cannot hang a sprint.
 
     The fetch runs in its own process group with no pipes, so a timeout also kills the
     `ssh` child that git spawns instead of waiting on its open output.
     """
+    if cmd is None:
+        cmd = (sys.executable, str(Path(__file__).resolve().parent / "git_origin.py"), "fetch", "-q", "origin")
     proc = subprocess.Popen(list(cmd), cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL, start_new_session=True)
     try:

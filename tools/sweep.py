@@ -44,151 +44,15 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import draft_fn  # noqa: E402
 import mac_protos  # noqa: E402
+from m2c_helpers import (split_args, expand_macros, fold_cror, fold_ps, fix_ps_calls,
+                         moves_to_args, type_derefs, strip_vararg_saves, declare_unset,
+                         call_sites, PS_CALLS, prepare_asm, repair_indirect_prototypes)
 
 OUT = ROOT / "work" / "sweep"
-UNKNOWN_TYPES = {"M2C_UNK": "s32", "M2C_UNK8": "s8", "M2C_UNK16": "s16", "M2C_UNK32": "s32",
-                 "M2C_UNK64": "s64"}
 # Macros that only stand for an instruction m2c could not express; such a draft cannot match.
 UNHANDLED = re.compile(r"\bM2C_(?:ERROR|TRAP_IF|BREAK|SYNC|DCACHE|ICACHE|PREFETCH|CARRY|OVERFLOW|"
                        r"LWL|FIRST3BYTES|UNALIGNED32|LOAD_|STORE_)|\b(?:GLUE_F64|MULT_HI|MULTU_HI|"
                        r"CLZ|ROTATE_RIGHT|BSWAP\d+)\(")
-
-
-def split_args(text: str, start: int) -> tuple[list[str], int]:
-    """Comma-separated arguments of the call whose `(` is at text[start]; returns (args, end)."""
-    depth, args, cur = 0, [], start + 1
-    for i in range(start, len(text)):
-        c = text[i]
-        if c == "(":
-            depth += 1
-        elif c == ")":
-            depth -= 1
-            if depth == 0:
-                args.append(text[cur:i])
-                return [a.strip() for a in args], i + 1
-        elif c == "," and depth == 1:
-            args.append(text[cur:i])
-            cur = i + 1
-    raise ValueError("unbalanced macro call")
-
-
-def expand_macros(text: str) -> str:
-    """Rewrite m2c valid-syntax macros as plain C casts so a matched draft needs no header."""
-    for name, ctype in UNKNOWN_TYPES.items():
-        text = re.sub(rf"\b{name}\b", ctype, text)
-    # With a typed context m2c reads the first member of a struct local as
-    # M2C_BITWISE(f32, sp8); a cast cannot convert a struct, so reinterpret its storage.
-    struct_locals = set(re.findall(r"^\s+struct \w+ (\w+);", text, flags=re.M))
-    while (m := re.search(r"\bM2C_BITWISE\s*\(", text)):
-        args, end = split_args(text, m.end() - 1)
-        fmt = "(*({0} *)&({1}))" if args[1] in struct_locals else "(({0})({1}))"
-        text = text[:m.start()] + fmt.format(*args) + text[end:]
-    for macro, fmt in (("M2C_FIELD", "(*({1})((s8 *)({0}) + ({2})))"),
-                       ("M2C_STRUCT_COPY", "memcpy({0}, {1}, {2})"),
-                       ("M2C_MEMCPY_ALIGNED", "memcpy({0}, {1}, {2})")):
-        while (m := re.search(rf"\b{macro}\s*\(", text)):
-            args, end = split_args(text, m.end() - 1)
-            text = text[:m.start()] + fmt.format(*args) + text[end:]
-    return text
-
-
-# ProDG emits float `<=`/`>=` as `fcmpu; cror un, eq, lt|gt; bso|bns`. m2c cannot read the
-# cror, but folding it into the branch is exact, including the unordered case:
-# un|eq|lt set <=> !gt, so bso -> ble and bns -> bgt (and with gt: bso -> bge, bns -> blt).
-CROR = re.compile(r"^(.*?)\bcror (?P<f>cr[0-7])?un, (?P=f)?eq, (?P=f)?(lt|gt)\s*$")
-FOLD = {("lt", "bso"): "ble", ("lt", "bns"): "bgt", ("gt", "bso"): "bge", ("gt", "bns"): "blt"}
-
-
-def fold_cror(asm: str) -> str:
-    """Rewrite cror-based float comparisons into branches m2c understands."""
-    lines = asm.splitlines()
-    for i, line in enumerate(lines):
-        if not (m := CROR.match(line)):
-            continue
-        nxt = lines[i + 1] if i + 1 < len(lines) else ""
-        b = re.search(r"\t(bso|bns)(lr)?\b", nxt)
-        f = m.group("f")
-        if b and f and not re.match(rf"\s*{f}\b", nxt[b.end():]):
-            b = None
-        if not b:
-            continue  # not the float pattern: the patched m2c evaluates the cror itself
-        lines[i + 1] = nxt[:b.start() + 1] + FOLD[(m.group(3), b.group(1))] + (b.group(2) or "") + nxt[b.end():]
-        lines[i] = None
-    return "\n".join(ln for ln in lines if ln is not None) + "\n"
-
-
-# Game code inlines NuVecAdd/NuVecSub as a fixed eight-instruction paired-single asm block
-# (src/numath/nuvec_ps.h): psq_l f1,f3,f2,f4 from two base registers, ps_add|ps_sub twice,
-# psq_st twice through a third. m2c has no paired-single model, so the block becomes a call
-# `NuVec{Add,Sub}PS(dst, a, b)`; the draft includes the header whose macro reproduces it.
-PS_BLOCK = re.compile(
-    r"psq_l f1, 0x0\((?P<a>r\d+)\), 0, qr0\npsq_l f3, 0x0\((?P<b>r\d+)\), 0, qr0\n"
-    r"psq_l f2, 0x8\((?P=a)\), 1, qr0\npsq_l f4, 0x8\((?P=b)\), 1, qr0\n"
-    r"ps_(?P<op>add|sub) f1, f1, f3\nps_(?P=op) f2, f2, f4\n"
-    r"psq_st f1, 0x0\((?P<d>r\d+)\), 0, qr0\npsq_st f2, 0x8\((?P=d)\), 1, qr0\n")
-ASM_COMMENT = re.compile(r"^/\*.*?\*/\s*")
-PS_CALLS = ("NuVecAddPS", "NuVecSubPS")
-
-
-def fix_ps_calls(body: str) -> str:
-    """Give every NuVec{Add,Sub}PS call exactly its three arguments."""
-    for fn in PS_CALLS:
-        for start, end, args in reversed(list(call_sites(body, fn))):
-            fixed = (args[:3] + ["0"] * 3)[:3]
-            call = f"{fn}({', '.join(fixed)})"
-            # The block is an asm statement with no value; m2c models r3 as the return
-            # value, and after the fold's `mr r3, dst` that is the destination.
-            if (m := re.search(r"([ \t]*)(\w+) = $", body[:start])) and body[end:end + 1] == ";":
-                body = (body[:m.start()] + f"{m.group(1)}{call};\n{m.group(1)}{m.group(2)} = {fixed[0]}"
-                        + body[end:])
-            else:
-                body = body[:start] + call + body[end:]
-    return body
-
-
-def moves_to_args(srcs: list[str]) -> list[str]:
-    """`mr` lines that load SRCS into r3, r4, r5 in parallel (r0 breaks a cycle). Registers
-    already in place get a trailing `mr rN, rN` so m2c still sees them passed."""
-    pending = [(f"r{3 + i}", s) for i, s in enumerate(srcs) if s != f"r{3 + i}"]
-    out = []
-    while pending:
-        free = next(((d, s) for d, s in pending if all(d != s2 for _, s2 in pending)), None)
-        if free is None:
-            d0 = pending[0][0]
-            out.append(f"\tmr r0, {d0}")
-            pending = [(d, "r0" if s == d0 else s) for d, s in pending]
-            continue
-        pending.remove(free)
-        out.append(f"\tmr {free[0]}, {free[1]}")
-    out += [f"\tmr r{3 + i}, r{3 + i}" for i, s in enumerate(srcs) if s == f"r{3 + i}"]
-    return out
-
-
-def fold_ps(asm: str) -> str:
-    """Rewrite each inlined paired-single vector add/sub block as a call m2c can read."""
-    lines = asm.splitlines()
-    text = [ASM_COMMENT.sub("", ln).strip() for ln in lines]
-    out, i = [], 0
-    while i < len(lines):
-        m = PS_BLOCK.match("\n".join(text[i:i + 8]) + "\n") if i + 8 <= len(lines) else None
-        if not m:
-            out.append(lines[i])
-            i += 1
-            continue
-        body = [*moves_to_args([m["d"], m["a"], m["b"]]), f"\tbl {PS_CALLS[m['op'] == 'sub']}"]
-        out.extend(body)
-        i += 8
-    return "\n".join(out) + "\n"
-
-
-# m2c writes `*(base + off)` when it cannot type the pointer; ProDG rejects a deref of an
-# integer or void *. Most such accesses are words, so give them an s32 pointer. Binary `*`
-# is always spaced in m2c output, and an existing `*(T *)` cast is left alone.
-UNTYPED_DEREF = re.compile(r"\*\((?![\w ]+\*+\))")
-
-
-def type_derefs(text: str) -> str:
-    return UNTYPED_DEREF.sub("*(s32 *)(", text)
 
 
 _CONTEXTS: dict[str, Path | None] = {}
@@ -214,47 +78,6 @@ def unit_context(source: str) -> Path | None:
         return _CONTEXTS[source]
 
 
-def strip_vararg_saves(asm: str) -> str:
-    """Drop a variadic prologue's `bne cr1, .L; stfd f1..f8` float save area.
-
-    The compiler emits it itself (cr1eq is the ABI's "no float arguments" flag), and m2c
-    would read cr1eq and the float registers before anything sets them. The arguments the
-    body reads from the va_list area remain stack accesses in the draft.
-    """
-    lines = asm.splitlines()
-    for i, line in enumerate(lines):
-        m = re.search(r"\bbne cr1, (\.L_\w+)\s*$", line)
-        if not m:
-            continue
-        saves = lines[i + 1:i + 9]
-        if all(re.search(rf"\bstfd f{n + 1}, 0x[0-9a-f]+\(r1\)\s*$", ln) for n, ln in enumerate(saves)) \
-                and len(saves) == 8:
-            return "\n".join(lines[:i] + lines[i + 9:]) + "\n"
-    return asm
-
-
-UNSET = re.compile(r"M2C_ERROR\(/\* Read from unset register \$(?P<r>[rf]\d+) \*/\)")
-
-
-def declare_unset(text: str, name: str) -> str:
-    """Name registers the target reads before writing as uninitialized locals.
-
-    The retail code passes or stores a variable that was never assigned (an `mr r10, r11`
-    with r11 unset); the local keeps that visible in the draft instead of an M2C_ERROR.
-    """
-    regs = sorted({m["r"] for m in UNSET.finditer(text)})
-    # m2c names a callee-saved register read before any write (`saved_reg_r28`) without declaring it.
-    saved = sorted({s for s in re.findall(r"\bsaved_reg_\w+\b", text)
-                    if not re.search(rf"^\s+\w[\w ]*\b{s};", text, flags=re.M)})
-    if not regs and not saved:
-        return text
-    decls = "".join(f"    {'s32' if r[0] == 'r' else 'f64'} unset_{r};\n" for r in regs)
-    decls += "".join(f"    {'f64' if s.startswith('saved_reg_f') else 's32'} {s};\n" for s in saved)
-    text = UNSET.sub(lambda m: "unset_" + m["r"], text)
-    return re.sub(rf"^(.*\b{re.escape(name)}\(.*\) \{{\n)", lambda m: m.group(1) + decls, text,
-                  count=1, flags=re.M)
-
-
 def draft(name: str, context: Path | None = None) -> tuple[str, str]:
     """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'."""
     task = OUT / name
@@ -266,7 +89,7 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
         return "no-asm", ""
     m2c = draft_fn.m2c_dir()
     m2c_in = task / "asm_m2c.s"
-    m2c_in.write_text(fold_ps(fold_cror(strip_vararg_saves(asm.read_text()))))
+    m2c_in.write_text(prepare_asm(asm.read_text()))
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
         cmd += ["--no-cache", "--context", str(context)]
@@ -282,10 +105,6 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
         return "m2c-failed", ""
     body = draft_fn.clean(body, name, asm.read_text())
     body = body.replace('#include "types.h"\n', "", 1).strip() + "\n"
-    if any(c in body for c in PS_CALLS):  # the macros stand in for m2c's guessed prototypes
-        body = re.sub(rf"^(?=\S)[^\n]*\b(?:{'|'.join(PS_CALLS)})\([^\n]*\);\n", "", body, flags=re.M)
-        body = fix_ps_calls(body)
-        body = '#include "numath/nuvec_ps.h"\n' + body
     return "ok", body
 
 
@@ -485,15 +304,6 @@ def variadic_calls(asm: str) -> set[str]:
     return set(re.findall(r"\bcr(?:clr|set) cr1eq\s*\n(?:.*\n){0,2}?.*\tbl (\w+)", asm))
 
 
-def call_sites(text: str, fn: str):
-    for m in re.finditer(rf"(?<![\w.>]){re.escape(fn)}\s*\(", text):
-        try:
-            args, end = split_args(text, m.end() - 1)
-        except ValueError:
-            continue
-        yield m.start(), end, [] if args == [""] else args
-
-
 RAW_PROTO = re.compile(r"^(?:extern\s+|static\s+)?[A-Za-z_][^;{}()\n]*?\b(\w+)\s*\(([^;{}()]*)\)\s*;", re.M)
 
 
@@ -557,7 +367,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             if fixed != args:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
-    return "\n".join(lines) + ("\n" if lines else "") + code
+    return repair_indirect_prototypes("\n".join(lines) + ("\n" if lines else "") + code, asm)
 
 
 def adopt_own_prototype(body: str, name: str, unit_text: str) -> str:
@@ -599,7 +409,7 @@ def score(name: str, source: str, body: str, apply: bool = False) -> dict:
         f.write(body)
         path = f.name
     try:
-        cmd = [sys.executable, str(ROOT / "tools" / "score_fn.py"), name, source, "--body", path]
+        cmd = [sys.executable, str(ROOT / "tools" / "score_fn.py"), name, source, "--body", path, "--no-queue"]
         cmd += ["--apply"] if apply else ["--json"]
         r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired:
@@ -736,6 +546,10 @@ def main(argv=None) -> int:
     if not (draft_fn.m2c_dir() / "m2c.py").is_file():
         print("error: m2c not fetched; run bash tools/fetch_m2c.sh", file=sys.stderr)
         return 2
+    if not any((ROOT / "build/GL5E4F/asm").rglob("*.s")):
+        print("error: no generated target assembly; run bash build.sh to completion before sweeping",
+              file=sys.stderr)
+        return 2
     todo = targets(args)
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -773,6 +587,10 @@ def main(argv=None) -> int:
     for r in sorted(near, key=lambda r: -r["size"] * r["closeness"])[:args.top]:
         print(f"  {r['name']:<28} {r['unit']:<28} 0x{r['size']:<5x} {r['exact']}/{r['target']}")
     print(f"results: {(OUT / 'results.json').relative_to(ROOT)}")
+    if counts.get("NO-ASM"):
+        print("error: incomplete sweep (NO-ASM); run bash build.sh, then rerun the affected units",
+              file=sys.stderr)
+        return 2
     return 0
 
 

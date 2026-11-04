@@ -16,6 +16,7 @@ import os
 import platform
 import shutil
 import stat
+import tempfile
 import urllib.request
 import zipfile
 from typing import Callable, Dict
@@ -109,10 +110,21 @@ def download(url, response, output) -> None:
                 os.chmod(os.path.join(root, name), 0o755)
         output.touch(mode=0o755)  # Update dir modtime
     else:
-        with open(output, "wb") as f:
-            shutil.copyfileobj(response, f)
-        st = os.stat(output)
-        os.chmod(output, st.st_mode | stat.S_IEXEC)
+        # Never truncate an executable another worktree may be running (ETXTBSY).
+        # A failed download leaves the installed tool intact.
+        output = Path(output).resolve()
+        mode = stat.S_IMODE(output.stat().st_mode) if output.exists() else 0o644
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=output.parent, prefix=output.name + ".",
+                                             delete=False) as f:
+                temporary = Path(f.name)
+                shutil.copyfileobj(response, f)
+            temporary.chmod(mode | stat.S_IEXEC)
+            temporary.replace(output)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
 
 def main() -> None:

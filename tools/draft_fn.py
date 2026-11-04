@@ -33,6 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ghidra_decompile  # noqa: E402
+import m2c_helpers as repairs
 TARGET = "ppc-gcc-c"
 
 
@@ -55,7 +56,10 @@ def arrayize(text: str, symbols: set[str]) -> str:
         head, sep, body = text.partition(f"{sym}[];")
         # One pass: `&sym` becomes the array itself, a bare read becomes `sym[0]`.
         body = re.sub(rf"(&?)(?<!\w){re.escape(sym)}\b(?!\s*\[)",
-                      lambda m: sym if m.group(1) else f"{sym}[0]", body)
+                      lambda m: (f"((s8 *){sym})" if m.group(1) and
+                                 (re.search(r"[+\-]\s*$", body[:m.start()]) or
+                                  re.match(r"\s*[+\-]", body[m.end():]))
+                                 else sym) if m.group(1) else f"{sym}[0]", body)
         text = head + sep + body
     return text
 
@@ -86,11 +90,17 @@ def drop_cr_saves(text: str, asm: str) -> str:
 def clean(text: str, name: str, asm: str = "") -> str:
     """Make m2c output compile as C: no `?` types, no extern comments, a types.h include."""
     text = drop_cr_saves(text, asm)
+    text = repairs.repair_indirect_prototypes(text, asm)
     text = re.sub(r"^extern \? (\w+);", r"extern char \1[];", text, flags=re.M)
     text = re.sub(r"^\? (\w+)\(", r"void \1(", text, flags=re.M)
     text = re.sub(r"\s*/\* extern \*/", "", text)
     text = re.sub(r"\(\?(\s*\*?\w*)\)", r"(void\1)", text)
     text = arrayize(text, absolute_symbols(asm))
+    if any(fn in text for fn in repairs.PS_CALLS):
+        text = re.sub(r"^(?=\S)[^\n]*\b(?:" + "|".join(repairs.PS_CALLS) + r")\([^\n]*\);\n",
+                      "", text, flags=re.M)
+        text = repairs.fix_ps_calls(text)
+        text = '#include "numath/nuvec_ps.h"\n' + text
     return f'#include "types.h"\n\n{text.strip()}\n'
 
 
@@ -113,14 +123,18 @@ def draft_one(name: str, args) -> int:
     if not (m2c / "m2c.py").is_file():
         print("error: m2c not fetched; run bash tools/fetch_m2c.sh", file=sys.stderr)
         return 2
-    r = subprocess.run([sys.executable, str(m2c / "m2c.py"), "-t", TARGET, str(asm.resolve())],
+    prepared = task / "asm_m2c.s"
+    prepared.write_text(repairs.prepare_asm(asm.read_text()))
+    r = subprocess.run([sys.executable, str(m2c / "m2c.py"), "-t", TARGET,
+                        "--valid-syntax", str(prepared.resolve())],
                        capture_output=True, text=True)
     if r.returncode or not r.stdout.strip():
         print(f"error: m2c failed for {name}\n{(r.stdout + r.stderr).strip()[-800:]}", file=sys.stderr)
         return 2
     out = task / "draft_m2c.c"
     asm_text = asm.read_text()
-    out.write_text(clean(r.stdout, name, asm_text))
+    out.write_text(clean(repairs.type_derefs(repairs.expand_macros(
+        repairs.declare_unset(r.stdout, name))), name, asm_text))
     print(f"wrote {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
     ghidra_out = task / "ghidra.c"
     want_ghidra = not args.no_ghidra and (args.ghidra or (not ghidra_out.is_file() and ghidra_decompile.project_ready()))

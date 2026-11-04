@@ -110,6 +110,24 @@ python3 tools/hillclimb.py status NuVecScale --unit numath/nuvec
 python3 tools/verify_fn.py NuVecScale --unit numath/nuvec --build --strict-symbols --full
 ```
 
+`--source` snapshots edited files; it still builds the configured unit. For an
+unapplied experiment, use `--candidate scratch.c` for a complete unit or
+`--body work/NAME/body.c` for a full function definition inserted into a temporary
+copy of the unit. These modes run the strict scorer and record the exact compiled
+unit under its configured source path, so the permuter can reuse the ledger's best
+candidate. They do not edit the configured source. Include edited headers with
+`--source` as before.
+
+Interactive drafts and sweeps share assembly preprocessing and macro repairs.
+Default condition-bit aliases are qualified for m2c; floating comparison `cror`
+instructions and branches are retained, including unordered behavior. Arrayizing
+absolute globals keeps explicit address offsets in bytes. Raw m2c pointer strides,
+access widths and call arguments still require comparison with target assembly:
+a guessed pointer type can scale `p += 4`, and a guessed prototype can invent an
+argument. Prefer established unit/header prototypes. Indirect call declarations
+use unspecified arguments only when every indirect target call has a nearby
+`crclr/crset cr1eq`; mixed conventions require manual review.
+
 For the search itself, use the fast scorer. It compiles one file straight to a
 temporary object, without ninja or a ledger, in well under a second:
 
