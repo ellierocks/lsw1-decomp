@@ -3648,7 +3648,8 @@ s32 Action_BigJump(void *sys, void *process, struct gameaiscript_packet_s *packe
 }
 
 struct gameaiscript_f28b_s {
-    u32 unk0 : 16;
+    u32 unk0 : 15;
+    u32 escapeTakeDamage : 1; /* Action_SetDoomedEscapeLocator */
     u32 stillDoTakeHitAnim : 1;
     u32 unk11 : 10;
     u32 invulnerable : 1;
@@ -4808,4 +4809,118 @@ s32 Action_ZamMovement(void *sys, void *process, struct gameaiscript_packet_s *p
         *(f32 *)(obj + 0xf04) = 1.0f;
     AIMoveInstruction(packet, (s32)&info.pos, 0, 1, 0.0f, 0.0f);
     return 0;
+}
+
+s32 Action_RaceOpponent(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    struct gameaiscript_sockpos_s info;
+    struct gameaiscript_vec_s out;
+    struct gameaiscript_vec_s a;
+    struct gameaiscript_vec_s b;
+    u8 *obj;
+    u8 *pk;
+    u8 *opp;
+    char *p;
+    f32 d;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (obj = packet->owner->object) == 0)
+        return 1;
+    pk = (u8 *)packet;
+    if (firstTime != 0) {
+        (*(u8 **)(obj + 0xeec))[0x7e6] = 1;
+        obj[0x351] = 1;
+        *(u32 *)(obj + 0xf24) |= 0x4400;
+        *(f32 *)(obj + 0xf04) = 1.0f;
+        *(f32 *)(pk + 0xb8) = 10.0f;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Distance)) != 0)
+                *(f32 *)(pk + 0xb8) = AIParamToFloat(packet, p + 9);
+        }
+    }
+    MoveSockPosition(*(s32 *)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600, lbl_804099FC, &info);
+    if ((opp = *(u8 **)(pk + 0x64)) != 0 && *(u8 **)(opp + 4) != 0) {
+        d = fn_8009CB2C(*(void **)((u8 *)lbl_80409410 + 0x2dc), obj + 0x600)
+            - fn_8009CB2C(*(void **)((u8 *)lbl_80409410 + 0x2dc), opp + 0x600) - *(f32 *)(pk + 0xb8);
+        if (d > *(f32 *)(pk + 0xb8) * 0.5f)
+            *(f32 *)(obj + 0xf04) = 0.9f;
+        else if (d < -(*(f32 *)(pk + 0xb8) * 0.5f))
+            *(f32 *)(obj + 0xf04) = 1.1f;
+        else
+            *(f32 *)(obj + 0xf04) = 1.0f;
+        NuVecSub(&a, opp + 0x6c, opp + 0x608);
+        NuVecRotateY(&a, &a, -*(u16 *)(opp + 0x626));
+        NuVecSub(&b, obj + 0x6c, obj + 0x608);
+        NuVecRotateY(&b, &b, -*(u16 *)(obj + 0x626));
+        out.z = 0.0f;
+        out.y = 0.0f;
+        out.x = b.x * 0.5f + a.x * 0.5f;
+        NuVecAdd(&out, &out, &info.pos);
+    } else {
+        *(f32 *)(obj + 0xf04) = 1.0f;
+        out = info.pos;
+    }
+    AIMoveInstruction(packet, (s32)&out, 0, 1, 0.0f, 0.0f);
+    return 0;
+}
+
+extern s32 NuRand(s32);
+extern char str_ScriptScope_Personal[];
+extern char str_ScriptScope_Indexed[];
+extern char str_ScriptAction_TakeDamage[];
+extern char str_ScriptTarget_Random[];
+extern char str_Format_StringInt[];
+extern char str_Format_StringString[];
+
+s32 Action_SetDoomedEscapeLocator(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char name[64];
+    s32 personal = 0;
+    s32 indexed = 0;
+    s32 random = 0;
+    s32 takeDamage = 0;
+    char *base = 0;
+    u8 *obj = 0;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            obj = packet->owner->object;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                    obj = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+                else if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                    base = p + 5;
+                else if (NuStrIStr(params[i], str_ScriptScope_Personal) != 0)
+                    personal = 1;
+                else if (NuStrIStr(params[i], str_ScriptScope_Indexed) != 0)
+                    indexed = 1;
+                else if (NuStrIStr(params[i], str_ScriptAction_TakeDamage) != 0)
+                    takeDamage = 1;
+                else if ((p = NuStrIStr(params[i], str_ScriptTarget_Random)) != 0)
+                    random = AIParamToFloat(packet, p + 9);
+            }
+            if (obj != 0) {
+                *(s32 *)(obj + 0xf38) = 0;
+                ((struct gameaiscript_f28b_s *)(obj + 0xf28))->escapeTakeDamage = 0;
+                if (base != 0) {
+                    if (indexed != 0 && (s8)obj[0x284] != -1)
+                        sprintf(name, str_Format_StringInt, base, (s8)obj[0x284]);
+                    else if (personal != 0 && *(u8 **)(obj + 0x64) != 0)
+                        sprintf(name, str_Format_StringString, base, *(char **)(*(u8 **)(obj + 0x64) + 0xc));
+                    else if (random != 0)
+                        sprintf(name, str_Format_StringInt, base, NuRand(0) % random);
+                    else
+                        sprintf(name, base);
+                    if ((*(s32 *)(obj + 0xf38) = ((s32 (*)(void *, char *))AIPathFindLocator)(sys, name)) != 0)
+                        ((struct gameaiscript_f28b_s *)(obj + 0xf28))->escapeTakeDamage = takeDamage;
+                }
+            }
+        }
+    }
+    return 1;
 }
