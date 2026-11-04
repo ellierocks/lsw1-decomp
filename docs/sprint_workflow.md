@@ -83,7 +83,8 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
 Active time is **measured, not budgeted**. Start the timer with
 `python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and use
-`--phase paused` for user waits, CI, rate limits and long unattended runs (permuter queues).
+`--phase paused` for user waits, CI and rate limits, and when only an unattended permuter queue
+is running (not while you work beside it).
 Every `score_fn.py` result line ends with `[active Ns]` while the timer runs. Each tool run
 counts as an activity event, and a gap between events adds to active time only up to the
 **idle cap** (15 min; `--idle-cap SECONDS` or `LSW1_IDLE_CAP`), so a stall nobody paused,
@@ -198,11 +199,29 @@ Do not start a second unit in the same thread; open the next sprint as a new thr
 Open the next sprint as a fresh thread with the saved queue and notes instead of compacting
 a long one: token cost per function rises with context.
 
-**Between waves**, send near-misses at 95% exact or better to an unattended permuter queue
-(`tools/permute_long.sh`) rather than grinding them interactively, and pause the timer
-(`--phase paused`) while it runs. Read the result with the whole diff, not only the function
-body: compare prototypes and externs too. In #65 the `fn_800FC5C0` fix was `fn_80095558`
-returning `void`, not a change to the body.
+**Hand off between model and permuter to save usage.** Permuter time is local CPU; model
+attempts cost usage. The 180 s burst in the table above stays part of each function's search.
+Hand off whenever the model has stopped finding improvements:
+
+- **Model → permuter.** A function at 95% exact or better whose last two attempts did not
+  improve is parked straight into the unattended queue: `tools/permute_long.sh --add NAME` when
+  a queue is running, otherwise `tools/permute_long.sh 2 1 NAME...` (2 slots, 1 h each; the queue
+  runs `permute_setup.py` itself). Do not spend
+  the remaining attempts in the table on it. Its parked row's next hypothesis is the queued run.
+- **Keep working meanwhile.** Start the next wave while the queue runs. When nothing else is
+  ready, end the turn or thread instead of waiting, and pause the timer (`--phase paused`).
+  The queue survives the session.
+- **Permuter → model.** At the start of each wave or thread, read `work/permute/queue_summary.txt`
+  (or `tools/permwatch.py --once`). Only improved targets come back to the model: review each with
+  `tools/permute_review.py NAME`, comparing prototypes and externs as well as the body (in #65
+  the `fn_800FC5C0` fix was `fn_80095558` returning `void`, not a body change). Port a
+  score-0 output with `score_fn.py --apply` and `verify_fn.py --strict-symbols`. Give an improved
+  but nonzero output two model attempts from the new base, then re-queue it. Targets that did
+  not improve stay parked without further model attempts.
+- **Overnight runs** are the user's call. Give them a backlog well beyond what the slots can
+  use, so early matches do not leave slots idle:
+  `tools/permute_long.sh 7 2 --total 8 $(python3 tools/permute_backlog.py --slots 7 --hours 8 --per 2 --limit 60)`.
+  Targets not started stay in the backlog for the next run.
 
 ## Finish (one pass)
 
