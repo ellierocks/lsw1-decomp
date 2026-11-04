@@ -128,6 +128,23 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
 - A `.rodata` float read inside a loop that stores floats is reloaded every iteration
   unless the extern is `const`; declared `const`, it is hoisted into `f31` after the
   loop's entry test (`fn_800C9490`).
+- A constant kept in a callee-saved register across a call is a local: assigned after
+  the call for a float (`reset = 0.4f;`, `fn_80100D5C`) or set before it for an int
+  (`one = 1;`). Initialising at the declaration also works (`dt = lbl_80408E9C`,
+  `fn_800EA4B4`).
+- Loads scheduled early come from operands preloaded into locals before a branch
+  (`fn_800EA4B4`'s lerp operands before the clamp).
+- Retail store order is sometimes reversed: `v[1]` before `v[0]` (`fn_801042D4`),
+  `s[2], s[1], s[0]` (`fn_80103F84`). Write the stores in target order.
+- A global accessed directly, not through a local pointer, gives CSE'd base+offset
+  address constants (`fn_8010439C`). An indexed `p[0xD8 + i*0x34]` instead of a walking
+  pointer fixes the induction setup (`fn_80106128`).
+- A separate local for a call result (`m = f(obj);`) adds the extra callee-saved
+  register (`fn_80103F84`). Splitting `if (a && b && d < r*r)` into a nested
+  `r = ...; if (d < r*r)` matches compare placement (`fn_800F77A4`).
+- A wrong callee return type changes the caller's schedule: `fn_80095558` returns
+  `void` (r3 is never set), and declaring it `s32` cost `fn_800FC5C0` one `stb`/`li`
+  pair. Check the callee's epilogue before keeping an `s32` prototype.
 
 ### Store and load order search
 
