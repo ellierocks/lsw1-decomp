@@ -362,7 +362,7 @@ struct PickupCollectActor { char unk0[0xeec]; struct PickupCollectOwner *owner; 
 extern struct PickupCollectDef lbl_801E15E8[];
 extern f32 lbl_801AED54[];
 extern void fn_8013DF98(struct NUPICKUP_s *, void *, s32);
-extern void fn_8013E8F8(void *, struct NUPICKUP_s *);
+extern void PickupHitPoint(void *, struct NUPICKUP_s *);
 extern void fn_8014165C(struct NUPICKUP_s *);
 extern void fn_800AC020(s32, f32);
 static inline s32 pickup_collect(struct NUPICKUP_s *p, struct PickupFindActor *actor)
@@ -373,7 +373,7 @@ static inline s32 pickup_collect(struct NUPICKUP_s *p, struct PickupFindActor *a
         fn_8013DF98(p, actor, lbl_801E15E8[p->kind3E].award);
         break;
     case 4:
-        fn_8013E8F8(actor, p);
+        PickupHitPoint(actor, p);
         break;
     case 5:
         fn_8014165C(p);
@@ -445,7 +445,7 @@ extern f32 lbl_801AED9C[], lbl_801AEDA0[], lbl_801AEDA4[];
 extern struct PickupVec lbl_801D5970[];
 extern s32 lbl_8040AFB8;
 extern char str_Pickup_Heart[];
-void fn_8013E8F8(void *arg0, struct NUPICKUP_s *p) {
+void PickupHitPoint(void *arg0, struct NUPICKUP_s *p) {
     struct PickupHeartActor *actor = arg0;
     struct PickupVec velocity, projected, direction;
     if (actor->held > 0 && actor->held < actor->total)

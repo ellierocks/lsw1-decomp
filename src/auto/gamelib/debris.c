@@ -235,3 +235,28 @@ void GenDebMomAdjFromPosRev(s32 pad0, s32 pad1, void *arg2) {
     (*(f32 *)((s8 *)(arg2) + (0x10))) = (f32) -(*(f32 *)((s8 *)(arg2) + (0)));
     (*(f32 *)((s8 *)(arg2) + (0x18))) = (f32) -(*(f32 *)((s8 *)(arg2) + (8)));
 }
+
+s32 fn_80027510(s32, s32, s32);
+s32 fn_800275E0(s32);
+s32 fn_80043F9C(s32);
+s32 fn_80060F58(s32, s32);
+extern s32 lbl_80408428;
+extern s32 lbl_8040AE94;
+
+void fn_80064984(void) {
+    s32 saved_reg_r31;
+    s32 var_r9;
+
+    if ((s32) lbl_80408428 != 0) {
+        fn_80027510(-1, -2, 1);
+        var_r9 = 0;
+        if ((s32) lbl_8040AE94 > 0) {
+            var_r9 = 1;
+        }
+        if (var_r9 != 0) {
+            fn_80060F58(0, 2);
+        }
+        fn_80043F9C(saved_reg_r31);
+        fn_800275E0(0);
+    }
+}

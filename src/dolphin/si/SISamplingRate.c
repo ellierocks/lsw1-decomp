@@ -5,7 +5,7 @@
 
 #define LATENCY 8
 
-extern u32 SamplingRate_8040A920;
+static u32 SamplingRate;
 
 typedef struct XY {
     u16 line;
@@ -52,7 +52,7 @@ void SISetSamplingRate(u32 msec) {
         msec = 11;
     }
     enabled = OSDisableInterrupts();
-    SamplingRate_8040A920 = msec;
+    SamplingRate = msec;
 
     switch (VIGetTvFormat()) {
     case VI_NTSC:
@@ -76,7 +76,7 @@ void SISetSamplingRate(u32 msec) {
 }
 
 void SIRefreshSamplingRate(void) {
-    SISetSamplingRate(SamplingRate_8040A920);
+    SISetSamplingRate(SamplingRate);
 }
 
 #if DEBUG

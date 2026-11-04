@@ -71,7 +71,9 @@ class Dimension:
 
 
 def find_function(text: str, name: str) -> Function:
-    pat = re.compile(rf"^[^\n;{{}}]*\b{re.escape(name)}\s*\((?P<params>[^;{{}}]*)\)\s*\{{", re.M)
+    # A definition starts at column 0 and has no `(` or `=` before the name: that keeps a call
+    # such as `    if (f(x) != 0) {` in an earlier function from being taken for f's definition.
+    pat = re.compile(rf"^(?=[A-Za-z_])[^\n;{{}}()=]*\b{re.escape(name)}\s*\((?P<params>[^;{{}}]*)\)\s*\{{", re.M)
     m = pat.search(text)
     if not m:
         raise VariantError(f"no definition of {name} found")

@@ -60,8 +60,32 @@ def arrayize(text: str, symbols: set[str]) -> str:
     return text
 
 
+def drop_cr_saves(text: str, asm: str) -> str:
+    """Remove the stack slot of a CR save (`mfcr rX; stw rX, N(r1)`).
+
+    The patched m2c (tools/patches/m2c-crfields.patch) models mfcr's GPR as 0, so the slot
+    would read `spN = 0;`. The compiler emits this save itself whenever cr2-cr4 are used, so
+    it has no C source. Only slots with no other use in the draft are dropped.
+    """
+    mfcr_regs: set[str] = set()
+    for line in asm.splitlines():
+        if m := re.search(r"\bmfcr (r\d+)\s*$", line):
+            mfcr_regs.add(m.group(1))
+        elif m := re.search(r"\bstw (r\d+), (0x[0-9a-f]+|\d+)\(r1\)\s*$", line):
+            if m.group(1) in mfcr_regs:
+                slot = f"sp{int(m.group(2), 0):X}"
+                if len(re.findall(rf"\b{slot}\b", text)) == 2 and \
+                        re.search(rf"^\s+s32 {slot};\n", text, flags=re.M):
+                    text = re.sub(rf"^\s+s32 {slot};\n", "", text, flags=re.M)
+                    text = re.sub(rf"^\s+{slot} = 0;\n", "", text, flags=re.M)
+        elif m := re.search(r"\b(?:mr|li|lwz|addi|add|rlwinm|extrwi)\s+(r\d+),", line):
+            mfcr_regs.discard(m.group(1))
+    return text
+
+
 def clean(text: str, name: str, asm: str = "") -> str:
     """Make m2c output compile as C: no `?` types, no extern comments, a types.h include."""
+    text = drop_cr_saves(text, asm)
     text = re.sub(r"^extern \? (\w+);", r"extern char \1[];", text, flags=re.M)
     text = re.sub(r"^\? (\w+)\(", r"void \1(", text, flags=re.M)
     text = re.sub(r"\s*/\* extern \*/", "", text)

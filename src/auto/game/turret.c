@@ -23,8 +23,8 @@ extern Blk40 *fn_800133E4(void *);
 extern void fn_80013200(void *, s32);
 s32 fn_80013890(s32, void *);
 void fn_800AC020(s32, f32);
-void fn_800AC0C0(f32, f32);
-void fn_800AFFD8(void *, s32, s32, f32);
+void NewRumbleAllPlayers(f32, f32);
+void JudderGameCamera(void *, s32, s32, f32);
 void fn_80120EF8(s32, s32, s32);
 extern char MenuHeader[];
 extern char *gPlayer1Pointer[];
@@ -116,8 +116,8 @@ void fn_80140504(s32 a, char *self, s32 b, s32 idx) {
             s32 i = 0;
             s32 found = 0;
             char *p;
-            fn_800AFFD8(MenuHeader, 2, 0, lbl_801AF000[0]);
-            fn_800AC0C0(lbl_801AF004[0], lbl_801AF008[0]);
+            JudderGameCamera(MenuHeader, 2, 0, lbl_801AF000[0]);
+            NewRumbleAllPlayers(lbl_801AF004[0], lbl_801AF008[0]);
             p = *(char **)((char *)lbl_80409410 + 0x5D4);
             if (p != 0 && i < *(s32 *)((char *)lbl_80409410 + 0x5D8)) {
                 do {
@@ -151,7 +151,7 @@ void fn_80140504(s32 a, char *self, s32 b, s32 idx) {
     }
 }
 
-struct NUTURRET_s* fn_8014068C(char** cursor, char** end, u32 value)
+struct NUTURRET_s* CreateTurretSys(char** cursor, char** end, u32 value)
 {
     struct NUTURRET_s* turret;
     *cursor = (char*)(((u32)*cursor + 3) & ~3);

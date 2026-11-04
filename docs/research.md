@@ -49,6 +49,8 @@ python3 tools/binary_mining_pipeline.py
 | --- | --- | --- |
 | `cross-lineage` | Extract PS2 retail executables, compare PS2/GC/Mac string evidence, and test USA 1.1 vs USA 2.0 GH branch signals. | `build/cross_binary_lineage/lineage_report.md`, `build/cross_binary_lineage/*.tsv` |
 | `mac-anchor-queue` | Read Mac debug symbols directly from Mach-O binaries and align unnamed GC functions between already-named anchors. | `docs/symbol_donors/mac_anchor_rename_queue.md`, `docs/symbol_donors/mac_anchor_rename_queue.tsv` |
+| `mac-code-match` (`python3 tools/mac_code_match.py`) | Match unnamed GC functions to Mac demo functions by code body: callers/callees by name, immediates, field (width, offset), float literals, strings and order inside anchor gaps, propagated until stable. Tiered HIGH/MEDIUM/LOW with evidence; `--emit-renames FILE` writes HIGH pairs for `batch_rename.py`. Hold-out on named GC functions: HIGH 96.1% (98/102), MEDIUM 86.0% (labels are noisy: some repo names are themselves wrong). Families of near-identical functions (`Action_*`, `NuFPar*`, `CutScene*`) are the remaining false positives, so check MEDIUM by hand. | `docs/symbol_donors/mac_code_match.tsv` |
+| `mac-protos` (`python3 tools/mac_protos.py --build`) | Demangle the Mac text symbols into int/float/pointer parameter lists for `tools/sweep.py` (unknown struct pointers become `void *`; by-value structs, 64-bit integers and function pointers are dropped). | `docs/symbol_donors/mac_lsw1_demo_prototypes.tsv` |
 | `pc-versions` | Mine PC demo/retail strings shared with GC and emit DOL-addressed string proposals. | `build/pc_analysis/pc_analysis.txt`, `build/pc_analysis/pc_symbol_proposals.txt` |
 | `gc-data-xrefs` | Scan GC code references to data labels and rescore Mac data symbol candidates. | `docs/symbol_donors/gc_data_xrefs.tsv`, `docs/symbol_donors/mac_data_to_gc_verified.md` |
 | `sdk-islands` | Map likely Dolphin SDK/MSL/runtime islands for later known-library matching and splits. | `docs/symbol_donors/sdk_islands.md`, `docs/symbol_donors/sdk_islands.tsv` |
@@ -83,7 +85,7 @@ before isolating a range from game code.
 
 | Source under `orig/` | Practical use | Limit |
 |---|---|---|
-| `mac/` LSW1 demo | Closest debug-symbol names, prototypes and symbol order | Anchor/body evidence still required |
+| `mac/` LSW1 demo | Closest debug-symbol names, prototypes and symbol order; code bodies via `mac_code_match.py` (names) and `mac_protos.py` (sweep prototypes) | CodeWarrior codegen does not transfer; only call graph, immediates, field offsets, floats and strings do. Mangled names carry parameter types, not return types |
 | `mac/` LSW2 | Shared Nu2 names and types | Different game/revision |
 | `GL5P4F/` PAL GC | Regional deltas and string confirmation | Addresses differ from US |
 | `lsw2-ps2-prototype/` | Nu2/game source paths, asserts and subsystem names | MIPS and newer lineage |

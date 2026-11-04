@@ -322,13 +322,45 @@ relocations and MWCC comment records, and rejects dangling references. Local
 pooled data is retained; unused global data follows the reference's eight-byte
 granularity. `.sdata2` is normalized to SN/DTK read-only ELF metadata.
 
-An object that opts in with `external_bss=True` (only GXInit so far) also passes
+A unit that does not own its BSS opts in with `external_bss=True` (`os/OSReset`,
+`ax/AXSPB`, `gx/GXDisplayList`) and also passes
 `--external-bss config/GL5E4F/symbols.txt`. MWCC generates different code for
 extern and statically defined objects, so the source keeps the donor's static
 BSS definitions. The stripper then replaces them with undefined references to
 the fallback `.bss` symbols and empties the section. It aborts unless every
 name, size and relative offset agrees with `symbols.txt`. Those fallback symbols
-must be global, and BSS contents stay unpromoted.
+must be global.
+
+### BSS layout policy
+
+BSS is proved by layout, never by zero contents. A unit's `.bss`/`.sbss` is
+promoted only when `tools/verify_unit.py` confirms all of:
+
+1. the compiled section size equals the retail split range;
+2. every compiled symbol has a retail symbol with the same offset and size
+   (dtk `gap_*` symbols that are only alignment padding are accepted; any other
+   gap or extra symbol fails);
+3. every relocation into it, from any unit, resolves to the retail address
+   (`check_linked_bss` against the linked ELF);
+4. the full linked image stays byte-identical to retail.
+
+To promote a unit: add its `.bss`/`.sbss` ranges to `splits.txt` in retail
+order, drop `external_bss=True` in `configure.py`, and make sure the retail
+symbols tile the range (shrink tail symbols that overhang the range end; keep
+dtk labels that cover other units' bytes in their own ranges). Statics that
+other objects link against need `scope:global` in `symbols.txt`;
+`strip_unused.py` (`globalize_bss`) then raises the compiled binding to match
+the target, because changing the C declaration changes MWCC's layout. Keep the
+C source `static`: MWCC lays out non-static zero-initialised globals after the
+statics and shifts `.text`.
+
+Game and Nu2 units follow the same rule when they take BSS. The ProDG link
+follows `config/GL5E4F/ldscript.ld`, which gathers `*(.bss)` and `*(.sbss)` in
+object link order (only `ai.o`'s `.sbss` is pinned first). A unit's split ranges
+must therefore appear in the same order as its `.text`; the verifier's offset
+and linked-address checks detect any reordering by ProDG. Unclaimed ranges become `gap_*`/`auto_*_bss` units, and
+the same size, offset, relocation and image checks apply. Game BSS is not
+promoted yet.
 
 The DOL uses the existing `ProDG/3.9.3/ngcld.exe` through
 `tools/run_prodg_link.py`, with `config/GL5E4F/ldscript.ld`. This fixes MWLD's
@@ -336,6 +368,16 @@ SDA register selection and startup symbol differences without changing compiler
 pins or patching the linked image. MWLD support remains available in the build
 generator for its original configurations. The current whole image matches
 retail. See [SDK import evidence](sdk_import.md) for ranges and limits.
+
+## SN runtime
+
+`src/sn` holds the newlib libc and libgcc objects. They use the `prodg` compiler
+with `cflags_sn_libc` / `cflags_sn_libgcc`, which add the `ngccc` target defines the
+production rule lacks, `-G 1024` and `-fno-common`; the objects are `Matching`
+under the `sn_runtime` lib and the `runtime` progress category. A unit that owns
+`.sdata2` (the libgcc division objects) needs its split ranges and a symbol per
+`__clz_tab` copy, since dtk rejects a split inside a symbol. See
+[SN runtime](sn_runtime.md) for flags, provenance and boundaries.
 
 ## Splitter and startup constraints
 

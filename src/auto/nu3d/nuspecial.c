@@ -10,7 +10,7 @@ extern char str_NuSpecialFindMulti_SceneNull[];
 extern f32 lbl_8018F9EC[];
 
 void (*fn_80009970(char* file, s32 line))();
-s32 lbl_80155DE8(char* a, char* b);
+s32 strcasecmp(char* a, char* b);
 char* NuStrIStr(char* haystack, char* needle);
 s32 fn_800119C8(struct nuhspecial_s* special, struct numtx_s* mtx, s32 mode, s32 a, s32 b);
 s32 fn_80027688(struct nugobj_s* gobj, struct numtx_s* mtx);
@@ -87,7 +87,7 @@ s32 NuSpecialFind(struct nugscn_s* scene, struct nuhspecial_s* dest, char* name,
     if (scene->displayScene != NULL) {
         ds = scene->displayScene->specials;
         for (i = 0; i < scene->displayScene->numSpecials; i++, ds++) {
-            if (lbl_80155DE8(name, ds->name) == 0) {
+            if (strcasecmp(name, ds->name) == 0) {
                 goto found_display;
             }
         }
@@ -106,7 +106,7 @@ s32 NuSpecialFind(struct nugscn_s* scene, struct nuhspecial_s* dest, char* name,
     }
     sp = scene->specials;
     for (i = 0; i < scene->numSpecial; i++, sp++) {
-        if (lbl_80155DE8(name, sp->name) == 0) {
+        if (strcasecmp(name, sp->name) == 0) {
             goto found_special;
         }
     }

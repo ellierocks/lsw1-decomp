@@ -157,7 +157,17 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   that call; a prototyped declaration drops the instruction. Declare it as the target
   calls it (`sprintf(char *, const char *, ...)`, `memset();` in game code). m2c also
   guesses one prototype per callee, so take the real one from matched code instead;
-  `tools/sweep.py` does both (`fix_prototypes`).
+  `tools/sweep.py` does both (`fix_prototypes`, and `adopt_own_prototype` when the unit
+  already declares the target with a different signature). For a callee the repo has no
+  prototype for it also tries the Mac demo's parameter kinds (`tools/mac_protos.py`; return
+  type from m2c) and the target's own full Mac parameter list, keeping either only if it
+  scores strictly better, so they cannot lower a result. Mac types are kinds, not structs. m2c's compare-in-GPR idioms
+  (`mfcr` + `rlwinm`, `cror`, carry sequences) need the patched m2c from `tools/fetch_m2c.sh`;
+  an unpatched checkout leaves them as `M2C_CARRY`/`M2C_ERROR` and the sweep reports UNHANDLED.
+- Paired-single add/sub in game code is an inline `asm volatile` block, written with the
+  `NuVecAddPS`/`NuVecSubPS` macros from `numath/nuvec_ps.h` (numeric register syntax,
+  because the assembler rejects `f1` inside `asm()`). Use `(dst, a, b)`; the sweep emits
+  them for you. Other paired-single operations have no macro yet.
 - An out-parameter whose address is passed to several calls is kept in a callee-saved
   register when it is a 4- or 8-byte scalar. Declared at its real size (the 12-byte
   `NuSpecialFind` result), `addi rN, r1, 8` is recomputed before each call instead
@@ -226,6 +236,46 @@ whole declaration permutation, or all ternaries together, count as one change. T
 variant goes to `work/variant_search/NAME/best.c`; port it and accept it with
 `verify_fn.py --build --strict-symbols`. It reproduced both the `Curve2` local-order fix and the
 ternary/if-else fix from the `nuanim_2` sprint within the first 32 compiles.
+
+### Pattern library
+
+When you do not know which C produces a target's instruction shape, look it up in code
+that already matches with the same compiler. `pattern_library.py` indexes two corpora:
+
+- **re4**: [RE4's decomp](https://github.com/adonis-singh/re4), where every DOL and REL
+  unit matches retail. It is about 15,700 functions: C++ game code plus SN newlib C, with
+  the `-O0` sound units skipped.
+- **lsw1**: this project's ProDG functions that objdiff reports at 100%. The MWCC SDK
+  units are excluded.
+
+`build` compiles both corpora with the pinned v1.76 `cc1`/`cc1plus` plus `-gstabs`,
+which adds line records without changing a single instruction (checked on
+`cam_ctrl.cpp`). It disassembles the objects with dtk in the same syntax as
+`build/GL5E4F/asm`. With a warm toolchain it takes about 25 s. It reads the RE4 clone
+from `~/.cache/lsw1/donors/re4` (override with `LSW1_RE4`); clone it there with
+`git clone https://github.com/adonis-singh/re4`. Rebuild the lsw1 corpus after a sprint
+adds matches.
+
+```sh
+python3 tools/pattern_library.py build                       # work/pattern_library/
+python3 tools/pattern_library.py similar NAME --source       # closest whole functions + their C
+python3 tools/pattern_library.py window NAME --at 0x80138F04 # code containing the run at an address
+python3 tools/pattern_library.py window --seq "lwz;cmpwi;beq;lbz;extsb"
+python3 tools/pattern_library.py show re4:game/cam_ctrl.cpp:IsChangeCamera__13CameraControl
+```
+
+- `similar` ranks corpus functions by mnemonic 3-gram overlap, then by sequence
+  similarity of operand shapes. It helps you choose a control-flow skeleton for a draft.
+- `window` takes `--len` instructions around `--at`, which is usually the first mismatch
+  `verify_fn.py` or `score_fn.py --diff` reports. It returns the longest corpus runs
+  with the same mnemonics, ranked by how many operands also have the same shape. Each
+  hit prints its instructions and the source lines that produced them.
+
+RE4's `#line` renumbering is mapped back to the real lines of its sources. A hit is an
+idiom to try, not evidence of identity, and a candidate still has to match through
+`score_fn.py` and `verify_fn.py`. RE4 matched with a native v1.79 `cc1plus`, so a few
+of its `-mfast-cast` conversions differ from v1.76 by a dead `mr`. The donor source and
+the index stay in ignored local paths.
 
 ### decomp-permuter
 
@@ -457,7 +507,8 @@ all allocated section extents, nonrelocated bytes and canonical relocations with
 the DTK target, resolving local targets through the declared split bases and
 external targets through unique symbols. It also checks retail bytes and encoded relocation destinations,
 including branches, SDA references and initialized data pointers. SDA21 word/halfword offsets are normalized; unsupported
-data relocation kinds, incomplete ownership and BSS fail closed.
+data relocation kinds, incomplete ownership fail closed. `.bss`/`.sbss` is proved by layout, not contents
+(see [BSS layout policy](build_config.md#bss-layout-policy)); an unexplained gap or extra symbol fails.
 
 `verify_fn.py` uses this same complete-unit proof to verify an address-taken
 local table only when its section-relative address agrees with the reference.

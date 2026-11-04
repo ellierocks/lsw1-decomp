@@ -564,7 +564,7 @@ void instNuGCutSceneUpdate(gcut_instance_view* instance, gcut_locator_system* sy
 
 typedef struct gcut_area_entry { char* name; u8 pad[0x30]; } gcut_area_entry;
 typedef struct gcut_area { u8 pad[8]; s32 count; gcut_area_entry* entries; } gcut_area;
-extern s32 lbl_80155DE8(char*, char*);
+extern s32 strcasecmp(char*, char*);
 extern char lbl_8019308C[];
 extern char str_NuGCutTriggerSysFixUp_TriggerNotFound[];
 extern void (*fn_80009948(char*, s32))(char*, ...);
@@ -577,7 +577,7 @@ void NuGCutTriggerSysFixUp(s32* scene, s32 area_value)
         gcut_trigger_event* event = &system->events[i];
         for (j = 0; j < area->count; j++) {
             *(s16*)event = -1;
-            if (lbl_80155DE8((char*)event->name, area->entries[j].name) == 0) {
+            if (strcasecmp((char*)event->name, area->entries[j].name) == 0) {
                 *(s16*)event = j;
                 break;
             }
