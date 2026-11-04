@@ -299,7 +299,11 @@ def main(argv=None) -> int:
         if timing.exists():
             phase(timing, "paused")
         return 2
+    import sprint_bench
+    t_build = time.time()
     b = run(["bash", "build.sh"])
+    sprint_bench.append("time", label="finish-build", seconds=round(time.time() - t_build, 1),
+                        returncode=b.returncode)
     if b.returncode:
         print(b.stdout[-1500:] + b.stderr[-1500:], file=sys.stderr)
         print("error: build.sh failed", file=sys.stderr)
@@ -349,6 +353,15 @@ def main(argv=None) -> int:
         print("- Timing JSON: " + json.dumps(report))
     print("- Provider usage: " + json.dumps(metrics.usage_report(
         json.loads(usage_path.read_text()) if usage_path.exists() else {})))
+    record = {"unit": args.unit, "verified": sum(results.values()), "parked": len(parked),
+              "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures}
+    if base:
+        record["code_bytes_delta"] = snap["code"] - base["code"]
+    if timing.exists():
+        record.update(active_seconds=report["active_seconds"], phases=report["phases"])
+    saved = sprint_bench.finish(record)
+    if saved:
+        print(f"- Benchmark: {saved}")
     if failures:
         print(f"\nFAILED: {', '.join(failures)}", file=sys.stderr)
         return 1
