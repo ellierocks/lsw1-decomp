@@ -102,6 +102,15 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("#define h ((s32(*)(void))h)\n", out)
         self.assertIn("    x = h();\n", out)
 
+    def test_byte_strides(self):
+        body = ("s32 f(void) {\n    s32 *p;\n    p = lbl;\n"
+                "    (*(u8 *)((s8 *)(p) + (0x8B))) = 0U;\n    p += 0x9C;\n}\n")
+        self.assertIn("    void *p;\n", sweep.byte_strides(body))
+        deref = "void f(void) {\n    s32 *p;\n    p += 0xC;\n    *p = 1;\n}\n"
+        self.assertEqual(sweep.byte_strides(deref), deref)
+        indexed = "void f(void) {\n    s32 *p;\n    p += 0xC;\n    p[1] = 1;\n}\n"
+        self.assertEqual(sweep.byte_strides(indexed), indexed)
+
 
 if __name__ == "__main__":
     unittest.main()

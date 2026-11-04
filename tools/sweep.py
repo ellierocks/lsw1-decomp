@@ -315,6 +315,24 @@ def stack_arrays(body: str) -> str:
             body = re.sub(rf"\b{v}\b", f"{b}[{i}]", body)
     return body
 
+WIDE_PTR = re.compile(r"^(?P<ind>[ \t]+)(?:s16|u16|s32|u32|f32|f64|s64|u64) \*(?P<v>\w+);$", re.M)
+
+
+def byte_strides(body: str) -> str:
+    """BODY with each typed local pointer that m2c steps by a byte count (`p += 0x9C` on an
+    `s32 *`, which C scales by 4) declared `void *`, which GCC steps by bytes. Only pointers
+    never dereferenced directly (`*p`, `p[i]`, `p->f`) change; m2c reads them through
+    `(s8 *)(p) + off` casts. fn_800D9824 matched once its `s32 *` became a byte pointer."""
+    for m in reversed(list(WIDE_PTR.finditer(body))):
+        v = re.escape(m["v"])
+        if not re.search(rf"\b{v} [+-]= (?:0x[0-9A-Fa-f]+|\d+);", body):
+            continue
+        rest = body[:m.start()] + body[m.end():]
+        if re.search(rf"\*\s*\(?{v}\b(?!\s*\))|\b{v}\s*(?:\[|->)|\*\({v}\s*[+-]", rest):
+            continue
+        body = body[:m.start()] + f"{m['ind']}void *{m['v']};" + body[m.end():]
+    return body
+
 
 # m2c guesses each callee's prototype from one call site, so a callee read with a
 # different argument count elsewhere (or a variadic one) fails to compile. Matched code
@@ -544,6 +562,11 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
+            strided = byte_strides(body)
+            if strided != body:
+                stride_res, strided = score_draft(name, source, strided)
+                if improves(stride_res, res):
+                    res, body = {**stride_res, "byte_strides": True}, strided
             padded = pad_signature(body, name)
             if padded != body:
                 pad_res, padded = score_draft(name, source, padded)
