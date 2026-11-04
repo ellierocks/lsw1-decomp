@@ -150,7 +150,8 @@ For each queued function:
 2. **Agent search.** Iterate with `score_fn.py`, recording candidates worth
    keeping through `hillclimb.py try`.
 3. **Permuter.** Run decomp-permuter on functions that are close (about 95%
-   exact or better) with `tools/permute_setup.py NAME --run`.
+   exact or better) with `tools/permute_setup.py NAME --run`, focused on the differing
+   region. Use `order_search.py --climb` instead when only the statement order differs.
 4. **Accept.** Use `verify_fn.py --build --strict-symbols`. Promote whole TUs
    when every function matches. One sprint produces one PR.
 

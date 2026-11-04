@@ -29,6 +29,14 @@ verifier, same score order as hillclimb.py). The search stops at the first
 strict MATCH. It refuses searches larger than `--limit` (default 7! = 5040,
 about 13 minutes serially at 0.15 s per compile, or 2 minutes with -j 8).
 
+Larger blocks (a 12-store descriptor fill is 479M orders) use `--climb`: start
+from the source order, score every single-statement move (n*(n-1) per block),
+take the best strict improvement and repeat; at a plateau, kick from the best
+order with a few random moves and climb again. It stops at a strict MATCH or
+after `--budget` scored variants (default 2000), and never rescores an order:
+
+    python3 tools/order_search.py fn_800262BC scratch.c --climb -j 8 --budget 1500
+
 The best variant is written to `work/order_search/NAME/best.c` (or `-o`).
 A candidate is accepted only through `verify_fn.py --build --strict-symbols`
 after porting it into the unit source; this tool never edits the checkout.
@@ -40,6 +48,7 @@ import argparse
 import itertools
 import json
 import math
+import random
 import re
 import subprocess
 import sys
@@ -53,6 +62,7 @@ MARK = re.compile(r"^[ \t]*/\*\s*order:\s*(begin|end|decl)\s*\*/[ \t]*\n?", re.M
 CONST_ASSIGN = re.compile(r"^(?P<lhs>[^=;]*[^=!<>+\-*/%&|^])=\s*(?P<const>-?(?:0[xX][0-9a-fA-F]+|\d+))\s*;$",
                           re.S)
 DEFAULT_LIMIT = math.factorial(7)
+DEFAULT_BUDGET = 2000
 
 
 class SearchError(Exception):
@@ -252,7 +262,8 @@ def search(template: Template, scorer, *, const_locals: bool, jobs: int, limit: 
     """Score every variant (in parallel batches); stop at the first strict MATCH."""
     total = count(template, const_locals)
     if total > limit:
-        raise SearchError(f"{total} variants exceed --limit {limit}; shrink the blocks or raise --limit")
+        raise SearchError(f"{total} variants exceed --limit {limit}; use --climb, shrink the blocks "
+                          "or raise --limit")
     best = None
     tried = errors = 0
     it = candidates(template, const_locals)
@@ -279,6 +290,100 @@ def search(template: Template, scorer, *, const_locals: bool, jobs: int, limit: 
     return {"total": total, "tried": tried, "errors": errors, "best": best}
 
 
+def moves(orders: tuple[tuple[int, ...], ...]):
+    """Every order reachable by moving one statement to another position in its block."""
+    seen = set()
+    for bi, order in enumerate(orders):
+        for i in range(len(order)):
+            for j in range(len(order)):
+                if i == j:
+                    continue
+                o = list(order)
+                o.insert(j, o.pop(i))
+                cand = orders[:bi] + (tuple(o),) + orders[bi + 1:]
+                if cand not in seen:
+                    seen.add(cand)
+                    yield cand
+
+
+def kick(orders: tuple[tuple[int, ...], ...], rng: random.Random, n: int):
+    """Apply N random single-statement moves."""
+    for _ in range(n):
+        bi = rng.choice([b for b, o in enumerate(orders) if len(o) > 1])
+        o = list(orders[bi])
+        i, j = rng.sample(range(len(o)), 2)
+        o.insert(j, o.pop(i))
+        orders = orders[:bi] + (tuple(o),) + orders[bi + 1:]
+    return orders
+
+
+def climb(template: Template, scorer, *, jobs: int, budget: int, seed: int = 0, log=None):
+    """Best-improvement hill climb over statement orders with random restarts from the best."""
+    if all(len(b.statements) < 2 for b in template.blocks):
+        raise SearchError("--climb needs a block with at least two statements")
+    rng = random.Random(seed)
+    seen: dict[tuple, dict | None] = {}
+    state = {"tried": 0, "errors": 0, "best": None}
+    pool = ThreadPoolExecutor(max_workers=max(1, jobs))
+
+    def evaluate(cands: list[tuple]) -> list[tuple[tuple, dict | None]]:
+        cands = [c for c in dict.fromkeys(cands) if c not in seen][:max(0, budget - state["tried"])]
+        texts = [render(template, c, ()) for c in cands]
+        reps = list(pool.map(lambda a: scorer(a[1], a[0]), enumerate(texts, state["tried"])))
+        out = []
+        for c, text, rep in zip(cands, texts, reps):
+            state["tried"] += 1
+            if rep.get("verdict") == "ERROR":
+                state["errors"] += 1
+                rep = None
+            seen[c] = rep
+            out.append((c, rep))
+            best = state["best"]
+            if rep and (best is None or rep["score"] < best["score"]):
+                state["best"] = {"score": rep["score"], "orders": c, "variant": (), "text": text, "report": rep}
+                if log:
+                    log(f"[{state['tried']}/{budget}] {rep['verdict']} score={rep['score']} "
+                        f"exact={rep['exact_insns']}/{rep['target_insns']}")
+        return out
+
+    def matched() -> bool:
+        b = state["best"]
+        return bool(b and b["report"].get("returncode") == 0 and b["report"]["verdict"] == "MATCH")
+
+    try:
+        start = tuple(tuple(range(len(b.statements))) for b in template.blocks)
+        evaluate([start])
+        if seen[start] is None:
+            raise SearchError("the source order does not compile")
+        cur, cur_score, kicks = start, seen[start]["score"], 0
+        while state["tried"] < budget and not matched():
+            neighbours = list(moves(cur))
+            evaluate(neighbours)
+            # Already-seen neighbours count too, so a revisited region still climbs.
+            scored = [(c, seen[c]) for c in neighbours if seen.get(c)]
+            nxt = min(scored, key=lambda cr: cr[1]["score"], default=None)
+            if nxt and nxt[1]["score"] < cur_score:
+                cur, cur_score = nxt[0], nxt[1]["score"]
+                continue
+            # Plateau: restart from the best order with 2-4 random moves.
+            kicks += 1
+            if kicks > 500:
+                break
+            for _ in range(50):
+                cand = kick(state["best"]["orders"], rng, rng.randint(2, 4))
+                if cand not in seen:
+                    break
+            evaluate([cand])
+            if seen.get(cand) is None:
+                continue
+            cur, cur_score = cand, seen[cand]["score"]
+            if log:
+                log(f"[{state['tried']}/{budget}] plateau; kick {kicks} from the best order")
+    finally:
+        pool.shutdown()
+    return {"total": budget, "tried": state["tried"], "errors": state["errors"], "best": state["best"]}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name", help="retail function name in symbols.txt")
@@ -292,7 +397,15 @@ def main(argv=None) -> int:
     ap.add_argument("--compiler", choices=("prodg", "sdk"), help="passed to score_fn.py")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="passed to score_fn.py")
     ap.add_argument("--dry-run", action="store_true", help="print the variant count and exit")
+    ap.add_argument("--climb", action="store_true",
+                    help="hill-climb with single-statement moves instead of trying every order")
+    ap.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
+                    help=f"with --climb: stop after this many scored variants (default {DEFAULT_BUDGET})")
+    ap.add_argument("--seed", type=int, default=0, help="with --climb: random seed for plateau kicks")
     args = ap.parse_args(argv)
+    if args.climb and args.const_locals:
+        ap.error("--climb does not combine with --const-locals; run the exhaustive search on the "
+                 "climbed order instead")
     try:
         template = parse(args.source.read_text())
     except (OSError, SearchError) as e:
@@ -300,7 +413,8 @@ def main(argv=None) -> int:
         return 2
     total = count(template, args.const_locals)
     sizes = ", ".join(str(len(b.statements)) for b in template.blocks)
-    print(f"{len(template.blocks)} block(s) of {sizes} statements; {total} variants")
+    mode = f"; climbing with a budget of {args.budget}" if args.climb else ""
+    print(f"{len(template.blocks)} block(s) of {sizes} statements; {total} variants{mode}")
     if args.dry_run:
         return 0
     extra = ["-I", str(args.source.resolve().parent)]
@@ -314,8 +428,11 @@ def main(argv=None) -> int:
         def scorer(text, index):
             return score_source(args.name, text, extra, Path(tmp), index)
         try:
-            result = search(template, scorer, const_locals=args.const_locals, jobs=args.jobs,
-                            limit=args.limit, log=print)
+            if args.climb:
+                result = climb(template, scorer, jobs=args.jobs, budget=args.budget, seed=args.seed, log=print)
+            else:
+                result = search(template, scorer, const_locals=args.const_locals, jobs=args.jobs,
+                                limit=args.limit, log=print)
         except SearchError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2

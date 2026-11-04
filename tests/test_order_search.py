@@ -125,5 +125,59 @@ class SearchTests(unittest.TestCase):
             self.assertIn("48 variants", out.getvalue())
 
 
+BIG = "void f(int* x)\n{\n    /* order: begin */\n" + "".join(
+    f"    x[{k}] = {k};\n" for k in range(9)) + "    /* order: end */\n}\n"
+GOAL = [4, 0, 8, 2, 6, 1, 7, 3, 5]
+
+
+def inversions_scorer(text, index):
+    """Score by the number of pairs out of GOAL's relative order; 0 is a strict MATCH."""
+    pos = [text.index(f"x[{k}] =") for k in range(9)]
+    order = sorted(range(9), key=lambda k: pos[k])
+    rank = {k: i for i, k in enumerate(GOAL)}
+    inv = sum(rank[a] > rank[b] for i, a in enumerate(order) for b in order[i + 1:])
+    if inv == 0:
+        return report("MATCH", 4, returncode=0)
+    return {"verdict": "MISMATCH", "score": [1, inv, 0, 0, 0], "exact_insns": 0, "target_insns": 4,
+            "returncode": 1}
+
+
+class ClimbTests(unittest.TestCase):
+    def test_moves_are_distinct_single_relocations(self):
+        start = ((0, 1, 2),)
+        got = list(os_.moves(start))
+        self.assertEqual(len(got), len(set(got)))
+        self.assertEqual(len(got), 4)   # 3*2 moves; two adjacent swaps coincide
+        self.assertNotIn(start, got)
+
+    def test_climb_finds_order_beyond_exhaustive_limit(self):
+        t = os_.parse(BIG)
+        with self.assertRaises(os_.SearchError):
+            os_.search(t, inversions_scorer, const_locals=False, jobs=1, limit=os_.DEFAULT_LIMIT)
+        res = os_.climb(t, inversions_scorer, jobs=4, budget=3000)
+        self.assertEqual(res["best"]["report"]["verdict"], "MATCH")
+        self.assertEqual(res["best"]["orders"], (tuple(GOAL),))
+        self.assertLess(res["tried"], 3000)
+
+    def test_climb_respects_budget_and_never_rescores(self):
+        t = os_.parse(BIG)
+        texts = []
+
+        def flat(text, index):
+            texts.append(text)
+            return report("MISMATCH", 1)
+
+        res = os_.climb(t, flat, jobs=2, budget=150, seed=1)
+        self.assertEqual(res["tried"], 150)
+        self.assertEqual(len(texts), len(set(texts)))
+
+    def test_climb_rejects_const_locals(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "c.c"
+            src.write_text(SOURCE)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                os_.main(["f", str(src), "--climb", "--const-locals"])
+
+
 if __name__ == "__main__":
     unittest.main()

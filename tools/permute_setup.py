@@ -10,7 +10,9 @@ The directory holds:
                    best hillclimb ledger snapshot of the unit source, else the unit
                    source itself (`--source` overrides)
     target.o       the retail DTK split object that defines the function
-    compile.sh     score_fn.py NAME "$1" --compile-only -o "$3" (ProDG, pinned flags)
+    compile.sh     cc1 -> as -> dtk fixup on the preprocessed input (about 3x faster than
+                   score_fn.py --compile-only, which it falls back to when the objects
+                   for base.c differ)
     settings.toml  func_name, compiler_type and objdump_command
     permute.json   function, unit and provenance for permute_objdump.py
 
@@ -22,6 +24,21 @@ strict MATCH: score 0 means `score_fn.py` reports MATCH. Permuter output is stil
 only a candidate. Port it into the unit source and accept it with
 `verify_fn.py NAME --build --strict-symbols`.
 
+Focus the search. Random whole-function mutation rarely lands the one-slot
+schedule fixes a near miss needs, so mark the region that is wrong in the
+candidate (`--source`, or a copy of the unit source):
+
+    /* permute: begin */ ... /* permute: end */      only randomize these lines
+    /* permute: lineswap */ ... /* permute: end */   only permute these lines' order
+
+They become PERM_RANDOMIZE(...) and PERM_LINESWAP(...) in base.c; keep each
+lineswap line a complete statement. For pure statement order inside one block,
+`order_search.py --climb` is faster than the permuter.
+
+Setup warns when the base differs structurally (instruction count or under 90%
+exact), which the permuter seldom fixes, and when the function still carries
+m2c names (temp_r3, var_f31), which waste its budget on noise.
+
 `bash tools/bootstrap.sh` (or tools/fetch_permuter.sh) fetches the pinned
 permuter into the shared cache; DECOMP_PERMUTER overrides the checkout.
 """
@@ -32,6 +49,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -45,6 +63,9 @@ import verify_fn as vf  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SHIM = ROOT / "tools" / "permuter_shim"
+FOCUS = re.compile(r"/\*\s*permute:\s*(begin|lineswap|end)\s*\*/")
+M2C_NAME = re.compile(r"\b(?:temp|var)_[rf]\d+\b")
+FOCUS_MACRO = {"begin": "PERM_RANDOMIZE(", "lineswap": "PERM_LINESWAP(", "end": ")"}
 
 
 def permuter_checkout() -> Path:
@@ -78,11 +99,64 @@ def preprocess(source: Path, out: Path, include_dir: Path) -> str:
     return score_fn.run(cpp + flags + ["-I", str(include_dir), str(source), str(out)])
 
 
-def compile_script(name: str) -> str:
+def focus(text: str, keep: bool) -> tuple[str, int]:
+    """Turn permute focus markers into PERM macros (keep) or drop them; returns (text, regions)."""
+    depth = regions = 0
+    for m in FOCUS.finditer(text):
+        if m.group(1) == "end":
+            depth -= 1
+            if depth < 0:
+                raise vf.ToolError("/* permute: end */ without begin or lineswap")
+        else:
+            depth += 1
+            regions += 1
+    if depth:
+        raise vf.ToolError("unclosed /* permute: begin|lineswap */ marker")
+    return FOCUS.sub(lambda m: FOCUS_MACRO[m.group(1)] if keep else "", text), regions
+
+
+def m2c_names(text: str, symbol: str) -> list[str]:
+    """m2c temporaries (temp_r3, var_f31) still left in SYMBOL's definition."""
+    from variant_search import VariantError, find_function
+    try:
+        fn = find_function(text, symbol)
+    except VariantError:
+        return []
+    return sorted(set(M2C_NAME.findall(fn.body)))
+
+
+def score_compile_script(name: str) -> str:
     score = shlex.quote(str(ROOT / "tools" / "score_fn.py"))
     return ("#!/usr/bin/env bash\n"
             "# decomp-permuter compile step: compile.sh IN.c -o OUT.o\n"
             f'exec python3 {score} {shlex.quote(name)} "$1" --compile-only -o "$3"\n')
+
+
+def compile_script(name: str) -> str:
+    """Direct cc1 -> as -> dtk fixup on already-preprocessed input (base.c is CPP output)."""
+    build = ROOT / "build"
+    cc1 = [build / "tools" / "wibo", build / "compilers" / score_fn.PRODG_VERSION / "cc1.exe"]
+    opt = [f for f in score_fn.PRODG_FLAGS if f.startswith("-O")]
+    q = lambda parts: " ".join(shlex.quote(str(x)) for x in parts)  # noqa: E731
+    return ("#!/usr/bin/env bash\n"
+            f"# decomp-permuter compile step for {name}: compile.sh IN.c -o OUT.o\n"
+            "# Same stages as tools/prodg_cc.py minus CPP (the input is preprocessed).\n"
+            "set -e\n"
+            'tmp=$(mktemp -d); trap \'rm -rf "$tmp"\' EXIT\n'
+            f"cd {shlex.quote(str(ROOT))}\n"
+            f'{q(cc1)} -quiet {q(opt)} "$1" -o "$tmp/c.s"\n'
+            f'{q([build / "binutils" / "powerpc-eabi-as", "-mgekko"])} -o "$3" "$tmp/c.s"\n'
+            f'{q([build / "tools" / "dtk_patched", "elf", "fixup"])} "$3" "$3"\n')
+
+
+def fast_compile_agrees(out: Path, source: Path) -> bool:
+    """True when compile.sh and score_fn.py --compile-only give identical objects for SOURCE."""
+    with tempfile.TemporaryDirectory(prefix="permute_cmp_") as tmp:
+        a, b = Path(tmp) / "fast.o", Path(tmp) / "score.o"
+        fast = subprocess.run(["bash", str(out / "compile.sh"), str(source), "-o", str(a)],
+                              capture_output=True, text=True)
+        err = score_fn.compile_source(source, b, "prodg", [])
+        return fast.returncode == 0 and not err and a.read_bytes() == b.read_bytes()
 
 
 def settings_toml(func_name: str, directory: Path) -> str:
@@ -120,39 +194,73 @@ def setup(name: str, out: Path, source: Path | None, compiled_symbol: str | None
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
+    if text is None:
+        text = source.read_text()
+    marked, regions = focus(text, keep=True)
     with tempfile.TemporaryDirectory(prefix="permute_setup_") as tmp:
-        src = source
-        if text is not None:
-            src = Path(tmp) / source.name
-            src.write_text(text)
+        src = Path(tmp) / source.name
+        src.write_text(marked)
         err = preprocess(src, out / "base.c", source.parent)
+        if not err and regions:
+            # base.c with PERM macros does not compile; score and check against a plain copy.
+            src.write_text(focus(text, keep=False)[0])
+            err = preprocess(src, out / "base_plain.c", source.parent)
     if err:
         raise vf.ToolError(f"preprocessing {provenance} failed:\n{err}")
     shutil.copyfile(target, out / "target.o")
     (out / "compile.sh").write_text(compile_script(name))
     (out / "compile.sh").chmod(0o755)
+    plain = out / ("base_plain.c" if regions else "base.c")
+    fast = fast_compile_agrees(out, plain)
+    if not fast:
+        (out / "compile.sh").write_text(score_compile_script(name))
     (out / "settings.toml").write_text(settings_toml(compiled_symbol or name, out.resolve()))
     meta = {"name": name, "compiled_symbol": compiled_symbol, "unit": unit,
-            "target_object": str(target.relative_to(ROOT)), "base_source": provenance}
+            "target_object": str(target.relative_to(ROOT)), "base_source": provenance,
+            "focus_regions": regions, "fast_compile": fast,
+            "m2c_names": m2c_names(text, compiled_symbol or name)}
     (out / "permute.json").write_text(json.dumps(meta, indent=2) + "\n")
     return meta
 
 
-def base_score(out: Path) -> str:
-    """Compile base.c and score it the way the permuter will (sanity check)."""
+def base_score(out: Path) -> dict:
+    """Compile the base and score it the way the permuter will (sanity check)."""
+    base = out / "base_plain.c" if (out / "base_plain.c").is_file() else out / "base.c"
     with tempfile.TemporaryDirectory(prefix="permute_base_") as tmp:
         obj = Path(tmp) / "base.o"
-        r = subprocess.run(["bash", str(out / "compile.sh"), str(out / "base.c"), "-o", str(obj)],
+        r = subprocess.run(["bash", str(out / "compile.sh"), str(base), "-o", str(obj)],
                            capture_output=True, text=True)
     if r.returncode:
-        raise vf.ToolError(f"base.c does not compile:\n{(r.stdout + r.stderr)[-1500:]}")
+        raise vf.ToolError(f"{base.name} does not compile:\n{(r.stdout + r.stderr)[-1500:]}")
     meta = json.loads((out / "permute.json").read_text())
-    args = [meta["name"], str(out / "base.c")]
+    args = [meta["name"], str(base), "--json"]
     if meta.get("compiled_symbol"):
         args += ["--compiled-symbol", meta["compiled_symbol"]]
     r = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), *args],
                        cwd=ROOT, capture_output=True, text=True)
-    return (r.stdout or r.stderr).strip()
+    try:
+        return json.loads(r.stdout)
+    except json.JSONDecodeError:
+        raise vf.ToolError(f"scoring {base.name} failed:\n{(r.stderr or r.stdout).strip()[-1500:]}")
+
+
+def warnings(rep: dict, meta: dict) -> list[str]:
+    """Reasons a permuter run on this base is likely to waste its budget."""
+    out = []
+    target, mine, exact = rep.get("target_insns", 0), rep.get("mine_insns", 0), rep.get("exact_insns", 0)
+    if rep.get("verdict") != "MATCH" and target and (mine != target or exact / target < 0.9):
+        out.append(f"structural diff ({exact}/{target} exact, {mine} vs {target} instructions): the "
+                   "permuter seldom fixes frame size, instruction count or missing code; fix the C first")
+    if meta.get("m2c_names"):
+        names = ", ".join(meta["m2c_names"][:6])
+        out.append(f"m2c names remain ({names}): rename/fold temporaries and drop redundant casts "
+                   "before permuting so mutations act on real structure")
+    if not meta.get("focus_regions") and rep.get("verdict") != "MATCH":
+        out.append("no /* permute: begin|lineswap */ focus: whole-function randomization; mark the "
+                   "differing region to narrow the search")
+    if not meta.get("fast_compile", True):
+        out.append("fast compile.sh disagreed with score_fn.py on the base; using the slower score_fn wrapper")
+    return out
 
 
 def run_permuter(out: Path, extra: list[str]) -> int:
@@ -190,12 +298,16 @@ def main(argv=None) -> int:
     if not reuse:
         try:
             meta = setup(args.name, out, args.source, args.compiled_symbol, args.ledger.resolve(), args.force)
-            base = base_score(out)
+            rep = base_score(out)
         except (vf.ToolError, ValueError, OSError) as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
-        print(f"wrote {rel} (base from {meta['base_source']}, target {meta['target_object']})")
-        print(f"base: {base}")
+        focus_note = f", {meta['focus_regions']} focus region(s)" if meta["focus_regions"] else ""
+        print(f"wrote {rel} (base from {meta['base_source']}, target {meta['target_object']}{focus_note})")
+        print(f"base: {rep['verdict']}  score={rep.get('score')}  "
+              f"exact={rep.get('exact_insns')}/{rep.get('target_insns')}  mine_insns={rep.get('mine_insns')}")
+        for w in warnings(rep, meta):
+            print(f"warning: {w}")
     if args.run:
         return run_permuter(out, extra)
     print(f"next: python3 tools/permute_setup.py {args.name} --run -- -j 8 --stop-on-zero")

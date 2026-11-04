@@ -20,10 +20,48 @@ def ref(desc):
 
 
 class SetupTests(unittest.TestCase):
-    def test_compile_script_wraps_score_fn_compile_only(self):
+    def test_compile_script_runs_cc1_as_and_fixup_directly(self):
         text = ps.compile_script("fn_8000A64C")
         self.assertTrue(text.startswith("#!/usr/bin/env bash\n"))
+        self.assertIn('cc1.exe -quiet -O2 "$1" -o "$tmp/c.s"', text)
+        self.assertIn('powerpc-eabi-as -mgekko -o "$3" "$tmp/c.s"', text)
+        self.assertIn('dtk_patched elf fixup "$3" "$3"', text)
+
+    def test_fallback_script_wraps_score_fn_compile_only(self):
+        text = ps.score_compile_script("fn_8000A64C")
         self.assertIn('score_fn.py fn_8000A64C "$1" --compile-only -o "$3"', text)
+
+    def test_focus_markers_become_perm_macros_or_vanish(self):
+        src = ("void f(int *p) {\n/* permute: begin */\np[0] = 1;\n/* permute: lineswap */\n"
+               "p[1] = 2;\np[2] = 3;\n/* permute: end */\n/* permute: end */\n}\n")
+        marked, n = ps.focus(src, keep=True)
+        self.assertEqual(n, 2)
+        self.assertIn("PERM_RANDOMIZE(\np[0] = 1;\nPERM_LINESWAP(\np[1] = 2;", marked)
+        self.assertEqual(marked.count(")\n"), 2)
+        plain, _ = ps.focus(src, keep=False)
+        self.assertNotIn("PERM_", plain)
+        self.assertNotIn("permute:", plain)
+
+    def test_unbalanced_focus_markers_are_rejected(self):
+        for bad in ("/* permute: begin */ x;", "x; /* permute: end */"):
+            with self.assertRaises(ps.vf.ToolError):
+                ps.focus(bad, keep=True)
+
+    def test_m2c_names_only_counts_the_target_function(self):
+        text = "int g(void) { int temp_r3 = 0; return temp_r3; }\n" \
+               "int f(int var_r31) { int temp_r4 = var_r31; f32 var_f1; return temp_r4; }\n"
+        self.assertEqual(ps.m2c_names(text, "f"), ["temp_r4", "var_f1", "var_r31"])
+        self.assertEqual(ps.m2c_names(text, "missing"), [])
+
+    def test_warnings_flag_structural_diffs_m2c_names_and_no_focus(self):
+        rep = {"verdict": "MISMATCH", "target_insns": 100, "mine_insns": 98, "exact_insns": 95}
+        meta = {"m2c_names": ["temp_r3"], "focus_regions": 0, "fast_compile": True}
+        got = " | ".join(ps.warnings(rep, meta))
+        self.assertIn("structural diff", got)
+        self.assertIn("m2c names", got)
+        self.assertIn("no /* permute", got)
+        near = {"verdict": "MISMATCH", "target_insns": 100, "mine_insns": 100, "exact_insns": 98}
+        self.assertEqual(ps.warnings(near, {"m2c_names": [], "focus_regions": 1, "fast_compile": True}), [])
 
     def test_settings_parse_with_shim_and_point_at_dumper(self):
         settings = toml.loads(ps.settings_toml("NuFdiv", Path("/w/permute/NuFdiv")))
