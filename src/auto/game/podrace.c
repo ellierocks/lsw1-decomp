@@ -72,3 +72,10 @@ void fn_8014FE74(void) {
     }
     lbl_804093B8 = var_r9;
 }
+
+s32 fn_801451A4(void *);
+extern void *lbl_80409410;
+
+void fn_80146EF4(void) {
+    fn_801451A4((*(s32 *)((s8 *)(lbl_80409410) + (0x1984))));
+}

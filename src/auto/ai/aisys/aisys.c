@@ -455,8 +455,8 @@ void fn_80083A4C(void* parser)
 
 extern f32 lbl_8019C594[];
 extern f32 lbl_8019C598[];
-extern void* fn_8008F720(void*, char*);
-extern void* fn_8008F7A0(void*, char*);
+extern void* AIPathFindLocator(void*, char*);
+extern void* AISysFindArea(void*, char*);
 extern void* memset(void*, ...);
 
 f32 Condition_CurrentLocatorIs(void* sys, void* process, struct NUAIPACKET_s* packet, char* params, void* locator)
@@ -475,70 +475,70 @@ void fn_8008F1F0(void* packet)
 void* Condition_CurrentLocatorIsInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F720(sys, arg);
+        return AIPathFindLocator(sys, arg);
     return 0;
 }
 
 void* Condition_OpponentToLocatorInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F720(sys, arg);
+        return AIPathFindLocator(sys, arg);
     return 0;
 }
 
 void* Condition_PlayerToLocatorInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F720(sys, arg);
+        return AIPathFindLocator(sys, arg);
     return 0;
 }
 
 void* Condition_LocatorRangeInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F720(sys, arg);
+        return AIPathFindLocator(sys, arg);
     return 0;
 }
 
 void* Condition_InTriggerAreaInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F7A0(sys, arg);
+        return AISysFindArea(sys, arg);
     return 0;
 }
 
 void* Condition_PlayerInTriggerAreaInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F7A0(sys, arg);
+        return AISysFindArea(sys, arg);
     return 0;
 }
 
 void* Condition_BaddyInTriggerAreaInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F7A0(sys, arg);
+        return AISysFindArea(sys, arg);
     return 0;
 }
 
 void* Condition_GoodyInTriggerAreaInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F7A0(sys, arg);
+        return AISysFindArea(sys, arg);
     return 0;
 }
 
 void* Condition_OpponentInTriggerAreaInit(void* sys, char* arg)
 {
     if (arg)
-        return fn_8008F7A0(sys, arg);
+        return AISysFindArea(sys, arg);
     return 0;
 }
 
 extern f32 lbl_8019C608[], lbl_8019C60C[], lbl_8019C670[];
 extern f32 lbl_8019C5E8[], lbl_8019C5EC[], lbl_8019C5F0[], lbl_8019C5F4[];
 extern void* (*lbl_80408DA4)(void*, char*);
-extern void* fn_8008F8B4(void*, void*, char*);
+extern void* AIPathFindNode(void*, void*, char*);
 
 f32 Condition_OpponentIsAThreat(void* sys, void* process, struct NUAIPACKET_s* packet)
 {
@@ -582,7 +582,7 @@ void* Condition_InLevelNodeInit(u8* sys, char* arg)
 {
     u8* level;
     if (sys && (level = *(u8**)(sys + 0xc)) && *level)
-        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+        return AIPathFindNode(sys, *(void**)(level + 8), arg);
     return 0;
 }
 
@@ -590,7 +590,7 @@ void* Condition_PlayerInLevelNodeInit(u8* sys, char* arg)
 {
     u8* level;
     if (sys && (level = *(u8**)(sys + 0xc)) && *level)
-        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+        return AIPathFindNode(sys, *(void**)(level + 8), arg);
     return 0;
 }
 
@@ -598,7 +598,7 @@ void* fn_80084058(u8* sys, char* arg)
 {
     u8* level;
     if (sys && (level = *(u8**)(sys + 0xc)) && *level)
-        return fn_8008F8B4(sys, *(void**)(level + 8), arg);
+        return AIPathFindNode(sys, *(void**)(level + 8), arg);
     return 0;
 }
 
@@ -628,8 +628,8 @@ f32 Condition_OpponentOnSamePath(void* sys, void* process, u8* packet)
 }
 
 
-extern f32 fn_8000CCA4(void*, void*, void*);
-extern f32 fn_8000CD68(void*, void*, void*);
+extern f32 NuVecDist(void*, void*, void*);
+extern f32 NuVecXZDist(void*, void*, void*);
 extern f32 lbl_8019C5C4[], lbl_8019C5A4[], lbl_8019C578[], lbl_8019C57C[], lbl_8019C648[], lbl_8019C64C[];
 
 f32 Condition_NodeRange(void* sys, void* process, u8* packet, char* params, u8* node)
@@ -637,7 +637,7 @@ f32 Condition_NodeRange(void* sys, void* process, u8* packet, char* params, u8* 
     u8* owner;
     f32 out[3], result;
     if (packet && (owner = *(u8**)(packet + 0x50)) && node)
-        result = fn_8000CCA4(node + 4, owner + 0x6c, out);
+        result = NuVecDist(node + 4, owner + 0x6c, out);
     else result = lbl_8019C5C4[0];
     return result;
 }
@@ -648,7 +648,7 @@ f32 Condition_PlayerRange(u8* sys, void* process, u8* packet)
     u8* player;
     f32 out[3], result;
     if (packet && (owner = *(u8**)(packet + 0x50)) && sys && (player = *(u8**)(sys + 0x1380)))
-        result = fn_8000CCA4(player + 0x6c, owner + 0x6c, out);
+        result = NuVecDist(player + 0x6c, owner + 0x6c, out);
     else result = lbl_8019C5A4[0];
     return result;
 }
@@ -659,7 +659,7 @@ f32 Condition_OriginRange(u8* sys, void* process, u8* packet)
 {
     f32 out[3], result;
     if (packet && *(void**)(packet + 0x50) && packet[0xa6] != 0xff && sys)
-        result = fn_8000CCA4(packet + 0x100, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+        result = NuVecDist(packet + 0x100, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
     else result = lbl_8019C63C[0];
     return result;
 }
@@ -668,7 +668,7 @@ f32 Condition_OpponentToOrigin(u8* sys, void* process, u8* packet)
     u8* opponent;
     f32 out[3], result;
     if (sys && packet && (opponent = *(u8**)(packet + 0x64)) && packet[0xa6] != 0xff)
-        result = fn_8000CCA4(opponent + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+        result = NuVecDist(opponent + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
     else result = lbl_8019C640[0];
     return result;
 }
@@ -677,7 +677,7 @@ f32 Condition_PlayerToOrigin(u8* sys, void* process, u8* packet)
     u8* player;
     f32 out[3], result;
     if (sys && packet && (player = *(u8**)(sys + 0x1380)) && packet[0xa6] != 0xff)
-        result = fn_8000CCA4(player + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
+        result = NuVecDist(player + 0x6c, *(u8**)(sys + 0x14) + packet[0xa6] * 0xa8 + 0x30, out);
     else result = lbl_8019C644[0];
     return result;
 }
@@ -836,7 +836,7 @@ void* fn_8008F0C8(u32* current, u32* end, u32 size)
     } else fn_80009948(lbl_8019C6DC, 0x3c1)(str_AISysBufferAlloc_NoBuffer);
     return (void*)result;
 }
-s32 fn_8008F294(u8* sys, char* name)
+s32 AISysSetLevelPath(u8* sys, char* name)
 {
     char* selected = 0;
     if (sys && *(u8**)(sys + 0xc)) {
@@ -916,7 +916,7 @@ f32 Condition_LocatorRange(void* sys, void* process, u8* packet, char* params, u
     if (packet && (object = *(u8**)(packet + 0x50))) {
         if (inputLocator) locator = inputLocator;
         else locator = *(u8**)(packet + 0xfc);
-        if (locator) result = fn_8000CCA4(packet + 0x100, locator + 0x10, out);
+        if (locator) result = NuVecDist(packet + 0x100, locator + 0x10, out);
         else result = lbl_8019C578[0];
     } else result = lbl_8019C578[0];
     return result;
@@ -930,7 +930,7 @@ f32 Condition_LocatorRangeXZ(void* sys, void* process, u8* packet, char* params,
     if (packet && (object = *(u8**)(packet + 0x50))) {
         if (inputLocator) locator = inputLocator;
         else locator = *(u8**)(packet + 0xfc);
-        if (locator) result = fn_8000CD68(packet + 0x100, locator + 0x10, out);
+        if (locator) result = NuVecXZDist(packet + 0x100, locator + 0x10, out);
         else result = lbl_8019C57C[0];
     } else result = lbl_8019C57C[0];
     return result;
@@ -944,7 +944,7 @@ f32 Condition_OpponentToLocator(void* sys, void* process, u8* packet, char* para
     if (packet && (object = *(u8**)(packet + 0x64))) {
         if (inputLocator) locator = inputLocator;
         else locator = *(u8**)(packet + 0xfc);
-        if (locator) result = fn_8000CCA4(object + 0x6c, locator + 0x10, out);
+        if (locator) result = NuVecDist(object + 0x6c, locator + 0x10, out);
         else result = lbl_8019C648[0];
     } else result = lbl_8019C648[0];
     return result;
@@ -958,7 +958,7 @@ f32 Condition_OpponentToLocatorXZ(void* sys, void* process, u8* packet, char* pa
     if (packet && (object = *(u8**)(packet + 0x64))) {
         if (inputLocator) locator = inputLocator;
         else locator = *(u8**)(packet + 0xfc);
-        if (locator) result = fn_8000CD68(object + 0x6c, locator + 0x10, out);
+        if (locator) result = NuVecXZDist(object + 0x6c, locator + 0x10, out);
         else result = lbl_8019C64C[0];
     } else result = lbl_8019C64C[0];
     return result;
@@ -995,7 +995,7 @@ f32 Condition_PlayerToLocator(u8* sys, void* process, u8* packet, char* params, 
     if (packet && sys && (player = *(u8**)(sys + 0x1380))) {
         if (inputLocator) locator = inputLocator;
         else locator = *(u8**)(packet + 0xfc);
-        if (locator) result = fn_8000CCA4(player + 0x6c, locator + 0x10, out);
+        if (locator) result = NuVecDist(player + 0x6c, locator + 0x10, out);
         else result = lbl_8019C654[0];
     } else result = lbl_8019C654[0];
     return result;

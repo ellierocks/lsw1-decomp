@@ -81,7 +81,7 @@ void fn_80109314(u8* scene)
     }
 }
 
-u8* fn_80108E6C(u8* scene, const char* name)
+u8* FindObstacle(u8* scene, const char* name)
 {
     u8* entry = *(u8**)(scene + 0x238);
     s32 i;

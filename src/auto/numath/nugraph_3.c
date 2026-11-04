@@ -45,7 +45,7 @@ f32 fn_8000CB50(struct nuvec_s* v)
 }
 
 
-f32 fn_8000CB74(struct nuvec_s* dst, struct nuvec_s* src)
+f32 NuVecNorm(struct nuvec_s* dst, struct nuvec_s* src)
 {
     f32 len = NuFsqrt(NuVecMagSqr(src));
     f32 inv;
@@ -80,7 +80,7 @@ void fn_8000CBF4(struct nuvec_s* dst, struct nuvec_s* a, struct nuvec_s* b, stru
     dst->z *= inv;
 }
 
-f32 fn_8000CCA4(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* out)
+f32 NuVecDist(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* out)
 {
     struct nuvec_s tmp;
     if (out != 0) {
@@ -102,7 +102,7 @@ f32 fn_8000CD08(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* out)
     return NuVecMagSqr(&tmp);
 }
 
-f32 fn_8000CD68(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* out)
+f32 NuVecXZDist(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* out)
 {
     struct nuvec_s tmp;
     if (out != 0) {
@@ -297,7 +297,7 @@ void fn_8000D134(struct numtx_s* d, struct numtx_s* a, struct numtx_s* b)
     t._33 = 1.0f;
     *d = t;
 }
-void fn_8000D95C(struct numtx_s* mt, struct nuvec_s* v)
+void NuMtxAlignZ(struct numtx_s* mt, struct nuvec_s* v)
 {
     struct nuvec_s* m = (struct nuvec_s*)&mt->_00;
     struct nuvec_s* r1 = (struct nuvec_s*)&mt->_10;

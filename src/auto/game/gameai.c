@@ -56,7 +56,7 @@ extern s32 fn_8012CE4C[];
 extern s32 fn_8012CE74[];
 extern s32 fn_8012CF28[];
 extern s32 fn_8012D068[];
-extern s32 fn_8012D0A4[];
+extern s32 GameAIActionParseSpeed[];
 extern s32 fn_8012D13C[];
 extern s32 fn_8012D1CC[];
 extern s32 fn_8012D1E8[];
@@ -93,7 +93,7 @@ void fn_8012A5D0(void)
   fn_8008F454(fn_8012A138);
   fn_8008F434(fn_8012AD98);
   fn_8008F43C(fn_8012A8C8);
-  fn_8008F444(fn_8012D0A4);
+  fn_8008F444(GameAIActionParseSpeed);
   fn_8008F44C(fn_8012A2EC);
   fn_8008F28C(fn_8012A3F4);
   lbl_80408CE0 = 1;

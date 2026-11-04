@@ -158,7 +158,10 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   calls it (`sprintf(char *, const char *, ...)`, `memset();` in game code). m2c also
   guesses one prototype per callee, so take the real one from matched code instead;
   `tools/sweep.py` does both (`fix_prototypes`, and `adopt_own_prototype` when the unit
-  already declares the target with a different signature). m2c's compare-in-GPR idioms
+  already declares the target with a different signature). For a callee the repo has no
+  prototype for it also tries the Mac demo's parameter kinds (`tools/mac_protos.py`; return
+  type from m2c) and the target's own full Mac parameter list, keeping either only if it
+  scores strictly better, so they cannot lower a result. Mac types are kinds, not structs. m2c's compare-in-GPR idioms
   (`mfcr` + `rlwinm`, `cror`, carry sequences) need the patched m2c from `tools/fetch_m2c.sh`;
   an unpatched checkout leaves them as `M2C_CARRY`/`M2C_ERROR` and the sweep reports UNHANDLED.
 - Paired-single add/sub in game code is an inline `asm volatile` block, written with the

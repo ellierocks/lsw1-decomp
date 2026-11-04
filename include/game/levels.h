@@ -17,7 +17,7 @@ struct nugspline_s {
     char *pts;
 };
 
-/* One 0x94-byte entry of lbl_80409410->unk240 (unk244 entries). Consumer: fn_800C9490,
+/* One 0x94-byte entry of lbl_80409410->unk240 (unk244 entries). Consumer: InitDoors,
  * which centres each 4-point spline and stores its largest point distance. */
 struct lbl_80409410_240_s {
     u8 pad0[0x60];
