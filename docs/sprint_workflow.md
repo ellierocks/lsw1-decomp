@@ -57,6 +57,33 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
   path or a shared type that unlocks a larger family. Check all owned sections
   before claiming that path; matching every function does not emit missing data.
 
+## Improve the workflow as you go
+
+Every sprint also improves its tools. Fixing a tool gap mid-run pays off in every unit that
+has the same gap, which is more than grinding through it one function at a time does. In
+[#87](https://github.com/ellierocks/lsw1-decomp/pull/87), four mid-run `fix(tools)` commits
+(sweep compile repairs, `__ashldi3` shifts, the float `cror` fold, initialized locals in
+`variant_search.py`) brought in matches outside the unit and let searches find fixes that
+had been made by hand, in a run that verified 81 functions.
+
+- **Fix it when it repeats.** If the same manual workaround, compile error or search gap
+  turns up twice, or once in a whole class of drafts, fix the tool in this branch instead of
+  working around it again. Use `sprint_finish.py --phase tooling` while you work on it, write a
+  regression test in `tests/`, and commit it as `fix(tools): ...` or `feat(tools): ...`.
+- **Then collect the wins.** Rerun the fixed tool where it can now succeed: for a sweep fix,
+  `sweep.py --apply` on the affected units (the whole game when the fix is general); for a
+  search tool, this sprint's parked near-misses. Matches outside the unit go into their own
+  `feat(match)` commit in the same PR. Verify them strictly like any other match.
+- **Encode hand wins.** When a hand change produced a match, ask whether a tool could have
+  found it. If it is mechanical, add it as a search dimension or a sweep repair pass;
+  otherwise record it as one quirk bullet in [C matching](code_matching_workflow.md#measure-and-iterate).
+- **Keep the scope bounded.** A fix should take a fraction of a wave. A redesign goes into
+  the PR's Workflow line as a lead for a tooling thread. Never weaken the oracle (verifier
+  strictness, compiler pins, split boundaries) to get a match.
+- **Record the yield.** The finish record's Workflow line lists the branch's tooling
+  commits; add what each one unlocked (matches, compile errors removed, a search that now
+  finds a fix). A parked row whose plateau comes from a tool gap says so in its `next:`.
+
 ## Kickoff (read only this much)
 
 1. AGENTS.md and this page.
@@ -181,10 +208,10 @@ The table below caps the search for one function.
 |---|---|
 | Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement (3 below 95%) |
 | Each attempt: `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, and writes it into the unit only on a strict MATCH |
-| `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
+| `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run (searches over `--limit` try the fewest-change variants first) |
 | `order_search.py`, if only the order differs (`--climb` over 7 statements) | one run |
 | Permuter, only at about 90% exact or better, after m2c cleanup and with a `/* permute: begin */` focus region | one run of at most 180 s (`timeout 180`) |
-| Then | park and move on; do not come back in this sprint |
+| Then | park and move on; do not come back in this sprint unless a tool fix makes a new search possible |
 
 The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has
 no name hit, `hillclimb.py` records the no-hit limit itself; pass a note only when you
@@ -239,13 +266,15 @@ python3 tools/sprint_finish.py FN1 FN2 ... --unit UNIT --merge \
   --parked "FN3=41/51: <mismatch>; next: <hypothesis>"
 ```
 
-Commit first. Use `--merge` once the branch is pushed (it fetches, merges `origin/main` and
+Commit first. With `--unit` given as the source path, `--matched-from-diff` adds every
+function newly defined in it since the merge base, so a long run does not have to list them.
+Use `--merge` once the branch is pushed (it fetches, merges `origin/main` and
 aborts cleanly on a conflict). `--rebase` is only for a branch with nothing pushed yet; it
 refuses when any commit it would rewrite is already on the remote, because that needs a
 force push. The script merges or rebases, runs `bash build.sh` once, strict-verifies each function
 against that build, runs `git diff --check origin/main`, compares the DOL hash and the
-report with the kickoff baseline, and prints the record below with only Donor and Headers
-left to fill in. It exits non-zero on any failure.
+report with the kickoff baseline, and prints the record below. Fill in Donor and Headers,
+and add each tooling commit's yield to the Workflow line. It exits non-zero on any failure.
 
 A function can pass the strict verifier yet sit below 100% in objdiff, because a literal reloc
 targets `.rodata+N` rather than the retail `lbl_` symbol. Those do not move `matched_functions`.
@@ -277,6 +306,7 @@ Sprint: `UNIT` (N matched, M parked)
 - DOL: byte-identical (`bash build.sh`); `matching_progress.py` passes
 - Donor: <one line, or "no OpenSaga hits">
 - Headers: <fields added with their consumer, or none>
+- Workflow: <tooling commits and what each unlocked, or none>
 ```
 
 Only durable facts go into docs, in the same PR:
@@ -284,7 +314,8 @@ Only durable facts go into docs, in the same PR:
 - a confirmed struct field goes into the header, with a short comment naming its consumer;
 - a new layout fact goes into the table in [Nu2](nu2_engine_reference.md) or
   [game structs](game_structs.md);
-- a new compiler quirk becomes one bullet in [C matching](code_matching_workflow.md).
+- a new compiler quirk becomes one bullet in [C matching](code_matching_workflow.md), and a
+  tool change when it is mechanical (see [improve the workflow](#improve-the-workflow-as-you-go)).
 
 Update `strategy.md` only when the plan changes, for example when a lane is finished or
 the lane order changes.
@@ -306,5 +337,6 @@ park the function and drop it from the PR.
 
 ```text
 Sprint: UNIT. Queue: next_target.py --unit UNIT --limit 40 (or: fn_A, fn_B, ...).
-Follow docs/sprint_workflow.md. Branch t3/sprint-<unit-leaf>. Merge when CI passes.
+Follow docs/sprint_workflow.md. Branch t3/sprint-<unit-leaf>. Fix tooling gaps as you
+go and rerun the fixed tools. Merge when CI passes.
 ```

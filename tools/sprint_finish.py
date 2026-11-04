@@ -14,6 +14,11 @@ one `bash build.sh`, `verify_fn.py --strict-symbols` on each named function agai
 `git diff --check origin/main`, and the report delta against the baseline. It prints a filled-in
 [sprint record](../docs/sprint_workflow.md#records) and exits non-zero if anything failed, so
 the PR body needs only the Donor and Headers lines added. It never edits sources or pushes.
+
+`--matched-from-diff` adds every function newly defined in `--unit` (a source path) since the
+merge base with origin/main, so a long run does not have to list its matches by hand. The
+record's Workflow line lists this branch's `fix(tools)`/`feat(tools)` commits; add what each
+one unlocked.
 """
 from __future__ import annotations
 
@@ -23,6 +28,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -132,6 +138,35 @@ def rebase_refusal(commits: list[str]) -> str | None:
             "rewrites pushed history. Use --merge to bring in origin/main instead")
 
 
+_DEF = re.compile(r"^(?![ \t#/*}])[A-Za-z_][^;{}()\n=]*?\b(\w+)\s*\([^;{}]*?\)\s*\{", re.M)
+
+
+def defined_functions(text: str) -> list[str]:
+    """Names of functions defined at file scope in C `text`, in order."""
+    return list(dict.fromkeys(m.group(1) for m in _DEF.finditer(text)))
+
+
+def merge_base() -> str:
+    return run(["git", "merge-base", "HEAD", "origin/main"]).stdout.strip() or "origin/main"
+
+
+def matched_from_diff(unit: str, base: str | None = None) -> list[str]:
+    """Functions defined in UNIT now that were not defined there at the merge base."""
+    path = Path(unit)
+    if not path.is_absolute():
+        path = ROOT / path
+    rel = path.resolve().relative_to(ROOT)
+    old = run(["git", "show", f"{base or merge_base()}:{rel.as_posix()}"])
+    before = set(defined_functions(old.stdout)) if old.returncode == 0 else set()
+    return [fn for fn in defined_functions(path.read_text()) if fn not in before]
+
+
+def tool_commits(base: str | None = None) -> list[str]:
+    """Subjects of this branch's tooling commits, oldest first."""
+    log = run(["git", "log", "--reverse", "--format=%s", f"{base or merge_base()}..HEAD"]).stdout
+    return [s for s in log.splitlines() if re.match(r"(fix|feat|perf|refactor)\(tools\)", s)]
+
+
 def merge_main() -> tuple[bool, str]:
     """Fetch and merge origin/main; abort cleanly on conflict. Returns (ok, message)."""
     if not fetch():
@@ -156,7 +191,9 @@ def main(argv=None) -> int:
                     help=f"count at most this long between activity events as active time (default "
                          f"{int(metrics.DEFAULT_IDLE_CAP)}; env {metrics.IDLE_CAP_ENV}); saved with the timer")
     ap.add_argument("--parked", action="append", default=[], metavar="FN=NOTE", help="parked function row")
-    ap.add_argument("--unit", help="unit name for the record heading")
+    ap.add_argument("--unit", help="unit name for the record heading (a source path for --matched-from-diff)")
+    ap.add_argument("--matched-from-diff", action="store_true",
+                    help="add the functions newly defined in --unit since the merge base with origin/main")
     ap.add_argument("--allow-behind", action="store_true",
                     help="record a baseline even when HEAD is behind origin/main")
     ap.add_argument("--queue", nargs="+", help="complete ordered sprint queue; saved with baseline")
@@ -219,6 +256,12 @@ def main(argv=None) -> int:
             phase(timing, "matching", cap=args.idle_cap)
             print("timer: setup -> matching")
         return 0
+    if args.matched_from_diff:
+        if not args.unit or not (Path(args.unit).is_file() or (ROOT / args.unit).is_file()):
+            ap.error("--matched-from-diff needs --unit as the unit's source path")
+        parked_names = {p.partition("=")[0] for p in args.parked} | set(args.deferred)
+        args.functions = metrics.dedupe(args.functions + [
+            fn for fn in matched_from_diff(args.unit) if fn not in parked_names])
     if not args.functions and not args.parked and not args.deferred:
         ap.error("name the matched functions (or use --baseline)")
 
@@ -294,6 +337,9 @@ def main(argv=None) -> int:
         print(f"- Report: functions {snap['functions']:,}, code bytes {snap['code']:,} (no baseline saved)")
     print(f"- DOL: {'byte-identical' if same_dol else 'CHANGED'} (sha1 {str(snap['dol_sha1'])[:8]}…)")
     print("- Donor: <one line, or \"no OpenSaga hits\">\n- Headers: <fields added with their consumer, or none>")
+    tools = tool_commits()
+    print("- Workflow: " + ("; ".join(tools) + " (add what each unlocked)" if tools
+                            else "<tool fixes made this run and the matches they unlocked, or none>"))
     if timing.exists():
         report = metrics.timing_report(phase(timing, "paused"))
         print("- Active time: " + ", ".join(f"{k}={v:.1f}s" for k, v in sorted(report["phases"].items()))
