@@ -171,8 +171,8 @@ The table below caps the search for one function.
 | Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement (3 below 95%) |
 | Each attempt: `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, and writes it into the unit only on a strict MATCH |
 | `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run |
-| `order_search.py`, if only the order differs | one run |
-| Permuter, only at about 90% exact or better | one run of at most 180 s (`timeout 180`) |
+| `order_search.py`, if only the order differs (`--climb` over 7 statements) | one run |
+| Permuter, only at about 90% exact or better, after m2c cleanup and with a `/* permute: begin */` focus region | one run of at most 180 s (`timeout 180`) |
 | Then | park and move on; do not come back in this sprint |
 
 The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has

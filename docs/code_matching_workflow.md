@@ -196,6 +196,20 @@ variants (default 7! = 5040, about two minutes with `-j 8`). `--dry-run` prints 
 count. The best variant goes to `work/order_search/NAME/best.c`; port it into the
 unit source and accept it with `verify_fn.py --build --strict-symbols`.
 
+Blocks over 7 statements use `--climb` instead (`--const-locals` is exhaustive-only):
+
+```sh
+python3 tools/order_search.py fn_800262BC work/fn_800262BC/climb.c --climb -j 8 --budget 1500
+```
+
+It starts from the source order and scores every single-statement move (n·(n−1) per
+block), takes the best strict improvement and repeats. At a plateau it restarts from
+the best order with 2–4 random moves. It never rescores an order and stops at a strict
+`MATCH` or after `--budget` variants (default 2000; `--seed` varies the restarts).
+Both 12-store descriptor blocks in `nurndr` (479M orders each) matched this way in
+under 3 minutes at `-j 8`: `fn_800262BC` after 1366 variants and `fn_80025FA0` after
+495. The permuter had spent hours on them without a match.
+
 ### Variant search
 
 For a draft within about ten instructions, `variant_search.py` tries the rewrites that solved
@@ -226,9 +240,40 @@ python3 tools/permute_setup.py fn_8000A64C --run -- -j 8 --stop-on-zero --best-o
 
 `permute_setup.py` writes `base.c`, the best scored `hillclimb.py` snapshot of the
 unit source (else the unit source; `--source` overrides), preprocessed with ProDG's
-CPP. It also writes `target.o` (the retail DTK split object), `compile.sh`
-(`score_fn.py NAME "$1" --compile-only -o "$3"`) and `settings.toml`, and prints
-the base score. `--run` reuses an existing directory unless `--force` is given.
+CPP. It also writes `target.o` (the retail DTK split object), `compile.sh` and
+`settings.toml`, and prints the base score. `compile.sh` runs cc1, `as` and the dtk
+fixup directly on the preprocessed input, which is about 3x faster than the
+`score_fn.py NAME "$1" --compile-only -o "$3"` wrapper. Setup compiles the base both
+ways and falls back to the wrapper, with a warning, if the objects differ. `--run`
+reuses an existing directory unless `--force` is given.
+
+**Focus the search.** Whole-function random mutation rarely lands a one-slot schedule
+fix. Mark the region that differs in a copy of the candidate and pass it with
+`--source`:
+
+```c
+/* permute: begin */      /* only randomize these lines: PERM_RANDOMIZE(...) */
+...
+/* permute: end */
+/* permute: lineswap */   /* only reorder these whole lines: PERM_LINESWAP(...) */
+...
+/* permute: end */
+```
+
+The markers become PERM macros in `base.c`. Setup writes a marker-free `base_plain.c`
+for scoring the base. With a focus region, the 180 s burst on `fn_80025FA0` ran 8.5k
+iterations, against about 550 with the old compile step and no focus. Use `--climb`
+above for pure statement order: the permuter samples line orders at random, and for
+12 lines it found nothing that climbing found in 495 compiles.
+
+**Read setup's warnings before running.** `permute_setup.py` warns when:
+
+- the base differs structurally (instruction count, or under 90% exact). The permuter
+  seldom fixes frame size, instruction count or missing code, so fix the C first.
+- the function still has m2c names (`temp_r3`, `var_f31`). Rename or fold the
+  temporaries and drop redundant casts first, so mutations act on real structure
+  rather than on m2c noise.
+- there is no focus region.
 
 Scoring uses a verifier-backed dumper rather than normalised objects. The
 permuter's objdump scorer compares relocation symbol names (`.rodata+0x8` never
