@@ -113,6 +113,11 @@ class SweepRewriteTest(unittest.TestCase):
         indexed = "void f(void) {\n    s16 *p;\n    p += 2;\n    p[1] = 1;\n}\n"
         self.assertIn("p += 1;", sweep.byte_strides(indexed))
 
+    def test_swap_stores(self):
+        body = "void f(s32 *p) {\n    *(s32 *)(p + 1) = 0;\n    p->a = 2;\n    x = p->a;\n    p->b = p->a;\n}\n"
+        self.assertEqual(sweep.swap_stores(body),
+                         ["void f(s32 *p) {\n    p->a = 2;\n    *(s32 *)(p + 1) = 0;\n    x = p->a;\n    p->b = p->a;\n}\n"])
+
     def test_empty_frame(self):
         asm = ("/* 0 0  94 21 FF E8 */\tstwu r1, -0x18(r1)\n/* 4 4  38 21 00 18 */\taddi r1, r1, 0x18\n"
                "/* 8 8  4E 80 00 20 */\tblr\n")

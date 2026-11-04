@@ -183,6 +183,23 @@ def both_rewrites(body: str) -> str:
 
 
 VARIANTS = (store_in_arms, const_rodata, both_rewrites)
+MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
+
+
+def swap_stores(body: str, limit: int = 8) -> list[str]:
+    """BODY with one pair of adjacent independent memory stores swapped, for each such pair:
+    GCC's scheduler often emits a function's last stores in the other order."""
+    lines, out = body.split("\n"), []
+    for i in range(len(lines) - 1):
+        a, b = MEM_STORE.match(lines[i]), MEM_STORE.match(lines[i + 1])
+        if not (a and b) or a["ind"] != b["ind"] or a["lhs"] == b["lhs"]:
+            continue
+        if a["lhs"] in b["rhs"] or b["lhs"] in a["rhs"]:
+            continue
+        out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
+        if len(out) == limit:
+            break
+    return out
 
 
 # m2c declares only the arguments a function reads, named by register: GPR `argN` is
@@ -672,14 +689,14 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
         return res, body
     seen = {body}
-    for variant in VARIANTS:
-        alt = variant(body)
+    alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    for vname, alt in alts:
         if alt in seen:
             continue
         seen.add(alt)
         alt_res, alt = score_draft(name, source, alt)
         if better(alt_res, res):
-            res, body = {**alt_res, "context": res.get("context"), "rewrite": variant.__name__}, alt
+            res, body = {**alt_res, "context": res.get("context"), "rewrite": vname}, alt
             if res["verdict"] == "MATCH":
                 break
     return res, body
