@@ -497,7 +497,8 @@ all allocated section extents, nonrelocated bytes and canonical relocations with
 the DTK target, resolving local targets through the declared split bases and
 external targets through unique symbols. It also checks retail bytes and encoded relocation destinations,
 including branches, SDA references and initialized data pointers. SDA21 word/halfword offsets are normalized; unsupported
-data relocation kinds, incomplete ownership and BSS fail closed.
+data relocation kinds, incomplete ownership fail closed. `.bss`/`.sbss` is proved by layout, not contents
+(see [BSS layout policy](build_config.md#bss-layout-policy)); an unexplained gap or extra symbol fails.
 
 `verify_fn.py` uses this same complete-unit proof to verify an address-taken
 local table only when its section-relative address agrees with the reference.

@@ -75,9 +75,11 @@ blockers:
   `DebuggerDriver.c`;
 - `libsn`/libc, which needs SN's GCC source build (see RE4).
 
-SISamplingRate promotes its two functions and initialized data; its four-byte
-`SamplingRate` BSS remains assembly fallback because the complete-unit gate does
-not verify BSS.
+SISamplingRate promotes its two functions, initialized data and four-byte
+`SamplingRate` `.sbss`. BSS is verified by layout (see
+[BSS layout policy](build_config.md#bss-layout-policy)); 24 SDK units own their
+`.bss`/`.sbss`, and `ax/AXSPB` and `gx/GXDisplayList` stay on the
+`--external-bss` fallback with recorded reasons.
 
 1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
    `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.

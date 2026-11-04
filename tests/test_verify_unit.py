@@ -172,6 +172,80 @@ class VerifyUnitTests(unittest.TestCase):
         self.assertIsNone(prove_unit(target, FakeElf(data, size=4), big, Symbols(),
                                      Retail(data + bytes(32))))
 
+    def bss_elf(self, size, objects, name='.bss'):
+        elf = FakeElf(b'', size=size, section_type=8)
+        elf.sections[1] = NS(index=1, name=name, flags=3, size=size, sh_type=8)
+        elf.relocs = {}
+        elf.symbols = [NS(index=i, name=n, value=o, size=s, sym_type=1, bind=0, shndx=1)
+                       for i, (o, s, n) in enumerate(objects)]
+        return elf
+
+    def bss_proof(self, target, mine, ranges=None):
+        return prove_unit(target, mine, ranges or {'.bss': (0x2000, 0x2000 + target.sections[1].size)},
+                          Symbols(), Retail(b''))
+
+    def test_bss_is_proved_by_layout_not_by_zero_contents(self):
+        objects = [(0, 8, 'a'), (8, 0x20, 'b')]
+        self.assertEqual(self.bss_proof(self.bss_elf(0x28, objects), self.bss_elf(0x28, objects)),
+                         {'.bss': 0x2000})
+        # A retail symbol may exceed its donor size only by alignment padding before the next object.
+        target = self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x18, 'b'), (0x20, 8, 'c')])
+        mine = self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x16, 'b'), (0x20, 8, 'c')])
+        self.assertEqual(self.bss_proof(target, mine), {'.bss': 0x2000})
+
+    def test_bss_gap_symbols_are_accepted_only_as_alignment_padding(self):
+        mine = self.bss_elf(0x28, [(0, 0xc, 'a'), (0x10, 0x18, 'b')])
+        ok = self.bss_elf(0x28, [(0, 0xc, 'a'), (0xc, 4, 'gap_04_0000200C_bss'), (0x10, 0x18, 'b')])
+        self.assertEqual(self.bss_proof(ok, mine), {'.bss': 0x2000})
+        # A gap that does not follow a compiled object and end at the next one is unexplained.
+        far = self.bss_elf(0x28, [(0, 0x8, 'a'), (0x8, 8, 'gap_04_00002008_bss'), (0x10, 0x18, 'b')])
+        self.assertIsNone(self.bss_proof(far, self.bss_elf(0x28, [(0, 0xc, 'a'), (0x10, 0x18, 'b')])))
+        big = self.bss_elf(0x80, [(0, 8, 'a'), (8, 0x40, 'gap_04_00002008_bss'), (0x48, 0x38, 'b')])
+        self.assertIsNone(self.bss_proof(big, self.bss_elf(0x80, [(0, 8, 'a'), (0x48, 0x38, 'b')])))
+        self.assertIn('no compiled counterpart', verify_unit.LAST_REFUSAL)
+
+    def test_mwcc_section_anchor_is_not_an_object(self):
+        objects = [(0, 8, 'a'), (8, 0x20, 'b')]
+        mine = self.bss_elf(0x28, objects)
+        mine.symbols.append(NS(index=9, name='...bss.0', value=0, size=0, sym_type=0, bind=0, shndx=1))
+        self.assertEqual(self.bss_proof(self.bss_elf(0x28, objects), mine), {'.bss': 0x2000})
+        mine.symbols.append(NS(index=10, name='nosize', value=0, size=0, sym_type=1, bind=0, shndx=1))
+        self.assertIsNone(self.bss_proof(self.bss_elf(0x28, objects), mine))
+
+    def test_bss_layout_mismatches_are_rejected(self):
+        objects = [(0, 8, 'a'), (8, 0x20, 'b')]
+        target = self.bss_elf(0x28, objects)
+        cases = {
+            'compiled section is 0x20 bytes': self.bss_elf(0x20, [(0, 8, 'a'), (8, 0x18, 'b')]),
+            'no retail symbol at that offset': self.bss_elf(0x28, [(0, 8, 'a'), (0x10, 0x18, 'b')]),
+            'is b in the retail split': self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x20, 'c')]),
+            'not alignment padding': self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x10, 'b'), (0x18, 8, 'x')]),
+            'no compiled counterpart': self.bss_elf(0x28, [(0, 8, 'a')]),
+            'defines no symbol': self.bss_elf(0x28, []),
+        }
+        for reason, mine in cases.items():
+            with self.subTest(reason):
+                self.assertIsNone(self.bss_proof(target, mine))
+                self.assertIn(reason, verify_unit.LAST_REFUSAL)
+        # Padding beyond the alignment bound, an unexplained retail gap and a retail extra symbol.
+        big = self.bss_elf(0x80, [(0, 8, 'a'), (8, 0x78, 'b')])
+        self.assertIsNone(self.bss_proof(big, self.bss_elf(0x80, [(0, 8, 'a'), (8, 0x20, 'b'), (0x28, 0x58, 'c')])))
+        self.assertIsNone(self.bss_proof(self.bss_elf(0x28, [(0, 8, 'a'), (0x10, 0x18, 'b')]),
+                                         self.bss_elf(0x28, [(0, 8, 'a'), (0x10, 0x18, 'b')])))
+        self.assertIn('unexplained gap', verify_unit.LAST_REFUSAL)
+        self.assertIsNone(self.bss_proof(self.bss_elf(0x28, objects + [(0x28, 8, 'z')]),
+                                         self.bss_elf(0x28, objects)))
+        self.assertIsNone(self.bss_proof(self.bss_elf(0x28, objects), self.bss_elf(0x28, objects),
+                                         {'.bss': (0x2000, 0x2030)}))
+
+    def test_bss_symbols_must_be_linked_at_their_retail_addresses(self):
+        mine = self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x20, 'b')])
+        ranges = {'.bss': (0x2000, 0x2028)}
+        self.assertIsNone(verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}, 'b': {0x2008, 0x9}}))
+        self.assertIn('b is not linked at retail 0x00002008',
+                      verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}, 'b': {0x2010}}))
+        self.assertIn('nowhere', verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}}))
+
     def test_split_parser_requires_unambiguous_ranges(self):
         text = 'unit.c:\n  .text start:0x1000 end:0x1004\n  .data start:0x2000 end:0x2008\nother.c:\n  .text start:0x3000 end:0x3004\n'
         self.assertEqual(split_ranges(text, 'unit'), {'.text': (0x1000, 0x1004), '.data': (0x2000, 0x2008)})
