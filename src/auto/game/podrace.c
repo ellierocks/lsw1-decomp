@@ -103,3 +103,23 @@ void fn_8014FD18(void) {
     PodraceCreateMine();
     fn_8010BD90();
 }
+
+s32 ProcessSpaceLevel(s32);
+s32 fn_800D875C(s32, s32);
+s32 fn_80145F18(void *, s32 *);
+extern f32 lbl_801AF6FC[];
+extern s32 lbl_801E184C[];
+extern u8 lbl_803E0411[];
+extern f32 lbl_803E8420[];
+extern s32 lbl_804093D0;
+extern void *lbl_80409410;
+extern u8 lbl_8040B060[];
+
+void fn_80146DF8(void) {
+    fn_80145F18(lbl_80409410, lbl_801E184C);
+    ProcessSpaceLevel((*(s32 *)((s8 *)(lbl_80409410) + (0x1984))));
+    if (((s32) lbl_804093D0 == 0) && ((s32) lbl_8040B060[0] == 0) && ((s32) lbl_803E0411[0] == 0) && ((lbl_803E8420[0] >= lbl_801AF6FC[0]))) {
+        fn_800D875C(0x26A, 0);
+        lbl_8040B060[0] = 1;
+    }
+}

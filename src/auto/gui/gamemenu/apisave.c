@@ -552,3 +552,14 @@ void fn_80078E90(void *arg0) {
         }
     }
 }
+
+#define Menu_CloseCurrent ((s32 (*)())Menu_CloseCurrent)
+extern f32 lbl_8019BAD4[];
+extern f32 lbl_80408C40;
+
+void fn_80079F68(void) {
+    if ((lbl_80408C40 <= lbl_8019BAD4[0])) {
+        Menu_CloseCurrent();
+    }
+}
+#undef Menu_CloseCurrent
