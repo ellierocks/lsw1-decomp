@@ -2054,3 +2054,353 @@ f32 Condition_UsingForceLightning(void *sys, void *process, void *arg2) {
     }
     return lbl_801AE924[0];
 }
+
+extern f32 lbl_8040900C;
+
+s32 Action_SetDefaultMovementRange(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++)
+            lbl_8040900C = fn_80083958(process, params[i]);
+    }
+    return 1;
+}
+
+extern f32 lbl_801AEB68[];
+extern f32 lbl_801AEB6C[];
+
+f32 Condition_FromNode(void *sys, void *process, void *packet, char *name, s32 node)
+{
+    if (packet != 0 && node != 0 && sys != 0
+        && *(s32 *)(*(u8 **)((u8 *)packet + 0x10c) + 0x78)
+               + (*(u8 **)((u8 *)packet + 0x110))[*(u8 *)((u8 *)packet + 0x114)] * 0x58 == node)
+        return lbl_801AEB68[0];
+    return lbl_801AEB6C[0];
+}
+
+extern s32 fn_80108DA8(void *, s32);
+extern f32 lbl_801AE900[];
+extern f32 lbl_801AE904[];
+
+f32 Condition_ObstacleChainPhase(void *sys, void *process, void *packet, char *name, void *obstacle)
+{
+    s32 chain;
+
+    if (obstacle != 0 && (chain = *(s8 *)((u8 *)obstacle + 0x71)) != -1)
+        return (f32)fn_80108DA8(lbl_80409410, chain) + lbl_801AE900[0];
+    return lbl_801AE904[0];
+}
+
+extern s32 fn_80103494(void *);
+extern f32 lbl_801AEB5C[];
+
+f32 Condition_UsingForceFreeze(void *sys, void *process, struct gameaiscript_packet_s *packet)
+{
+    if (packet == 0 || packet->owner == 0 || packet->owner->object == 0)
+        return lbl_801AEB5C[0];
+    return fn_80103494(packet->owner->object);
+}
+
+extern s32 fn_8012CCCC(struct gameaiscript_owner_s *);
+extern f32 lbl_801AE958[];
+extern f32 lbl_801AE95C[];
+
+f32 Condition_CanFightLikeAJedi(void *sys, void *process, struct gameaiscript_packet_s *packet)
+{
+    if (packet != 0 && packet->owner != 0 && packet->owner->object != 0 && fn_8012CCCC(packet->owner) != 0)
+        return lbl_801AE958[0];
+    return lbl_801AE95C[0];
+}
+
+extern s32 fn_800CC284(struct gameaiscript_owner_s *, s32);
+extern f32 lbl_801AE938[];
+extern f32 lbl_801AE93C[];
+
+f32 Condition_CategoryIs(void *sys, void *process, struct gameaiscript_packet_s *packet, char *name, s32 category)
+{
+    if (category != -1 && packet != 0 && packet->owner != 0 && fn_800CC284(packet->owner, category) != 0)
+        return lbl_801AE938[0];
+    return lbl_801AE93C[0];
+}
+
+extern s32 fn_800952FC(s32, char *);
+extern void fn_80095558(void *, s32);
+
+s32 Action_SetAnimation(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 anim = -1;
+    u8 *object;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        if (count == 1)
+            anim = fn_800952FC(*(s32 *)(object + 0x64), params[0]);
+        if (anim != -1)
+            fn_80095558(object + 8, anim);
+    }
+    return 1;
+}
+
+extern f32 lbl_801AE940[];
+extern f32 lbl_801AE944[];
+
+f32 Condition_PlayerCategoryIs(void *sys, void *process, void *packet, char *name, s32 category)
+{
+    if (category != -1 && lbl_80409004 != 0 && fn_800CC284((struct gameaiscript_owner_s *)lbl_80409004, category) != 0)
+        return lbl_801AE940[0];
+    return lbl_801AE944[0];
+}
+
+extern void fn_800C749C(void *);
+extern s32 lbl_804093AC;
+
+s32 Action_CallDexter(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    if (lbl_804093AC == 0x7b && firstTime != 0 && packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+        fn_800C749C(packet->owner->object);
+    return 1;
+}
+
+extern f32 lbl_801AEA10[];
+
+f32 Condition_SpawnCount(void *sys, void *process, void *packet)
+{
+    if (packet != 0)
+        return *(u32 *)((u8 *)packet + 0x1b4);
+    return lbl_801AEA10[0];
+}
+
+extern f32 lbl_801AEB14[];
+extern f32 lbl_801AEB18[];
+extern f32 lbl_801AEB1C[];
+
+f32 Condition_IsSplineSet(void *sys, void *process, struct gameaiscript_packet_s *packet)
+{
+    u8 *object;
+
+    if (packet == 0 || packet->owner == 0 || (object = packet->owner->object) == 0)
+        return lbl_801AEB14[0];
+    if (*(s32 *)(object + 0x69c) != 0)
+        return lbl_801AEB18[0];
+    return lbl_801AEB1C[0];
+}
+
+extern void fn_80106A30(char *, s32, s32, s32, f32);
+extern char lbl_801AD820[];
+extern f32 lbl_801AEBE8[];
+
+s32 Action_OpenDoor(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+    char *door = 0;
+    s32 instant = 0;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], lbl_801AD820) == 0)
+                instant = 1;
+            else
+                door = params[i];
+        }
+        if (door != 0)
+            fn_80106A30(door, 0, 1, instant, lbl_801AEBE8[0]);
+    }
+    return 1;
+}
+
+/* Script flag bytes in the level data at lbl_80409410+0x1B4, indexed by owner+0x291. */
+struct gameaiscript_flags_s { u8 unk0[0x10]; u8 flags[1]; };
+extern f32 lbl_801AE970[];
+extern f32 lbl_801AE974[];
+
+f32 Condition_CheckFlag(void *sys, void *process, struct gameaiscript_packet_s *packet, char *name, s32 flag)
+{
+    if (packet != 0 && packet->owner != 0
+        && (*(struct gameaiscript_flags_s **)((u8 *)lbl_80409410 + 0x1b4))->flags[((u8 *)packet->owner)[0x291]] & flag)
+        return lbl_801AE970[0];
+    return lbl_801AE974[0];
+}
+
+s32 Action_DeflectPlayersPart(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+    u8 *object;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0xf28) |= 0x80000;
+        if (count != 0) {
+            for (i = 0; i < count; i++) {
+                if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                    *(u32 *)(object + 0xf28) &= ~0x80000;
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_8008F45C(void *, s32, void *, s32, f32, f32);
+extern s32 (*lbl_80408D2C)(char *, void *);
+extern f32 lbl_801AEBAC[];
+
+s32 Action_GoToCollectable(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 i;
+    u8 *object;
+    s32 target;
+
+    if (packet == 0 || packet->owner == 0 || (object = packet->owner->object) == 0)
+        return 1;
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C == 0 || lbl_80408D2C(params[i], (u8 *)packet + 0xb0) == 0)
+                *(f32 *)((u8 *)packet + 0x134) = fn_80083958(packet, params[i]);
+        }
+    }
+    if ((target = *(s32 *)(object + 0x660)) != 0) {
+        if (*(s32 *)(object + 0x664) == 0)
+            fn_8008F45C(packet, target, object + 0x66c, 1, lbl_801AEBAC[0], lbl_801AEBAC[0]);
+        else
+            *(s32 *)(object + 0x660) = 0;
+    }
+    return 0;
+}
+
+extern s32 NuSpecialFind(void *, void *, char *, s32);
+extern void fn_800135B0(void *);
+extern s32 fn_8005A5F8(void);
+extern s32 lbl_8040AE4C;
+
+s32 Condition_OnObjectInit(void *process, char *param)
+{
+    struct { s32 a, b, c; } special;
+
+    if (lbl_8040AE4C != 0 && NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), &special, param, 1) != 0) {
+        fn_800135B0(&special);
+        return fn_8005A5F8();
+    }
+    return -1;
+}
+
+s32 Condition_PlayerOnObjectInit(void *process, char *param)
+{
+    struct { s32 a, b, c; } special;
+
+    if (lbl_8040AE4C != 0 && NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), &special, param, 1) != 0) {
+        fn_800135B0(&special);
+        return fn_8005A5F8();
+    }
+    return -1;
+}
+
+s32 Condition_EitherPlayerOnObjectInit(void *process, char *param)
+{
+    struct { s32 a, b, c; } special;
+
+    if (lbl_8040AE4C != 0 && NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), &special, param, 1) != 0) {
+        fn_800135B0(&special);
+        return fn_8005A5F8();
+    }
+    return -1;
+}
+
+extern s32 fn_800130F4(void *);
+extern s32 fn_8001384C(void *);
+
+s32 Condition_AnimationFinishedInit(void *process, char *param)
+{
+    s32 special[3];
+
+    NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), special, param, 1);
+    if (fn_800130F4(special) != 0)
+        return fn_8001384C(special);
+    return 0;
+}
+
+s32 Condition_RigidAnimFrameInit(void *process, char *param)
+{
+    s32 special[3];
+
+    NuSpecialFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), special, param, 1);
+    if (fn_800130F4(special) != 0)
+        return fn_8001384C(special);
+    return 0;
+}
+
+extern f32 lbl_801AE978[];
+extern f32 lbl_801AE97C[];
+
+f32 Condition_CheckLevelFlag(void *sys, void *process, void *packet, char *name, u32 flag)
+{
+    if (**(u32 **)((u8 *)lbl_80409410 + 0x1b4) & flag)
+        return lbl_801AE978[0];
+    return lbl_801AE97C[0];
+}
+
+extern u32 lbl_8040B188;
+extern f32 lbl_801AE980[];
+extern f32 lbl_801AE984[];
+
+f32 Condition_CheckAreaFlag(void *sys, void *process, void *packet, char *name, u32 flag)
+{
+    if (lbl_8040B188 & flag)
+        return lbl_801AE980[0];
+    return lbl_801AE984[0];
+}
+
+extern f32 lbl_801AEACC[];
+
+f32 Condition_Message(void *sys, void *process, void *packet, char *name, void *message)
+{
+    if (message != 0)
+        return *(f32 *)((u8 *)message + 0x28);
+    return lbl_801AEACC[0];
+}
+
+extern f32 lbl_801AEAD8[];
+
+f32 Condition_RigidAnimFrame(void *sys, void *process, void *packet, char *name, void *rigid)
+{
+    if (rigid != 0)
+        return *(f32 *)((u8 *)rigid + 0x4c);
+    return lbl_801AEAD8[0];
+}
+
+extern u8 lbl_803EACC4[];
+extern f32 lbl_801AEADC[];
+extern f32 lbl_801AEAE0[];
+
+f32 Condition_CutSceneStarted(void *sys, void *process, void *packet, char *name, s32 index)
+{
+    if (lbl_803EACC4[index] != 0)
+        return lbl_801AEADC[0];
+    return lbl_801AEAE0[0];
+}
+
+extern s32 fn_800D8664(void *);
+extern f32 lbl_801AEB38[];
+extern f32 lbl_801AEB3C[];
+
+f32 Condition_HintAvailable(void *sys, void *process, void *packet, char *name, void *hint)
+{
+    if (hint != 0 && fn_800D8664(hint) != 0)
+        return lbl_801AEB38[0];
+    return lbl_801AEB3C[0];
+}
+
+extern s32 fn_800D98F0(void *);
+extern f32 lbl_801AEB40[];
+extern f32 lbl_801AEB44[];
+
+f32 Condition_HintComplete(void *sys, void *process, void *packet, char *name, void *hint)
+{
+    if (hint != 0 && fn_800D98F0(hint) != 0)
+        return lbl_801AEB40[0];
+    return lbl_801AEB44[0];
+}
