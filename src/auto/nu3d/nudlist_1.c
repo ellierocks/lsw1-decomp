@@ -1,8 +1,7 @@
 #include "numath/numath.h"
 
-void fn_8000CB74(struct nuvec_s* dst, struct nuvec_s* src);
 void fn_8000D874(struct numtx_s* mtx, struct nuvec_s* v);
-void fn_8000D95C(struct numtx_s* mtx, struct nuvec_s* v);
+void NuMtxAlignZ(struct numtx_s* mtx, struct nuvec_s* v);
 
 f32 NuMtxDet3(struct numtx_s* m)
 {
@@ -17,16 +16,16 @@ void fn_8000E830(struct numtx_s* mtx, struct nuvec_s* p)
     v.x = p->x - mtx->_30;
     v.y = p->y - mtx->_31;
     v.z = p->z - mtx->_32;
-    fn_8000CB74(&v, &v);
+    NuVecNorm(&v, &v);
     fn_8000D874(mtx, &v);
 }
 
-void fn_8000E8A4(struct numtx_s* mtx, struct nuvec_s* p)
+void NuMtxLookAtZ(struct numtx_s* mtx, struct nuvec_s* p)
 {
     struct nuvec_s v;
     v.x = p->x - mtx->_30;
     v.y = p->y - mtx->_31;
     v.z = p->z - mtx->_32;
-    fn_8000CB74(&v, &v);
-    fn_8000D95C(mtx, &v);
+    NuVecNorm(&v, &v);
+    NuMtxAlignZ(mtx, &v);
 }

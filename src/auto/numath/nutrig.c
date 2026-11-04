@@ -47,7 +47,7 @@ f32 fn_8000B234(f32 x)
     return bits < 0 ? -1.0f : 1.0f;
 }
 
-f32 fn_8000B2C4(f32 a, f32 b)
+f32 NuFmod(f32 a, f32 b)
 {
     return a - (s32)(a / b) * b;
 }
@@ -145,7 +145,7 @@ void fn_8000A86C(s32 id)
 
 s32 fn_8000ABDC(f32 a, f32 b);
 
-f32 fn_8000AFBC(f32 a, f32 b)
+f32 NuAtan2(f32 a, f32 b)
 {
     return (f32)fn_8000ABDC(a, b) * 9.58738019e-05f;
 }

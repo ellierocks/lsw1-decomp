@@ -106,3 +106,14 @@ at `0x80018E64` and rejected at `0x80017EA0`. Add a row when a rename is
 reverted or a candidate is rejected with evidence.
 Other queue generators (`nu2_fn_match.py`, `sdk_anchor_rename_queue.py`,
 `crashwoc_*`) do not read it yet.
+
+## Mac LSW1 demo code bodies and prototypes
+
+[mac_code_match.tsv](mac_code_match.tsv) (`tools/mac_code_match.py`) pairs unnamed GC
+functions with Mac demo functions by code body and tiers them HIGH/MEDIUM/LOW with the
+evidence per row; the 235 HIGH pairs were applied as renames (naming, not matching
+progress). The tiers are research output: MEDIUM is about 86% precise on a hold-out of
+named GC functions and must be checked against the target assembly before use.
+[mac_lsw1_demo_prototypes.tsv](mac_lsw1_demo_prototypes.tsv) (`tools/mac_protos.py`) holds
+parameter kinds demangled from the Mac symbols for the sweep's prototype fallback.
+Both are generated from `orig/mac/`, which stays out of Git.

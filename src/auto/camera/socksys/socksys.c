@@ -83,7 +83,7 @@ extern f32 lbl_8019DFC8[];
 extern f32 lbl_8019DFCC[];
 extern f32 lbl_8019DFD0[];
 
-s32 fn_80095750(f32 rate, f32 time)
+s32 ParticlesPerFrame(f32 rate, f32 time)
 {
     s32 scaled = (s32)((rate * lbl_8019DFC4[0]) * (time * lbl_8019DFC8[0]));
     s32 count = 0;
@@ -163,7 +163,7 @@ void fn_800951FC(void *arg0) {
 
 s32 NuStrICmp(s32, s32);
 
-s32 fn_8009587C(void *arg0, s32 arg1) {
+s32 FindGameDebris(void *arg0, s32 arg1) {
     s32 var_r30;
     s32 var_r31;
 

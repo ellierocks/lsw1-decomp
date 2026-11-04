@@ -43,6 +43,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import draft_fn  # noqa: E402
+import mac_protos  # noqa: E402
 
 OUT = ROOT / "work" / "sweep"
 UNKNOWN_TYPES = {"M2C_UNK": "s32", "M2C_UNK8": "s8", "M2C_UNK16": "s16", "M2C_UNK32": "s32",
@@ -506,9 +507,10 @@ def raw_protos(text: str) -> dict[str, list[str]]:
     return out
 
 
-def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
+def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = False) -> str:
     """BODY with m2c's callee declarations replaced by known or cr1eq-implied ones and
-    each call's argument list trimmed or zero-padded to the declared count."""
+    each call's argument list trimmed or zero-padded to the declared count. MAC adds the
+    Mac demo's parameter types (`mac_protos`) for callees the repo has no prototype for."""
     m = re.search(rf"^\w[^\n;(]*?\b{re.escape(name)}\(", body, flags=re.M)
     if not m:
         return body
@@ -529,7 +531,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
         if fn in raw:  # declared in the unit with types we do not reduce: still fix the arity
             arity[fn] = [(re.match(r"(f32|f64)\b(?!\s*\*)", p) or [p])[0] for p in raw[fn]]
             continue
-        known = repo.get(fn)
+        known = repo.get(fn) or (mac and mac_protos.proto(fn, ret)) or None
         if fn in variadic:
             if known and "..." in known[1]:
                 lines.append(f"{decl(known[0], fn)}({', '.join(known[1])});")
@@ -646,6 +648,7 @@ def sweep_one(t: dict) -> dict:
                 pad_res, padded = score_draft(name, source, padded)
                 if improves(pad_res, res):
                     res, body = {**pad_res, "padded": True}, padded
+            pre = body
             protos = fix_prototypes(body, name, (OUT / name / "asm.s").read_text(), unit_text)
             if protos != body:
                 proto_res, protos = score_draft(name, source, protos)
@@ -657,6 +660,12 @@ def sweep_one(t: dict) -> dict:
                     own_res, own = score_draft(name, source, own)
                     if improves(own_res, res):
                         res, body = {**own_res, "padded": res.get("padded", False), "own_prototype": True}, own
+            for mac_body in (fix_prototypes(pre, name, (OUT / name / "asm.s").read_text(), unit_text, True),
+                             mac_protos.pad_params(body, name)):  # the Mac demo's types: strictly better only
+                if mac_body not in (pre, body):
+                    mac_res, mac_body = score_draft(name, source, mac_body)
+                    if better(mac_res, res):
+                        res, body = {**mac_res, "padded": res.get("padded", False), "mac": True}, mac_body
             res["context"] = context is not None
             res, body = try_variants(name, source, res, body)
         if best is None or better(res, best[0]):

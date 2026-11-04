@@ -60,7 +60,7 @@ struct object_lookup {
 };
 extern s32 NuStrICmp(char*, char*);
 
-struct object_entry3c* fn_8008F720(struct object_lookup* object, char* name)
+struct object_entry3c* AIPathFindLocator(struct object_lookup* object, char* name)
 {
     s32 i;
     if (object != NULL) {
@@ -72,7 +72,7 @@ struct object_entry3c* fn_8008F720(struct object_lookup* object, char* name)
     return NULL;
 }
 
-struct object_entry38* fn_8008F7A0(struct object_lookup* object, char* name)
+struct object_entry38* AISysFindArea(struct object_lookup* object, char* name)
 {
     s32 i;
     if (object != NULL) {
@@ -85,7 +85,7 @@ struct object_entry38* fn_8008F7A0(struct object_lookup* object, char* name)
     return NULL;
 }
 
-char* fn_8008F820(struct object_lookup* object, char* name)
+char* AISysFindPath(struct object_lookup* object, char* name)
 {
     s32 i;
     if (object != NULL && object->names != NULL) {
@@ -97,7 +97,7 @@ char* fn_8008F820(struct object_lookup* object, char* name)
     return NULL;
 }
 
-struct object_joint* fn_8008F8B4(struct object_lookup* object, struct object_hierarchy* hierarchy, char* name)
+struct object_joint* AIPathFindNode(struct object_lookup* object, struct object_hierarchy* hierarchy, char* name)
 {
     s32 i;
     if (hierarchy == NULL) {
@@ -179,12 +179,12 @@ void fn_8009083C(struct NUAPIOBJECT_s* a, struct NUAPIOBJECT_s* b)
     b->responseZ = b->velocityZ;
 }
 
-void *fn_8008FA44();
+void *CheckAIMessage();
 
-void fn_8008FA0C(f32 farg0) {
+void SetAIMessage(f32 farg0) {
     void *temp_r3;
 
-    temp_r3 = fn_8008FA44();
+    temp_r3 = CheckAIMessage();
     if (temp_r3 != NULL) {
         (*(f32 *)((s8 *)(temp_r3) + (0x28))) = farg0;
     }

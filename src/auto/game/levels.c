@@ -296,7 +296,7 @@ void fn_800BA434(void) {
 }
 
 s32 NuSpecialFind(s32, s32 *, s32 *, s32);
-s32 fn_8012724C(void *, s32 *, s32);
+s32 FindForceObject(void *, s32 *, s32);
 s32 fn_801276E4(void *, s32, s32);
 extern s32 lbl_801A1F2C[];
 extern s32 lbl_801A1F38[];
@@ -311,20 +311,20 @@ extern s32 lbl_803EB044[];
 extern s32 lbl_803EB048[];
 extern s32 lbl_803EB04C[];
 
-void fn_800BD7BC(void) {
+void RetakeFInit(void) {
     s32 temp_r3;
     s32 temp_r3_2;
     s32 temp_r3_3;
 
-    temp_r3 = fn_8012724C(lbl_80409410, lbl_801A1F2C, 0);
+    temp_r3 = FindForceObject(lbl_80409410, lbl_801A1F2C, 0);
     if (temp_r3 != 0) {
         lbl_803EB044[0] = fn_801276E4(lbl_80409410, temp_r3, 0);
     }
-    temp_r3_2 = fn_8012724C(lbl_80409410, lbl_801A1F38, 0);
+    temp_r3_2 = FindForceObject(lbl_80409410, lbl_801A1F38, 0);
     if (temp_r3_2 != 0) {
         lbl_803EB048[0] = fn_801276E4(lbl_80409410, temp_r3_2, 0);
     }
-    temp_r3_3 = fn_8012724C(lbl_80409410, lbl_801A1F44, 0);
+    temp_r3_3 = FindForceObject(lbl_80409410, lbl_801A1F44, 0);
     if (temp_r3_3 != 0) {
         lbl_803EB04C[0] = fn_801276E4(lbl_80409410, temp_r3_3, 0);
     }
@@ -335,8 +335,8 @@ void fn_800BD7BC(void) {
 }
 
 s32 NuSpecialFind(s32, s32 *, s32 *, s32);
-s32 fn_8008FA44(s32, s32 *, s32);
-s32 fn_8012724C(void *, s32 *, s32);
+s32 CheckAIMessage(s32, s32 *, s32);
+s32 FindForceObject(void *, s32 *, s32);
 extern s32 lbl_801A20AC[];
 extern s32 lbl_801A20B4[];
 extern s32 lbl_801A20C0[];
@@ -360,25 +360,25 @@ extern s32 lbl_80409240;
 extern s32 lbl_80409244;
 extern s32 lbl_8040B154;
 
-void fn_800BE118(void) {
-    lbl_80409240 = fn_8008FA44(lbl_80408F58, lbl_801A20AC, 0);
-    lbl_80409244 = fn_8008FA44(lbl_80408F58, lbl_801A20B4, 0);
+void MaulFInit(void) {
+    lbl_80409240 = CheckAIMessage(lbl_80408F58, lbl_801A20AC, 0);
+    lbl_80409244 = CheckAIMessage(lbl_80408F58, lbl_801A20B4, 0);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD24, lbl_801A20C0, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD30, lbl_801A20D0, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD3C, lbl_801A20E0, 1);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A20F0, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A2100, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A2110, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A20F0, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A2100, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A2110, 0);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD48, lbl_801A2120, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD54, lbl_801A2130, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD60, lbl_801A2140, 1);
     lbl_8040B154 = 0;
 }
 
-s32 fn_80116FEC(s32);
+s32 ConfigureAllCharacters(s32);
 
 void fn_800CC970(void) {
-    fn_80116FEC(1);
+    ConfigureAllCharacters(1);
 }
 
 
@@ -407,16 +407,16 @@ void fn_800CCDC0(void) {
     fn_8012676C(0x1B);
 }
 
-s32 fn_8008FA44(s32, s32 *, s32);
+s32 CheckAIMessage(s32, s32 *, s32);
 extern s32 lbl_801A1E5C[];
 extern s32 lbl_801A1E68[];
 extern s32 lbl_80408F58;
 extern s32 lbl_80409224;
 extern s32 lbl_80409228;
 
-void fn_800CD234(void) {
-    lbl_80409224 = fn_8008FA44(lbl_80408F58, lbl_801A1E5C, 0);
-    lbl_80409228 = fn_8008FA44(lbl_80408F58, lbl_801A1E68, 0);
+void RetakeGReset(void) {
+    lbl_80409224 = CheckAIMessage(lbl_80408F58, lbl_801A1E5C, 0);
+    lbl_80409228 = CheckAIMessage(lbl_80408F58, lbl_801A1E68, 0);
 }
 
 s32 fn_80127518(s32);
@@ -532,7 +532,7 @@ void fn_800CE38C(void) {
     }
 }
 
-s32 fn_8008FA44(s32, s32 *, s32);
+s32 CheckAIMessage(s32, s32 *, s32);
 extern s32 lbl_801A20B4[];
 extern s32 lbl_80408F58;
 extern s32 lbl_80409344;
@@ -540,7 +540,7 @@ extern s32 lbl_80409348;
 
 void fn_800CE8C0(void) {
     lbl_80409348 = 0;
-    lbl_80409344 = fn_8008FA44(lbl_80408F58, lbl_801A20B4, 0);
+    lbl_80409344 = CheckAIMessage(lbl_80408F58, lbl_801A20B4, 0);
 }
 
 extern f32 lbl_801A4F0C[];
@@ -560,13 +560,13 @@ void fn_800CEFE8(void) {
     }
 }
 
-s32 fn_8008FA44(s32, s32 *, s32);
+s32 CheckAIMessage(s32, s32 *, s32);
 extern s32 lbl_801A2E90[];
 extern s32 lbl_80408F58;
 extern s32 lbl_8040A6A8;
 
-void fn_800CF0C0(void) {
-    lbl_8040A6A8 = fn_8008FA44(lbl_80408F58, lbl_801A2E90, 0);
+void BonusAReset(void) {
+    lbl_8040A6A8 = CheckAIMessage(lbl_80408F58, lbl_801A2E90, 0);
 }
 
 s32 Shop_DrawSubMenuAndTopShelf();
@@ -577,13 +577,13 @@ void fn_800CF214(void) {
     fn_800E1D0C();
 }
 
-s32 fn_800A2F94(void *);
+s32 ResetPlayerContexts(void *);
 s32 fn_800ABA78();
 s32 fn_800AC020(s32, f32);
 s32 fn_801044F0(void *);
 extern f32 lbl_801A5258[];
 
-void fn_800D4FDC(void *arg0, f32 farg0) {
+void DeactivatePlayer(void *arg0, f32 farg0) {
     f32 temp_f31;
     void *temp_r9;
 
@@ -591,7 +591,7 @@ void fn_800D4FDC(void *arg0, f32 farg0) {
     if ((s32) (*(u8 *)((s8 *)(temp_r9) + (0x7DF))) != 0x1B) {
         temp_f31 = (*(f32 *)((s8 *)(temp_r9) + (0x6AC)));
         fn_800ABA78();
-        fn_800A2F94((*(void **)((s8 *)(arg0) + (0xEEC))));
+        ResetPlayerContexts((*(void **)((s8 *)(arg0) + (0xEEC))));
         (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x6AC))) = temp_f31;
         (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) = 0x1BU;
         (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = farg0;
@@ -619,7 +619,7 @@ extern f32 lbl_801A5540[];
 extern void *lbl_80409570;
 extern f32 lbl_8040B1E4;
 
-void fn_800D9A60(void) {
+void CancelHint(void) {
     f32 temp_f0;
     f32 temp_f12;
 
@@ -635,7 +635,7 @@ void fn_800D9A60(void) {
     }
 }
 
-s32 fn_80108E6C(s32, s32 *);
+s32 FindObstacle(s32, s32 *);
 extern s32 lbl_801A2080[];
 extern s32 lbl_801A2084[];
 extern s32 lbl_801A2088[];
@@ -648,21 +648,21 @@ extern s32 lbl_801A20A0[];
 extern s32 lbl_801A20A4[];
 extern s32 lbl_803EAE44[];
 
-void fn_800BDF60(void) {
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = fn_80108E6C(lbl_80409410, lbl_801A2080);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = fn_80108E6C(lbl_80409410, lbl_801A2084);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = fn_80108E6C(lbl_80409410, lbl_801A2088);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0xC))) = fn_80108E6C(lbl_80409410, lbl_801A208C);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x10))) = fn_80108E6C(lbl_80409410, lbl_801A2090);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x14))) = fn_80108E6C(lbl_80409410, lbl_801A2094);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x18))) = fn_80108E6C(lbl_80409410, lbl_801A2098);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x1C))) = fn_80108E6C(lbl_80409410, lbl_801A209C);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x20))) = fn_80108E6C(lbl_80409410, lbl_801A20A0);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x24))) = fn_80108E6C(lbl_80409410, lbl_801A20A4);
+void MaulBInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = FindObstacle(lbl_80409410, lbl_801A2080);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = FindObstacle(lbl_80409410, lbl_801A2084);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = FindObstacle(lbl_80409410, lbl_801A2088);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0xC))) = FindObstacle(lbl_80409410, lbl_801A208C);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x10))) = FindObstacle(lbl_80409410, lbl_801A2090);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x14))) = FindObstacle(lbl_80409410, lbl_801A2094);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x18))) = FindObstacle(lbl_80409410, lbl_801A2098);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x1C))) = FindObstacle(lbl_80409410, lbl_801A209C);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x20))) = FindObstacle(lbl_80409410, lbl_801A20A0);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0x24))) = FindObstacle(lbl_80409410, lbl_801A20A4);
 }
 
-s32 fn_800AC0C0(f32, f32);
-s32 fn_800C3B54(s32 *);
+s32 NewRumbleAllPlayers(f32, f32);
+s32 UpdatePulses(s32 *);
 void fn_800CC3FC();
 s32 fn_800CCA04(s32, s32 *);
 extern void *gPlayerPointers[];
@@ -673,28 +673,28 @@ extern f32 lbl_801A29D0[];
 extern s32 lbl_801D6648[];
 extern u8 lbl_8040B060[];
 
-void fn_800C3EEC(void) {
-    fn_800C3B54(lbl_801D6648);
+void GunshipAUpdate(void) {
+    UpdatePulses(lbl_801D6648);
     if (((s32) lbl_8040B060[0] == 0) && ((((void *) gPlayer1Pointer[0] != NULL) && ((s32) (*(u8 *)((s8 *)(gPlayer1Pointer[0]) + (0x601))) == 0) && ((*(f32 *)((s8 *)(gPlayer1Pointer[0]) + (0x62C))) > lbl_801A29C8[0])) || (((void *) gPlayerPointers[0] != NULL) && ((s32) (*(u8 *)((s8 *)(gPlayerPointers[0]) + (0x601))) == 0) && ((*(f32 *)((s8 *)(gPlayerPointers[0]) + (0x62C))) > lbl_801A29C8[0])))) {
         fn_800CCA04(lbl_80409410, lbl_801A29B8);
         fn_800CC3FC();
         lbl_8040B060[0] = 1;
-        fn_800AC0C0(lbl_801A29CC[0], lbl_801A29D0[0]);
+        NewRumbleAllPlayers(lbl_801A29CC[0], lbl_801A29D0[0]);
     }
 }
 
-s32 fn_80108E6C(s32, s32 *);
+s32 FindObstacle(s32, s32 *);
 extern s32 lbl_801A1C90[];
 extern s32 lbl_801A1C98[];
 extern s32 lbl_801A1CA0[];
 extern s32 lbl_801A1CA8[];
 extern s32 lbl_803EAE44[];
 
-void fn_800CCC98(void) {
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = fn_80108E6C(lbl_80409410, lbl_801A1C90);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = fn_80108E6C(lbl_80409410, lbl_801A1C98);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = fn_80108E6C(lbl_80409410, lbl_801A1CA0);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0xC))) = fn_80108E6C(lbl_80409410, lbl_801A1CA8);
+void GunganBInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = FindObstacle(lbl_80409410, lbl_801A1C90);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = FindObstacle(lbl_80409410, lbl_801A1C98);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = FindObstacle(lbl_80409410, lbl_801A1CA0);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0xC))) = FindObstacle(lbl_80409410, lbl_801A1CA8);
 }
 
 extern s32 lbl_801A1CBC[];
@@ -702,30 +702,30 @@ extern s32 lbl_801A1CC8[];
 extern s32 lbl_801A1CD4[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CCD4C(void) {
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A1CBC, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A1CC8, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A1CD4, 0);
+void GunganEInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A1CBC, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A1CC8, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A1CD4, 0);
 }
 
-s32 fn_80108E6C(s32, s32 *);
+s32 FindObstacle(s32, s32 *);
 extern s32 lbl_801A1D64[];
 extern s32 lbl_801A1D70[];
 extern s32 lbl_801A1D80[];
 extern s32 lbl_803EAE44[];
 
-void fn_800CD0DC(void) {
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = fn_80108E6C(lbl_80409410, lbl_801A1D64);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = fn_80108E6C(lbl_80409410, lbl_801A1D70);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = fn_80108E6C(lbl_80409410, lbl_801A1D80);
+void RescueEInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = FindObstacle(lbl_80409410, lbl_801A1D64);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = FindObstacle(lbl_80409410, lbl_801A1D70);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = FindObstacle(lbl_80409410, lbl_801A1D80);
 }
 
-s32 fn_80108E6C(s32, s32 *);
+s32 FindObstacle(s32, s32 *);
 extern s32 lbl_801A1E78[];
 extern s32 lbl_803EAE44[];
 
-void fn_800CD280(void) {
-    lbl_803EAE44[0] = fn_80108E6C(lbl_80409410, lbl_801A1E78);
+void RetakeGInit(void) {
+    lbl_803EAE44[0] = FindObstacle(lbl_80409410, lbl_801A1E78);
 }
 
 s32 fn_800D515C(s32, s32, s32);
@@ -749,7 +749,7 @@ extern s32 lbl_803EAEC4[];
 void fn_800CD898(void) {
     s32 temp_r3;
 
-    temp_r3 = fn_8012724C(lbl_80409410, lbl_801A2220, 0);
+    temp_r3 = FindForceObject(lbl_80409410, lbl_801A2220, 0);
     lbl_803EAEC4[0] = temp_r3;
     if (temp_r3 != 0) {
         lbl_802DA1E8[0] = fn_8001384C(temp_r3 + 4);
@@ -759,8 +759,8 @@ void fn_800CD898(void) {
 extern s32 lbl_801A2470[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CD928(void) {
-    lbl_803EAEC4[0] = fn_8012724C(lbl_80409410, lbl_801A2470, 0);
+void KaminoEInit(void) {
+    lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A2470, 0);
 }
 
 s32 fn_8014C728(s32);
@@ -769,15 +769,15 @@ void fn_800CDB98(void) {
     fn_8014C728(lbl_80409410);
 }
 
-s32 fn_8008FA44(s32, s32 *, s32);
+s32 CheckAIMessage(s32, s32 *, s32);
 s32 fn_8014CF8C(s32);
 extern s32 lbl_801A25B8[];
 extern s32 lbl_80408F58;
 extern s32 lbl_8040B19C;
 
-void fn_800CDBBC(void) {
+void FactoryBReset(void) {
     fn_8014CF8C(lbl_80409410);
-    lbl_8040B19C = fn_8008FA44(lbl_80408F58, lbl_801A25B8, 0);
+    lbl_8040B19C = CheckAIMessage(lbl_80408F58, lbl_801A25B8, 0);
 }
 
 extern s32 lbl_801A2628[];
@@ -787,11 +787,11 @@ extern s32 lbl_801A2640[];
 extern s32 lbl_803EAEC4[];
 extern s32 lbl_804092C4;
 
-void fn_800CDC84(void) {
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A2628, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A2630, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A2638, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = fn_8012724C(lbl_80409410, lbl_801A2640, 0);
+void FactoryGInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A2628, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A2630, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A2638, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = FindForceObject(lbl_80409410, lbl_801A2640, 0);
     lbl_804092C4 = 0;
 }
 
@@ -799,9 +799,9 @@ extern s32 lbl_801A2B7C[];
 extern s32 lbl_801A2B84[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CE490(void) {
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A2B7C, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A2B84, 0);
+void CruiserFInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A2B7C, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A2B84, 0);
 }
 
 extern s32 lbl_801A1BA8[];
@@ -809,18 +809,18 @@ extern s32 lbl_803EAEC4[];
 extern s32 lbl_8040B154;
 
 void fn_800CE7F4(void) {
-    lbl_803EAEC4[0] = fn_8012724C(lbl_80409410, lbl_801A1BA8, 0);
+    lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A1BA8, 0);
     lbl_8040B154 = 1;
 }
 
 extern s32 lbl_801A2BA8[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CE948(void) {
-    lbl_803EAEC4[0] = fn_8012724C(lbl_80409410, lbl_801A2BA8, 0);
+void KashyyykAInit(void) {
+    lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A2BA8, 0);
 }
 
-s32 fn_8008FA44(s32, s32 *, s32);
+s32 CheckAIMessage(s32, s32 *, s32);
 s32 fn_8011EBF4(s32, s32);
 extern s32 lbl_801A2BB8[];
 extern s32 lbl_801A2BC8[];
@@ -830,16 +830,16 @@ extern s32 lbl_80409350;
 extern s32 lbl_80409354;
 
 void fn_800CE980(void) {
-    lbl_8040934C = fn_8008FA44(lbl_80408F58, lbl_801A2BB8, 0);
-    lbl_80409350 = fn_8008FA44(lbl_80408F58, lbl_801A2BC8, 0);
+    lbl_8040934C = CheckAIMessage(lbl_80408F58, lbl_801A2BB8, 0);
+    lbl_80409350 = CheckAIMessage(lbl_80408F58, lbl_801A2BC8, 0);
     lbl_80409354 = fn_8011EBF4(lbl_80409410, 0x50);
 }
 
 extern s32 lbl_801A2C08[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CEA9C(void) {
-    lbl_803EAEC4[0] = fn_8012724C(lbl_80409410, lbl_801A2C08, 0);
+void KashyyykCInit(void) {
+    lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A2C08, 0);
 }
 
 extern s32 lbl_801A2CE0[];
@@ -849,19 +849,19 @@ extern s32 lbl_801A2D0C[];
 extern s32 lbl_801A2D1C[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CEC90(void) {
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A2CE0, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A2CEC, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A2CFC, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = fn_8012724C(lbl_80409410, lbl_801A2D0C, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = fn_8012724C(lbl_80409410, lbl_801A2D1C, 0);
+void TempleCInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A2CE0, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A2CEC, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A2CFC, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = FindForceObject(lbl_80409410, lbl_801A2D0C, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = FindForceObject(lbl_80409410, lbl_801A2D1C, 0);
 }
 
 extern s32 lbl_801A2D30[];
 extern s32 lbl_803EAEC4[];
 
-void fn_800CEDC8(void) {
-    lbl_803EAEC4[0] = fn_8012724C(lbl_80409410, lbl_801A2D30, 0);
+void TempleBInit(void) {
+    lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A2D30, 0);
 }
 
 extern f32 lbl_801A4F14[];
@@ -904,7 +904,7 @@ void fn_800D97F8(void)
 }
 
 s32 NuSpecialFind(s32, s32 *, s32 *, s32);
-s32 fn_8012724C(void *, s32 *, s32);
+s32 FindForceObject(void *, s32 *, s32);
 extern s32 lbl_801A2EA4[];
 extern s32 lbl_801A2EA8[];
 extern s32 lbl_801A2EAC[];
@@ -931,29 +931,29 @@ extern s32 lbl_803ED350[];
 extern s8 lbl_8040936C;
 extern s8 lbl_8040A6AC;
 
-void fn_800C6AEC(void)
+void BonusBInit(void)
 {
   s32 temp_r3;
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0)) = fn_8012724C(lbl_80409410, lbl_801A2EA4, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 4)) = fn_8012724C(lbl_80409410, lbl_801A2EA8, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 8)) = fn_8012724C(lbl_80409410, lbl_801A2EAC, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0xC)) = fn_8012724C(lbl_80409410, lbl_801A2EB0, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x10)) = fn_8012724C(lbl_80409410, lbl_801A2EB4, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x14)) = fn_8012724C(lbl_80409410, lbl_801A2EB8, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x18)) = fn_8012724C(lbl_80409410, lbl_801A2EBC, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x1C)) = fn_8012724C(lbl_80409410, lbl_801A2EC0, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x20)) = fn_8012724C(lbl_80409410, lbl_801A2EC4, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x24)) = fn_8012724C(lbl_80409410, lbl_801A2EC8, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x28)) = fn_8012724C(lbl_80409410, lbl_801A2ECC, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x2C)) = fn_8012724C(lbl_80409410, lbl_801A2ED0, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x30)) = fn_8012724C(lbl_80409410, lbl_801A2ED4, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x34)) = fn_8012724C(lbl_80409410, lbl_801A2ED8, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x38)) = fn_8012724C(lbl_80409410, lbl_801A2EDC, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x3C)) = fn_8012724C(lbl_80409410, lbl_801A2EE0, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x40)) = fn_8012724C(lbl_80409410, lbl_801A2EE4, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x44)) = fn_8012724C(lbl_80409410, lbl_801A2EE8, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x48)) = fn_8012724C(lbl_80409410, lbl_801A2EEC, 0);
-  temp_r3 = fn_8012724C(lbl_80409410, lbl_801A2EF0, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0)) = FindForceObject(lbl_80409410, lbl_801A2EA4, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 4)) = FindForceObject(lbl_80409410, lbl_801A2EA8, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 8)) = FindForceObject(lbl_80409410, lbl_801A2EAC, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0xC)) = FindForceObject(lbl_80409410, lbl_801A2EB0, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x10)) = FindForceObject(lbl_80409410, lbl_801A2EB4, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x14)) = FindForceObject(lbl_80409410, lbl_801A2EB8, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x18)) = FindForceObject(lbl_80409410, lbl_801A2EBC, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x1C)) = FindForceObject(lbl_80409410, lbl_801A2EC0, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x20)) = FindForceObject(lbl_80409410, lbl_801A2EC4, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x24)) = FindForceObject(lbl_80409410, lbl_801A2EC8, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x28)) = FindForceObject(lbl_80409410, lbl_801A2ECC, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x2C)) = FindForceObject(lbl_80409410, lbl_801A2ED0, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x30)) = FindForceObject(lbl_80409410, lbl_801A2ED4, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x34)) = FindForceObject(lbl_80409410, lbl_801A2ED8, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x38)) = FindForceObject(lbl_80409410, lbl_801A2EDC, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x3C)) = FindForceObject(lbl_80409410, lbl_801A2EE0, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x40)) = FindForceObject(lbl_80409410, lbl_801A2EE4, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x44)) = FindForceObject(lbl_80409410, lbl_801A2EE8, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x48)) = FindForceObject(lbl_80409410, lbl_801A2EEC, 0);
+  temp_r3 = FindForceObject(lbl_80409410, lbl_801A2EF0, 0);
   lbl_8040936C = (lbl_8040A6AC = 0);
   *((s32 *) (((s8 *) lbl_803EAEC4) + 0x4C)) = temp_r3;
   NuSpecialFind(*((s32 *) (((s8 *) lbl_80409410) + 0x1C0)), lbl_803ED350, lbl_801A2EF4, 1);
@@ -974,22 +974,22 @@ extern s32 lbl_801A1B88[];
 extern s32 lbl_801A1B98[];
 extern u8 lbl_803EACC9[];
 
-s32 fn_800BB950(void) {
+s32 NegotiationsAInit(void) {
     s32 var_r3;
 
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A1AEC, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A1AF8, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A1B08, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = fn_8012724C(lbl_80409410, lbl_801A1B18, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = fn_8012724C(lbl_80409410, lbl_801A1B28, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x14))) = fn_8012724C(lbl_80409410, lbl_801A1B38, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x18))) = fn_8012724C(lbl_80409410, lbl_801A1B48, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x1C))) = fn_8012724C(lbl_80409410, lbl_801A1B58, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x20))) = fn_8012724C(lbl_80409410, lbl_801A1B68, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x24))) = fn_8012724C(lbl_80409410, lbl_801A1B78, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x28))) = fn_8012724C(lbl_80409410, lbl_801A1B88, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x2C))) = fn_8012724C(lbl_80409410, lbl_801A1B98, 0);
-    var_r3 = fn_8012724C(lbl_80409410, lbl_801A1BA8, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A1AEC, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A1AF8, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A1B08, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = FindForceObject(lbl_80409410, lbl_801A1B18, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = FindForceObject(lbl_80409410, lbl_801A1B28, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x14))) = FindForceObject(lbl_80409410, lbl_801A1B38, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x18))) = FindForceObject(lbl_80409410, lbl_801A1B48, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x1C))) = FindForceObject(lbl_80409410, lbl_801A1B58, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x20))) = FindForceObject(lbl_80409410, lbl_801A1B68, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x24))) = FindForceObject(lbl_80409410, lbl_801A1B78, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x28))) = FindForceObject(lbl_80409410, lbl_801A1B88, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x2C))) = FindForceObject(lbl_80409410, lbl_801A1B98, 0);
+    var_r3 = FindForceObject(lbl_80409410, lbl_801A1BA8, 0);
     (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x30))) = var_r3;
     lbl_8040B154 = 1;
     if ((s32) lbl_803EACC9[0] != 0) {
@@ -1032,7 +1032,7 @@ extern s32 lbl_803EB074[];
 extern s32 lbl_803EB078[];
 extern s32 lbl_803EB07C[];
 
-void fn_800BCA74(void) {
+void RetakeBInit(void) {
     s32 temp_r3;
     s32 temp_r3_10;
     s32 temp_r3_11;
@@ -1049,65 +1049,65 @@ void fn_800BCA74(void) {
     s32 temp_r3_8;
     s32 temp_r3_9;
 
-    *lbl_803EAEC4 = fn_8012724C(lbl_80409410, lbl_801A1D90, 0);
+    *lbl_803EAEC4 = FindForceObject(lbl_80409410, lbl_801A1D90, 0);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB038, lbl_801A1D98, 1);
-    temp_r3 = fn_8012724C(lbl_80409410, lbl_801A1DA4, 0);
+    temp_r3 = FindForceObject(lbl_80409410, lbl_801A1DA4, 0);
     if (temp_r3 != 0) {
         *lbl_803EB044 = fn_801276E4(lbl_80409410, temp_r3, 0);
     }
-    temp_r3_2 = fn_8012724C(lbl_80409410, lbl_801A1DB0, 0);
+    temp_r3_2 = FindForceObject(lbl_80409410, lbl_801A1DB0, 0);
     if (temp_r3_2 != 0) {
         *lbl_803EB048 = fn_801276E4(lbl_80409410, temp_r3_2, 0);
     }
-    temp_r3_3 = fn_8012724C(lbl_80409410, lbl_801A1DBC, 0);
+    temp_r3_3 = FindForceObject(lbl_80409410, lbl_801A1DBC, 0);
     if (temp_r3_3 != 0) {
         *lbl_803EB04C = fn_801276E4(lbl_80409410, temp_r3_3, 0);
     }
-    temp_r3_4 = fn_8012724C(lbl_80409410, lbl_801A1DC8, 0);
+    temp_r3_4 = FindForceObject(lbl_80409410, lbl_801A1DC8, 0);
     if (temp_r3_4 != 0) {
         lbl_803EB050[0] = fn_801276E4(lbl_80409410, temp_r3_4, 0);
     }
-    temp_r3_5 = fn_8012724C(lbl_80409410, lbl_801A1DD4, 0);
+    temp_r3_5 = FindForceObject(lbl_80409410, lbl_801A1DD4, 0);
     if (temp_r3_5 != 0) {
         lbl_803EB054[0] = fn_801276E4(lbl_80409410, temp_r3_5, 0);
     }
-    temp_r3_6 = fn_8012724C(lbl_80409410, lbl_801A1DE0, 0);
+    temp_r3_6 = FindForceObject(lbl_80409410, lbl_801A1DE0, 0);
     if (temp_r3_6 != 0) {
         lbl_803EB058[0] = fn_801276E4(lbl_80409410, temp_r3_6, 0);
     }
-    temp_r3_7 = fn_8012724C(lbl_80409410, lbl_801A1DEC, 0);
+    temp_r3_7 = FindForceObject(lbl_80409410, lbl_801A1DEC, 0);
     if (temp_r3_7 != 0) {
         lbl_803EB05C[0] = fn_801276E4(lbl_80409410, temp_r3_7, 0);
     }
-    temp_r3_8 = fn_8012724C(lbl_80409410, lbl_801A1DF8, 0);
+    temp_r3_8 = FindForceObject(lbl_80409410, lbl_801A1DF8, 0);
     if (temp_r3_8 != 0) {
         lbl_803EB060[0] = fn_801276E4(lbl_80409410, temp_r3_8, 0);
     }
-    temp_r3_9 = fn_8012724C(lbl_80409410, lbl_801A1E04, 0);
+    temp_r3_9 = FindForceObject(lbl_80409410, lbl_801A1E04, 0);
     if (temp_r3_9 != 0) {
         lbl_803EB064[0] = fn_801276E4(lbl_80409410, temp_r3_9, 0);
     }
-    temp_r3_10 = fn_8012724C(lbl_80409410, lbl_801A1E10, 0);
+    temp_r3_10 = FindForceObject(lbl_80409410, lbl_801A1E10, 0);
     if (temp_r3_10 != 0) {
         lbl_803EB068[0] = fn_801276E4(lbl_80409410, temp_r3_10, 0);
     }
-    temp_r3_11 = fn_8012724C(lbl_80409410, lbl_801A1E1C, 0);
+    temp_r3_11 = FindForceObject(lbl_80409410, lbl_801A1E1C, 0);
     if (temp_r3_11 != 0) {
         lbl_803EB06C[0] = fn_801276E4(lbl_80409410, temp_r3_11, 0);
     }
-    temp_r3_12 = fn_8012724C(lbl_80409410, lbl_801A1E28, 0);
+    temp_r3_12 = FindForceObject(lbl_80409410, lbl_801A1E28, 0);
     if (temp_r3_12 != 0) {
         lbl_803EB070[0] = fn_801276E4(lbl_80409410, temp_r3_12, 0);
     }
-    temp_r3_13 = fn_8012724C(lbl_80409410, lbl_801A1E34, 0);
+    temp_r3_13 = FindForceObject(lbl_80409410, lbl_801A1E34, 0);
     if (temp_r3_13 != 0) {
         lbl_803EB074[0] = fn_801276E4(lbl_80409410, temp_r3_13, 0);
     }
-    temp_r3_14 = fn_8012724C(lbl_80409410, lbl_801A1E40, 0);
+    temp_r3_14 = FindForceObject(lbl_80409410, lbl_801A1E40, 0);
     if (temp_r3_14 != 0) {
         lbl_803EB078[0] = fn_801276E4(lbl_80409410, temp_r3_14, 0);
     }
-    temp_r3_15 = fn_8012724C(lbl_80409410, lbl_801A1E4C, 0);
+    temp_r3_15 = FindForceObject(lbl_80409410, lbl_801A1E4C, 0);
     if (temp_r3_15 != 0) {
         lbl_803EB07C[0] = fn_801276E4(lbl_80409410, temp_r3_15, 0);
     }
@@ -1165,7 +1165,7 @@ extern s32 lbl_803EB174[];
 extern s32 lbl_803EB180[];
 extern s8 lbl_8040A68C;
 
-void fn_800C11AC(void) {
+void FactoryFInit(void) {
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB12C, lbl_801A25D4, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB138, lbl_801A25DC, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB144, lbl_801A25E4, 1);
@@ -1623,7 +1623,7 @@ extern s32 lbl_802DA774[];
 extern s32 lbl_802DA780[];
 extern s32 lbl_802DA78C[];
 
-void fn_800CDDC4(void) {
+void FactoryDInit(void) {
     NuSpecialFind(lbl_80409410->unk1C0, lbl_802DA750, lbl_801A269C, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_802DA75C, lbl_801A26A4, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_802DA768, lbl_801A26AC, 1);
@@ -1718,7 +1718,7 @@ extern s32 lbl_801A2B00[];
 extern s32 lbl_801A2B10[];
 extern u8 lbl_803EAD09[];
 
-void fn_800CE2F8(void) {
+void CruiserAInit(void) {
     *lbl_8040B060 = 0;
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EAD24, lbl_801A2B00, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EAD30, lbl_801A2B10, 1);
@@ -1925,22 +1925,21 @@ s32 fn_80105500(struct lbl_80409410_s *, s8, s32, s32);
 extern s32 lbl_801A307C[];
 extern s16 lbl_803ED3AC[];
 
-void fn_800CF1BC(void) {
+void MapEReset(void) {
     s32 temp_r3;
 
     lbl_803ED3AC[0] = -1;
-    temp_r3 = fn_80108E6C((s32) lbl_80409410, lbl_801A307C);
+    temp_r3 = FindObstacle((s32) lbl_80409410, lbl_801A307C);
     if (temp_r3 != 0) {
         fn_80105500(lbl_80409410, (s8) (*(u8 *)((s8 *)(temp_r3) + (0x71))), 0, 0);
     }
 }
 
 void fn_8000CBF4(void *, void *, void *, void *);
-f32 fn_8000CCA4(void *, void *, s32);
 extern f32 lbl_801A4C28[];
 extern const f32 lbl_801A4C2C[];
 
-void fn_800C9490(void) {
+void InitDoors(void) {
     struct lbl_80409410_240_s *a;
     s32 i;
     f32 d;
@@ -1954,16 +1953,16 @@ void fn_800C9490(void) {
             NuVecAdd(&a->centre, &a->centre, (struct nuvec_s *)(a->spl->pts + a->spl->ptsize * 2));
             NuVecAdd(&a->centre, &a->centre, (struct nuvec_s *)(a->spl->pts + a->spl->ptsize * 3));
             NuVecScale(&a->centre, &a->centre, lbl_801A4C28[0]);
-            a->radius = fn_8000CCA4(&a->centre, a->spl->pts, 0);
-            d = fn_8000CCA4(&a->centre, a->spl->pts + a->spl->ptsize, 0);
+            a->radius = NuVecDist(&a->centre, a->spl->pts, 0);
+            d = NuVecDist(&a->centre, a->spl->pts + a->spl->ptsize, 0);
             if (d > a->radius) {
                 a->radius = d;
             }
-            d = fn_8000CCA4(&a->centre, a->spl->pts + a->spl->ptsize * 2, 0);
+            d = NuVecDist(&a->centre, a->spl->pts + a->spl->ptsize * 2, 0);
             if (d > a->radius) {
                 a->radius = d;
             }
-            d = fn_8000CCA4(&a->centre, a->spl->pts + a->spl->ptsize * 3, 0);
+            d = NuVecDist(&a->centre, a->spl->pts + a->spl->ptsize * 3, 0);
             if (d > a->radius) {
                 a->radius = d;
             }
@@ -2075,7 +2074,7 @@ extern s32 lbl_801A21FC[];
 extern s32 lbl_803EAEC4[];
 extern s8 lbl_8040A683;
 
-void fn_800BE7E0(void)
+void MaulEInit(void)
 {
   int new_var2;
   s32 var_ctr;
@@ -2091,15 +2090,15 @@ void fn_800BE7E0(void)
     var_ctr -= new_var2;
   }
   while (var_ctr != 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0)) = fn_8012724C(lbl_80409410, lbl_801A21A8, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 4)) = fn_8012724C(lbl_80409410, lbl_801A21B4, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 8)) = fn_8012724C(lbl_80409410, lbl_801A21C0, 0);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0xC)) = fn_8012724C(lbl_80409410, lbl_801A21CC, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0)) = FindForceObject(lbl_80409410, lbl_801A21A8, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 4)) = FindForceObject(lbl_80409410, lbl_801A21B4, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 8)) = FindForceObject(lbl_80409410, lbl_801A21C0, 0);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0xC)) = FindForceObject(lbl_80409410, lbl_801A21CC, 0);
   new_var = 0;
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x10)) = fn_8012724C(lbl_80409410, lbl_801A21D8, new_var);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x14)) = fn_8012724C(lbl_80409410, lbl_801A21E4, new_var);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x18)) = fn_8012724C(lbl_80409410, lbl_801A21F0, new_var);
-  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x1C)) = fn_8012724C(lbl_80409410, lbl_801A21FC, new_var);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x10)) = FindForceObject(lbl_80409410, lbl_801A21D8, new_var);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x14)) = FindForceObject(lbl_80409410, lbl_801A21E4, new_var);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x18)) = FindForceObject(lbl_80409410, lbl_801A21F0, new_var);
+  *((s32 *) (((s8 *) lbl_803EAEC4) + 0x1C)) = FindForceObject(lbl_80409410, lbl_801A21FC, new_var);
 }
 
 extern s32 lbl_8038E7A0[];
@@ -2488,7 +2487,7 @@ block_16:
 extern f32 lbl_8019FE90[];
 extern f32 lbl_8019FE94[];
 extern f32 lbl_8019FE98[];
-s32 fn_800ABA9C(void *arg0, s32 arg1)
+s32 SetPlayerOnSurface(void *arg0, s32 arg1)
 {
   f32 temp_f0;
   f32 temp_f0_2;
@@ -2533,7 +2532,7 @@ extern const f32 lbl_801A5268[];
 extern const f32 lbl_801A526C[];
 extern const f32 lbl_801A5270[];
 
-s32 fn_800D51E4(void *arg0, f32 *arg1) {
+s32 GameObjectNearFloor(void *arg0, f32 *arg1) {
     f32 temp_f10;
     f32 temp_f13;
     f32 var_f11;
@@ -2584,12 +2583,12 @@ void Menu_Unknown11_HandleSelection(void *arg0) {
     }
 }
 
-void *fn_8008F7A0(void *, void *);
+void *AISysFindArea(void *, void *);
 extern s32 lbl_801A1CB0[];
 extern s32 lbl_803EB004[];
 
-void fn_800CCD14(void) {
-    lbl_803EB004[0] = fn_8008F7A0((*(s32 *)((s8 *)(lbl_80409410) + (0x2E8))), lbl_801A1CB0);
+void GunganBReset(void) {
+    lbl_803EB004[0] = AISysFindArea((*(s32 *)((s8 *)(lbl_80409410) + (0x2E8))), lbl_801A1CB0);
 }
 
 s32 fn_801261FC(void *, s32);
@@ -2631,7 +2630,7 @@ extern const f32 lbl_801A0054[];
 extern const f32 lbl_801A0058[];
 
 typedef struct { char pad[0x130]; f32 f130; f32 f134; char pad2[0x176-0x138]; s8 b176; s8 b177; } AFFD8Obj;
-void fn_800AFFD8(AFFD8Obj *o, s8 arg1, s8 arg2, f32 farg0) {
+void JudderGameCamera(AFFD8Obj *o, s8 arg1, s8 arg2, f32 farg0) {
     f32 temp_f1;
     f32 d;
     f32 v;
@@ -2639,7 +2638,7 @@ void fn_800AFFD8(AFFD8Obj *o, s8 arg1, s8 arg2, f32 farg0) {
     temp_f1 = fn_8000ED40(farg0);
     if (temp_f1 > o->f130) {
         if (arg2 != 0) {
-            d = fn_8000CCA4((s8 *)o + 0xDC, (void *)arg2, 0);
+            d = NuVecDist((s8 *)o + 0xDC, (void *)arg2, 0);
             if (d < lbl_801A0054[0]) {
                 v = temp_f1 * ((lbl_801A0054[0] - d) / lbl_801A0054[0]);
                 o->f130 = o->f134 = v;
@@ -2784,7 +2783,7 @@ void fn_800C12D0(void) {
     }
 }
 
-s32 fn_8012724C(void *, s32 *, s32);
+s32 FindForceObject(void *, s32 *, s32);
 extern s32 lbl_801A23CC[];
 extern s32 lbl_801A23E0[];
 extern s32 lbl_801A23F4[];
@@ -2799,17 +2798,17 @@ extern s32 lbl_803EAEC4[];
 extern s32 lbl_8040B15C;
 extern s32 lbl_8040B160;
 
-void fn_800BFDFC(void) {
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A23CC, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A23E0, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A23F4, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = fn_8012724C(lbl_80409410, lbl_801A2408, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = fn_8012724C(lbl_80409410, lbl_801A241C, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x14))) = fn_8012724C(lbl_80409410, lbl_801A2430, 0);
+void KaminoDInit(void) {
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A23CC, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A23E0, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A23F4, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = FindForceObject(lbl_80409410, lbl_801A2408, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = FindForceObject(lbl_80409410, lbl_801A241C, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x14))) = FindForceObject(lbl_80409410, lbl_801A2430, 0);
     lbl_8040B15C = 0;
-    lbl_8040B160 = fn_8008F7A0(((s32 *)lbl_80409410)[0xBA], lbl_801A2444);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x18))) = fn_8012724C(lbl_80409410, lbl_801A244C, 0);
-    lbl_803EAE44[0] = fn_80108E6C(lbl_80409410, lbl_801A2460);
+    lbl_8040B160 = AISysFindArea(((s32 *)lbl_80409410)[0xBA], lbl_801A2444);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x18))) = FindForceObject(lbl_80409410, lbl_801A244C, 0);
+    lbl_803EAE44[0] = FindObstacle(lbl_80409410, lbl_801A2460);
 }
 
 f32 NuAngDiff(s32);
@@ -2860,7 +2859,7 @@ s32 NuSpecialFind(s32, s32 *, s32 *, s32);
 s32 fn_800130F4(s32 *);
 void fn_80013200(s32 *, s32);
 s32 fn_80108A34(s32, s32);
-s32 fn_8012724C(void *, s32 *, s32);
+s32 FindForceObject(void *, s32 *, s32);
 extern s32 lbl_801A29D4[];
 extern s32 lbl_801A29DC[];
 extern s32 lbl_801A29E4[];
@@ -2896,33 +2895,33 @@ typedef struct {
     s16 flag;
 } LevelSpecialEntry;
 
-void fn_800C3FB8(void) {
+void GunshipBInit(void) {
     s32 i;
     LevelSpecialEntry *tbl;
 
-    lbl_803EAE44[0] = fn_80108E6C(lbl_80409410, lbl_801A29D4);
+    lbl_803EAE44[0] = FindObstacle(lbl_80409410, lbl_801A29D4);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAE14, lbl_801A29DC, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAE20, lbl_801A29E4, 1);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = fn_8012724C(lbl_80409410, lbl_801A29EC, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = fn_8012724C(lbl_80409410, lbl_801A29F8, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = fn_8012724C(lbl_80409410, lbl_801A2A04, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = fn_8012724C(lbl_80409410, lbl_801A2A10, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = fn_8012724C(lbl_80409410, lbl_801A2A1C, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x14))) = fn_8012724C(lbl_80409410, lbl_801A2A04, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x18))) = fn_8012724C(lbl_80409410, lbl_801A2A28, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x1C))) = fn_8012724C(lbl_80409410, lbl_801A2A34, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x20))) = fn_8012724C(lbl_80409410, lbl_801A2A40, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x24))) = fn_8012724C(lbl_80409410, lbl_801A2A4C, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x28))) = fn_8012724C(lbl_80409410, lbl_801A2A58, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x2C))) = fn_8012724C(lbl_80409410, lbl_801A2A64, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x50))) = fn_8012724C(lbl_80409410, lbl_801A2A70, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x54))) = fn_8012724C(lbl_80409410, lbl_801A2A78, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x58))) = fn_8012724C(lbl_80409410, lbl_801A2A80, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x5C))) = fn_8012724C(lbl_80409410, lbl_801A2A88, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x60))) = fn_8012724C(lbl_80409410, lbl_801A2A90, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x64))) = fn_8012724C(lbl_80409410, lbl_801A2A98, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x68))) = fn_8012724C(lbl_80409410, lbl_801A2AA0, 0);
-    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x6C))) = fn_8012724C(lbl_80409410, lbl_801A2AA8, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0))) = FindForceObject(lbl_80409410, lbl_801A29EC, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (4))) = FindForceObject(lbl_80409410, lbl_801A29F8, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (8))) = FindForceObject(lbl_80409410, lbl_801A2A04, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0xC))) = FindForceObject(lbl_80409410, lbl_801A2A10, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x10))) = FindForceObject(lbl_80409410, lbl_801A2A1C, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x14))) = FindForceObject(lbl_80409410, lbl_801A2A04, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x18))) = FindForceObject(lbl_80409410, lbl_801A2A28, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x1C))) = FindForceObject(lbl_80409410, lbl_801A2A34, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x20))) = FindForceObject(lbl_80409410, lbl_801A2A40, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x24))) = FindForceObject(lbl_80409410, lbl_801A2A4C, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x28))) = FindForceObject(lbl_80409410, lbl_801A2A58, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x2C))) = FindForceObject(lbl_80409410, lbl_801A2A64, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x50))) = FindForceObject(lbl_80409410, lbl_801A2A70, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x54))) = FindForceObject(lbl_80409410, lbl_801A2A78, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x58))) = FindForceObject(lbl_80409410, lbl_801A2A80, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x5C))) = FindForceObject(lbl_80409410, lbl_801A2A88, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x60))) = FindForceObject(lbl_80409410, lbl_801A2A90, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x64))) = FindForceObject(lbl_80409410, lbl_801A2A98, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x68))) = FindForceObject(lbl_80409410, lbl_801A2AA0, 0);
+    (*(s32 *)((s8 *)(lbl_803EAEC4) + (0x6C))) = FindForceObject(lbl_80409410, lbl_801A2AA8, 0);
     tbl = (LevelSpecialEntry *)lbl_801D6774;
     if (tbl[0].name != 0) {
         i = 0;
@@ -3168,9 +3167,9 @@ void fn_800BD8E8(void) {
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB0FC, lbl_801A1F98, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB108, lbl_801A1FA8, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EB114, lbl_801A1FB4, 1);
-    lbl_803EAED0[0] = fn_8012724C(lbl_80409410, lbl_801A1FC0, 0);
-    lbl_80409238 = fn_8008FA44(lbl_80408F58, lbl_801A1FD0, 0);
-    lbl_8040923C = fn_8008FA44(lbl_80408F58, lbl_801A1FE0, 0);
+    lbl_803EAED0[0] = FindForceObject(lbl_80409410, lbl_801A1FC0, 0);
+    lbl_80409238 = CheckAIMessage(lbl_80408F58, lbl_801A1FD0, 0);
+    lbl_8040923C = CheckAIMessage(lbl_80408F58, lbl_801A1FE0, 0);
 }
 
 s32 fn_8000E250(s32, s32);
@@ -3202,7 +3201,7 @@ void fn_800D0374(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
     }
 }
 
-s32 fn_800ABFCC(s32, f32);
+s32 NewRumble(s32, f32);
 s32 fn_800AC020(s32, f32);
 s32 fn_801261FC(void *, s32);
 extern s32 gPlayer1Pointer[];
@@ -3211,7 +3210,7 @@ extern f32 lbl_801A19A4[];
 extern void *lbl_80409430;
 extern s32 lbl_8040B058;
 
-void fn_800B96A8(void *arg0, s32 arg1) {
+void PartKill(void *arg0, s32 arg1) {
     s32 i;
     s8 *o;
     u8 f;
@@ -3228,20 +3227,19 @@ void fn_800B96A8(void *arg0, s32 arg1) {
         if ((s8)f != -1) {
             if ((f & 1) && (void *)gPlayer1Pointer[0] != NULL) {
                 fn_800AC020(**(s32 **)(*(s8 **)(gPlayer1Pointer[0] + 0xEEC) + 0x61C), lbl_801A19A0[0]);
-                fn_800ABFCC(**(s32 **)(*(s8 **)(gPlayer1Pointer[0] + 0xEEC) + 0x61C), lbl_801A19A4[0]);
+                NewRumble(**(s32 **)(*(s8 **)(gPlayer1Pointer[0] + 0xEEC) + 0x61C), lbl_801A19A4[0]);
             }
             if ((*(u8 *)((s8 *)arg0 + 0x1EA) & 2) && (pl = gPlayer1Pointer, (void *)pl[1] != NULL)) {
                 fn_800AC020(**(s32 **)(*(s8 **)(pl[1] + 0xEEC) + 0x61C), lbl_801A19A0[0]);
-                fn_800ABFCC(**(s32 **)(*(s8 **)(pl[1] + 0xEEC) + 0x61C), lbl_801A19A4[0]);
+                NewRumble(**(s32 **)(*(s8 **)(pl[1] + 0xEEC) + 0x61C), lbl_801A19A4[0]);
             }
         }
     }
 }
 
 f32 NuASin(s32);
-s32 fn_8000CB74(struct nuvec_s *, struct nuvec_s *);
 f32 fn_8000CD08(void *, s32, struct nuvec_s *);
-extern s32 fn_800B97DC[];
+extern s32 PartKill_ForceThrow[];
 extern s32 fn_800C5640[];
 extern const f32 lbl_801A19D4[];
 extern const f32 lbl_801A19D8[];
@@ -3262,10 +3260,10 @@ void *fn_800B9BE0(s32 arg0, struct nuvec_s *arg1, f32 farg0) {
     o = lbl_8040AEFC;
     best = farg0;
     for (i = 0; i < lbl_80408888; i++, o += 0x1F4) {
-        if (*(s32 *)(o + 0x128) < 0 && (*(s32 *)(o + 0x198) == (s32)fn_800C5640 || *(s32 *)(o + 0x1A8) == (s32)fn_800B97DC)) {
+        if (*(s32 *)(o + 0x128) < 0 && (*(s32 *)(o + 0x198) == (s32)fn_800C5640 || *(s32 *)(o + 0x1A8) == (s32)PartKill_ForceThrow)) {
             d = fn_8000CD08(o + 0x30, arg0, &sp8);
             if (d < farg0) {
-                fn_8000CB74(&sp8, &sp8);
+                NuVecNorm(&sp8, &sp8);
                 dot = NuVecDot(&sp8, arg1);
                 if (d < lbl_801A19D4[0]) {
                     ang = 0x38E3;
@@ -3284,7 +3282,7 @@ void *fn_800B9BE0(s32 arg0, struct nuvec_s *arg1, f32 farg0) {
     return found;
 }
 
-s32 fn_80106A30(s32, s32, s32, s32, f32);
+s32 OpenDoorObstacle(s32, s32, s32, s32, f32);
 s32 fn_8013F0AC(s32);
 extern f32 lbl_801A20A8[];
 extern u8 lbl_803EAF8E[];
@@ -3303,7 +3301,7 @@ void fn_800BE054(void) {
         if (all) {
             for (i = 0; i < 10; i++) {
                 if (lbl_803EAE44[i] != 0) {
-                    fn_80106A30(0, lbl_803EAE44[i], 1, 1, lbl_801A20A8[0]);
+                    OpenDoorObstacle(0, lbl_803EAE44[i], 1, 1, lbl_801A20A8[0]);
                 }
             }
             lbl_803EAF8E[0] = 1;
@@ -3316,7 +3314,7 @@ s32 NuSplineFind(s32, s32);
 s32 NuStrCat(s32 *, s32 *);
 s32 NuStrCpy(s32 *, s32);
 s32 Shop_Init();
-s32 fn_800C6FB8();
+s32 InitMapAI();
 s32 fn_800E1564();
 s32 fn_800E1F88();
 extern s32 lbl_801A3000[];
@@ -3335,7 +3333,7 @@ extern f32 lbl_801A3078[];
 extern s32 lbl_801DC074[];
 extern s32 lbl_802DA210[];
 
-void fn_800C7DB4(void) {
+void MapEInit(void) {
     s32 buf[16];
     s32 i;
     s8 *o;
@@ -3343,8 +3341,8 @@ void fn_800C7DB4(void) {
     o = (s8 *)lbl_801DC074;
     for (i = 0x16; i != 0; i--, o += 0x68) {
         if (*(s32 **)(o + 0x20) != NULL) {
-            *(s32 *)(o + 0x44) = fn_80108E6C((s32) lbl_80409410, *(s32 **)(o + 0x20));
-            *(s32 *)(o + 0x48) = fn_80108E6C((s32) lbl_80409410, *(s32 **)(o + 0x24));
+            *(s32 *)(o + 0x44) = FindObstacle((s32) lbl_80409410, *(s32 **)(o + 0x20));
+            *(s32 *)(o + 0x48) = FindObstacle((s32) lbl_80409410, *(s32 **)(o + 0x24));
         }
         if (*(s32 *)(o + 0x34) != 0) {
             memset((s32 *)(o + 0x4C), 0, 0xC);
@@ -3358,9 +3356,9 @@ void fn_800C7DB4(void) {
         }
         *(s32 *)(o + 0x64) = NuSplineFind(lbl_80409410->unk1C0, *(s32 *)(o + 0x28));
     }
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = fn_80108E6C((s32) lbl_80409410, lbl_801A300C);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = fn_80108E6C((s32) lbl_80409410, lbl_801A3010);
-    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = fn_80108E6C((s32) lbl_80409410, lbl_801A3014);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (0))) = FindObstacle((s32) lbl_80409410, lbl_801A300C);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (4))) = FindObstacle((s32) lbl_80409410, lbl_801A3010);
+    (*(s32 *)((s8 *)(lbl_803EAE44) + (8))) = FindObstacle((s32) lbl_80409410, lbl_801A3014);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EAD24, lbl_801A3018, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EAD30, lbl_801A3024, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_803EAD3C, lbl_801A3030, 1);
@@ -3370,7 +3368,7 @@ void fn_800C7DB4(void) {
     fn_800E1F88();
     fn_800E1564();
     lbl_8040B0C8 = lbl_801A3078[0];
-    fn_800C6FB8();
+    InitMapAI();
     NuSpecialFind(lbl_80409410->unk1C0, lbl_802DA1F8, lbl_801A3048, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_802DA204, lbl_801A3058, 1);
     NuSpecialFind(lbl_80409410->unk1C0, lbl_802DA210, lbl_801A3068, 1);
@@ -3388,7 +3386,7 @@ extern s32 lbl_80408F64;
 extern s32 lbl_80408F6C;
 extern s32 lbl_80408F70;
 
-void fn_800BA0EC(void) {
+void InitStarField(void) {
     s32 sp8;
     s32 *p;
 
@@ -3529,11 +3527,11 @@ extern s32 lbl_803ED320[];
 extern s32 lbl_8040935C;
 extern f32 lbl_8040A6A4;
 
-void fn_800C5498(void) {
+void KashyyykDInit(void) {
     s32 *p;
     s32 i;
 
-    lbl_803EAEC4[0] = fn_8012724C(lbl_80409410, lbl_801A2C14, 0);
+    lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A2C14, 0);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EAD9C, lbl_801A2C1C, 1);
     for (i = 0; i < 3; i++) {
         lbl_803ED320[i] = 0;
@@ -3547,15 +3545,15 @@ void fn_800C5498(void) {
     }
     lbl_8040A6A4 = lbl_801A2C68[0];
     lbl_8040935C = 0;
-    lbl_803EAE44[0] = fn_80108E6C(lbl_80409410, lbl_801A2C2C);
+    lbl_803EAE44[0] = FindObstacle(lbl_80409410, lbl_801A2C2C);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EADD8, lbl_801A2C38, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EADE4, lbl_801A2C44, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EADF0, lbl_801A2C50, 1);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), lbl_803EADFC, lbl_801A2C5C, 1);
 }
 
-s32 fn_8008FA0C(s32, s32 *, s32, f32);
-s32 fn_8008FA44(s32, s32 *, s32);
+s32 SetAIMessage(s32, s32 *, s32, f32);
+s32 CheckAIMessage(s32, s32 *, s32);
 extern s32 lbl_801A20B4[];
 extern s32 lbl_801A2AE4[];
 extern s32 lbl_801A2AF0[];
@@ -3563,17 +3561,17 @@ extern f32 lbl_801A4EE8[];
 extern s32 lbl_802E0B88[];
 extern s32 lbl_80408F58;
 
-void fn_800CE1EC(void) {
+void DookuCReset(void) {
     s32 *p;
 
     p = (s32 *)lbl_802E0B88;
     memset(p, 0, 0x14);
-    p[0] = fn_8008FA0C(lbl_80408F58, lbl_801A2AE4, 0, lbl_801A4EE8[0]);
-    p[1] = fn_8008FA44(lbl_80408F58, lbl_801A20B4, 0);
+    p[0] = SetAIMessage(lbl_80408F58, lbl_801A2AE4, 0, lbl_801A4EE8[0]);
+    p[1] = CheckAIMessage(lbl_80408F58, lbl_801A20B4, 0);
     NuSpecialFind((*(s32 *)((s8 *)(lbl_80409410) + (0x1C0))), p + 2, lbl_801A2AF0, 1);
 }
 
-s32 fn_80106CD8(s32, void *);
+s32 CloseDoorObstacle(s32, void *);
 extern s32 lbl_802DA6D8[];
 
 typedef struct {
@@ -3593,7 +3591,7 @@ void fn_800C0438(void) {
         *(u16 *)(t->a[i] + 0x6E) &= 0xFF3F;
         *(u16 *)(t->a[i] + 0x6E) |= 1;
         *(s8 *)(t->a[i] + 0x73) = 0xA;
-        fn_80106CD8(0, t->b[i]);
+        CloseDoorObstacle(0, t->b[i]);
         *(s32 *)(t->b[i] + 0x18) = 0x18;
     }
 }
@@ -3625,31 +3623,31 @@ void fn_800D97BC(void) {
 
 extern s32 lbl_801A2DE8[];
 extern f32 lbl_801A4F08[];
-void fn_800CEFAC(void) {
-    lbl_80409368 = fn_8008FA0C(lbl_80408F58, lbl_801A2DE8, 0, lbl_801A4F08[0]);
+void VaderBReset(void) {
+    lbl_80409368 = SetAIMessage(lbl_80408F58, lbl_801A2DE8, 0, lbl_801A4F08[0]);
 }
 
 extern f32 lbl_801A5248[];
 void fn_800D4EC8(void *arg0, f32 arg1) {
-    fn_800ABFCC(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), arg1);
+    NewRumble(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), arg1);
     fn_800AC020(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A5248[0]);
 }
 
 extern f32 lbl_801A524C[];
 extern f32 lbl_801A5250[];
-void fn_800D4F18(void *arg0) {
-    fn_800ABFCC(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A524C[0]);
+void KillRumble(void *arg0) {
+    NewRumble(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A524C[0]);
     fn_800AC020(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A5250[0]);
 }
 
 extern f32 lbl_801A5240[];
 extern f32 lbl_801A5244[];
 void fn_800D4E70(void *arg0) {
-    fn_800ABFCC(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A5240[0]);
+    NewRumble(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A5240[0]);
     fn_800AC020(**(s32 **)(*(s8 **)((s8 *)arg0 + 0xEEC) + 0x61C), lbl_801A5244[0]);
 }
 
-s32 fn_800C62A0();
+s32 VaderAStartCollapseStage();
 s32 fn_800D7ED8(s32, s32, s32);
 extern s32 lbl_802E0BBC[];
 void fn_800CEEF0(void) {
@@ -3657,7 +3655,7 @@ void fn_800CEEF0(void) {
     fn_800D7ED8(0, 0, 1);
     p = lbl_802E0BBC;
     if (*(s16 *)((s8 *)p + 8) != 0) {
-        fn_800C62A0();
+        VaderAStartCollapseStage();
     }
     p[9] = 1;
 }
@@ -3733,7 +3731,7 @@ s16 *fn_800D9878(s32 arg0) {
     return NULL;
 }
 
-s32 fn_800D3C18(void *, s32, s32, s32);
+s32 KillParts(void *, s32, s32, s32);
 extern s32 lbl_80409444;
 void fn_800D532C(void *arg0, s32 arg1) {
     s32 v;
@@ -3741,7 +3739,7 @@ void fn_800D532C(void *arg0, s32 arg1) {
     if (*(s16 *)((s8 *)arg0 + 0x1074) == 0x71 && *(s8 *)((s8 *)arg0 + 0x1085) <= 1) {
         v = lbl_80409444;
     }
-    fn_800D3C18(arg0, -1, v, arg1);
+    KillParts(arg0, -1, v, arg1);
 }
 
 s32 fn_80044F28(s32, s32, f32, f32, f32);
@@ -3890,7 +3888,7 @@ void fn_800CC3FC(s32 arg0) {
 
 extern f32 lbl_801A4F9C[];
 extern f32 lbl_80408E9C;
-u16 fn_800CFF84(s32 arg0, s32 arg1, f32 farg0) {
+u16 SeekRot(s32 arg0, s32 arg1, f32 farg0) {
     f32 f;
     s32 d;
     f = farg0 * lbl_80408E9C;

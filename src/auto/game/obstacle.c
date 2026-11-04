@@ -156,7 +156,7 @@ extern s32 lbl_801A5E2C[];
 extern s32 lbl_801A5E3C[];
 extern s32 lbl_801A5E48[];
 
-void fn_800E356C(void *arg0, s32 arg1) {
+void PlayJumpSfx(void *arg0, s32 arg1) {
     s32 temp_r9;
 
     temp_r9 = (*(s32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0x64)))) + (4)));
@@ -225,13 +225,13 @@ void fn_8010388C(void *arg0, void *arg1, void *arg2, f32 farg0) {
     (*(f32 *)((s8 *)(arg0) + (8))) = (f32) ((((*(f32 *)((s8 *)(arg2) + (8))) - temp_f13_3) * var_f1) + temp_f13_3);
 }
 
-s32 fn_800E6638(s32, s32, s32, f32, f32);
-s32 fn_800E6BF8();
+s32 ApplyGravity(s32, s32, s32, f32, f32);
+s32 ResetCode();
 extern f32 lbl_801A9A14[];
 
 void fn_80103988(s32 arg0) {
-    fn_800E6BF8();
-    fn_800E6638(arg0, 0, 0, lbl_801A9A14[0], lbl_801A9A14[0]);
+    ResetCode();
+    ApplyGravity(arg0, 0, 0, lbl_801A9A14[0], lbl_801A9A14[0]);
 }
 
 s32 fn_80074934(void *);
@@ -241,7 +241,7 @@ void fn_801045B0(void *arg0) {
     fn_80074934(arg0);
 }
 
-s32 fn_80095750(f32, f32);
+s32 ParticlesPerFrame(f32, f32);
 s32 fn_80095A44(s32, s32, s32, s32, void *);
 s32 fn_800A5C64();
 extern f32 lbl_801A9AA0[];
@@ -253,7 +253,7 @@ void fn_80104628(void *arg0) {
     (*(s16 *)((s8 *)(arg0) + (0x4E))) = 1;
     fn_800A5C64();
     if ((s32) (*(u8 *)((s8 *)(arg0) + (0x290))) != 0) {
-        temp_r30 = fn_80095750(lbl_801A9AA0[0], lbl_80408E9C);
+        temp_r30 = ParticlesPerFrame(lbl_801A9AA0[0], lbl_80408E9C);
         if ((s32) (*(s32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0x60)))) + (0x1C))) != 0) {
             fn_80095A44((*(s32 *)((s8 *)(lbl_80409410) + (0x1B8))), 5, (*(s32 *)((s8 *)(arg0) + (0xEEC))) + 0x244, temp_r30, arg0 + 0x78);
         }
@@ -284,22 +284,22 @@ void fn_80104738(void *arg0) {
     fn_800A5C64(arg0);
 }
 
-s32 fn_800E6638(s32, s32, s32, f32, f32);
-s32 fn_800E6BF8();
+s32 ApplyGravity(s32, s32, s32, f32, f32);
+s32 ResetCode();
 extern f32 lbl_801A9AE4[];
 
 void fn_80104EB4(s32 arg0) {
-    fn_800E6BF8();
-    fn_800E6638(arg0, 0, 0, lbl_801A9AE4[0], lbl_801A9AE4[0]);
+    ResetCode();
+    ApplyGravity(arg0, 0, 0, lbl_801A9AE4[0], lbl_801A9AE4[0]);
 }
 
-s32 fn_800E6638(s32, s32, s32, f32, f32);
-s32 fn_800E6BF8();
+s32 ApplyGravity(s32, s32, s32, f32, f32);
+s32 ResetCode();
 extern f32 lbl_801A9AEC[];
 
 void fn_80104F50(s32 arg0) {
-    fn_800E6BF8();
-    fn_800E6638(arg0, 0, 0, lbl_801A9AEC[0], lbl_801A9AEC[0]);
+    ResetCode();
+    ApplyGravity(arg0, 0, 0, lbl_801A9AEC[0], lbl_801A9AEC[0]);
 }
 
 void *fn_80105DEC();
@@ -635,7 +635,7 @@ void fn_800FE40C(void *arg0) {
 
 s32 fn_8006DCD4(s32 *, void *);
 s32 fn_8006DD1C(s32 *, void *, f32);
-s32 fn_80095750(f32, f32);
+s32 ParticlesPerFrame(f32, f32);
 s32 fn_800959D4(s32, s32, void *, s32, s32, u16, void *);
 extern s32 lbl_801A9720[];
 extern s32 lbl_801A972C[];
@@ -645,7 +645,7 @@ extern f32 lbl_801A973C[];
 extern f32 lbl_801A9740[];
 extern f32 lbl_80408E9C;
 
-void fn_800FEA64(void *arg0) {
+void PostAnimate_ASTROMECH(void *arg0) {
     f32 var_f1;
     s32 temp_r3;
     void *temp_r9;
@@ -663,7 +663,7 @@ void fn_800FEA64(void *arg0) {
             }
             var_f1 = lbl_801A9738[0];
 block_8:
-            temp_r3 = fn_80095750(var_f1, lbl_80408E9C);
+            temp_r3 = ParticlesPerFrame(var_f1, lbl_80408E9C);
             if (temp_r3 > 0) {
                 if ((s32) (*(s32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0x60)))) + (0x1C))) != 0) {
                     fn_800959D4((*(s32 *)((s8 *)(lbl_80409410) + (0x1B8))), 0xA, (*(void **)((s8 *)(arg0) + (0xEEC))) + 0x244, temp_r3, 0x71C7, (*(u16 *)((s8 *)(arg0) + (0x1066))), lbl_80409410);
@@ -950,7 +950,7 @@ void fn_80103D18(void) {
     }
 }
 
-f32 fn_80092E18(s16, s32, f32, f32, s32);
+f32 AnimDuration(s16, s32, f32, f32, s32);
 void fn_80095558(void *, s32);
 extern f32 lbl_801A9A58[];
 
@@ -960,12 +960,12 @@ void fn_80104054(void *arg0) {
     if ((s32) (*(s32 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0x60)))) + (0xC)))) + (0xC0))) != 0) {
         temp_r9 = (*(void **)((s8 *)(arg0) + (0xEEC)));
         (*(s8 *)((s8 *)(temp_r9) + (0x7DF))) = 0x29;
-        (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = fn_80092E18((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x30, lbl_801A9A58[0], lbl_801A9A58[0], 1);
+        (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = AnimDuration((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x30, lbl_801A9A58[0], lbl_801A9A58[0], 1);
         fn_80095558(arg0 + 8, -1);
     }
 }
 
-f32 fn_80092E18(s16, s32, f32, f32, s32);
+f32 AnimDuration(s16, s32, f32, f32, s32);
 void fn_80095558(void *, s32);
 extern f32 lbl_801A9A5C[];
 
@@ -975,12 +975,12 @@ void fn_801040CC(void *arg0) {
     if ((s32) (*(s32 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0x60)))) + (0xC)))) + (0xC4))) != 0) {
         temp_r9 = (*(void **)((s8 *)(arg0) + (0xEEC)));
         (*(s8 *)((s8 *)(temp_r9) + (0x7DF))) = 0x2A;
-        (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = fn_80092E18((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x31, lbl_801A9A5C[0], lbl_801A9A5C[0], 1);
+        (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = AnimDuration((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x31, lbl_801A9A5C[0], lbl_801A9A5C[0], 1);
         fn_80095558(arg0 + 8, -1);
     }
 }
 
-s32 fn_800D407C(s32, void *, s32);
+s32 ObjHitObj(s32, void *, s32);
 s32 fn_800D4EC8(void *, f32);
 extern f32 lbl_801A9A60[];
 extern f32 lbl_801A9A64[];
@@ -991,7 +991,7 @@ void fn_80104144(void *arg0, s32 arg1, s32 arg2) {
     void *temp_r3;
 
     if (arg1 != 0) {
-        fn_800D407C(0, arg0, 1);
+        ObjHitObj(0, arg0, 1);
         goto block_3;
     }
     if (arg2 != 0) {
@@ -1007,19 +1007,19 @@ block_3:
 }
 
 s32 fn_800958F8(s32, s32, s32);
-void fn_800AC0C0(f32, f32);
-void fn_800AFFD8(void *, s32, s32, f32);
-s32 fn_800B96A8(s32, s32);
+void NewRumbleAllPlayers(f32, f32);
+void JudderGameCamera(void *, s32, s32, f32);
+s32 PartKill(s32, s32);
 extern char MenuHeader[];
 extern f32 lbl_801A9A88[];
 extern f32 lbl_801A9A8C[];
 extern f32 lbl_801A9A90[];
 
-void fn_80104534(s32 arg0, s32 arg1) {
+void JangoRocket_Kill(s32 arg0, s32 arg1) {
     fn_800958F8((*(s32 *)((s8 *)(lbl_80409410) + (0x1B8))), 0x1A, arg0 + 0x30);
-    fn_800AFFD8(MenuHeader, 0, 0, lbl_801A9A88[0]);
-    fn_800B96A8(arg0, arg1);
-    fn_800AC0C0(lbl_801A9A8C[0], lbl_801A9A90[0]);
+    JudderGameCamera(MenuHeader, 0, 0, lbl_801A9A88[0]);
+    PartKill(arg0, arg1);
+    NewRumbleAllPlayers(lbl_801A9A8C[0], lbl_801A9A90[0]);
 }
 
 s32 fn_800A5C64(void *);
@@ -1053,8 +1053,8 @@ void fn_801048FC(void *arg0) {
     fn_800A5C64(arg0);
 }
 
-s32 fn_800E6BF8();
-s32 fn_800F3A84(void *, s32, s32, s32, s32);
+s32 ResetCode();
+s32 ForceCode(void *, s32, s32, s32, s32);
 extern f32 lbl_801A9AD0[];
 extern f32 lbl_80408E9C;
 
@@ -1062,8 +1062,8 @@ void fn_80104C20(void *arg0) {
     void *temp_r9;
     void *temp_r9_2;
 
-    fn_800E6BF8();
-    fn_800E6638(arg0, 0, 0, lbl_801A9AD0[0], lbl_801A9AD0[0]);
+    ResetCode();
+    ApplyGravity(arg0, 0, 0, lbl_801A9AD0[0], lbl_801A9AD0[0]);
     temp_r9 = (*(void **)((s8 *)(arg0) + (0xEEC)));
     if ((s32) (*(u8 *)((s8 *)(temp_r9) + (0x7DF))) == 0x19) {
         (*(f32 *)((s8 *)(temp_r9) + (0x714))) = (f32) ((*(f32 *)((s8 *)(temp_r9) + (0x714))) - lbl_80408E9C);
@@ -1073,7 +1073,7 @@ void fn_80104C20(void *arg0) {
         }
     }
     if ((*(s32 *)((s8 *)(arg0) + (0x20C))) & 0x01000000) {
-        fn_800F3A84(arg0, 0, 0, -1, 0);
+        ForceCode(arg0, 0, 0, -1, 0);
     }
 }
 
@@ -1092,8 +1092,8 @@ void fn_80104EFC(void *arg0) {
     fn_800A5C64(arg0);
 }
 
-s32 fn_800E6BF8();
-s32 fn_800F3A84(void *, s32, s32, s32, s32);
+s32 ResetCode();
+s32 ForceCode(void *, s32, s32, s32, s32);
 s32 fn_800F99D4(void *, s32, s32, s32, s32, s32);
 s32 fn_800FB6B0(void *);
 s32 fn_800FBB08(void *);
@@ -1105,8 +1105,8 @@ void fn_801025A8(void *arg0) {
     void *temp_r11_2;
     void *temp_r9;
 
-    fn_800E6BF8();
-    fn_800E6638(arg0, 0, 0, lbl_801A9970[0], lbl_801A9970[0]);
+    ResetCode();
+    ApplyGravity(arg0, 0, 0, lbl_801A9970[0], lbl_801A9970[0]);
     (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7B4))) = 1;
     (*(s8 *)((s8 *)(arg0) + (0x1083))) = 0;
     (*(s32 *)((s8 *)(arg0) + (0xF24))) = (s32) ((*(s32 *)((s8 *)(arg0) + (0xF24))) | 0x10000000);
@@ -1126,7 +1126,7 @@ void fn_801025A8(void *arg0) {
     temp_r9 = (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x61C)));
     fn_800F99D4(arg0, (*(s32 *)((s8 *)(temp_r9) + (8))) & 0x40, 0, 0, 0, 0);
     if ((*(s32 *)((s8 *)(arg0) + (0x20C))) & 0x01000000) {
-        fn_800F3A84(arg0, 0, 0, -1, 0);
+        ForceCode(arg0, 0, 0, -1, 0);
     }
 }
 
@@ -1217,7 +1217,7 @@ extern s32 lbl_801A5E8C[];
 extern s32 lbl_801A5E98[];
 extern s32 lbl_801A5EA4[];
 
-void fn_800E6208(void *arg0, s32 arg1) {
+void PlayLandSfx(void *arg0, s32 arg1) {
     s32 *var_r3;
     s32 *var_r3_2;
     s32 var_r0;
@@ -1252,7 +1252,7 @@ void fn_800E6208(void *arg0, s32 arg1) {
     }
 }
 
-s32 fn_800D407C(s32, void *, s32);
+s32 ObjHitObj(s32, void *, s32);
 extern f32 lbl_801A97D8[];
 extern f32 lbl_801A97DC[];
 extern f32 lbl_801A97E0[];
@@ -1262,7 +1262,7 @@ extern const f32 lbl_80409890;
 extern f32 lbl_80409894;
 extern f32 lbl_8040A71C;
 
-void fn_80100378(void *arg0) {
+void PodCollisionCode(void *arg0) {
     f32 temp_f13;
     f32 temp_f13_2;
     void *temp_r11;
@@ -1277,7 +1277,7 @@ void fn_80100378(void *arg0) {
             lbl_8040A71C = temp_f13_2;
             if (temp_f13_2 < lbl_801A97D8[0]) {
                 if (temp_f13_2 < lbl_80409894) {
-                    fn_800D407C(0, arg0, 1);
+                    ObjHitObj(0, arg0, 1);
                 }
                 temp_r11 = (*(void **)((s8 *)(arg0) + (0xEEC)));
                 (*(f32 *)((s8 *)(temp_r11) + (0x708))) = (f32) ((*(f32 *)((s8 *)(temp_r11) + (0x708))) * lbl_801A97E4[0]);
@@ -1360,8 +1360,8 @@ void fn_801049D0(void *arg0) {
     }
 }
 
-s32 fn_800E6BF8();
-s32 fn_800F3A84(void *, s32, s32, s32, s32);
+s32 ResetCode();
+s32 ForceCode(void *, s32, s32, s32, s32);
 s32 fn_800F99D4(void *, s32, s32, s32, s32, s32);
 extern f32 lbl_801A9AC8[];
 extern f32 lbl_80408E9C;
@@ -1382,8 +1382,8 @@ void fn_80104AC4(void *arg0) {
     temp_r30 = temp_r11 & 0x40;
     temp_r29 = temp_r11 & 0x80;
     (*(s32 *)((s8 *)(arg0) + (0xF24))) = (s32) ((*(s32 *)((s8 *)(arg0) + (0xF24))) | 0x10000000);
-    fn_800E6BF8();
-    fn_800E6638(arg0, 0, 0, lbl_801A9AC8[0], lbl_801A9AC8[0]);
+    ResetCode();
+    ApplyGravity(arg0, 0, 0, lbl_801A9AC8[0], lbl_801A9AC8[0]);
     temp_r9_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
     if ((s32) (*(u8 *)((s8 *)(temp_r9_2) + (0x7DF))) == 0x19) {
         (*(f32 *)((s8 *)(temp_r9_2) + (0x714))) = (f32) ((*(f32 *)((s8 *)(temp_r9_2) + (0x714))) - lbl_80408E9C);
@@ -1394,7 +1394,7 @@ void fn_80104AC4(void *arg0) {
     }
     fn_800F99D4(arg0, temp_r30, temp_r29, 0, 0, 0);
     if ((*(s32 *)((s8 *)(arg0) + (0x20C))) & 0x01000000) {
-        fn_800F3A84(arg0, 0, 0, -1, 0);
+        ForceCode(arg0, 0, 0, -1, 0);
     }
 }
 
@@ -1462,7 +1462,7 @@ void fn_80108B3C(void *arg0) {
 }
 
 s32 fn_80095630(void *, s32, s32, s32);
-s32 fn_800F77A4(void *);
+s32 ForcedBackCode(void *);
 void fn_801044F0(void *);
 extern f32 lbl_801A9924[];
 extern f32 lbl_801A9928[];
@@ -1478,13 +1478,13 @@ void fn_80101520(void *arg0) {
     void *temp_r9_3;
     void *temp_r9_4;
 
-    fn_800E6BF8();
+    ResetCode();
     if ((s32) (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) != 0x1B) {
         var_f1 = lbl_804098AC;
     } else {
         var_f1 = lbl_801A9924[0];
     }
-    fn_800E6638(arg0, 0, 0, var_f1, lbl_801A9928[0]);
+    ApplyGravity(arg0, 0, 0, var_f1, lbl_801A9928[0]);
     (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7B4))) = 1;
     temp_r11 = (*(void **)((s8 *)(arg0) + (0xEEC)));
     (*(s32 *)((s8 *)(arg0) + (0xF24))) = (s32) ((*(s32 *)((s8 *)(arg0) + (0xF24))) | 0x10000000);
@@ -1501,7 +1501,7 @@ void fn_80101520(void *arg0) {
             (*(f32 *)((s8 *)(arg0) + (0x80))) = k;
         }
     }
-    fn_800F77A4(arg0);
+    ForcedBackCode(arg0);
     temp_r4 = (*(void **)((s8 *)(arg0) + (0xEEC)));
     if (((s32) (*(u8 *)((s8 *)(temp_r4) + (0x7DF))) == 0x1B) && (((s32) *(s32 *)(((*(s16 *)((s8 *)(temp_r4) + (0x7A6))) * 4) + (*(s32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0x60)))) + (0xC)))) == 0) || (fn_80095630(arg0 + 8, (*(s16 *)((s8 *)(temp_r4) + (0x7A6))), 1, 0) != 0))) {
         temp_r9_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
@@ -1517,7 +1517,7 @@ void fn_80101520(void *arg0) {
     temp_r9_4 = (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x61C)));
     fn_800F99D4(arg0, (*(s32 *)((s8 *)(temp_r9_4) + (8))) & 0x40, 0, 0, 0, 1);
     if ((*(s32 *)((s8 *)(arg0) + (0x20C))) & 0x01000000) {
-        fn_800F3A84(arg0, 0, 0, -1, 0);
+        ForceCode(arg0, 0, 0, -1, 0);
     }
 }
 
@@ -1649,7 +1649,7 @@ void fn_800ED4A0(void *arg0, s32 arg1) {
                         var_r11 = 0xE;
                     }
                     (*(s16 *)((s8 *)(temp_r9_4) + (0x7A6))) = var_r11;
-                    (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = fn_80092E18((*(s16 *)((s8 *)(arg0) + (0x1074))), (*(s16 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7A6))), temp_f31, temp_f31, 1);
+                    (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = AnimDuration((*(s16 *)((s8 *)(arg0) + (0x1074))), (*(s16 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7A6))), temp_f31, temp_f31, 1);
                     temp_r11_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
                     if ((*(f32 *)((s8 *)(temp_r11_2) + (0x714))) <= temp_f31) {
                         (*(f32 *)((s8 *)(temp_r11_2) + (0x714))) = (f32) lbl_801A910C[0];
@@ -1659,7 +1659,7 @@ void fn_800ED4A0(void *arg0, s32 arg1) {
                     (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7C3))) = 1U;
                     (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x728))) = temp_f31;
                     (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7D8))) = temp_r30;
-                    fn_800E356C(arg0, 2);
+                    PlayJumpSfx(arg0, 2);
                     return;
                 }
             }
@@ -1930,7 +1930,7 @@ extern s32 lbl_801A5F00[];
 extern s32 lbl_801A5F0C[];
 extern f32 lbl_801A5F18[];
 
-void fn_800E36B4(void *arg0) {
+void PlayFootStepSfx(void *arg0) {
     s32 *var_r3;
     s32 *var_r3_2;
     s16 temp_r11;
@@ -1985,7 +1985,7 @@ extern const s32 lbl_801A95C4[];
 extern const f32 lbl_801A95D0[];
 extern const f32 lbl_801A95D4[];
 
-void fn_800FB364(void *arg0) {
+void RollCode(void *arg0) {
     f32 temp_f31;
     s8 temp_r0;
     void *temp_r30;
@@ -2009,7 +2009,7 @@ void fn_800FB364(void *arg0) {
                 fn_80095558(arg0 + 8, -1);
                 if (((s32) (*(u8 *)((s8 *)(arg0) + (0x285))) != 0) && ((s32) (*(s32 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0x60)))) + (0xC)))) + (0x9C))) != 0)) {
                     (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) = 0x11U;
-                    (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = fn_80092E18((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x27, temp_f31, temp_f31, 1);
+                    (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = AnimDuration((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x27, temp_f31, temp_f31, 1);
                     fn_8006DCD4(lbl_801A95C4, temp_r30);
                 } else {
                     (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) = -1;
@@ -2022,7 +2022,7 @@ void fn_800FB364(void *arg0) {
                 (*(u8 *)((s8 *)(temp_r7) + (0x7DF))) = 0x10U;
             } else if (fn_800956C0(arg0 + 8) == 6) {
                 (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) = 0x11U;
-                (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = fn_80092E18((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x27, lbl_801A95D0[0], lbl_801A95D0[0], 1);
+                (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x714))) = AnimDuration((*(s16 *)((s8 *)(arg0) + (0x1074))), 0x27, lbl_801A95D0[0], lbl_801A95D0[0], 1);
                 fn_8006DCD4(lbl_801A95C4, arg0 + 0x90);
             }
         }
@@ -2035,7 +2035,7 @@ extern f32 lbl_801A95E4[];
 extern f32 lbl_801A95E8[];
 extern f32 lbl_801A95EC[];
 
-void fn_800FB548(void *arg0) {
+void ShieldCode(void *arg0) {
     f32 temp_f12;
     f32 var_f31;
     s32 temp_r3;
@@ -2064,12 +2064,12 @@ void fn_800FB548(void *arg0) {
 }
 
 s32 fn_800ABA78(void *);
-s32 fn_800ABFCC(s32, f32);
+s32 NewRumble(s32, f32);
 s32 fn_800B9ED4();
-s32 fn_800D4F18(void *);
+s32 KillRumble(void *);
 s32 fn_800D99AC();
-s32 fn_800D9A60();
-void fn_80103680(void *, void *, s32, f32, f32, f32);
+s32 CancelHint();
+void SetHeadTarget(void *, void *, s32, f32, f32, f32);
 s32 fn_801261FC(void *, s32);
 extern f32 lbl_801A93D0[];
 extern f32 lbl_801A93D4[];
@@ -2120,9 +2120,9 @@ void fn_800F68D8(void *arg0) {
         temp_r11_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
         (*(void **)((s8 *)(temp_r11_2) + (0x6A4))) = (void *) (*(void **)((s8 *)(temp_r11_2) + (0x650)));
         (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7B3))) = 1;
-        fn_80103680(arg0, (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650))) + 0x90, 1, 1.0f, 0.0f, 0.0f);
+        SetHeadTarget(arg0, (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650))) + 0x90, 1, 1.0f, 0.0f, 0.0f);
         temp_r30 = *(s32 *)(*(s32 **)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650)))) + (0xEEC)))) + (0x61C)));
-        fn_800ABFCC(temp_r30, (f32) (f64) fn_800B9ED4() * lbl_801A93D0[0] * lbl_801A93D4[0]);
+        NewRumble(temp_r30, (f32) (f64) fn_800B9ED4() * lbl_801A93D0[0] * lbl_801A93D4[0]);
         temp_r9_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
         temp_f31 = 0.0f;
         temp_f13 = (*(f32 *)((s8 *)(temp_r9_2) + (0x718)));
@@ -2130,8 +2130,8 @@ void fn_800F68D8(void *arg0) {
             (*(f32 *)((s8 *)(temp_r9_2) + (0x718))) = (f32) (temp_f13 - lbl_80408E9C);
             temp_r9_3 = (*(void **)((s8 *)(arg0) + (0xEEC)));
             if ((*(f32 *)((s8 *)(temp_r9_3) + (0x718))) <= temp_f31) {
-                if (fn_800D407C(arg0, (*(void **)((s8 *)(temp_r9_3) + (0x650))), 1) == 2) {
-                    fn_800D4F18((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650))));
+                if (ObjHitObj(arg0, (*(void **)((s8 *)(temp_r9_3) + (0x650))), 1) == 2) {
+                    KillRumble((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650))));
                 }
                 (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DF))) = -1;
                 (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x73C))) = temp_f31;
@@ -2149,12 +2149,12 @@ void fn_800F68D8(void *arg0) {
         temp_r9_6 = (*(void **)((s8 *)(temp_r11) + (0x650)));
         if (temp_r9_6 != NULL) {
             temp_r30_2 = *(s32 *)(*(s32 **)((s8 *)((*(void **)((s8 *)(temp_r9_6) + (0xEEC)))) + (0x61C)));
-            fn_800ABFCC(temp_r30_2, (f32) (f64) fn_800B9ED4() * lbl_801A93D0[0] * lbl_801A93DC[0]);
+            NewRumble(temp_r30_2, (f32) (f64) fn_800B9ED4() * lbl_801A93D0[0] * lbl_801A93DC[0]);
             (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7DA))) = 1;
             temp_r11_3 = (*(void **)((s8 *)(arg0) + (0xEEC)));
             (*(void **)((s8 *)(temp_r11_3) + (0x6A4))) = (void *) (*(void **)((s8 *)(temp_r11_3) + (0x650)));
             (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7B3))) = 1;
-            fn_80103680(arg0, (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650))) + 0x90, 1, 1.0f, 0.0f, 0.0f);
+            SetHeadTarget(arg0, (*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650))) + 0x90, 1, 1.0f, 0.0f, 0.0f);
             temp_r9_7 = (*(void **)((s8 *)(arg0) + (0xEEC)));
             (*(f32 *)((s8 *)(temp_r9_7) + (0x73C))) = (f32) ((*(f32 *)((s8 *)(temp_r9_7) + (0x73C))) + lbl_80408E9C);
             temp_r9_8 = (*(void **)((s8 *)(arg0) + (0xEEC)));
@@ -2166,7 +2166,7 @@ void fn_800F68D8(void *arg0) {
                 (*(s8 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650)))) + (0xEEC)))) + (0x7DF))) = 0x23;
                 (*(s8 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x650)))) + (0xEEC)))) + (0x7CB))) = 0;
                 if (fn_800D99AC() == 0x26B) {
-                    fn_800D9A60();
+                    CancelHint();
                 }
             }
         } else {
@@ -2179,7 +2179,7 @@ struct Fn80103680Vec {
     s32 x, y, z;
 };
 
-void fn_80103680(void *arg0, void *arg1, s32 arg2, f32 base, f32 lo, f32 hi) {
+void SetHeadTarget(void *arg0, void *arg1, s32 arg2, f32 base, f32 lo, f32 hi) {
     if (arg1 != NULL) {
         void *cur = *(void **)((s8 *)arg0 + 0xFFC);
         if (cur == NULL || (arg1 != cur && arg2 >= *(s8 *)((s8 *)arg0 + 0x1088))) {
@@ -2980,7 +2980,7 @@ void fn_800ED36C(void *arg0, Fn800ED36CVec *pos, Fn800ED36CVec *out) {
     }
 }
 
-void fn_800E7238(void *arg0, s32 arg1, f32 arg2, f32 arg3) {
+void CatchUpCode(void *arg0, s32 arg1, f32 arg2, f32 arg3) {
     u8 *p = arg0;
     u8 *other;
     u8 *tbl;
@@ -3387,12 +3387,12 @@ void fn_800E2BA4(s32 arg0, s32 *arg1, Fn800E2BA4Out *out, char *buf1, char *buf2
     }
 }
 
-u16 fn_800CFF84(u16, u16, f32);
+u16 SeekRot(u16, u16, f32);
 f32 *fn_800ABA50(void *);
 
 typedef struct { u8 pad0[0x78]; f32 x78; f32 x7C; f32 x80; u8 pad84[0xF3C - 0x84]; f32 xF3C; f32 xF40; f32 xF44; } Fn800EA4B4Obj;
 
-void fn_800EA4B4(void *arg0) {
+void MovePlayer_PIVOT(void *arg0) {
     u8 *p = arg0;
     u8 *q;
     Fn800EA4B4Obj *o = arg0;
@@ -3404,9 +3404,9 @@ void fn_800EA4B4(void *arg0) {
 
     q = *(u8 **)(*(u8 **)(p + 0xEEC) + 0x61C);
     *(u8 *)(p + 0x107E) = 3;
-    *(u16 *)(p + 0x27C) = fn_800CFF84(*(u16 *)(p + 0x27C), (s32)(*(f32 *)(q + 0x30) * 5461.0f), 8.0f);
+    *(u16 *)(p + 0x27C) = SeekRot(*(u16 *)(p + 0x27C), (s32)(*(f32 *)(q + 0x30) * 5461.0f), 8.0f);
     *(u16 *)(*(u8 **)(p + 0xEEC) + 0x7AE) =
-        fn_800CFF84(*(u16 *)(*(u8 **)(p + 0xEEC) + 0x7AE), (s32)(*(f32 *)(q + 0x2C) * 5461.0f), 8.0f);
+        SeekRot(*(u16 *)(*(u8 **)(p + 0xEEC) + 0x7AE), (s32)(*(f32 *)(q + 0x2C) * 5461.0f), 8.0f);
     if (*(f32 *)(p + 0x210) != 0.0f || *(f32 *)(p + 0x218) != 0.0f) {
         o->xF3C = *(f32 *)(p + 0x210);
         o->xF44 = *(f32 *)(p + 0x218);
@@ -3509,7 +3509,7 @@ f32 fn_801042D4(void *arg0) {
 }
 
 s32 fn_8000ABDC(f32, f32);
-void fn_800A2F94(void *);
+void ResetPlayerContexts(void *);
 extern f32 lbl_804097BC;
 
 void fn_80103ED8(void *arg0, f32 *arg1) {
@@ -3521,7 +3521,7 @@ void fn_80103ED8(void *arg0, f32 *arg1) {
     *(u16 *)(p + 0x1064) = 0;
     fn_80095558(p + 8, -1);
     fn_800ABA78(p);
-    fn_800A2F94(*(void **)(p + 0xEEC));
+    ResetPlayerContexts(*(void **)(p + 0xEEC));
     *(u8 *)(*(u8 **)(p + 0xEEC) + 0x7DF) = 0x26;
     *(f32 *)(*(u8 **)(p + 0xEEC) + 0x714) = lbl_804097BC;
 }
@@ -3606,7 +3606,7 @@ void fn_800FC39C(void *arg0) {
     if (!(*(u32 *)(*(u8 **)(p + 0xEEC) + 0x7B0) & 0x4000000) && *(u8 *)(p + 0x289) == 0x11 &&
         *(f32 *)(p + 0x18C) - *(f32 *)(p + 0x220) < lbl_80409878) {
         fn_800AC020(**(s32 **)(*(u8 **)(p + 0xEEC) + 0x61C), 0.1f);
-        fn_800ABFCC(**(s32 **)(*(u8 **)(p + 0xEEC) + 0x61C), 0.5f);
+        NewRumble(**(s32 **)(*(u8 **)(p + 0xEEC) + 0x61C), 0.5f);
         *(f32 *)(*(u8 **)(p + 0xEEC) + 0x708) = lbl_80409874;
         *(f32 *)(*(u8 **)(p + 0xEEC) + 0x774) = 1.0f;
         if (*(s32 *)(*(u8 **)(p + 0xEEC) + 0x7B0) >= 0) {
@@ -3623,13 +3623,13 @@ void fn_800FC39C(void *arg0) {
         }
     }
     if (*(f32 *)(*(u8 **)(p + 0xEEC) + 0x708) > 1.0f) {
-        fn_800ABFCC(**(s32 **)(*(u8 **)(p + 0xEEC) + 0x61C), *(f32 *)(*(u8 **)(p + 0xEEC) + 0x708) - 1.0f);
+        NewRumble(**(s32 **)(*(u8 **)(p + 0xEEC) + 0x61C), *(f32 *)(*(u8 **)(p + 0xEEC) + 0x708) - 1.0f);
     }
 }
 
 f32 fn_8000CD08(void *, void *, void *);
 
-s32 fn_800F77A4(void *arg0) {
+s32 ForcedBackCode(void *arg0) {
     u8 *p = arg0;
     f32 d;
     s32 ok;
@@ -3664,21 +3664,21 @@ s32 fn_800F77A4(void *arg0) {
         r = lbl_8040A720 - 0.2f;
         if (d < r * r) {
         fn_800ABA78(p);
-        fn_800A2F94(*(void **)(p + 0xEEC));
+        ResetPlayerContexts(*(void **)(p + 0xEEC));
         *(u8 *)(*(u8 **)(p + 0xEEC) + 0x7DF) = 0x28;
         *(f32 *)(*(u8 **)(p + 0xEEC) + 0x714) = 0.5f;
         }
     }
 }
 
-void fn_800FC5C0(void *arg0) {
+void FallLandCode(void *arg0) {
     u8 *p = arg0;
     u8 *e = *(u8 **)(p + 0xEEC);
 
     if (*(s8 *)(e + 0x7DF) == -1 && *(u8 *)(e + 0x7CB) == 0 && *(u8 *)(p + 0x285) != 0 &&
         *(u8 *)(p + 0x286) == 0 && *(f32 *)(*(u8 **)(e + 0x61C) + 0x28) == 0.0f &&
         *(f32 *)(e + 0x778) >= lbl_8040987C) {
-        fn_800E6208(p, 0);
+        PlayLandSfx(p, 0);
         if (*(s16 *)(p + 0x1074) == 0x4A && *(u8 *)(*(u8 **)(p + 0xEEC) + 0x7B4) == 0) {
             *(s16 *)(*(u8 **)(p + 0xEEC) + 0x7A2) = 0x59;
         } else if (*(s16 *)(p + 0x1074) != 7 && *(s32 *)(*(u8 **)(*(u8 **)(p + 0x60) + 0xC) + 0x30) != 0) {
@@ -3695,6 +3695,6 @@ void fn_800FC5C0(void *arg0) {
         fn_80095558(p + 8, -1);
         *(f32 *)(*(u8 **)(p + 0xEEC) + 0x778) = 0.0f;
         *(f32 *)(*(u8 **)(p + 0xEEC) + 0x6E4) =
-            fn_80092E18(*(s16 *)(p + 0x1074), *(s16 *)(*(u8 **)(p + 0xEEC) + 0x7A2), 0.0f, 0.0f, 1);
+            AnimDuration(*(s16 *)(p + 0x1074), *(s16 *)(*(u8 **)(p + 0xEEC) + 0x7A2), 0.0f, 0.0f, 1);
     }
 }
