@@ -370,3 +370,101 @@ void fn_80027868(s32 arg0, s32 arg1, s32 arg2, s32 arg3, f32 farg0, f32 farg1, f
     fn_800377AC(temp_f28, temp_f29 + temp_f30, lbl_801915F4[0]);
     fn_80037864();
 }
+
+s32 fn_800119C8(void *, void *, s32, s32, s32);
+void fn_80013184(s32, f32);
+extern f32 lbl_801915C8[];
+extern f32 lbl_801915CC[];
+
+s32 fn_800272A0(s32 *arg0, s32 arg1, f32 farg0) {
+    s32 var_r31;
+
+    if ((s32) *arg0 == 0) {
+        return 0;
+    }
+    if (farg0 < lbl_801915C8[0]) {
+        fn_80013184(1, farg0);
+        var_r31 = fn_800119C8(arg0, arg1, 0, 0, 0);
+        fn_80013184(0, lbl_801915CC[0]);
+    } else {
+        var_r31 = fn_800119C8(arg0, arg1, 0, 0, 0);
+    }
+    return var_r31;
+}
+
+void (*fn_80009948(s32 *, s32))(s32 *, ...);
+extern s32 lbl_801914A0[];
+extern s32 lbl_80191510[];
+extern s32 lbl_8021D8A4[];
+extern s32 lbl_80407D80;
+extern s32 lbl_80407D84;
+
+s32 *fn_80027D54(s32 arg0) {
+    lbl_80407D84 -= arg0;
+    if (lbl_80407D80 < 0) {
+        fn_80009948(lbl_801914A0, 0x479)(lbl_80191510);
+        return NULL;
+    }
+    return &lbl_8021D8A4[lbl_80407D84];
+}
+
+void *memset(void *, s32, u32);
+extern u8 lbl_802198A4[];
+extern s32 lbl_80407D80;
+extern s32 lbl_80407D84;
+extern s32 lbl_8040A33C;
+
+s32 fn_800274BC(void) {
+    lbl_8040A33C = 0;
+    lbl_80407D80 = 0xF00;
+    lbl_80407D84 = 0x800;
+    memset(lbl_802198A4 + lbl_80407D80, 0, 0x400);
+    return 1;
+}
+
+s32 NuHGobjEval(s32, s32, s32, s32 *);
+void fn_80024F68(s32, s32, s32, s32, s32 *, s32, s32);
+extern s32 lbl_802158A4[];
+
+void fn_80027404(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    NuHGobjEval(arg0, 0, 0, lbl_802158A4);
+    fn_80024F68(arg0, arg1, arg2, arg3, lbl_802158A4, 0, 0);
+}
+
+void *memset(void *, s32, u32);
+extern u8 lbl_802198A4[];
+extern s32 lbl_80407D80;
+extern s32 lbl_80407D84;
+extern s32 lbl_8040A33C;
+
+s32 fn_80027510(void) {
+    lbl_8040A33C = 0;
+    lbl_80407D80 = 0xF00;
+    lbl_80407D84 = 0x800;
+    memset(lbl_802198A4 + lbl_80407D80, 0, 0x400);
+    return 1;
+}
+
+struct nurndr_v3_s { f32 x, y, z; };
+s32 NuCameraClipTestPoints(struct nurndr_v3_s *, s32, s32);
+extern f32 lbl_80191614[];
+extern s32 lbl_8040AD6C;
+
+struct nurndr_c58_s {
+    struct nurndr_v3_s pos;
+    f32 f;
+    s16 h;
+    s16 pad;
+    s32 pad2;
+};
+extern struct nurndr_c58_s lbl_8033EAD8[];
+
+void fn_80027C58(struct nurndr_v3_s *arg0, s16 arg1, f32 farg0) {
+    if (NuCameraClipTestPoints(arg0, 1, 0) == 0 && lbl_8040AD6C < 0x80) {
+        arg0->y += lbl_80191614[0];
+        lbl_8033EAD8[lbl_8040AD6C].pos = *arg0;
+        lbl_8033EAD8[lbl_8040AD6C].f = farg0;
+        lbl_8033EAD8[lbl_8040AD6C].h = arg1;
+        lbl_8040AD6C++;
+    }
+}
