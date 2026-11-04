@@ -2566,3 +2566,28 @@ void fn_800CCBC0(void) {
         fn_8006DE5C(lbl_8040A658, lbl_8040A65C);
     }
 }
+
+void Menu_Open(s32, s32, s32);
+extern s8 gDifficulty[];
+
+void Menu_Unknown11_HandleSelection(void *arg0) {
+    s8 temp_r9;
+
+    if ((s32) (*(s32 *)((s8 *)(arg0) + (0x68))) != 0) {
+        temp_r9 = (*(u8 *)((s8 *)(arg0) + (0x37))) + 1;
+        gDifficulty[0] = temp_r9;
+        Menu_Open(7, -1, -1);
+        return;
+    }
+    if ((s32) (*(s32 *)((s8 *)(arg0) + (0x6C))) != 0) {
+        Menu_CloseCurrent();
+    }
+}
+
+void *fn_8008F7A0(void *, void *);
+extern s32 lbl_801A1CB0[];
+extern s32 lbl_803EB004[];
+
+void fn_800CCD14(void) {
+    lbl_803EB004[0] = fn_8008F7A0((*(s32 *)((s8 *)(lbl_80409410) + (0x2E8))), lbl_801A1CB0);
+}

@@ -127,7 +127,11 @@ m2c reads the preprocessed unit source as `--context`, so typed headers type the
 each target keeps the better of its typed and untyped drafts, and drafts at 80% exact or
 better also try the [store-in-arms and const `.rodata` rewrites](code_matching_workflow.md#measure-and-iterate).
 Each draft is also scored with its signature padded to the argument registers m2c
-numbered (`arg2` alone becomes `s32 pad0, s32 pad1, ... arg2`), keeping the better. The
+numbered (`arg2` alone becomes `s32 pad0, s32 pad1, ... arg2`), keeping the better.
+Drafts are then repaired and rescored: m2c's guessed callee prototypes give way to the
+unit's or the repo's (call arguments trimmed or padded to match), a callee the target calls
+after `crclr`/`crset cr1eq` is declared variadic or unprototyped, and undeclared stack slots
+(`spC` beside `&sp8`) fold into an array. That cut failing drafts from 340 to 184. The
 first sweep matched 183 functions (13,608 verified bytes) in under ten minutes of wall
 time, more than any agent sprint so far. Check its output with `bash build.sh` and
 `verify_fn.py --strict-symbols` on each applied function. Everything that did not match is

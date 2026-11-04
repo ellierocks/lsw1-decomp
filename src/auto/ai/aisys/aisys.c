@@ -1000,3 +1000,48 @@ f32 Condition_PlayerToLocator(u8* sys, void* process, u8* packet, char* params, 
     } else result = lbl_8019C654[0];
     return result;
 }
+
+void fn_8008F968(void *);
+
+void *fn_8008EE48(s32 *arg0, u32 *arg1, s32 arg2) {
+    s32 temp_r10;
+    s32 temp_r11;
+    s32 temp_r11_2;
+    s32 var_r28;
+    s32 var_r29;
+
+    var_r29 = 0;
+    if ((arg0 != NULL) && (arg1 != NULL)) {
+        temp_r11 = *arg0;
+        if ((u32) (temp_r11 + 0x18) < (u32) *arg1) {
+            var_r29 = (temp_r11 + 0xF) & 0xFFFFFFF0;
+            *arg0 = var_r29 + 0x18;
+        } else {
+            fn_80009948(lbl_8019C6DC, 0x3BD)(str_AISysBufferAlloc_LevelBufferTooSmall);
+        }
+    } else {
+        fn_80009948(lbl_8019C6DC, 0x3C1)(str_AISysBufferAlloc_NoBuffer);
+    }
+    if (var_r29 != 0) {
+        var_r28 = 0;
+        memset((void *) var_r29, 0, 0x18);
+        temp_r10 = arg2 * 0x2C;
+        if ((arg0 != NULL) && (arg1 != NULL)) {
+            temp_r11_2 = *arg0;
+            if ((u32) (temp_r11_2 + temp_r10) < (u32) *arg1) {
+                var_r28 = (temp_r11_2 + 0xF) & 0xFFFFFFF0;
+                *arg0 = var_r28 + temp_r10;
+            } else {
+                fn_80009948(lbl_8019C6DC, 0x3BD)(str_AISysBufferAlloc_LevelBufferTooSmall);
+            }
+        } else {
+            fn_80009948(lbl_8019C6DC, 0x3C1)(str_AISysBufferAlloc_NoBuffer);
+        }
+        (*(s32 *)((s8 *)(var_r29) + (4))) = var_r28;
+        if (var_r28 != 0) {
+            (*(s32 *)((s8 *)(var_r29) + (0))) = arg2;
+            fn_8008F968((void *) var_r29);
+        }
+    }
+    return (void *) var_r29;
+}

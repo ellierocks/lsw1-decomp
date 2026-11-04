@@ -176,3 +176,12 @@ void fn_8009D9D8(void)
   *((s16 *) (((s8 *) temp_r3_3) + 0xF8)) = 0x64;
   fn_80024CD4(temp_r3_3);
 }
+
+void fn_800092F0(s32, s32, void *, s32);
+
+void fn_8009D504(void *arg0) {
+    s32 sp8;
+
+    sp8 = (*(s32 *)((s8 *)(arg0) + (0x14)));
+    fn_800092F0(arg0 + 0x18, (*(s32 *)((s8 *)(arg0) + (0x10))), &sp8, 0);
+}

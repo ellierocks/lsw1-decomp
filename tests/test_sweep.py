@@ -64,6 +64,35 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIsNone(sweep.drop_decl(body, "f", "f"))
         self.assertIsNone(sweep.drop_decl(body, "h", "f"))
 
+    def test_stack_arrays(self):
+        body = "void f(void) {\n    f32 sp8;\n\n    g(&sp8);\n    h(sp8 + spC + sp10);\n}\n"
+        self.assertEqual(sweep.stack_arrays(body),
+                         "void f(void) {\n    f32 sp8[3];\n\n    g(sp8);\n    h(sp8[0] + sp8[1] + sp8[2]);\n}\n")
+
+    def test_variadic_calls(self):
+        asm = "\taddi r3, r1, 0x8\n/* x */\tcrclr cr1eq\n/* y */\tbl sprintf\n\tbl g\n"
+        self.assertEqual(sweep.variadic_calls(asm), {"sprintf"})
+
+    def test_plain_type(self):
+        self.assertEqual(sweep.plain_type("struct nuvec_s* dest", True), "void *")
+        self.assertEqual(sweep.plain_type("const u16 n", True), "u16")
+        self.assertIsNone(sweep.plain_type("struct nuvec_s v", True))
+
+    def test_fix_prototypes(self):
+        body = ("s32 g(s32, s32);\ns32 sprintf(s32 *, s32);\nextern f32 lbl_K[];\n\n"
+                "void f(void) {\n    g(1, 2);\n    g(3);\n    sprintf(0, 1);\n    k(lbl_K);\n}\n")
+        old = sweep._PROTOS
+        sweep._PROTOS = {"g": ("s32", ["s32"]), "k": ("void", ["f32"])}
+        try:
+            out = sweep.fix_prototypes(body.replace("extern f32", "void k(f32);\nextern f32"), "f",
+                                       "\tcrclr cr1eq\n\tbl sprintf\n", "")
+        finally:
+            sweep._PROTOS = old
+        self.assertIn("s32 g(s32);\n", out)
+        self.assertIn("s32 sprintf();\n", out)
+        self.assertIn("    g(1);\n    g(3);\n", out)
+        self.assertIn("    k(lbl_K[0]);\n", out)
+
 
 if __name__ == "__main__":
     unittest.main()

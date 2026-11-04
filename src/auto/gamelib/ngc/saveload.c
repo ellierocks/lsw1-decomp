@@ -68,3 +68,125 @@ void fn_80042E28(void) {
         fn_800424F4();
     }
 }
+
+void OSReport(void *, ...);
+extern s32 lbl_80193898[];
+extern s32 lbl_8019389C[];
+extern s32 lbl_801938B0[];
+extern s32 lbl_801938C4[];
+extern s32 lbl_801938DC[];
+extern s32 lbl_801938F0[];
+extern s32 lbl_80193908[];
+extern s32 lbl_80193920[];
+extern s32 lbl_80193938[];
+extern s32 lbl_80193954[];
+extern s32 lbl_8019396C[];
+extern s32 lbl_80193988[];
+extern s32 lbl_8019399C[];
+extern s32 lbl_801939B0[];
+extern s32 lbl_801939C4[];
+extern s32 lbl_801939DC[];
+extern s32 lbl_801939F8[];
+extern s32 lbl_80193A18[];
+extern s32 lbl_80193A30[];
+extern s32 lbl_80193A4C[];
+extern s32 lbl_80193A64[];
+extern s32 lbl_80193A80[];
+extern s32 lbl_80193A9C[];
+extern s32 lbl_80193AB4[];
+extern s32 lbl_80193ACC[];
+extern s32 lbl_80193AE4[];
+extern s32 lbl_80193B00[];
+extern s32 lbl_80193B18[];
+extern s32 lbl_8040824C;
+extern s32 lbl_8040A434;
+
+void fn_80040E48(void) {
+    s32 *var_r4;
+
+    if ((s32) lbl_8040A434 != (s32) lbl_8040824C) {
+        var_r4 = lbl_80193898;
+        switch ((s32) lbl_8040A434) {               /* irregular */
+        case 1:
+            var_r4 = lbl_8019389C;
+            break;
+        case 2:
+            var_r4 = lbl_801938B0;
+            break;
+        case 3:
+            var_r4 = lbl_801938C4;
+            break;
+        case 4:
+            var_r4 = lbl_801938DC;
+            break;
+        case 5:
+            var_r4 = lbl_801938F0;
+            break;
+        case 6:
+            var_r4 = lbl_80193908;
+            break;
+        case 7:
+            var_r4 = lbl_80193920;
+            break;
+        case 8:
+            var_r4 = lbl_80193938;
+            break;
+        case 9:
+            var_r4 = lbl_80193954;
+            break;
+        case 10:
+            var_r4 = lbl_8019396C;
+            break;
+        case 11:
+            var_r4 = lbl_80193988;
+            break;
+        case 12:
+            var_r4 = lbl_8019399C;
+            break;
+        case 13:
+            var_r4 = lbl_801939B0;
+            break;
+        case 14:
+            var_r4 = lbl_801939C4;
+            break;
+        case 15:
+            var_r4 = lbl_801939DC;
+            break;
+        case 16:
+            var_r4 = lbl_801939F8;
+            break;
+        case 17:
+            var_r4 = lbl_80193A18;
+            break;
+        case 18:
+            var_r4 = lbl_80193A30;
+            break;
+        case 19:
+            var_r4 = lbl_80193A4C;
+            break;
+        case 20:
+            var_r4 = lbl_80193A64;
+            break;
+        case 21:
+            var_r4 = lbl_80193A80;
+            break;
+        case 22:
+            var_r4 = lbl_80193A9C;
+            break;
+        case 23:
+            var_r4 = lbl_80193AB4;
+            break;
+        case 24:
+            var_r4 = lbl_80193ACC;
+            break;
+        case 25:
+            var_r4 = lbl_80193AE4;
+            break;
+        case 26:
+            var_r4 = lbl_80193B00;
+            break;
+        }
+        OSReport(lbl_80193B18, var_r4);
+        lbl_8040824C = lbl_8040A434;
+    }
+}
