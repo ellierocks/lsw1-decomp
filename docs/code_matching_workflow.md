@@ -226,14 +226,27 @@ Output lands in `work/permute/NAME/output-*`. Minimise the change by hand, port 
 into the unit source and accept it only with `verify_fn.py NAME --build
 --strict-symbols`.
 
-Run anything that outlives the session with `tools/permute_long.sh [--unit NAME] SLOTS
-HOURS TARGET...` after `permute_setup.py` has made each directory; never `setsid` or
-`nohup`. It starts a transient `systemd-run --user` unit (default `lsw1-permute`) that
-holds a `sleep:idle` block inhibitor, so the session ending neither kills the queue nor
-lets the idle policy suspend the PC. `--dry-run` prints the command and queue. Stop it
-with `systemctl --user stop <unit>`; it records `work/permute/queue_targets.txt`,
-`queue.log` and `queue_summary.txt`. Watch with `tools/permwatch.py` (`--once` prints a
-snapshot; `--targets` overrides the queue). Review every improved output with
+Run anything that outlives the session with `tools/permute_long.sh [--unit NAME] [--total
+HOURS] SLOTS HOURS_PER_TARGET TARGET...`; never `setsid` or `nohup`. It starts a transient
+`systemd-run --user` unit (default `lsw1-permute`) that holds a `sleep:idle` block
+inhibitor, so the session ending neither kills the queue nor lets the idle policy suspend
+the PC. The targets go into a backlog (`work/permute/backlog.txt`, deduped, order kept) and
+the unit keeps `SLOTS` jobs running: whenever one ends (an early `--stop-on-zero` match, a
+timeout, a crash) it pops the next target, until the backlog is empty or `--total` hours
+have passed (each timeout is then capped by the time left). Size the backlog so early
+matches cannot drain it: `python3 tools/permute_backlog.py --slots S --hours H --per P`
+ranks near-miss candidates from `work/sweep/results.json` (optionally `--index` from
+`worktree_cleanup.py`; matched and output-0 functions are dropped) and prints the
+recommended size (at least 2 x S x H / P) on stderr. A missing `work/permute/NAME` is
+created by the queue; a failed setup or job is logged (`skip NAME setup-failed`, `finish
+NAME rc=N base=B best=S secs=T` in `queue.log`) and the queue moves on. Targets that
+already have an `output-0*` are skipped as matched unless `--rerun`. `--add TARGET...`
+appends to the running unit's backlog (exit 1 if it is not running). `--dry-run` prints the
+command and queue. `systemctl --user stop <unit>` stops the jobs, writes
+`queue_summary.txt` (matched, improved, unchanged, failed, not started) and keeps the
+unstarted targets in the backlog; launching again with no TARGET continues from it.
+Watch with `tools/permwatch.py` (`--once` prints a snapshot; `--targets` overrides the
+queue). Review every improved output with
 `tools/permute_review.py NAME [OUTPUT_DIR]` (default: best score). It diffs `source.c`
 against `base.c`: the normalised target body, every changed top-level declaration
 (prototype return types, extern types, structs, typedefs) and flags for `void *`
