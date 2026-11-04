@@ -4045,3 +4045,124 @@ f32 Condition_FurthestPlayerDistanceAlongSock(void)
     }
     return 0.0f;
 }
+
+extern void fn_80107A6C(void *, s32);
+
+s32 Action_ActivateGadget(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    void *obstacle = 0;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++)
+            obstacle = ((void *(*)(void *, char *))FindObstacle)(lbl_80409410, params[i]);
+        if (obstacle != 0)
+            fn_80107A6C(obstacle, 0);
+    }
+    return 1;
+}
+
+extern void fn_80108930(void *, s32, s32);
+
+s32 Action_EndLoopingAnimation(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char *name = 0;
+    void *obstacle;
+    s32 i;
+
+    if (firstTime != 0 && count != 0) {
+        for (i = 0; i < count; i++)
+            name = params[i];
+        if (name != 0 && (obstacle = ((void *(*)(void *, char *))FindObstacle)(lbl_80409410, name)) != 0)
+            fn_80108930(obstacle, 0, 0);
+    }
+    return 1;
+}
+
+f32 Condition_PlayerOnDoorTrigger(void *sys, void *process, void *packet, char *param, u8 *door)
+{
+    s32 i;
+
+    if (door != 0) {
+        for (i = 0; i < door[6]; i++) {
+            if (*(u8 **)(((u8 **)(door + 0x14))[i] + 0xa0) == lbl_80409004)
+                return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+f32 Condition_Side(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param, s32 side)
+{
+    u8 *c;
+
+    if (packet != 0 && (c = (u8 *)packet->owner) != 0) {
+        if (side == 1) {
+            if (*(u32 *)(c + 0x208) & 5)
+                return 0.0f;
+            return 1.0f;
+        }
+        if (side == -1) {
+            if (*(u32 *)(c + 0x208) & 1)
+                return 1.0f;
+        } else if (side == 0) {
+            if (*(u32 *)(c + 0x208) & 4)
+                return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+f32 Condition_EitherPlayerOnDoorTrigger(void *sys, void *process, void *packet, char *param, u8 *door)
+{
+    u8 *who;
+    s32 i;
+
+    if (door != 0) {
+        for (i = 0; i < door[6]; i++) {
+            who = *(u8 **)(((u8 **)(door + 0x14))[i] + 0xa0);
+            if (who == lbl_80409004)
+                return 1.0f;
+            if (lbl_80409008 != 0 && who == lbl_80409008)
+                return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+struct gameaiscript_iama_s {
+    u8 unk0[0xc];
+    char *name;
+    u8 unk10[0x38];
+};
+extern struct gameaiscript_iama_s lbl_801D2DD0[];
+
+s32 Condition_IAmAInit(void *process, char *param)
+{
+    s32 i;
+
+    if (param != 0 && process != 0) {
+        for (i = 0; i <= 0x84; i++) {
+            if (NuStrICmp(lbl_801D2DD0[i].name, param) == 0)
+                return i;
+        }
+    }
+    return -1;
+}
+
+struct gameaiscript_level_s {
+    u8 unk0[0x1d0];
+    u32 beenTo : 1;
+    u32 unk1d0 : 31;
+    u8 unk1d4[4];
+};
+extern struct gameaiscript_level_s lbl_803EB190[];
+
+f32 Condition_BeenToLevel(void *sys, void *process, void *packet, char *param, s32 level)
+{
+    if (level != -1)
+        return lbl_803EB190[level].beenTo;
+    return 0.0f;
+}
