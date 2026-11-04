@@ -1983,5 +1983,7 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 The full-unit command is expected to fail until the above blockers are resolved;
 run `verify_fn.py --strict-symbols` individually for the table entries. At parking,
 `bash build.sh` and the linked-image comparison pass with **zero differing bytes**
-across the whole image. Local experimental variants and detailed logs remain in
+across the whole image. After integrating the SN runtime and BSS policy changes
+from main, all 18 strict checks still pass, as do 366 portable tests (two skipped),
+configuration, map generation and shell syntax checks. Local experimental variants and detailed logs remain in
 ignored `work/hvqm4/`; the source and this handoff retain the reviewable result.
