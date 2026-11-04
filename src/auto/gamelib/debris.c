@@ -225,3 +225,13 @@ void fn_80064830(s32 arg0, f32 farg0, f32 farg1, f32 farg2)
     *((f32 *) (((s8 *) temp_r11) + 0x118)) = farg2;
   }
 }
+
+void GenDebMomAdjFromPos(s32 pad0, s32 pad1, void *arg2) {
+    (*(f32 *)((s8 *)(arg2) + (0x10))) = (f32) (2.0f * (*(f32 *)((s8 *)(arg2) + (0))));
+    (*(f32 *)((s8 *)(arg2) + (0x18))) = (f32) (2.0f * (*(f32 *)((s8 *)(arg2) + (8))));
+}
+
+void GenDebMomAdjFromPosRev(s32 pad0, s32 pad1, void *arg2) {
+    (*(f32 *)((s8 *)(arg2) + (0x10))) = (f32) -(*(f32 *)((s8 *)(arg2) + (0)));
+    (*(f32 *)((s8 *)(arg2) + (0x18))) = (f32) -(*(f32 *)((s8 *)(arg2) + (8)));
+}

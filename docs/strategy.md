@@ -125,7 +125,9 @@ failure modes from the earlier multi-unit batches are in
 target with m2c, strict-scores each draft and writes the matches into their units.
 m2c reads the preprocessed unit source as `--context`, so typed headers type the drafts;
 each target keeps the better of its typed and untyped drafts, and drafts at 80% exact or
-better also try the [store-in-arms and const `.rodata` rewrites](code_matching_workflow.md#measure-and-iterate). The
+better also try the [store-in-arms and const `.rodata` rewrites](code_matching_workflow.md#measure-and-iterate).
+Each draft is also scored with its signature padded to the argument registers m2c
+numbered (`arg2` alone becomes `s32 pad0, s32 pad1, ... arg2`), keeping the better. The
 first sweep matched 183 functions (13,608 verified bytes) in under ten minutes of wall
 time, more than any agent sprint so far. Check its output with `bash build.sh` and
 `verify_fn.py --strict-symbols` on each applied function. Everything that did not match is

@@ -2404,3 +2404,14 @@ f32 Condition_HintComplete(void *sys, void *process, void *packet, char *name, v
         return lbl_801AEB40[0];
     return lbl_801AEB44[0];
 }
+
+s32 fn_800AFF58(s32 *);
+
+s32 Action_ResetGameCamera(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime)
+{
+    if (firstTime != 0) {
+        fn_800AFF58(MenuHeader);
+    }
+    return 1;
+}

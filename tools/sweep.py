@@ -14,7 +14,9 @@ retried without m2c's declaration. No model or agent is involved.
 m2c also reads the unit source, preprocessed, as `--context`: its structs, globals and
 prototypes (including the unit's headers) type the draft's field accesses and calls. Each
 target is drafted with and without that context and the better-scoring draft is kept, so
-typing a header can only raise the sweep's yield.
+typing a header can only raise the sweep's yield. m2c declares only the arguments a
+function reads, so each draft is also scored with its signature padded to the registers
+those arguments arrive in (`pad_signature`), keeping the better score.
 
 `--apply` writes strict MATCHes into their unit sources one at a time, re-scoring each
 against the updated file with `score_fn.py --apply`; run `bash build.sh` and
@@ -218,6 +220,37 @@ def both_rewrites(body: str) -> str:
 VARIANTS = (store_in_arms, const_rodata, both_rewrites)
 
 
+# m2c declares only the arguments a function reads, named by register: GPR `argN` is
+# r(N+3) and FPR `fargN` is f(N+1), numbered independently because the PPC EABI assigns
+# int and float arguments from separate register files. `f(void *arg2)` compiled as
+# written takes its value in r3, so pad each sequence from 0 with placeholders.
+PARAM = re.compile(r"^(?P<decl>.*?\b(?P<kind>f?arg)(?P<n>\d+))$")
+
+
+def pad_signature(body: str, name: str) -> str:
+    """BODY with NAME's parameter list padded to arg0..argN and farg0..fargN."""
+    m = re.search(rf"^(\w[^\n;(]*?\b{re.escape(name)})\(([^)]*)\)(\s*\{{)", body, flags=re.M)
+    if not m or m[2].strip() in ("", "void"):
+        return body
+    regs: dict[str, dict[int, str]] = {"arg": {}, "farg": {}}
+    for param in (p.strip() for p in m[2].split(",")):
+        pm = PARAM.match(param)
+        # A 64-bit integer takes an aligned GPR pair; stack and variadic args do not pad.
+        if not pm or re.search(r"\b(?:s64|u64|long long)\b", pm["decl"]):
+            return body
+        regs[pm["kind"]][int(pm["n"])] = param
+    if regs["arg"] and max(regs["arg"]) > 7 or regs["farg"] and max(regs["farg"]) > 7:
+        return body
+    params = []
+    for kind, pad in (("arg", "s32 pad"), ("farg", "f32 fpad")):
+        if regs[kind]:
+            params += [regs[kind].get(i, f"{pad}{i}") for i in range(max(regs[kind]) + 1)]
+    new = ", ".join(params)
+    if new == m[2].strip():
+        return body
+    return body[:m.start(2)] + new + body[m.end(2):]
+
+
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
                       r"previous declaration of [`'‘](\w+)")
 
@@ -274,6 +307,11 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, body)
+            padded = pad_signature(body, name)
+            if padded != body:
+                pad_res, padded = score_draft(name, source, padded)
+                if better(pad_res, res):
+                    res, body = {**pad_res, "padded": True}, padded
             res["context"] = context is not None
             res, body = try_variants(name, source, res, body)
         if best is None or better(res, best[0]):

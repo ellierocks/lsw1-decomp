@@ -149,7 +149,10 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   the value in `r3` instead of `r5`. Write the full handler signature, e.g.
   `(sys, process, packet, params, count, firstTime, time)` for script actions or
   `(sys, process, packet, name, data)` for conditions. In `auto/game/gameaiscript`
-  this alone matched 51 drafts.
+  this alone matched 51 drafts. `tools/sweep.py` now pads every draft's signature this
+  way (`s32 padI` for missing `argI`, `f32 fpadI` for missing `fargI`; GPR and FPR
+  arguments are numbered separately) and keeps the better score. Rename the placeholders
+  when the calling convention is known.
 - An out-parameter whose address is passed to several calls is kept in a callee-saved
   register when it is a 4- or 8-byte scalar. Declared at its real size (the 12-byte
   `NuSpecialFind` result), `addi rN, r1, 8` is recomputed before each call instead
