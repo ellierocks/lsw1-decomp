@@ -4471,3 +4471,109 @@ done:
         return 1.0f;
     return 0.0f;
 }
+
+struct gameaiscript_vec3_s { f32 x, y, z; };
+extern s32 NuAngSub(s32, s32);
+
+f32 Condition_MaulShouldRunAway(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param)
+{
+    struct gameaiscript_vec3_s pos = {5.5f, 0.0f, 3.65f};
+    struct gameaiscript_vec3_s d;
+    u8 *o;
+    s32 i;
+    u8 *pl;
+    s32 ang;
+
+    o = *(u8 **)((u8 *)packet + 0x50);
+    if (o != 0) {
+        d.x = *(f32 *)(o + 0x90) - pos.x;
+        d.z = *(f32 *)(o + 0x98) - pos.z;
+        ang = fn_8000ABDC(d.x, d.z);
+        for (i = 0; i < 2; i++) {
+            pl = gPlayer1Pointer[i];
+            if (pl != 0 && *(s32 *)(pl + 0x20c) < 0) {
+                d.x = *(f32 *)(pl + 0x90) - pos.x;
+                d.z = *(f32 *)(pl + 0x98) - pos.z;
+                if (d.x * d.x + d.z * d.z < 25.0f
+                    && NuAngSub(fn_8000ABDC(d.x, d.z), ang) <= 0xe37)
+                    return 1.0f;
+            }
+        }
+    }
+    return 0.0f;
+}
+
+s32 Action_SetNearestSpline(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char name[64];
+    f32 best = 900.0f;
+    u8 *bestSpline = 0;
+    s32 looping = 0;
+    u8 *o;
+    u8 *sp;
+    f32 *pt;
+    f32 dx, dz, d;
+    s32 i;
+
+    if (packet == 0 || packet->owner == 0 || (o = packet->owner->object) == 0)
+        return 1;
+    for (i = 1; i < count; i++) {
+        if (NuStrIStr(params[i], str_ScriptFlag_Looping) != 0)
+            looping = 1;
+    }
+    for (i = 0; i <= 9; i++) {
+        sprintf(name, str_Format_StringTwoDigits, params[0], i);
+        sp = NuSplineFind(*(void **)((u8 *)lbl_80409410 + 0x1c0), name);
+        if (sp != 0) {
+            pt = *(f32 **)(sp + 8);
+            dx = *(f32 *)(o + 0x6c) - pt[0];
+            dz = *(f32 *)(o + 0x74) - pt[2];
+            d = dx * dx + dz * dz;
+            if (d < best) {
+                bestSpline = sp;
+                best = d;
+            }
+        }
+    }
+    if (bestSpline != 0) {
+        InitSplinePosition(o + 0x69c, bestSpline, looping, 0.0f);
+        return 0;
+    }
+    return 1;
+}
+
+extern void *lbl_80408F74;
+extern s32 FindGameDebris(void *, char *);
+extern void fn_80063E14(s32 *, void *, void *, s32);
+
+s32 Action_MakeExplosion(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    s32 handle = -1;
+    struct gameaiscript_vec_s v = { 3.4028235e38f, 3.4028235e38f, 3.4028235e38f };
+    s32 type = 0x1f;
+    u8 *obj = 0;
+    char *p;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+        obj = packet->owner->object;
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_XEq)) != 0)
+                v.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_YEq)) != 0)
+                v.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_ZEq)) != 0)
+                v.z = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Type)) != 0)
+                type = FindGameDebris(lbl_80408F74, p + 5);
+        }
+        if (v.x != 3.4028235e38f && v.y != 3.4028235e38f && v.z != 3.4028235e38f)
+            fn_80063E14(&handle, *(void **)(*(u8 **)(*(u8 **)((u8 *)lbl_80409410 + 0x1b8) + 8) + type * 0x14), &v, 1);
+        else if (obj != 0)
+            fn_80063E14(&handle, *(void **)(*(u8 **)(*(u8 **)((u8 *)lbl_80409410 + 0x1b8) + 8) + type * 0x14), obj + 0x90, 1);
+    }
+    return 1;
+}
