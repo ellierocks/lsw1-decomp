@@ -153,7 +153,15 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
 - Loads scheduled early come from operands preloaded into locals before a branch
   (`fn_800EA4B4`'s lerp operands before the clamp).
 - Retail store order is sometimes reversed: `v[1]` before `v[0]` (`fn_801042D4`),
-  `s[2], s[1], s[0]` (`fn_80103F84`). Write the stores in target order.
+  `s[2], s[1], s[0]` (`fn_80103F84`). Write the stores in target order. Two adjacent
+  independent stores can also come out in the opposite order to the source
+  (`fn_800ABC50`, `fn_800D5530`); the sweep's `swap_stores` variant tries each swap.
+- An empty function whose target still opens a frame (`stwu r1, -N(r1)`, `addi`, `blr`)
+  has an unused volatile local: `volatile s32 pad[(N - 8) / 4];` (`fn_800BA740`; the
+  sweep's `empty_frame` repair).
+- `mulli` + `add` + `lha 0x14(rN)` (or `addi` + `lbzx`) is a struct-array or member-array
+  access, `((Frame *)base)[i].field`; raw `base + i*K + off` arithmetic folds the offset
+  into the address instead (`fn_800B2ED4`, `fn_80108DA8`).
 - A global accessed directly, not through a local pointer, gives CSE'd base+offset
   address constants (`fn_8010439C`). An indexed `p[0xD8 + i*0x34]` instead of a walking
   pointer fixes the induction setup (`fn_80106128`).
