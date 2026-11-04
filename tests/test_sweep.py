@@ -46,13 +46,13 @@ class SweepRewriteTest(unittest.TestCase):
         asm = ("\tfcmpu cr0, f0, f31\n\tcror un, eq, lt\n\tbns .L_1\n"
                "\tfcmpu cr0, f1, f2\n\tcror un, eq, gt\n\tbsolr\n")
         out = sweep.fold_cror(asm)
-        self.assertNotIn("cror", out)
-        self.assertIn("\tbgt .L_1\n", out)
-        self.assertIn("\tbgelr\n", out)
+        self.assertIn("cror cr0un, cr0eq, cr0lt", out)
+        self.assertIn("\tbns .L_1\n", out)
+        self.assertIn("\tbsolr\n", out)
 
     def test_fold_cror_leaves_other_patterns(self):
         asm = "\tcror un, eq, lt\n\tmfcr r0\n\tbns .L_1\n"
-        self.assertEqual(sweep.fold_cror(asm), asm)
+        self.assertEqual(sweep.fold_cror(asm), asm.replace("un, eq, lt", "cr0un, cr0eq, cr0lt"))
 
     def test_type_derefs(self):
         out = sweep.type_derefs("x = *(a + 4); y = (*(s32 *)(b)); z = a * (b);")

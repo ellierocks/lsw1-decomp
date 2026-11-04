@@ -139,3 +139,38 @@ class HillclimbTests(unittest.TestCase):
             with mock.patch.object(packs, 'ASM_FILE', root / 'missing.s'):
                 self.assertEqual(packs.extract_asm(0x80000000, 4, 'Foo'),
                                  '.fn Foo, global\nblr\n.endfn Foo\n')
+
+class CandidateRecordingTests(unittest.TestCase):
+    def test_unapplied_candidates_compile_and_snapshot_the_selected_unit(self):
+        from tools import verify_fn
+        for mode in ('--body', '--candidate'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                source = root / 'src/unit.c'
+                source.parent.mkdir()
+                original = 'int foo(void) { return 1; }\n'
+                candidate = 'int foo(void) { return 2; }\n'
+                source.write_text(original)
+                (root / 'scratch.c').write_text(candidate)
+                for name in ('configure.py', 'tools/prodg_cc.py', 'tools/verify_fn.py',
+                             'config/GL5E4F/symbols.txt', 'config/GL5E4F/splits.txt'):
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text('fixture')
+                no_hit = dict(result='no-name-hit', revision='r1', matches=[])
+                proc = subprocess.CompletedProcess([], 1, json.dumps(report()), '')
+                with mock.patch.object(hc, 'ROOT', root), \
+                     mock.patch.object(hc.opensaga, 'lookup', return_value=no_hit), \
+                     mock.patch.object(verify_fn, 'source_for_unit', return_value=source), \
+                     mock.patch.object(hc.subprocess, 'run', return_value=proc) as run, \
+                     mock.patch.object(hc.subprocess, 'check_output', return_value='head\n'), \
+                     mock.patch('builtins.print'):
+                    self.assertEqual(hc.main(['try', 'foo', '--unit', 'unit', mode, 'scratch.c',
+                                              '--hypothesis', 'unapplied experiment']), 1)
+                command = run.call_args.args[0]
+                self.assertIn(str(root / 'tools/score_fn.py'), command)
+                self.assertEqual('--body' in command, mode == '--body')
+                record = json.loads(next((root / 'work/hillclimb').glob('*/*.json')).read_text())
+                self.assertEqual(record['sources']['src/unit.c']['text'].strip(), candidate.strip())
+                self.assertEqual(source.read_text(), original)
+                self.assertIsNotNone(record['score'])

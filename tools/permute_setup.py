@@ -233,7 +233,7 @@ def base_score(out: Path) -> dict:
     if r.returncode:
         raise vf.ToolError(f"{base.name} does not compile:\n{(r.stdout + r.stderr)[-1500:]}")
     meta = json.loads((out / "permute.json").read_text())
-    args = [meta["name"], str(base), "--json"]
+    args = [meta["name"], str(base), "--json", "--no-queue"]
     if meta.get("compiled_symbol"):
         args += ["--compiled-symbol", meta["compiled_symbol"]]
     r = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), *args],

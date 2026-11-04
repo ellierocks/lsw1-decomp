@@ -23,7 +23,8 @@ new function never needs a placeholder or a cleanup pass after a plateau:
 
 During a timed sprint (`work/sprint_timing.json` active) the result line ends
 with the measured active seconds (idle gaps over 15 min are not counted). With a sprint
-baseline, any scored function is added to the saved queue if absent. A mismatch at 95% exact or better also prints
+baseline, any scored function is added to the saved queue if absent, unless
+`--no-queue` is passed for an automatic scan. A mismatch at 95% exact or better also prints
 NEAR MISS: those are finished with targeted changes, not parked on attempt count.
 
 `--json` prints
@@ -125,6 +126,16 @@ def note_queue(name: str, baseline: Path = ROOT / "work" / "sprint_baseline.json
         print(f"queue: added {name} to the sprint queue", file=sys.stderr)
 
 
+def splice_body(text: str, name: str, body: str) -> str:
+    from variant_search import VariantError, find_function
+    body = body.strip("\n")
+    try:
+        fn = find_function(text, name)
+        return fn.before + body + fn.tail[1:]
+    except VariantError:
+        return text.rstrip("\n") + "\n\n" + body + "\n"
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -141,6 +152,8 @@ def main(argv=None) -> int:
     ap.add_argument("--compile-only", action="store_true", help="only compile (needs -o)")
     ap.add_argument("-o", type=Path, help="keep the object here")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--no-queue", action="store_true",
+                    help="score an automatic scan without adding to the selected sprint queue")
     ap.add_argument("--body", type=Path, metavar="FILE",
                     help="score FILE (a full definition of NAME, plus any new externs above it) in place of "
                          "NAME's definition in SOURCE; SOURCE itself is not edited unless --apply")
@@ -177,15 +190,8 @@ def main(argv=None) -> int:
         source = args.source.resolve()
         replaced = None
         if args.body:
-            from variant_search import VariantError, find_function
-            text = source.read_text()
-            body = args.body.read_text().strip("\n")
-            try:
-                fn = find_function(text, args.compiled_symbol or args.name)
-                replaced = fn.before + body + fn.tail[1:]
-            except VariantError:
-                # New function: append it, keeping one blank line before it.
-                replaced = text.rstrip("\n") + "\n\n" + body + "\n"
+            replaced = splice_body(source.read_text(), args.compiled_symbol or args.name,
+                                   args.body.read_text())
             source = Path(tmp) / source.name
             source.write_text(replaced)
         err = compile_source(source, obj, args.compiler, extra,
@@ -216,7 +222,8 @@ def main(argv=None) -> int:
         print(f"error: {rep.get('error')}", file=sys.stderr)
         return code
     rep["score"] = score(rep)
-    note_queue(args.name)
+    if not args.no_queue:
+        note_queue(args.name)
     if args.json:
         print(json.dumps(rep, indent=2))
         return code

@@ -65,7 +65,11 @@ def main(argv=None):
     ap.add_argument('action', choices=['try', 'status'])
     ap.add_argument('function')
     ap.add_argument('--unit', required=True, help='configured comparison unit, e.g. numath/nuvec')
-    ap.add_argument('--source', action='append', default=[], help='snapshot each edited source/header')
+    ap.add_argument('--source', action='append', default=[],
+                    help='snapshot an edited source/header; does not select what is compiled')
+    candidate = ap.add_mutually_exclusive_group()
+    candidate.add_argument('--candidate', type=Path, help='compile this full candidate unit without editing SOURCE')
+    candidate.add_argument('--body', type=Path, help='score this function body in the configured unit without editing it')
     ap.add_argument('--hypothesis', help='one concrete source/codegen hypothesis')
     ap.add_argument('--donor-note', help='reviewed OpenSaga paths, GC-confirmed facts, rejected differences or lookup limit')
     ap.add_argument('--compiled-symbol')
@@ -81,8 +85,8 @@ def main(argv=None):
                 'compiled_symbol': args.compiled_symbol}
     key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:20]
     directory = ROOT / args.ledger / key
-    if args.action == 'try' and (not args.source or not args.hypothesis):
-        ap.error('try requires --source and --hypothesis')
+    if args.action == 'try' and (not (args.source or args.candidate or args.body) or not args.hypothesis):
+        ap.error('try requires --source, --candidate or --body, and --hypothesis')
     directory.mkdir(parents=True, exist_ok=True)
     try:
         with lock(directory):
@@ -126,6 +130,25 @@ def main(argv=None):
                                           'text': data.decode()}
             command = [sys.executable, str(ROOT / 'tools/verify_fn.py'), args.function,
                        '--unit', args.unit, '--build', '--strict-symbols', '--json']
+            if args.candidate or args.body:
+                try:
+                    from . import verify_fn as vf, score_fn
+                except ImportError:
+                    import verify_fn as vf, score_fn
+                unit_source = vf.source_for_unit(args.unit)
+                if unit_source is None or unit_source.suffix != '.c':
+                    ap.error('candidate scoring needs a configured C unit')
+                path = (ROOT / (args.candidate or args.body)).resolve()
+                candidate_text = path.read_text()
+                text = (score_fn.splice_body(unit_source.read_text(),
+                        args.compiled_symbol or args.function, candidate_text)
+                        if args.body else candidate_text)
+                relative = str(unit_source.relative_to(ROOT))
+                sources[relative] = {'sha256': hashlib.sha256(text.encode()).hexdigest(), 'text': text}
+                command = [sys.executable, str(ROOT / 'tools/score_fn.py'), args.function,
+                           str(unit_source if args.body else path), '--json']
+                if args.body:
+                    command += ['--body', str(path)]
             if args.compiled_symbol:
                 command += ['--compiled-symbol', args.compiled_symbol]
             try:

@@ -26,6 +26,10 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
   biggest near-misses. Then pick the unit with
   the most near-miss bytes in `work/sweep/results.json` (size × exact ratio, 90% exact or
   better first). Each queued function's starting draft is `work/sweep/NAME/sweep_draft.c`.
+  Automatic sweep and permuter base scoring pass `score_fn.py --no-queue`, so they
+  do not add outside targets to an existing sprint queue. Interactive scoring still
+  adds targets; use `--no-queue` explicitly for exploratory scans.
+
 - **One unit per sprint.** Pick it from the sweep ranking or `next_target.py --by-unit`, then list the unit's
   ready functions with `--unit UNIT --limit 40`. Work them in waves of about 10, related
   families first. Choose a related family of functions inside one unit.
@@ -33,7 +37,7 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
   pair, setters, loop-per-parameter actions) beat unrelated bodies: draft one, then reuse
   its structure. Aim for 0x100 to 0x300 bytes per function; tiny accessors add few bytes
   and large unique bodies tend to plateau.
-- **Check active sprints first.** Run `git fetch` first. `--by-unit` then skips units owned by an open
+- **Check active sprints first.** Run `python3 tools/git_origin.py fetch origin` first. `--by-unit` then skips units owned by an open
   `t3/sprint-*` PR (asked through `gh`; `--no-remote` turns that off) or by any local or
   `origin` sprint branch not yet merged into `origin/main`. That covers a sprint that has
   been pushed but has no PR yet. Units are ranked by bytes in their first ten ready targets;
@@ -114,7 +118,8 @@ unfinished with `--deferred FN ...`; they stay distinct from measured `--parked`
 plateaus. This is bracketed wall time, not CPU time or inferred human attention.
 Forgotten pauses invalidate efficiency claims, and an interrupted run resumes its existing
 timer. Missing historical measurements remain unknown. `sprint_finish.py` gives every
-`git fetch` a 60-second timeout. If `--baseline` cannot fetch, it warns and checks
+`git fetch` a 60-second timeout and retries GitHub SSH public-key failures through
+the current `gh` login. If `--baseline` cannot fetch, it warns and checks
 freshness against the last fetched `origin/main`.
 
 ### Provider usage and cost
