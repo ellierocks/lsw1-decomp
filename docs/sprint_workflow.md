@@ -55,7 +55,8 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
    queue in the first message of the thread.
 3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline --queue FN1 FN2 ...`
    to record the objdiff figures, the strict-only count and the DOL hash. It refuses to run
-   when the checkout is behind `origin/main`; rebase first so the docs and tools are current.
+   when the checkout is behind `origin/main`; update first (merge, or rebase while nothing is
+   pushed) so the docs and tools are current.
 
 Reuse the checkout's toolchain and build. Bootstrap only if prerequisites are missing;
 for matching setup use `LSW1_NO_GHIDRA=1 bash tools/bootstrap.sh` and request Ghidra
@@ -82,10 +83,14 @@ and the "Failure modes" bullets in [batch history](phase3_batches.md).
 
 Active time is **measured, not budgeted**. Start the timer with
 `python3 tools/sprint_finish.py --phase setup`, switch phases as work changes, and use
-`--phase paused` during user and CI waits. Every `score_fn.py` result line ends with
-`[active Ns]` while the timer runs. The finish record reports setup, matching, tooling
-and finish seconds beside the verified byte gain, so throughput can be compared across
-runs. Time never decides whether to keep working on a function; the per-function limits
+`--phase paused` for user waits, CI, rate limits and long unattended runs (permuter queues).
+Every `score_fn.py` result line ends with `[active Ns]` while the timer runs. Each tool run
+counts as an activity event, and a gap between events adds to active time only up to the
+**idle cap** (15 min; `--idle-cap SECONDS` or `LSW1_IDLE_CAP`), so a stall nobody paused,
+such as a rate limit or a suspended machine, cannot inflate the figure (#65 recorded
+27.6 h of "matching" across a 10 h rate-limit stall and a 9 h suspend). The finish record
+reports setup, matching, tooling and finish seconds, the wall-clock total and the idle
+seconds excluded, beside the verified byte gain, so throughput can be compared across runs. Time never decides whether to keep working on a function; the per-function limits
 below do.
 
 This replaces the 600-second budget used in
@@ -126,7 +131,12 @@ partial imports are labeled as covering imported runs only.
 
 Report verified byte gain beside measured active time and usage coverage. Do not project
 whole-project completion from one easy-function run. For an existing baseline without
-a queue, supply the full `--queue` at finish.
+a queue, supply the full `--queue` at finish (repeated names are ignored).
+
+The queue follows the work: when a baseline exists, `score_fn.py` adds any function it
+scores to the saved queue, so waves refreshed from `next_target.py` need no bookkeeping.
+`sprint_finish.py --queue-add FN...` adds functions by hand. Finish still rejects queue
+entries that are neither matched, parked nor deferred.
 
 ## Per-function budget
 
@@ -184,14 +194,27 @@ stops take precedence; report partial results honestly rather than claiming comp
 
 Do not start a second unit in the same thread; open the next sprint as a new thread.
 
+**End the thread after about 5 waves, or once a wave yields fewer than about 6 functions.**
+Open the next sprint as a fresh thread with the saved queue and notes instead of compacting
+a long one: token cost per function rises with context.
+
+**Between waves**, send near-misses at 95% exact or better to an unattended permuter queue
+(`tools/permute_long.sh`) rather than grinding them interactively, and pause the timer
+(`--phase paused`) while it runs. Read the result with the whole diff, not only the function
+body: compare prototypes and externs too. In #65 the `fn_800FC5C0` fix was `fn_80095558`
+returning `void`, not a change to the body.
+
 ## Finish (one pass)
 
 ```sh
-python3 tools/sprint_finish.py FN1 FN2 ... --unit UNIT --rebase \
+python3 tools/sprint_finish.py FN1 FN2 ... --unit UNIT --merge \
   --parked "FN3=41/51: <mismatch>; next: <hypothesis>"
 ```
 
-Commit first. The script rebases, runs `bash build.sh` once, strict-verifies each function
+Commit first. Use `--merge` once the branch is pushed (it fetches, merges `origin/main` and
+aborts cleanly on a conflict). `--rebase` is only for a branch with nothing pushed yet; it
+refuses when any commit it would rewrite is already on the remote, because that needs a
+force push. The script merges or rebases, runs `bash build.sh` once, strict-verifies each function
 against that build, runs `git diff --check origin/main`, compares the DOL hash and the
 report with the kickoff baseline, and prints the record below with only Donor and Headers
 left to fill in. It exits non-zero on any failure.
@@ -204,8 +227,8 @@ that figure, not an adjusted objdiff total. In a unit with a `.rodata` range
 the unit's literals sit at retail offsets. An `extern lbl_` reference already matches by name.
 To promote the unit, its C must emit every literal in the range, strings included, in retail order.
 
-Rebase once, at the end. If main moved, the report delta includes main's changes; say so
-in the PR rather than building a separate baseline worktree. Run `verify_unit.py UNIT
+Bring in main once, at the end. If main moved, the report delta includes main's changes;
+record "includes main drift: yes" in the PR rather than building a separate baseline worktree. Run `verify_unit.py UNIT
 --build` only when every function in the unit matches, then promote if it passes.
 
 ## Records

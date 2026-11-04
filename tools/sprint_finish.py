@@ -3,7 +3,9 @@
 
     python3 tools/sprint_finish.py --baseline            # at kickoff, after bash build.sh
     python3 tools/sprint_finish.py FN1 FN2 ... [--parked "FN3=41/51: mismatch; next: idea"]
-    python3 tools/sprint_finish.py FN1 FN2 --rebase      # fetch and rebase onto origin/main first
+    python3 tools/sprint_finish.py FN1 FN2 --merge       # fetch and merge origin/main (pushed branch)
+    python3 tools/sprint_finish.py FN1 FN2 --rebase      # rebase; refused once commits are pushed
+    python3 tools/sprint_finish.py --queue-add FN...     # add functions to the saved queue
 
 `--baseline` fetches origin and refuses to run when HEAD is behind origin/main, so a sprint never
 starts from stale docs or tools. It then saves the objdiff figures, strict-only count and DOL hash to
@@ -77,8 +79,9 @@ def verify(name: str) -> bool:
 
 
 def validate_queue(queue: list[str], matched: list[str], parked: list[str], deferred=None) -> None:
-    if not queue or len(queue) != len(set(queue)):
-        raise ValueError("supply the complete, unique sprint queue with --queue (or save it at --baseline)")
+    queue = metrics.dedupe(queue)
+    if not queue:
+        raise ValueError("supply the complete sprint queue with --queue (or save it at --baseline)")
     deferred = deferred or []
     names = list(matched) + deferred
     for row in parked:
@@ -96,26 +99,60 @@ def validate_queue(queue: list[str], matched: list[str], parked: list[str], defe
                          "context pressure requires a continuation, not an incomplete finish")
 
 
-def phase(path: Path, name: str, now: float | None = None) -> dict:
-    now = time.time() if now is None else now
-    state = json.loads(path.read_text()) if path.exists() else {"seconds": {}}
-    if "active" in state and state["active"] != "paused":
-        elapsed = now - state["since"]
-        if elapsed < 0:
-            raise ValueError("clock moved backwards; retain the timing file and correct the clock")
-        key = state["active"]
-        state["seconds"][key] = state["seconds"].get(key, 0) + elapsed
-    state.update(active=name, since=now)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(state, indent=2) + "\n")
-    return state
+def phase(path: Path, name: str, now: float | None = None, cap: float | None = None) -> dict:
+    """Switch the timer phase. Time since the last activity event counts as active only up to
+    the idle cap; `paused` stops the clock. Wall-clock is kept beside it."""
+    return metrics.switch_phase(path, name, now, cap)
+
+
+def pushed_commits(base_ref: str = "origin/main") -> list[str]:
+    """Commits that `git rebase base_ref` would rewrite and that are already on a remote ref."""
+    upstream = run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])
+    refs = [upstream.stdout.strip()] if upstream.returncode == 0 else []
+    branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
+    if branch and branch != "HEAD":
+        refs.append(f"origin/{branch}")
+    mine = set(run(["git", "rev-list", f"{base_ref}..HEAD"]).stdout.split())
+    pushed: set[str] = set()
+    for ref in dict.fromkeys(refs):
+        if ref == base_ref or run(["git", "rev-parse", "--verify", "-q", ref]).returncode:
+            continue
+        pushed |= mine & set(run(["git", "rev-list", f"{base_ref}..{ref}"]).stdout.split())
+    return sorted(pushed)
+
+
+def rebase_refusal(commits: list[str]) -> str | None:
+    """Message refusing a rebase of already-pushed commits, or None when it is safe."""
+    if not commits:
+        return None
+    return (f"error: {len(commits)} commit(s) to rebase are already on the remote branch "
+            f"({', '.join(c[:8] for c in commits[:5])}); rebasing needs a force push, which "
+            "rewrites pushed history. Use --merge to bring in origin/main instead")
+
+
+def merge_main() -> tuple[bool, str]:
+    """Fetch and merge origin/main; abort cleanly on conflict. Returns (ok, message)."""
+    if not fetch():
+        return False, "git fetch failed or timed out"
+    merged = run(["git", "merge", "--no-edit", "origin/main"])
+    if merged.returncode:
+        run(["git", "merge", "--abort"])
+        return False, "merge of origin/main failed (conflict or dirty tree) and was aborted; resolve it by hand, then rerun"
+    return True, ""
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("functions", nargs="*", help="functions matched in this sprint")
     ap.add_argument("--baseline", action="store_true", help="record the kickoff baseline and exit")
-    ap.add_argument("--rebase", action="store_true", help="git fetch and rebase onto origin/main first")
+    ap.add_argument("--rebase", action="store_true",
+                    help="git fetch and rebase onto origin/main first (refused when commits are pushed)")
+    ap.add_argument("--merge", action="store_true",
+                    help="git fetch and merge origin/main first; safe on a pushed branch")
+    ap.add_argument("--queue-add", nargs="+", metavar="FN", help="add functions to the saved sprint queue and exit")
+    ap.add_argument("--idle-cap", type=float, metavar="SECONDS",
+                    help=f"count at most this long between activity events as active time (default "
+                         f"{int(metrics.DEFAULT_IDLE_CAP)}; env {metrics.IDLE_CAP_ENV}); saved with the timer")
     ap.add_argument("--parked", action="append", default=[], metavar="FN=NOTE", help="parked function row")
     ap.add_argument("--unit", help="unit name for the record heading")
     ap.add_argument("--allow-behind", action="store_true",
@@ -127,6 +164,10 @@ def main(argv=None) -> int:
     ap.add_argument("--usage", type=Path, help="import provider-reported usage JSON for one run")
     ap.add_argument("--deferred", nargs="*", default=[], help="queue entries not attempted or not finished this run")
     args = ap.parse_args(argv)
+    if args.rebase and args.merge:
+        ap.error("choose --merge or --rebase")
+    if args.idle_cap is not None and args.idle_cap <= 0:
+        ap.error("--idle-cap must be positive seconds")
     timing = ROOT / "work" / "sprint_timing.json"
     usage_path = ROOT / "work" / "sprint_usage.json"
     if args.usage:
@@ -135,15 +176,22 @@ def main(argv=None) -> int:
         except (ValueError, OSError) as exc:
             ap.error(str(exc))
         return 0
+    if args.queue_add:
+        added = metrics.queue_add(BASELINE, args.queue_add)
+        if added is None:
+            ap.error("no sprint baseline; run --baseline --queue first")
+        print(f"queue: added {', '.join(added) or 'nothing (already queued)'}; "
+              f"{len(json.loads(BASELINE.read_text())['queue'])} entries")
+        return 0
     if args.budget_status:
         if not timing.exists():
             ap.error("start timing with --phase setup; historical active time is unknown")
         current = json.loads(timing.read_text())
-        current = phase(timing, current["active"])
+        current = phase(timing, current["active"], cap=args.idle_cap)
         print(json.dumps(metrics.timing_report(current), indent=2))
         return 0
     if args.phase:
-        current = phase(timing, args.phase)
+        current = phase(timing, args.phase, cap=args.idle_cap)
         print(json.dumps({**current, **metrics.timing_report(current)}, indent=2))
         return 0
 
@@ -158,7 +206,7 @@ def main(argv=None) -> int:
                       "tools may be stale; rebase onto origin/main (or pass --allow-behind)", file=sys.stderr)
                 return 2
         snap = snapshot()
-        snap["queue"] = args.queue or []
+        snap["queue"] = metrics.dedupe(args.queue or [])
         BASELINE.parent.mkdir(exist_ok=True)
         BASELINE.write_text(json.dumps(snap, indent=2))
         print(f"baseline: {snap['functions']:,} functions, {snap['code']:,} bytes, "
@@ -172,20 +220,35 @@ def main(argv=None) -> int:
         ap.error("finish requires --unit and the complete --queue")
     if args.unit:
         try:
-            validate_queue(args.queue or (base or {}).get("queue", []), args.functions, args.parked,
-                           args.deferred)
+            validate_queue(metrics.dedupe(args.queue or (base or {}).get("queue", [])), args.functions,
+                           args.parked, args.deferred)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
+            return 2
+    if args.rebase:
+        if not fetch():
+            print("error: git fetch failed or timed out", file=sys.stderr)
+            return 2
+        refusal = rebase_refusal(pushed_commits())
+        if refusal:
+            print(refusal, file=sys.stderr)
             return 2
     if timing.exists():
         phase(timing, "finish")
     failures: list[str] = []
-    if args.rebase:
-        if not fetch() or run(["git", "rebase", "origin/main"]).returncode:
-            print("error: rebase failed; resolve it, then rerun", file=sys.stderr)
+    if args.merge:
+        ok, why = merge_main()
+        if not ok:
+            print(f"error: {why}", file=sys.stderr)
             if timing.exists():
                 phase(timing, "paused")
             return 2
+    if args.rebase and run(["git", "rebase", "origin/main"]).returncode:
+        run(["git", "rebase", "--abort"])
+        print("error: rebase failed and was aborted; resolve it, then rerun", file=sys.stderr)
+        if timing.exists():
+            phase(timing, "paused")
+        return 2
     b = run(["bash", "build.sh"])
     if b.returncode:
         print(b.stdout[-1500:] + b.stderr[-1500:], file=sys.stderr)
@@ -215,7 +278,7 @@ def main(argv=None) -> int:
         print(f"| {fn} | deferred: not finished this run; resume next run |")
     print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
     if base:
-        drift = " (includes main drift if rebased)" if args.rebase or base["head"] != snap["head"] else ""
+        drift = " (includes main drift)" if args.rebase or args.merge or base["head"] != snap["head"] else ""
         print(f"- Report: functions {base['functions']:,} → {snap['functions']:,}, code bytes "
               f"{base['code']:,} → {snap['code']:,}{drift}; strict-only "
               f"{base['strict_only_functions']} → {snap['strict_only_functions']} functions, "
@@ -225,11 +288,12 @@ def main(argv=None) -> int:
     print(f"- DOL: {'byte-identical' if same_dol else 'CHANGED'} (sha1 {str(snap['dol_sha1'])[:8]}…)")
     print("- Donor: <one line, or \"no OpenSaga hits\">\n- Headers: <fields added with their consumer, or none>")
     if timing.exists():
-        elapsed = phase(timing, "paused")["seconds"]
-        print("- Recorded elapsed seconds: " + ", ".join(f"{k}={v:.1f}" for k, v in sorted(elapsed.items()))
-              + "; unrecorded earlier effort is unknown, phases do not measure CPU time")
-    if timing.exists():
-        print("- Active time: " + json.dumps(metrics.timing_report(json.loads(timing.read_text()))))
+        report = metrics.timing_report(phase(timing, "paused"))
+        print("- Active time: " + ", ".join(f"{k}={v:.1f}s" for k, v in sorted(report["phases"].items()))
+              + f"; total active {report['active_seconds']:.0f}s vs wall-clock {report['wall_seconds']:.0f}s "
+              f"({report['idle_excluded_seconds']:.0f}s idle excluded, gaps over "
+              f"{report['idle_cap_seconds']:.0f}s capped); unrecorded earlier effort is unknown")
+        print("- Timing JSON: " + json.dumps(report))
     print("- Provider usage: " + json.dumps(metrics.usage_report(
         json.loads(usage_path.read_text()) if usage_path.exists() else {})))
     if failures:
