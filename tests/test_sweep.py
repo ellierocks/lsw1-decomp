@@ -93,6 +93,15 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    g(1);\n    g(3);\n", out)
         self.assertIn("    k(lbl_K[0]);\n", out)
 
+    def test_fix_prototypes_alias_takes_unit_params(self):
+        # alias_decl kept m2c's guessed parameter for a callee the unit defines as (void):
+        # the call must lose the argument (fn_800ABEB0 calling fn_800B9ED4).
+        body = ("#define h ((s32 (*)(f32 *))h)\nextern const f32 lbl_K[];\n\n"
+                "void f(void) {\n    x = h(lbl_K);\n}\n#undef h\n")
+        out = sweep.fix_prototypes(body, "f", "\tbl h\n", "u16 h(void) {\n    return 1;\n}\n")
+        self.assertIn("#define h ((s32(*)(void))h)\n", out)
+        self.assertIn("    x = h();\n", out)
+
 
 if __name__ == "__main__":
     unittest.main()

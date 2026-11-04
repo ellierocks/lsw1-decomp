@@ -397,6 +397,9 @@ def raw_protos(text: str) -> dict[str, list[str]]:
     return out
 
 
+FN_ALIAS = re.compile(r"^#define (?P<fn>\w+) \(\((?P<ret>[^()]*?)\s*\(\*\)\([^()]*\)\)(?P=fn)\)$")
+
+
 def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = False) -> str:
     """BODY with m2c's callee declarations replaced by known or cr1eq-implied ones and
     each call's argument list trimmed or zero-padded to the declared count. MAC adds the
@@ -409,6 +412,14 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
     repo, variadic, raw = repo_protos(), variadic_calls(asm), raw_protos(unit_text)
     lines, arity = [], {}
     for ln in head.splitlines():
+        a = FN_ALIAS.match(ln)
+        if a and a["fn"] in unit:
+            # `alias_decl` kept m2c's guessed parameters for a callee the unit defines; the
+            # return type stays m2c's (it decides the conversion), the parameters are the unit's.
+            params = unit[a["fn"]][1]
+            arity[a["fn"]] = params
+            lines.append(f"#define {a['fn']} (({a['ret']}(*)({', '.join(params) or 'void'})){a['fn']})")
+            continue
         d = PROTO.match(ln) if ln.endswith(";") and not ln.startswith("extern") else None
         fn = d[2] if d else None
         if not fn or fn == name:
