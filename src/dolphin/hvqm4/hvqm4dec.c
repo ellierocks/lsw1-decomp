@@ -530,7 +530,7 @@ s16 _readTree(HVQTree* tree, HVQBitBuffer* buf) {
 s16 getByte(HVQBitBuffer* buf) {
     s32 bit = buf->bit;
     u32 value;
-    
+
     if (bit >= 7) {
         value = buf->value >> (bit - 7);
         bit -= 8;
