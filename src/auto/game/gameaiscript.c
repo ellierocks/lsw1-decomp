@@ -1115,3 +1115,231 @@ s32 fn_80135CBC(void *process, char *param)
     }
     return -1;
 }
+
+extern char lbl_801AD834[];
+
+s32 Action_CanOpenDoors(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0x105c) |= 1;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], lbl_801AD834) == 0)
+                *(u32 *)(object + 0x105c) |= 1;
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                *(u32 *)(object + 0x105c) &= ~1;
+        }
+    }
+    return 1;
+}
+
+/* Character flag word at +0xF28, written by the SetDontMove family. */
+struct gameaiscript_f28_s {
+    u32 unk0 : 7;
+    u32 dontMove : 1;
+    u32 cantDie : 1;
+    u32 dontSetStopped : 1;
+    u32 unka : 22;
+};
+
+s32 Action_SetDontMove(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)fn_8012D23C(sys, p + 10, 0);
+            else if (NuStrICmp(str_Bool_FALSE, params[0]) == 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_f28_s *)(target + 0xf28))->dontMove = on;
+    }
+    return 1;
+}
+
+s32 Action_IgnoreShoveSystem(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0xf28) |= 0x10000000;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                *(u32 *)(object + 0xf28) &= ~0x10000000;
+        }
+    }
+    return 1;
+}
+
+s32 Action_CanShootOffScreen(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0x105c) |= 4;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], lbl_801AD834) == 0)
+                *(u32 *)(object + 0x105c) |= 4;
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                *(u32 *)(object + 0x105c) &= ~4;
+        }
+    }
+    return 1;
+}
+
+s32 Action_CanCollectCoins(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0x105c) |= 2;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], lbl_801AD834) == 0)
+                *(u32 *)(object + 0x105c) |= 2;
+            else if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                *(u32 *)(object + 0x105c) &= ~2;
+        }
+    }
+    return 1;
+}
+
+s32 Action_DontSetStoppedFlag(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)fn_8012D23C(sys, p + 10, 0);
+            else if (NuStrICmp(str_Bool_FALSE, params[0]) == 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_f28_s *)(target + 0xf28))->dontSetStopped = on;
+    }
+    return 1;
+}
+
+s32 Action_CantDie(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)fn_8012D23C(sys, p + 10, 0);
+            else if (NuStrICmp(str_Bool_FALSE, params[0]) == 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_f28_s *)(target + 0xf28))->cantDie = on;
+    }
+    return 1;
+}
+
+s32 Action_CannotBeSeen(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0xf28) |= 0x08000000;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_FALSE) == 0)
+                *(u32 *)(object + 0xf28) &= ~0x08000000;
+        }
+    }
+    return 1;
+}
+
+s32 Action_SetDefensive(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0xf24) |= 0x20000000;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_False) == 0)
+                *(u32 *)(object + 0xf24) &= ~0x20000000;
+        }
+    }
+    return 1;
+}
+
+s32 Action_SetJumping(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0 && firstTime != 0) {
+        *(u32 *)(object + 0xf24) |= 0x20000;
+        for (i = 0; i < count; i++) {
+            if (NuStrICmp(params[i], str_Bool_False) == 0)
+                *(u32 *)(object + 0xf24) &= ~0x20000;
+        }
+    }
+    return 1;
+}
+
+/* Character flag word at +0x20C; bit 0x4000 set by Action_SetIgnoreAntinodes_Level. */
+struct gameaiscript_20c_s {
+    u32 unk0 : 17;
+    u32 ignoreAntinodes : 1;
+    u32 unk12 : 14;
+};
+
+s32 Action_SetIgnoreAntinodes_Level(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target = 0;
+    s32 on = 1;
+    char *p;
+    s32 i;
+
+    if (firstTime != 0) {
+        if (packet != 0 && packet->owner != 0 && packet->owner->object != 0)
+            target = packet->owner->object;
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                target = (u8 *)fn_8012D23C(sys, p + 10, 0);
+            else if (NuStrICmp(str_Bool_FALSE, params[0]) == 0)
+                on = 0;
+        }
+        if (target != 0)
+            ((struct gameaiscript_20c_s *)(target + 0x20c))->ignoreAntinodes = on;
+    }
+    return 1;
+}
