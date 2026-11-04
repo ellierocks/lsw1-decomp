@@ -298,7 +298,8 @@ def call_args(text: str, start: int) -> tuple[list[str], int] | None:
     return None
 
 
-FLOAT_GE = re.compile(r"\(\((?P<a>[^()]+) == (?P<b>[^()]+)\) \|\| \((?P=a) (?P<op>[<>]) (?P=b)\)\)(?: != 0)?")
+FLOAT_GE = re.compile(r"(?P<o>\()?\((?P<a>[^()]+) == (?P<b>(?:[^()]|\([^()]*\))+)\) \|\| "
+                      r"\((?P=a) (?P<op>[<>]) (?P=b)\)(?(o)\))(?: != 0)?")
 
 
 def float_ge(body: str) -> str:

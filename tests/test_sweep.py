@@ -113,6 +113,10 @@ class SweepRewriteTest(unittest.TestCase):
         indexed = "void f(void) {\n    s16 *p;\n    p += 2;\n    p[1] = 1;\n}\n"
         self.assertIn("p += 1;", sweep.byte_strides(indexed))
 
+    def test_float_ge_bare_return(self):
+        self.assertEqual(sweep.float_ge("    return (t == lbl_1[0]) || (t > lbl_1[0]);"), "    return (t >= lbl_1[0]);")
+        self.assertEqual(sweep.float_ge("if (((a == f(b)) || (a < f(b))) != 0)"), "if ((a <= f(b)))")
+
     def test_swap_stores(self):
         body = "void f(s32 *p) {\n    *(s32 *)(p + 1) = 0;\n    p->a = 2;\n    x = p->a;\n    p->b = p->a;\n}\n"
         self.assertEqual(sweep.swap_stores(body),
