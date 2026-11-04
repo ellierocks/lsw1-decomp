@@ -348,6 +348,21 @@ WIDE_PTR = re.compile(r"^(?P<ind>[ \t]+)(?P<t>s16|u16|s32|u32|f32|f64|s64|u64) \
 PTR_SIZES = {"s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4, "f64": 8, "s64": 8, "u64": 8}
 
 
+EMPTY_FRAME = re.compile(r"\A\s*stwu r1, -(0x[0-9A-Fa-f]+)\(r1\)\s+addi r1, r1, \1\s+blr\s*\Z")
+EMPTY_BODY = re.compile(r"(\)\s*\{)\s*(\})\s*\Z")
+
+
+def empty_frame(body: str, asm: str) -> str:
+    """An empty function whose target still opens a stack frame: GCC keeps the frame for an unused
+    volatile local, so give the empty body a volatile array sized to the frame (8-byte header)."""
+    insns = "\n".join(m.group(1) for m in re.finditer(r"\*/\s*(.+)$", asm, re.M))
+    m = EMPTY_FRAME.match(insns)
+    if not m or not EMPTY_BODY.search(body):
+        return body
+    words = max(1, (int(m.group(1), 16) - 8) // 4)
+    return EMPTY_BODY.sub(lambda b: f"{b.group(1)}\n    volatile s32 pad[{words}];\n{b.group(2)}\n", body)
+
+
 def byte_strides(body: str) -> str:
     """BODY with each typed local pointer that m2c steps by a byte count (`p += 0x9C` on an
     `s32 *`, which C scales by 4) stepped by bytes again. A pointer only read through
@@ -598,6 +613,11 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
+            framed = empty_frame(body, (OUT / name / "asm.s").read_text())
+            if framed != body:
+                framed_res, framed = score_draft(name, source, framed)
+                if improves(framed_res, res):
+                    res, body = {**framed_res, "empty_frame": True}, framed
             for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:

@@ -113,6 +113,14 @@ class SweepRewriteTest(unittest.TestCase):
         indexed = "void f(void) {\n    s16 *p;\n    p += 2;\n    p[1] = 1;\n}\n"
         self.assertIn("p += 1;", sweep.byte_strides(indexed))
 
+    def test_empty_frame(self):
+        asm = ("/* 0 0  94 21 FF E8 */\tstwu r1, -0x18(r1)\n/* 4 4  38 21 00 18 */\taddi r1, r1, 0x18\n"
+               "/* 8 8  4E 80 00 20 */\tblr\n")
+        self.assertEqual(sweep.empty_frame("void f(void) {\n\n}\n", asm),
+                         "void f(void) {\n    volatile s32 pad[4];\n}\n")
+        self.assertEqual(sweep.empty_frame("void f(void) {\n    g = 1;\n}\n", asm), "void f(void) {\n    g = 1;\n}\n")
+        self.assertEqual(sweep.empty_frame("void f(void) {\n}\n", "/* 0 0  4E 80 00 20 */\tblr\n"), "void f(void) {\n}\n")
+
     def test_base_pointer(self):
         body = ("void f(void) {\n    if (x) {\n"
                 "        (*(s8 *)((s8 *)(MenuHeader) + (0x174))) = -1;\n"
