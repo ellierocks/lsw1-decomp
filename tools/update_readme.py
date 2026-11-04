@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import urllib.request
 
 import progress
@@ -66,7 +67,13 @@ class GitHub:
 
 
 def git(*args):
-    return subprocess.run(['git', *args], check=True, capture_output=True, text=True).stdout.strip()
+    result = subprocess.run(['git', *args], capture_output=True, text=True)
+    if result.returncode:
+        # CalledProcessError's traceback omits captured output. Keep the remote's
+        # rejection/transport diagnostic visible in Actions before propagating it.
+        print(result.stderr or result.stdout, file=sys.stderr, end='')
+        result.check_returncode()
+    return result.stdout.strip()
 
 
 def git_file(revision):

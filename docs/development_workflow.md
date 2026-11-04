@@ -185,7 +185,8 @@ The flow uses no pull requests. `tools/update_readme.py` reads the branch head a
 dispatches the workflow through the GitHub API; all ref updates go through git.
 `tests/test_update_readme.py` runs the whole cycle against a real git origin. Older
 main runs skip publication after main advances. Failed checks leave the progress
-branch unmerged.
+branch unmerged. Git failures print their captured remote diagnostics before
+raising, so Actions logs retain the actual rejection reason.
 
 To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.
 Only the CI publication step needs repository contents and actions write
