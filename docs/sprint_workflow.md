@@ -200,26 +200,23 @@ Do not start a second unit in the same thread; open the next sprint as a new thr
 Open the next sprint as a fresh thread with the saved queue and notes instead of compacting
 a long one: token cost per function rises with context.
 
-**Hand off between model and permuter to save usage.** Permuter time is local CPU; model
-attempts cost usage. The 180 s burst in the table above stays part of each function's search.
-Hand off whenever the model has stopped finding improvements:
+**Permuter runs stay inside the thread unless the user asks for more.** The 180 s burst in
+the table above is the model's own tool: run it when a function stalls, read the result, and
+move on. Do not queue unattended long runs (`tools/permute_long.sh`) on your own initiative,
+not even for ≥95% stalls. A parked near-miss's next hypothesis is a permuter run, recorded
+in its parked row and `status.md` for the user to queue.
 
-- **Model → permuter.** A function at 95% exact or better whose last two attempts did not
-  improve is parked straight into the unattended queue: `tools/permute_long.sh --add NAME` when
-  a queue is running, otherwise `tools/permute_long.sh 2 1 NAME...` (2 slots, 1 h each; the queue
-  runs `permute_setup.py` itself). Do not spend
-  the remaining attempts in the table on it. Its parked row's next hypothesis is the queued run.
-- **Keep working meanwhile.** Start the next wave while the queue runs. When nothing else is
-  ready, end the turn or thread instead of waiting, and pause the timer (`--phase paused`).
+- **Long or overnight queues are the user's call.** Start `tools/permute_long.sh` only when the
+  user asks for it in the current thread, then keep working on the next wave rather than waiting.
   The queue survives the session.
 - **Permuter → model.** At the start of each wave or thread, read `work/permute/queue_summary.txt`
   (or `tools/permwatch.py --once`). Only improved targets come back to the model: review each with
   `tools/permute_review.py NAME`, comparing prototypes and externs as well as the body (in #65
   the `fn_800FC5C0` fix was `fn_80095558` returning `void`, not a body change). Port a
   score-0 output with `score_fn.py --apply` and `verify_fn.py --strict-symbols`. Give an improved
-  but nonzero output two model attempts from the new base, then re-queue it. Targets that did
+  but nonzero output two model attempts from the new base, then park it again. Targets that did
   not improve stay parked without further model attempts.
-- **Overnight runs** are the user's call. Give them a backlog well beyond what the slots can
+- **Overnight runs**: give them a backlog well beyond what the slots can
   use, so early matches do not leave slots idle:
   `tools/permute_long.sh 7 2 --total 8 $(python3 tools/permute_backlog.py --slots 7 --hours 8 --per 2 --limit 60)`.
   Targets not started stay in the backlog for the next run.
