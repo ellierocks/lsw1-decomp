@@ -3900,3 +3900,148 @@ s32 Action_AddPart(void *sys, void *process, struct gameaiscript_packet_s *packe
     }
     return 1;
 }
+
+extern s32 PARTLookupType(char *);
+extern void fn_80074D14(s32, void *, s32);
+extern char str_ScriptParam_DXEq[];
+extern char str_ScriptParam_DYEq[];
+extern char str_ScriptParam_DZEq[];
+
+s32 Action_AddPartDebris(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 special[0xc];
+    struct gameaiscript_vec_s pos;
+    struct gameaiscript_vec_s delta;
+    s32 type = -1;
+    char *p;
+    u8 *obj;
+    s32 i;
+
+    memset(&delta, 0, sizeof(delta));
+    if (firstTime != 0) {
+        memset(special, 0, sizeof(special));
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Name)) != 0)
+                type = PARTLookupType(p + 5);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_DXEq)) != 0)
+                delta.x = AIParamToFloat(packet, p + 3);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_DYEq)) != 0)
+                delta.y = AIParamToFloat(packet, p + 3);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_DZEq)) != 0)
+                delta.z = AIParamToFloat(packet, p + 3);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_XEq)) != 0)
+                pos.x = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_YEq)) != 0)
+                pos.y = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_ZEq)) != 0)
+                pos.z = AIParamToFloat(packet, p + 2);
+            else if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0) {
+                if ((obj = (u8 *)GetNamedGameObject(sys, p + 10, 0)) != 0)
+                    pos = *(struct gameaiscript_vec_s *)(obj + 0x90);
+            }
+        }
+        if (type != -1) {
+            NuVecAdd(&pos, &pos, &delta);
+            fn_80074D14(type, &pos, 1);
+        }
+    }
+    return 1;
+}
+
+extern void *AIPathFindNode(void *, void *, char *);
+
+void *Condition_FromNodeInit(void *sys, char *param)
+{
+    u8 *level;
+
+    if (sys != 0 && (level = *(u8 **)((u8 *)sys + 0xc)) != 0 && level[0] != 0)
+        return AIPathFindNode(sys, *(void **)(level + 8), param);
+    return 0;
+}
+
+s32 Condition_HintAvailableInit(void *process, char *param)
+{
+    if (param == 0)
+        return 0;
+    return NuAToI(param);
+}
+
+f32 Condition_ObstacleFinished(void *sys, void *process, void *packet, char *param, u8 *obstacle)
+{
+    if (obstacle != 0) {
+        if (obstacle[0x22] == 2) {
+            if (obstacle[0x23] != 0)
+                return 1.0f;
+        } else if (obstacle[0x1f] != 0 || (*(u32 *)(obstacle + 0x18) & 0x1000)) {
+            return 1.0f;
+        }
+    }
+    return 0.0f;
+}
+
+void *Condition_ToNodeInit(void *sys, char *param)
+{
+    u8 *level;
+
+    if (sys != 0 && (level = *(u8 **)((u8 *)sys + 0xc)) != 0 && level[0] != 0)
+        return AIPathFindNode(sys, *(void **)(level + 8), param);
+    return 0;
+}
+
+f32 Condition_Player2Active(void)
+{
+    if (lbl_80409008 != 0)
+        return 1.0f;
+    return 0.0f;
+}
+
+f32 Condition_PlayerDistanceAlongSock(void)
+{
+    if (lbl_80409004 != 0)
+        return *(f32 *)(lbl_80409004 + 0x62c);
+    return 0.0f;
+}
+
+s32 Condition_RespawnLocatorIsInit(void *process, char *param)
+{
+    if (param == 0)
+        return 0;
+    return ((s32 (*)(void *, char *))AIPathFindLocator)(process, param);
+}
+
+u8 *Condition_TurretAliveInit(void *process, char *param)
+{
+    return FindTurret(*(void **)((u8 *)lbl_80409410 + 0x578), param);
+}
+
+u8 *Condition_MessageInit(void *process, char *param)
+{
+    u8 *r = 0;
+
+    if (param != 0 && process != 0 && lbl_80408F58 != 0)
+        r = CheckAIMessage(lbl_80408F58, param, 0);
+    return r;
+}
+
+extern s32 fn_8011EBF4(void *, s32);
+
+s32 Condition_CutSceneFinishedInit(void *process, char *param)
+{
+    s32 idx = FindCutScene(param);
+
+    return idx != -1 ? fn_8011EBF4(lbl_80409410, idx) : 0;
+}
+
+f32 Condition_FurthestPlayerDistanceAlongSock(void)
+{
+    u8 *p2;
+
+    if (lbl_80409004 != 0) {
+        p2 = lbl_80409008;
+        if (p2 != 0 && *(f32 *)(p2 + 0x62c) > *(f32 *)(lbl_80409004 + 0x62c))
+            return *(f32 *)(p2 + 0x62c);
+        return *(f32 *)(lbl_80409004 + 0x62c);
+    }
+    return 0.0f;
+}
