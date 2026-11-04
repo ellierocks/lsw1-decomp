@@ -28,7 +28,7 @@ During a timed sprint (`work/sprint_timing.json` active) the result line ends
 with the measured active seconds (idle gaps over 15 min are not counted). With a sprint
 baseline, any scored function is added to the saved queue if absent, unless
 `--no-queue` is passed for an automatic scan. A mismatch at 95% exact or better also prints
-NEAR MISS: those are finished with targeted changes, not parked on attempt count.
+NEAR MISS with a pointer to common near-miss causes.
 
 `--json` prints
 the full verifier report with the score added. Exit codes follow verify_fn.py:
@@ -286,8 +286,8 @@ def main(argv=None) -> int:
           f"  mine_insns={rep['mine_insns']}{detail}{timer_suffix()}")
     from sprint_metrics import near_miss
     if near_miss(rep["exact_insns"], rep["target_insns"]):
-        print("NEAR MISS: do not park on attempt count; target each remaining diff, then "
-              "variant_search.py once (docs/sprint_workflow.md#per-function-budget)")
+        print("NEAR MISS: common causes and search tools in "
+              "docs/sprint_workflow.md#per-function-search")
     if listing and code != 0:
         print(listing)
     if args.apply and code == 0:

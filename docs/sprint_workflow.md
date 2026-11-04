@@ -1,16 +1,13 @@
 # Sprint workflow
 
-Phase 3 matching runs as **sprints**. A sprint is one thread, one unit and one PR, and it
-continues across context windows when needed to complete the requested scope. The queue is sized by context, not by a fixed
-count: fixed setup and finish costs (build, baseline, rebase, CI, merge) are paid once, so a
-sprint should match as much as its context allows. It replaces the
-multi-unit batches recorded in [Phase 3 batch history](phase3_batches.md). Those batches
-ran out of context and stalled on small issues. Fan-out workers were rate-limited and
-added nothing; one batch got 0 matches from 4 workers. Rebase drift, conflicts in shared
-docs and long write-ups then delayed each merge.
+Phase 3 matching runs as **sprints**: one unit, one branch, one PR. Setup and finish costs
+(build, baseline, merge, CI) are paid once, so a sprint should cover as much of its unit as
+is tractable. Earlier multi-unit batches are recorded in
+[Phase 3 batch history](phase3_batches.md).
 
-[Strategy](strategy.md) decides which lane comes next. This page decides how to work
-through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-function loop.
+[Strategy](strategy.md) decides which lane comes next. This page covers the tools and the
+evidence a sprint must produce. [Quickstart](matching_quickstart.md) steps 3 to 5 are the
+per-function loop.
 
 ## Scope
 
@@ -21,259 +18,165 @@ through it. [Quickstart](matching_quickstart.md) steps 3 to 5 are the per-functi
   `Text file busy`. A sweep with `NO-ASM` rows is incomplete; build, then rerun
   the affected units before using its ranking.
 - **Sweep first.** Run `python3 tools/sweep.py --apply` before choosing the unit; it takes
-  the automatic m2c matches across the whole game for free. Then run
+  the automatic m2c matches across the whole game. Then run
   `python3 tools/sweep_permute.py --apply`, which runs the permuter unattended on the
-  biggest near-misses. Then pick the unit with
-  the most near-miss bytes in `work/sweep/results.json` (size × exact ratio, 90% exact or
-  better first). Each queued function's starting draft is `work/sweep/NAME/sweep_draft.c`.
-  Automatic sweep and permuter base scoring pass `score_fn.py --no-queue`, so they
-  do not add outside targets to an existing sprint queue. Interactive scoring still
-  adds targets; use `--no-queue` explicitly for exploratory scans.
-
-- **One unit per sprint.** Pick it from the sweep ranking or `next_target.py --by-unit`, then list the unit's
-  ready functions with `--unit UNIT --limit 40`. Work them in waves of about 10, related
-  families first. Choose a related family of functions inside one unit.
-  Do not spread across several units. Siblings with one shape (a `Curve` and `Curve2`
-  pair, setters, loop-per-parameter actions) beat unrelated bodies: draft one, then reuse
-  its structure. Aim for 0x100 to 0x300 bytes per function; tiny accessors add few bytes
-  and large unique bodies tend to plateau.
-- **Check active sprints first.** Run `python3 tools/git_origin.py fetch origin` first. `--by-unit` then skips units owned by an open
-  `t3/sprint-*` PR (asked through `gh`; `--no-remote` turns that off) or by any local or
-  `origin` sprint branch not yet merged into `origin/main`. That covers a sprint that has
-  been pushed but has no PR yet. Units are ranked by bytes in their first ten ready targets;
-  `*` marks ten or fewer functions left, not promotion readiness. Branch names must follow `t3/sprint-<unit-leaf>` and be pushed early for
-  this to work. `work/` claim markers are local to each worktree, so other threads cannot
-  see them.
+  biggest near-misses. Rank units by near-miss bytes in `work/sweep/results.json`
+  (size × exact ratio, 90% exact or better first). Each queued function's starting draft
+  is `work/sweep/NAME/sweep_draft.c`. Automatic sweep and permuter base scoring pass
+  `score_fn.py --no-queue`, so they do not add outside targets to an existing sprint
+  queue. Interactive scoring still adds targets; use `--no-queue` explicitly for
+  exploratory scans.
+- **One unit per sprint.** Pick it from the sweep ranking or `next_target.py --by-unit`,
+  then list its ready functions with `--unit UNIT --limit 40`. Siblings with one shape (a
+  `Curve` and `Curve2` pair, setters, loop-per-parameter actions) reuse one draft's
+  structure.
+- **Ownership is by branch name.** Run `python3 tools/git_origin.py fetch origin` first.
+  `--by-unit` then skips units owned by an open `t3/sprint-*` PR (asked through `gh`;
+  `--no-remote` turns that off) or by any local or `origin` sprint branch not yet merged
+  into `origin/main`, which covers a pushed sprint with no PR yet. Name the branch
+  `t3/sprint-<unit-leaf>` and push it early. `work/` claim markers are local to each
+  worktree and invisible elsewhere. Units are ranked by bytes in their first ten ready
+  targets; `*` marks ten or fewer functions left, not promotion readiness.
 - **Headers come with their consumers.** Add a shared-header field only when a function
   in the queue reads or writes it, and confirm it in the same sprint. Keep everything else
-  as `char unk[N]` or a local view. A sprint that only changes headers matches nothing.
-- **No workers.** Do not start subagents or workers in a sprint. To run work in parallel,
-  the maintainer launches separate threads on separate units.
-- **Amortize setup over useful code.** Prefer a unit with several waves of related,
-  tractable functions over a tiny queue. Inspect the first wave's assembly for
-  reusable shapes before committing to it; bytes alone do not measure difficulty.
-  Do not choose a three-function unit just because it is almost complete. A small
-  unit is preferable only with a concrete advantage, such as a proven promotion
-  path or a shared type that unlocks a larger family. Check all owned sections
-  before claiming that path; matching every function does not emit missing data.
+  as `char unk[N]` or a local view.
+- **Promotion needs data too.** Check all owned sections before counting on a promotion
+  path; matching every function does not emit missing data.
 
 ## Improve the workflow as you go
 
-Every sprint also improves its tools. Fixing a tool gap mid-run pays off in every unit that
-has the same gap, which is more than grinding through it one function at a time does. In
+Fixing a tool gap mid-run pays off in every unit that has the same gap. In
 [#87](https://github.com/ellierocks/lsw1-decomp/pull/87), four mid-run `fix(tools)` commits
 (sweep compile repairs, `__ashldi3` shifts, the float `cror` fold, initialized locals in
 `variant_search.py`) brought in matches outside the unit and let searches find fixes that
-had been made by hand, in a run that verified 81 functions.
+had been made by hand.
 
-- **Fix it when it repeats.** If the same manual workaround, compile error or search gap
-  turns up twice, or once in a whole class of drafts, fix the tool in this branch instead of
-  working around it again. Use `sprint_finish.py --phase tooling` while you work on it, write a
-  regression test in `tests/`, and commit it as `fix(tools): ...` or `feat(tools): ...`.
+- **Fix repeated gaps.** When the same manual workaround, compile error or search gap
+  recurs, fix the tool in this branch with a regression test in `tests/`, committed as
+  `fix(tools): ...` or `feat(tools): ...`.
 - **Then collect the wins.** Rerun the fixed tool where it can now succeed: for a sweep fix,
   `sweep.py --apply` on the affected units (the whole game when the fix is general); for a
   search tool, this sprint's parked near-misses. Matches outside the unit go into their own
   `feat(match)` commit in the same PR. Verify them strictly like any other match.
-- **Encode hand wins.** When a hand change produced a match, ask whether a tool could have
-  found it. If it is mechanical, add it as a search dimension or a sweep repair pass;
-  otherwise record it as one quirk bullet in [C matching](code_matching_workflow.md#measure-and-iterate).
-- **Keep the scope bounded.** A fix should take a fraction of a wave. A redesign goes into
-  the PR's Workflow line as a lead for a tooling thread. Never weaken the oracle (verifier
-  strictness, compiler pins, split boundaries) to get a match.
+- **Encode hand wins.** If a hand change that produced a match is mechanical, add it as a
+  search dimension or a sweep repair pass; otherwise record it as one quirk bullet in
+  [C matching](code_matching_workflow.md#measure-and-iterate).
+- **Redesigns are leads, not sprint work.** Record them in the PR's Workflow line. Never
+  weaken the oracle (verifier strictness, compiler pins, split boundaries) to get a match.
 - **Record the yield.** The finish record's Workflow line lists the branch's tooling
-  commits; add what each one unlocked (matches, compile errors removed, a search that now
-  finds a fix). A parked row whose plateau comes from a tool gap says so in its `next:`.
+  commits; add what each one unlocked. A parked row whose plateau comes from a tool gap
+  says so in its `next:`.
 
-## Kickoff (read only this much)
+## Kickoff
 
-0. When the kickoff prompt gives a model and launch time, start the
-   [benchmark](#benchmark) first: `python3 tools/sprint_bench.py start --model MODEL --launched-at EPOCH`.
-1. AGENTS.md and this page.
-2. Take the unit's near-misses from `work/sweep/results.json`, largest first, then fill
-   with `python3 tools/next_target.py --unit UNIT --limit 40`. Save the list as the
-   queue in the first message of the thread.
-3. Run `bash build.sh` once if `build/` is stale, then `python3 tools/sprint_finish.py --baseline --queue FN1 FN2 ...`
-   to record the objdiff figures, the strict-only count and the DOL hash. It refuses to run
-   when the checkout is behind `origin/main`; update first (merge, or rebase while nothing is
-   pushed) so the docs and tools are current.
+1. Take the unit's near-misses from `work/sweep/results.json`, then fill with
+   `python3 tools/next_target.py --unit UNIT --limit 40`.
+2. Run `bash build.sh` if `build/` is stale, then
+   `python3 tools/sprint_finish.py --baseline --queue FN1 FN2 ...` to record the objdiff
+   figures, the strict-only count and the DOL hash. It refuses to run when the checkout is
+   behind `origin/main`; update first (merge, or rebase while nothing is pushed). If it
+   cannot fetch, it warns and checks against the last fetched `origin/main`.
 
 Reuse the checkout's toolchain and build. Bootstrap only if prerequisites are missing;
 for matching setup use `LSW1_NO_GHIDRA=1 bash tools/bootstrap.sh` and request Ghidra
 separately when needed. Do not start decompilation while setup still owns its project.
-Generate m2c drafts for the whole wave in one call with
-`python3 tools/draft_fn.py FN1 FN2 ... --no-ghidra --print`, which prints each draft and its
-assembly without the byte column. Then request Ghidra for the wave in one call. This avoids
-launching a headless process separately for every draft. Drafts already declare globals
-that the target reaches through `@ha/@l` as arrays read with `sym[0]`. ProDG puts scalar
-externs in small data, so a scalar declaration can never match those loads.
+`python3 tools/draft_fn.py FN1 FN2 ... --no-ghidra --print` drafts several functions in one
+call and prints each draft with its assembly, avoiding a headless Ghidra launch per draft.
+Drafts declare globals that the target reaches through `@ha/@l` as arrays read with
+`sym[0]`: ProDG puts scalar externs in small data, so a scalar declaration can never match
+those loads.
 
-Ghidra is optional. For a function with loops, switches or nested conditions, run
-`python3 tools/ghidra_decompile.py decompile FN ...` for that wave and read `work/FN/ghidra.c`
-next to the m2c draft. Skip it for straight-line leaves and paired-single code. If `status`
-says the project is missing, run `setup` (about a minute); see
-[Ghidra and REA](research.md#ghidra-and-rea). Read `work/NAME/context.md` only when a draft
-fails to compile or a type is unclear.
+For Ghidra, `python3 tools/ghidra_decompile.py decompile FN ...` writes `work/FN/ghidra.c`;
+if `status` says the project is missing, run `setup` (about a minute). See
+[Ghidra and REA](research.md#ghidra-and-rea). `work/NAME/context.md` holds the draft's type
+context. Familiar mismatches are searchable in the C matching guide (`grep -n` on the
+instruction or pattern) and in the "Failure modes" bullets of the
+[batch history](phase3_batches.md).
 
-Do not read the batch history or the whole C matching guide up front. When a mismatch
-looks familiar, search the guide's notes (`grep -n` on the instruction or the pattern)
-and the "Failure modes" bullets in [batch history](phase3_batches.md).
+## Queue accounting
 
-## Measured runs
+`sprint_finish.py` rejects queue entries that are neither matched, parked nor deferred.
+When a baseline exists, `score_fn.py` adds any function it scores to the saved queue;
+`sprint_finish.py --queue-add FN...` adds functions by hand. List entries that were never
+attempted or left unfinished with `--deferred FN ...`; they stay distinct from `--parked`
+plateaus. A parked row needs a measured score, the remaining mismatch and a next
+hypothesis, so it records an actual bounded search. For an existing baseline without a
+queue, supply the full `--queue` at finish (repeated names are ignored).
 
-Active time is **measured, not budgeted**. Start the timer with
-`python3 tools/sprint_finish.py --phase setup`. `--baseline` closes kickoff and moves a timer
-still in setup to `matching`; after that, switch phases as work changes, and use
-`--phase paused` for user waits, CI and rate limits, and when only an unattended permuter queue
-is running (not while you work beside it).
-Every `score_fn.py` result line ends with `[active Ns]` while the timer runs. Each tool run
-counts as an activity event, and a gap between events adds to active time only up to the
-**idle cap** (15 min; `--idle-cap SECONDS` or `LSW1_IDLE_CAP`), so a stall nobody paused,
-such as a rate limit or a suspended machine, cannot inflate the figure (#65 recorded
-27.6 h of "matching" across a 10 h rate-limit stall and a 9 h suspend). The finish record
-reports setup, matching, tooling and finish seconds, the wall-clock total and the idle
-seconds excluded, beside the verified byte gain, so throughput can be compared across runs. Time never decides whether to keep working on a function; the per-function limits
-below do.
+### Optional measurement
 
-This replaces the 600-second budget used in
-[#53](https://github.com/ellierocks/lsw1-decomp/pull/53) to
-[#55](https://github.com/ellierocks/lsw1-decomp/pull/55). In #55 the countdown drove
-early parking (a 70/71 and a 72/80 near-miss were dropped to follow an attempt cap),
-an early switch to finish, and padding work to reach a deferral gate. That run verified
-280 bytes, against 656 in #53.
+Timing and usage are recorded only when a run wants throughput figures; finish does not
+require them.
 
-The run ends when the queue is exhausted, the maintainer stops it, or context pressure
-forces a continuation checkpoint. List queue entries that were never attempted or left
-unfinished with `--deferred FN ...`; they stay distinct from measured `--parked`
-plateaus. This is bracketed wall time, not CPU time or inferred human attention.
-Forgotten pauses invalidate efficiency claims, and an interrupted run resumes its existing
-timer. Missing historical measurements remain unknown. `sprint_finish.py` gives every
-`git fetch` a 60-second timeout and retries GitHub SSH public-key failures through
-the current `gh` login. If `--baseline` cannot fetch, it warns and checks
-freshness against the last fetched `origin/main`.
+- `sprint_finish.py --phase setup|matching|tooling|finish|paused` starts or switches the
+  timer (`--baseline` moves a timer still in setup to `matching`); `--timing` reports it.
+  A gap between tool events counts as active time only up to the **idle cap** (15 min;
+  `--idle-cap SECONDS` or `LSW1_IDLE_CAP`), so an unpaused stall cannot inflate the figure.
+  An interrupted run resumes its existing timer. Missing historical measurements remain
+  unknown.
+- `tools/sprint_bench.py` (`start --model MODEL --launched-at EPOCH`,
+  `time LABEL -- CMD`, `mark LABEL`, `report`, `compare`) logs wall-time spend per step
+  and per `score_fn.py` attempt to `~/.cache/lsw1/bench/`, which outlives the worktree.
+- `sprint_finish.py --usage work/provider-usage.json` imports provider-reported per-run
+  cumulative totals:
 
-### Benchmark
+  ```json
+  {"run_id":"provider-run-id","model":"exact-provider-model","source":"provider export reference",
+   "input_tokens":1000,"cached_input_tokens":800,"output_tokens":200,"cost_usd":null}
+  ```
 
-`tools/sprint_bench.py` records what a run spends its wall time on, so runs and models can
-be compared and slow steps found. `start` (kickoff step 0) splits startup into worktree creation
-and agent boot from the launch time. Wrap setup commands as
-`python3 tools/sprint_bench.py time LABEL -- CMD` (labels `bootstrap`, `build`, `sweep`,
-`baseline`, `ghidra`), and add milestones with `mark LABEL`. Each interactive `score_fn.py` attempt is
-logged on its own (attempts, compile errors, first score, first match). `sprint_finish.py`
-times its build and writes the run summary to `~/.cache/lsw1/bench/`, which outlives the
-worktree. `report` shows the current run; `compare` lists every finished run, with verified
-functions per active hour and attempts per match by model.
+  Cached input is a subset of input and reasoning tokens are already in output; never add
+  either twice. Reimporting a run replaces its counters; decreasing counters or a changed
+  identity is rejected. `cost_usd` is the provider-reported charge or null, never an
+  estimate. Do not import thread-lifetime totals as one run. Without exports, usage is
+  unknown.
 
-### Provider usage and cost
+Do not project whole-project completion from one easy-function run.
 
-Import provider-reported **per-run cumulative totals** with
-`python3 tools/sprint_finish.py --usage work/provider-usage.json`:
+## Per-function search
 
-```json
-{"run_id":"provider-run-id","model":"exact-provider-model","source":"provider export reference",
- "input_tokens":1000,"cached_input_tokens":800,"output_tokens":200,"cost_usd":null}
-```
+- Write new functions only through `score_fn.py --body try.c --apply`. A function not yet
+  in SOURCE is appended for scoring, and SOURCE changes only on a strict MATCH, so parking
+  needs no cleanup.
+- At 95% exact or better `score_fn.py` prints `NEAR MISS`. Common causes are expression or
+  operand order for a commutative instruction, how a pointer is formed (`&a[i][j]`,
+  `a[i] + j`, an explicit field), declaration or initialisation placement, and inline
+  helper boundaries. In #55, hoisting one `i = 0` moved `fn_8013D9FC` from 51/71 to 70/71.
+- **Type a shared struct before drafting its family.** When several queued functions share
+  one object, run `ghidra_decompile.py xrefs` and add the accessed fields to the header.
+  Casts such as `*(s32*)((char*)p + 0x74c)` hide aliasing that changes the schedule.
 
-Cached input is a subset of input; never add it twice. Reimporting the same run replaces
-its cumulative counters, and decreasing counters or changing identity is rejected.
-Use a distinct provider run ID for each run. Import only this sprint's usage, and retain
-provenance. Do not import thread-lifetime totals as per-run measurements. `cost_usd`
-is the provider-reported dollar charge, or null when unavailable—not a guessed price,
-subscription allocation or API-equivalent estimate. Reasoning tokens already included
-in provider output totals must not be added again. The tool never scans conversations,
-reads credentials or checks quotas. Without provider exports, usage and cost are unknown;
-partial imports are labeled as covering imported runs only.
-
-Report verified byte gain beside measured active time and usage coverage. Do not project
-whole-project completion from one easy-function run. For an existing baseline without
-a queue, supply the full `--queue` at finish (repeated names are ignored).
-
-The queue follows the work: when a baseline exists, `score_fn.py` adds any function it
-scores to the saved queue, so waves refreshed from `next_target.py` need no bookkeeping.
-`sprint_finish.py --queue-add FN...` adds functions by hand. Finish still rejects queue
-entries that are neither matched, parked nor deferred.
-
-## Per-function budget
-
-Spend effort where the bytes are closest. Each attempt's score decides what comes next:
-
-- Write new functions only through `score_fn.py --body try.c --apply`. A function that is
-  not yet in SOURCE is appended for scoring, and SOURCE changes only on a strict MATCH,
-  so parking needs no cleanup.
-- **Near-misses are the priority.** At 95% exact or better, `score_fn.py` prints
-  `NEAR MISS`. Do not park it on an attempt count. Read the whole diff, then try one
-  targeted change per mismatch: expression order or operand order for a commutative
-  instruction, how a pointer is formed (`&a[i][j]`, `a[i] + j`, an explicit field),
-  declaration or initialisation placement, and inline helper boundaries. Then run
-  `variant_search.py` once and `order_search.py` once if only the order differs. In
-  #55, hoisting one `i = 0` moved `fn_8013D9FC` from 51/71 to 70/71.
-- Below 95%, park after **3 attempts without improvement**. Below about 60% after the
-  first attempt, check the structure against `ghidra.c` before trying again.
-- **Type the family's struct before drafting.** When several queued functions share one
-  object (a pool, a save block), run `ghidra_decompile.py xrefs` and add the fields those
-  functions access to the header at the start. Casts such as `*(s32*)((char*)p + 0x74c)`
-  slow every attempt and hide aliasing that changes the schedule.
-- **Order the queue by shared shape**, not by size. After a match, try its shape
-  siblings next. In #53, `fn_8013F24C` matched on its first attempt by reusing the shape
-  of an earlier sibling.
-
-The table below caps the search for one function.
-
-| Step | Limit |
+| Tool | Use and bound |
 |---|---|
-| Draft: `tools/draft_fn.py NAME` for an m2c start (with `work/NAME/ghidra.c` as a reference), then fast `score_fn.py` attempts | 8 attempts without improvement (3 below 95%) |
-| Each attempt: `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, and writes it into the unit only on a strict MATCH |
-| `variant_search.py NAME src/UNIT.c -j 8` once the draft is within about 10 instructions | one run (searches over `--limit` try the fewest-change variants first) |
-| `order_search.py`, if only the order differs (`--climb` over 7 statements) | one run |
-| Permuter, only at about 90% exact or better, after m2c cleanup and with a `/* permute: begin */` focus region | one run of at most 180 s (`timeout 180`) |
-| Then | park and move on; do not come back in this sprint unless a tool fix makes a new search possible |
+| `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, writes the unit only on a strict MATCH |
+| `hillclimb.py try` | ledger of recorded candidates; reports `PARK` after 8 consecutive attempts without improvement ([defaults](code_matching_workflow.md#measure-and-iterate)) |
+| `variant_search.py NAME src/UNIT.c -j 8` | once the draft is within about 10 instructions; over `--limit` it tries the fewest-change variants first |
+| `order_search.py --climb` | when only statement order differs (up to 7 statements) |
+| Permuter | at about 90% exact or better, after m2c cleanup, with a `/* permute: begin */` focus region; bursts of at most 180 s (`timeout 180`) |
 
 The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has
 no name hit, `hillclimb.py` records the no-hit limit itself; pass a note only when you
-searched or read donor code. A parked function adds one row to the PR's Parked table and
-a `work/NAME/status.md` note giving the best score, the remaining mismatch and the next
+searched or read donor code. A parked function gets a row in the PR's Parked table and a
+`work/NAME/status.md` note with the best score, the remaining mismatch and the next
 hypothesis.
 
-**After each wave**, commit the matches, then take the next wave from the same unit's list.
-**Finish only after accounting for the complete selected queue, including timed deferrals.** `sprint_finish.py`
-rejects missing outcomes. A parked row needs a measured score, the remaining mismatch
-and a next hypothesis; it means an actual bounded search, not an unattempted function.
-Context pressure is a continuation checkpoint: save the current candidate, remaining
-queue and next command under `work/`, then resume the same unit and PR. Do not turn
-it into a smaller final PR. Three consecutive bounded plateaus justify reassessing
-the remaining queue; they do not prove unattempted functions are exhausted.
+### Long permuter runs
 
-A completed wave is not automatically the end of the run. Refresh the unit queue and
-continue related tractable work until the unit is exhausted. User-directed
-stops take precedence; report partial results honestly rather than claiming completion.
+Unattended long runs (`tools/permute_long.sh`) start only when the user asks for one; a
+parked near-miss records a permuter run as its next hypothesis for the user to queue.
+The queue survives the session.
 
-Do not start a second unit in the same thread; open the next sprint as a new thread.
-
-**End the thread after about 5 waves, or once a wave yields fewer than about 6 functions.**
-Open the next sprint as a fresh thread with the saved queue and notes instead of compacting
-a long one: token cost per function rises with context.
-
-**Permuter runs stay inside the thread unless the user asks for more.** The 180 s burst in
-the table above is the model's own tool: run it when a function stalls, read the result, and
-move on. Do not queue unattended long runs (`tools/permute_long.sh`) on your own initiative,
-not even for ≥95% stalls. A parked near-miss's next hypothesis is a permuter run, recorded
-in its parked row and `status.md` for the user to queue.
-
-- **Long or overnight queues are the user's call.** Start `tools/permute_long.sh` only when the
-  user asks for it in the current thread, then keep working on the next wave rather than waiting.
-  The queue survives the session.
-- **Permuter → model.** At the start of each wave or thread, read `work/permute/queue_summary.txt`
-  (or `tools/permwatch.py --once`). Only improved targets come back to the model: review each with
-  `tools/permute_review.py NAME`, comparing prototypes and externs as well as the body (in #65
-  the `fn_800FC5C0` fix was `fn_80095558` returning `void`, not a body change). Port a
-  score-0 output with `score_fn.py --apply` and `verify_fn.py --strict-symbols`. Give an improved
-  but nonzero output two model attempts from the new base, then park it again. Targets that did
-  not improve stay parked without further model attempts.
-- **Overnight runs**: give them a backlog well beyond what the slots can
-  use, so early matches do not leave slots idle:
+- Read `work/permute/queue_summary.txt` (or `tools/permwatch.py --once`) for results.
+  Review each improved target with `tools/permute_review.py NAME`, comparing prototypes
+  and externs as well as the body (in #65 the `fn_800FC5C0` fix was `fn_80095558`
+  returning `void`). Port a score-0 output with `score_fn.py --apply` and
+  `verify_fn.py --strict-symbols`.
+- Give overnight runs a backlog well beyond what the slots can use, so early matches do not
+  leave slots idle:
   `tools/permute_long.sh 7 2 --total 8 $(python3 tools/permute_backlog.py --slots 7 --hours 8 --per 2 --limit 60)`.
   Targets not started stay in the backlog for the next run.
 
-## Finish (one pass)
+## Finish
 
 ```sh
 python3 tools/sprint_finish.py FN1 FN2 ... --unit UNIT --merge \
@@ -281,14 +184,13 @@ python3 tools/sprint_finish.py FN1 FN2 ... --unit UNIT --merge \
 ```
 
 Commit first. With `--unit` given as the source path, `--matched-from-diff` adds every
-function newly defined in it since the merge base, so a long run does not have to list them.
-Use `--merge` once the branch is pushed (it fetches, merges `origin/main` and
-aborts cleanly on a conflict). `--rebase` is only for a branch with nothing pushed yet; it
-refuses when any commit it would rewrite is already on the remote, because that needs a
-force push. The script merges or rebases, runs `bash build.sh` once, strict-verifies each function
-against that build, runs `git diff --check origin/main`, compares the DOL hash and the
-report with the kickoff baseline, and prints the record below. Fill in Donor and Headers,
-and add each tooling commit's yield to the Workflow line. It exits non-zero on any failure.
+function newly defined in it since the merge base. Use `--merge` once the branch is pushed
+(it fetches, merges `origin/main` and aborts cleanly on a conflict). `--rebase` is only for
+a branch with nothing pushed; it refuses when a commit it would rewrite is on the remote.
+The script runs `bash build.sh` once, strict-verifies each function against that build,
+runs `git diff --check origin/main`, compares the DOL hash and the report with the kickoff
+baseline, and prints the record below. Fill in Donor and Headers and each tooling commit's
+yield. It exits non-zero on any failure.
 
 A function can pass the strict verifier yet sit below 100% in objdiff, because a literal reloc
 targets `.rodata+N` rather than the retail `lbl_` symbol. Those do not move `matched_functions`.
@@ -298,14 +200,15 @@ that figure, not an adjusted objdiff total. In a unit with a `.rodata` range
 the unit's literals sit at retail offsets. An `extern lbl_` reference already matches by name.
 To promote the unit, its C must emit every literal in the range, strings included, in retail order.
 
-Bring in main once, at the end. If main moved, the report delta includes main's changes;
-record "includes main drift: yes" in the PR rather than building a separate baseline worktree. Run `verify_unit.py UNIT
---build` only when every function in the unit matches, then promote if it passes.
+If main moved since the baseline, the report delta includes main's changes; record
+"includes main drift: yes" rather than building a separate baseline worktree. Run
+`verify_unit.py UNIT --build` only when every function in the unit matches, then promote
+if it passes.
 
 ## Records
 
-The PR body is the sprint record. Keep it to the template below. There is no per-sprint
-section in `strategy.md` and no tracked timing file.
+The PR body is the sprint record. There is no per-sprint section in `strategy.md` and no
+tracked timing file.
 
 ```markdown
 Sprint: `UNIT` (N matched, M parked)
@@ -334,23 +237,9 @@ Only durable facts go into docs, in the same PR:
 Update `strategy.md` only when the plan changes, for example when a lane is finished or
 the lane order changes.
 
-## Git hook
-
-The Git guard inspects the directory a command starts in. Run `git -C <worktree> commit ...`
-or start the command inside the worktree; `cd X && git commit` from the main checkout is
-rejected as a commit on `main`.
-
-## Merge and clean up
-
-Push, open the PR, link it, then watch it and end the turn. When required CI passes on the
-current head, merge with `gh pr merge --merge`, stop watching, and delete the branch. If CI
-fails, fix it in the same thread. If the fix needs a new idea rather than a correction,
-park the function and drop it from the PR.
-
 ## Kickoff prompt
 
 ```text
 Sprint: UNIT. Queue: next_target.py --unit UNIT --limit 40 (or: fn_A, fn_B, ...).
-Follow docs/sprint_workflow.md. Branch t3/sprint-<unit-leaf>. Fix tooling gaps as you
-go and rerun the fixed tools. Merge when CI passes.
+Follow docs/sprint_workflow.md. Branch t3/sprint-<unit-leaf>.
 ```

@@ -11,15 +11,10 @@ live in [C matching](code_matching_workflow.md).
 
 ## Branches and pull requests
 
-- `main` is the integration branch. Commit to it only through a merged pull request.
-- Work on a topic branch named for its kind of change: `feat/`, `fix/`, `docs/`,
-  `chore/` or `ci/`. Use one branch per concern.
-- Commit messages use Conventional Commits with a lowercase imperative description,
-  for example `fix(ci): install ninja for retail builds`.
-- Stage explicit paths. Check `git status` and `git diff --cached` before committing.
-- Open a pull request into `main`. Keep its title and description accurate as the
-  change evolves: what changed, why, and what was verified.
-- A PR may carry several commits, but each should build and pass the portable checks.
+- `main` changes only through merged pull requests. Each commit in a PR should build and
+  pass the portable checks.
+- Sprint branches are named `t3/sprint-<unit-leaf>`; `next_target.py --by-unit` reads that
+  name to skip units another sprint owns.
 
 If GitHub SSH fails with `Permission denied (publickey)` while `gh` is authenticated,
 use `python3 tools/git_origin.py fetch origin` or
@@ -75,23 +70,10 @@ into the build until it matches.
 Fork PRs have no `ORIG_KEY`, so `retail` is skipped there and `build` skips its
 build steps without failing.
 
-A PR is ready when its required checks succeed on its current head. Pending, missing,
-skipped or cancelled required checks are not success. Push a new head and the checks
-must be observed again.
+A PR is ready when its required checks succeed on its current head; skipped or
+cancelled required checks are not success.
 
-## Merging
-
-Before merging:
-
-- Required CI has succeeded on the PR's current head.
-- The diff has been reviewed and any findings are resolved or explicitly deferred.
-- Relevant local checks have run for the affected area.
-- Required approvals and holds are honored. Branch protections are not bypassed.
-
-After merging, confirm on the forge that the PR is merged and note the merge commit.
-Delete the topic branch once it is merged.
-
-### Worktree cleanup
+## Worktree cleanup
 
 Sprint research (parked `status.md` notes, candidates, permuter outputs) lives in each
 worktree's ignored `work/`, so it must not be lost when the worktree goes. After a merge,

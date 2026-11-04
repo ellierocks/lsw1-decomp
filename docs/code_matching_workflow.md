@@ -447,7 +447,6 @@ compiler/type context must be explained in the handoff; use a new `--ledger` for
 a new context so incompatible scores are never compared. Changes to stored
 configuration, symbol/split or verifier hashes block new attempts in that ledger. Source/header context changes still require
 the agent to decide whether prior scores are comparable.
-An attempt budget is not an agent token budget: follow account usage limits too.
 
 ## Verifying a candidate
 

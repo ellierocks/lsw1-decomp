@@ -144,9 +144,9 @@ records that limit as the note itself. Keep the review in the PR or plateau hand
 units use the Dolphin lane and are exempt.
 
 Record a candidate with `try` when it improves the best score or settles a
-hypothesis. Park the target after 8 attempts without improvement: write the best
-score, the remaining mismatch and one next hypothesis in `work/NAME/status.md`,
-then pick another target from step 2.
+hypothesis. When `hillclimb.py` reports `PARK` (8 attempts without improvement by
+default), write the best score, the remaining mismatch and one next hypothesis in
+`work/NAME/status.md`, then pick another target from step 2.
 
 ## 6. Rules that do not bend
 
@@ -155,4 +155,3 @@ then pick another target from step 2.
   [C matching](code_matching_workflow.md#promotion).
 - Donor C is evidence. A function counts only after it matches with this
   game's compiler.
-- Commit explicit paths on a topic branch and open a PR into `main`.
