@@ -11,10 +11,9 @@ live in [C matching](code_matching_workflow.md).
 
 ## Branches and pull requests
 
-- `main` changes only through merged pull requests. Each commit in a PR should build and
-  pass the portable checks.
-- Sprint branches are named `t3/sprint-<unit-leaf>`; `next_target.py --by-unit` reads that
-  name to skip units another sprint owns.
+- `main` changes only through merged pull requests.
+- `next_target.py --by-unit` recognizes `t3/sprint-<unit-leaf>` branches to skip
+  occupied units. Other branch names and cross-unit work need direct overlap checks.
 
 If GitHub SSH fails with `Permission denied (publickey)` while `gh` is authenticated,
 use `python3 tools/git_origin.py fetch origin` or
@@ -101,8 +100,8 @@ and never print the key in logs. Rotation steps are in
 
 ## Matching evidence
 
-C matching sessions follow the bounded [matching loop](code_matching_workflow.md#measure-and-iterate).
-Phase 3 sprint PRs use the [sprint template](sprint_workflow.md#records). PRs
+The [matching tools](code_matching_workflow.md#measure-and-iterate) retain experiment
+evidence; the [sprint record example](sprint_workflow.md#records) shows a PR summary. PRs
 retain the baseline, best attempt, target addresses and exact verification
 commands, promoted bytes and remaining limits. Local experiment snapshots stay
 under ignored `work/`; include a

@@ -99,7 +99,7 @@ For each sprint target, retain a small evidence record:
 A good first task is an ambiguous small script handler whose argument meaning
 blocks a shared header. A good binary-format task is a small fixup helper whose
 count/stride can be checked against two actual files. Stop research once it
-answers the matching question; retain the existing one-unit sprint workflow.
+answers the matching question.
 Do not regenerate every historical report or rename symbols merely because an
 asset name resembles a function. Controlled asset mutations or runtime probes
 are follow-up experiments only after a baseline interpretation is established.

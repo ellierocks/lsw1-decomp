@@ -407,28 +407,16 @@ Record a candidate with
 `hillclimb.py try` when it improves the incumbent or settles a hypothesis;
 exploratory attempts do not need ledger entries.
 
-The agent proposes changes; the local compiler and verifier judge them. This
-workflow uses the active agent session and does not invoke a model API or purchase
-compute. One owner writes each candidate; independent targets may use separate
-worktrees when explicitly delegated under the session's agent policy.
+The local compiler and strict verifier judge candidates. `hillclimb.py try` records
+`--hypothesis` and every edited source/header supplied through repeated `--source`.
+It runs the strict verifier with `--build`; stale objects and compiler errors cannot
+become improvements. `--candidate` and `--body` select unapplied source to compile;
+`--source` alone snapshots files and does not select the compiled candidate.
 
-For each attempt:
-
-1. Inspect the first meaningful divergence and state one falsifiable hypothesis:
-   signedness, expression order, pointer stride, loop shape, lifetime, or float
-   precision. Change one related source choice and compile again.
-2. Run `hillclimb.py try` with the hypothesis and **every edited source/header**
-   supplied through repeated `--source`. It runs the strict verifier with
-   `--build`; stale objects and compiler errors cannot become improvements.
-3. Inspect the report, not just the score. Lower lexicographic score wins:
-   fully verified match first, fewer differences, smaller instruction-count
-   difference, more exact instructions, fewer unverified references. This is a
-   search heuristic; aligned instruction counts can be discontinuous and a
-   score improvement does not prove semantics or permit promotion.
-4. Continue from the best candidate. Revert a losing experiment by deliberately
-   editing your own source back to its recorded snapshot. The tool never resets
-   the checkout. A neutral or worse experiment can inform a later hypothesis,
-   but it does not replace the incumbent best.
+Its lexicographic score favors fully verified matches, fewer differences, smaller
+instruction-count differences, more exact instructions and fewer unverified references.
+That ranking guides search; it does not prove semantics or permit promotion. Losing
+experiments remain useful evidence but do not replace the recorded best candidate.
 
 Records are immutable numbered JSON files under `work/hillclimb/<identity>/`.
 They include hypotheses, source text and hashes, Git head, build configuration /
@@ -438,15 +426,15 @@ Only one writer can record a target at a time. An interrupted writer may leave
 `.lock`; confirm no writer remains before removing that lock. Logs stay local;
 retain a concise evidence summary and final C in the PR, not raw game artifacts.
 
-Defaults: 40 attempts, 8 consecutive attempts without improvement, 120 seconds
-per verifier invocation. Errors and timeouts consume attempts. `PARK` means stop
-and save the best attempt, remaining mismatch, rejected ideas and one concrete
-next hypothesis in the task's `status.md`; select a different target. Do not
-restart a ledger to hide exhausted work. A deliberately changed search budget or
-compiler/type context must be explained in the handoff; use a new `--ledger` for
-a new context so incompatible scores are never compared. Changes to stored
-configuration, symbol/split or verifier hashes block new attempts in that ledger. Source/header context changes still require
-the agent to decide whether prior scores are comparable.
+Defaults are `--max-attempts 40`, `--patience 8` consecutive non-improving attempts,
+and `--timeout 120` seconds per verifier invocation. Errors and timeouts count.
+`PARK` describes exhaustion under those settings, not a command to abandon the target.
+Adjust the budgets on the same ledger when further search is useful; retain prior
+attempts. If parking, save the best candidate, remaining mismatch and next hypothesis.
+Changes to configuration, symbol/split or verifier hashes block new attempts in that
+ledger. Explain changed verification context and use a new `--ledger` so incompatible
+scores are not compared. Source/header context changes still require judging whether
+prior scores remain comparable.
 
 ## Verifying a candidate
 

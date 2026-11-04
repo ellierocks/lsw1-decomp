@@ -118,15 +118,15 @@ SISamplingRate promotes its two functions, initialized data and four-byte
 
 ### Phase 3: agent draft-and-climb for game code
 
-Throughput is the measure. Run Phase 3 as [sprints](sprint_workflow.md): one
-unit, an explicit queue and one PR. Concurrent sprints take separate units, tracked
-by branch name. Grow the shared `nu2` and game headers
-inside sprints: confirm a field when a queued function accesses it. Results and
+Use the [matching tools](sprint_workflow.md) to collect verified matches and improve
+the workflow as gaps appear. Branch-based unit detection helps avoid overlapping
+work, but does not cover arbitrary cross-unit changes. Confirm shared `nu2` and game
+header fields against consumers. Results and
 failure modes from the earlier multi-unit batches are in
 [batch history](phase3_batches.md).
 
-**Biggest progress first.** Every Phase 3 round starts with the unattended sweep,
-`python3 tools/sweep.py --apply` (about two minutes, no model or agent). It drafts every ready
+**Automatic progress.** `python3 tools/sweep.py --apply` collects mechanical matches.
+It drafts every ready
 target with m2c, strict-scores each draft and writes the matches into their units.
 m2c reads the preprocessed unit source as `--context`, so typed headers type the drafts;
 each target keeps the better of its typed and untyped drafts, and drafts at 80% exact or
@@ -159,31 +159,23 @@ first sweep matched 183 functions (13,608 verified bytes) in under ten minutes o
 time, more than any agent sprint so far. Check its output with `bash build.sh` and
 `verify_fn.py --strict-symbols` on each applied function. Everything that did not match is
 ranked in `work/sweep/results.json` by size × exact-instruction ratio; that ranking is the
-sprint queue. Large near-misses (90% exact or better) come before small fresh targets,
-because the draft is already most of the way there. Rerun the sweep after header or
-tool changes that could turn more drafts into matches. Tool fixes compound across
-units, so each sprint fixes the gaps it hits and reruns the tools in the same PR
-([improve the workflow](sprint_workflow.md#improve-the-workflow-as-you-go)). Then run `python3 tools/sweep_permute.py --apply`.
-It permutes the top near-misses (90% exact or better, largest first) with the strict-scored
-permuter under a time limit per function and applies any strict match. Agents take what is
-left.
+candidate shortlist. Near-miss size and similarity can help prioritize search, but do
+not predict how difficult the remaining mismatch is. Rerun affected targets after
+header or tool changes. `sweep_permute.py --apply` searches the top near-misses
+(90% exact or better, largest first) with a per-function time limit and applies strict
+matches. These tools can be used whenever they help the task.
 
-For each queued function:
+Available approaches include m2c and Ghidra drafts, donor evidence, shared types,
+manual iteration with `score_fn.py`, and automated search. The
+[pattern library](code_matching_workflow.md#pattern-library) supplies matched ProDG
+examples. `permute_setup.py NAME --run` prepares permuter search;
+`order_search.py --climb` explores statement order. Choose their order and effort
+based on the remaining mismatch, and record useful candidates with `hillclimb.py try`.
+Accept functions with `verify_fn.py --build --strict-symbols`; whole-TU promotion
+also requires section, relocation and linked-range checks.
 
-1. **Draft.** Combine m2c (PPC) output, the Ghidra output (`work/NAME/ghidra.c` from `draft_fn.py`), CrashWOC/Nu2 donor
-   C and context from shared headers.
-2. **Agent search.** Iterate with `score_fn.py`, recording candidates worth
-   keeping through `hillclimb.py try`. When the C behind a mismatching instruction
-   shape is unclear, look it up in RE4's matched ProDG code and LSW1's own matches with
-   the [pattern library](code_matching_workflow.md#pattern-library).
-3. **Permuter.** Run decomp-permuter on functions that are close (about 95%
-   exact or better) with `tools/permute_setup.py NAME --run`, focused on the differing
-   region. Use `order_search.py --climb` instead when only the statement order differs.
-4. **Accept.** Use `verify_fn.py --build --strict-symbols`. Promote whole TUs
-   when every function matches. One sprint produces one PR.
-
-Order the queue by size, callee count, type coverage and donor similarity.
-Small leaf functions come first. The
+Size, callees, type coverage and donor similarity help estimate useful targets.
+The
 [OpenSaga lane](symbol_donors/opensaga_matching.md) queues parser/helpers
 before AI and animation and requires strict matches before expansion. Build
 shared `nu2` struct headers once, from donor layouts confirmed against LSW1
@@ -211,8 +203,7 @@ Use the [asset inventory and script index](asset_mining.md#available-tooling) wh
 a selected handler or loader needs argument, count, stride or format evidence.
 Start with original LSW1 inputs and retain their hashes and source locations.
 Lexical command hits are leads; connect them through GC parser/dispatch/access
-evidence before expanding shared types. This supports the existing one-unit
-sprints and strict promotion gates; asset coverage is not matching progress.
+evidence before expanding shared types. This supports matching and strict promotion gates; asset coverage is not matching progress.
 
 ## Choosing a task
 
@@ -222,20 +213,13 @@ sprints and strict promotion gates; asset coverage is not matching progress.
    a promising unit. Resume the parked HVQM4 candidate from its strict-verification
    handoff when pursuing SDK work; libsn, debugger and the remaining
    [SN runtime](sn_runtime.md#not-imported) misses need concrete leads.
-2. Run the sweep first (see Phase 3), then take the sprint queue from the top of
-   `work/sweep/results.json`, grouped by unit. Fetch, inspect `git worktree list`, and run
-   `python3 tools/next_target.py --by-unit`. Exclude active local worktrees as
-   well as unmerged sprint branches and open PRs. Treat the ranking as a
-   shortlist: prefer related function families with reusable code and types,
-   and enough ready bytes for several waves. Use few functions left only as a
-   tie-breaker when there is a concrete completion advantage. Inspect owned data
-   sections before assuming code completion permits promotion. Do not pay the
-   full sprint setup/finish cost for a tiny queue merely because
-   it is nearly complete. The selector ranks first-wave bytes, not predicted
-   speed; inspect code shapes before choosing. Run one
-   [sprint](sprint_workflow.md) in its own worktree branch; finish accounting must
-   include every selected target.
-3. Record a plateau in the task's `status.md` and the PR with its best score, its
-   remaining mismatch and one concrete next hypothesis. Then move on.
+2. Use current sweep results or `next_target.py --by-unit` as a shortlist. Inspect
+   active worktrees, branches and PRs before editing overlapping targets; branch-name
+   ownership detection covers only its documented naming convention. Related families
+   can reuse types and tooling fixes. Inspect owned data before assuming code matches
+   permit promotion. When using a sprint queue, finish accounting includes every
+   selected target.
+3. When parking a target, retain its best score, remaining mismatch and a useful next
+   hypothesis in the task's `status.md` and PR.
 4. When the plan changes, update this file in the same PR. Sprint results stay in
    the PR.
