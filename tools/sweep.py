@@ -94,7 +94,7 @@ def expand_macros(text: str) -> str:
 # ProDG emits float `<=`/`>=` as `fcmpu; cror un, eq, lt|gt; bso|bns`. m2c cannot read the
 # cror, but folding it into the branch is exact, including the unordered case:
 # un|eq|lt set <=> !gt, so bso -> ble and bns -> bgt (and with gt: bso -> bge, bns -> blt).
-CROR = re.compile(r"^(.*?)\bcror un, eq, (lt|gt)\s*$")
+CROR = re.compile(r"^(.*?)\bcror (?P<f>cr[0-7])?un, (?P=f)?eq, (?P=f)?(lt|gt)\s*$")
 FOLD = {("lt", "bso"): "ble", ("lt", "bns"): "bgt", ("gt", "bso"): "bge", ("gt", "bns"): "blt"}
 
 
@@ -106,9 +106,12 @@ def fold_cror(asm: str) -> str:
             continue
         nxt = lines[i + 1] if i + 1 < len(lines) else ""
         b = re.search(r"\t(bso|bns)(lr)?\b", nxt)
+        f = m.group("f")
+        if b and f and not re.match(rf"\s*{f}\b", nxt[b.end():]):
+            b = None
         if not b:
             return asm  # not the compiler's pattern: leave the cror for m2c to report
-        lines[i + 1] = nxt[:b.start() + 1] + FOLD[(m.group(2), b.group(1))] + (b.group(2) or "") + nxt[b.end():]
+        lines[i + 1] = nxt[:b.start() + 1] + FOLD[(m.group(3), b.group(1))] + (b.group(2) or "") + nxt[b.end():]
         lines[i] = None
     return "\n".join(ln for ln in lines if ln is not None) + "\n"
 

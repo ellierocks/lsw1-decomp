@@ -1,0 +1,149 @@
+diff --git a/m2c/arch_ppc.py b/m2c/arch_ppc.py
+index eb5cb38..0291401 100644
+--- a/m2c/arch_ppc.py
++++ b/m2c/arch_ppc.py
+@@ -1,4 +1,5 @@
+ from __future__ import annotations
++import re
+ from dataclasses import replace
+ from typing import (
+     Callable,
+@@ -756,6 +757,7 @@ class PpcArch(Arch):
+                 "cr0_so",
+                 "ctr",
+             ]
++            + [f"cr{n}_{b}" for n in (1, 5, 6, 7) for b in ("lt", "gt", "eq", "so")]
+         ]
+     )
+     saved_regs = [
+@@ -764,6 +766,7 @@ class PpcArch(Arch):
+             # TODO: Some of the bits in CR are required to be saved (like cr2_gt)
+             # When those bits are implemented, they should be added here
+             "lr",
++            *[f"cr{n}_{b}" for n in (2, 3, 4) for b in ("lt", "gt", "eq", "so")],
+             # $r2 & $r13 are used for the small-data region, and are like $gp in MIPS
+             "r2",
+             "r13",
+@@ -1039,6 +1042,17 @@ class PpcArch(Arch):
+             Register("cr0_so"),
+         ]
+ 
++        def cr_field(arg: Argument) -> Optional[int]:
++            if isinstance(arg, Register) and re.fullmatch(r"cr[0-7]", arg.register_name):
++                return int(arg.register_name[2])
++            return None
++
++        def cr_bits(n: int) -> List[Location]:
++            return [Register(f"cr{n}_{b}") for b in ("lt", "gt", "eq", "so")]
++
++        def crsave(reg: Register, n: int, b: str) -> Register:
++            return Register(f"crsave_{reg.register_name}_cr{n}_{b}")
++
+         memory_sizes = {
+             "b": 1,
+             "h": 2,
+@@ -1088,9 +1102,9 @@ class PpcArch(Arch):
+             "bsolr",
+         ):
+             # Conditional return
+-            # TODO: Support crN argument
+             assert len(args) <= 1
+-            inputs = cr0_bits + [Register("lr")]
++            field = cr_field(args[0]) if args else None
++            inputs = cr_bits(field or 0) + [Register("lr")]
+             is_return = True
+             is_conditional = True
+             # NB: These are rewritten to mnemonic[:-2] by build_blocks in flow_graph.py
+@@ -1126,12 +1140,14 @@ class PpcArch(Arch):
+             jump_target = get_jump_target(args[0])
+         elif mnemonic in cls.instrs_branches:
+             # Normal branch
+-            # TODO: Support crN argument
+             assert 1 <= len(args) <= 2
+             # If the name starts with "!", negate the condition
+             raw_name = cls.instrs_branches[mnemonic]
+             negated = raw_name.startswith("!")
+             reg_name = raw_name.lstrip("!")
++            field = cr_field(args[0]) if len(args) == 2 else None
++            if field is not None and reg_name.startswith("cr0_"):
++                reg_name = f"cr{field}_" + reg_name[4:]
+ 
+             inputs = [Register(reg_name)]
+             jump_target = get_jump_target(args[-1])
+@@ -1439,19 +1455,68 @@ class PpcArch(Arch):
+         elif mnemonic in cls.instrs_ppc_compare:
+             assert len(args) == 3 and isinstance(args[1], Register)
+             inputs = [r for r in args[1:] if isinstance(r, Register)]
+-            outputs = list(cr0_bits)
++            cmp_field = cr_field(args[0])
++            outputs = cr_bits(cmp_field) if cmp_field is not None else list(cr0_bits)
+ 
+             def eval_fn(s: NodeState, a: InstrArgs) -> None:
+-                base_reg = a.reg_ref(0)
+-                if base_reg != Register("cr0"):
+-                    error = f'"{instr_str}" is not supported, the first arg is not $cr0'
++                if cmp_field is None:
++                    error = f'"{instr_str}" is not supported, the first arg is not $crN'
+                     s.write_statement(error_stmt(error))
+                     return
++                f = f"cr{cmp_field}"
++                s.set_reg(Register(f + "_eq"), cls.instrs_ppc_compare[mnemonic](a, "=="))
++                s.set_reg(Register(f + "_gt"), cls.instrs_ppc_compare[mnemonic](a, ">"))
++                s.set_reg(Register(f + "_lt"), cls.instrs_ppc_compare[mnemonic](a, "<"))
++                s.set_reg(Register(f + "_so"), Literal(0))
++
++        elif mnemonic == "mcrf":
++            assert len(args) == 2
++            dst_f, src_f = cr_field(args[0]), cr_field(args[1])
++            assert dst_f is not None and src_f is not None
++            inputs = cr_bits(src_f)
++            outputs = cr_bits(dst_f)
+ 
+-                s.set_reg(Register("cr0_eq"), cls.instrs_ppc_compare[mnemonic](a, "=="))
+-                s.set_reg(Register("cr0_gt"), cls.instrs_ppc_compare[mnemonic](a, ">"))
+-                s.set_reg(Register("cr0_lt"), cls.instrs_ppc_compare[mnemonic](a, "<"))
+-                s.set_reg(Register("cr0_so"), Literal(0))
++            def eval_fn(s: NodeState, a: InstrArgs) -> None:
++                for d, r in zip(cr_bits(dst_f), cr_bits(src_f)):
++                    assert isinstance(d, Register) and isinstance(r, Register)
++                    s.set_reg(d, a.regs[r])
++
++        elif mnemonic == "mfcr":
++            # Snapshot every CR field into shadow registers tied to the GPR, so a later
++            # `mtcrf mask, $rX` can restore the compare results it saved.
++            assert len(args) == 1 and isinstance(args[0], Register)
++            gpr = args[0]
++            all_bits = [r for n in range(8) for r in cr_bits(n)]
++            inputs = list(all_bits)
++            outputs = [gpr] + [
++                crsave(gpr, n, b) for n in range(8) for b in ("lt", "gt", "eq", "so")
++            ]
++
++            def eval_fn(s: NodeState, a: InstrArgs) -> None:
++                for n in range(8):
++                    for b in ("lt", "gt", "eq", "so"):
++                        bit = Register(f"cr{n}_{b}")
++                        if a.regs.contents.get(bit) is not None:
++                            s.set_reg(crsave(gpr, n, b), a.regs[bit])
++                s.set_reg(gpr, Literal(0))
++
++        elif mnemonic == "mtcrf":
++            assert len(args) == 2 and isinstance(args[1], Register)
++            mask_arg = args[0]
++            assert isinstance(mask_arg, AsmLiteral)
++            gpr = args[1]
++            fields = [n for n in range(8) if mask_arg.value & (0x80 >> n)]
++            inputs = [gpr] + [
++                crsave(gpr, n, b) for n in fields for b in ("lt", "gt", "eq", "so")
++            ]
++            outputs = [r for n in fields for r in cr_bits(n)]
++
++            def eval_fn(s: NodeState, a: InstrArgs) -> None:
++                for n in fields:
++                    for b in ("lt", "gt", "eq", "so"):
++                        src = crsave(gpr, n, b)
++                        if a.regs.contents.get(src) is not None:
++                            s.set_reg(Register(f"cr{n}_{b}"), a.regs[src])
+ 
+         elif mnemonic in cls.instrs_ignore:
+             pass
