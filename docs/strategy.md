@@ -139,8 +139,14 @@ GCC 2.95 carry idioms (`subfic/adde` = `x == 0`, `addic/subfe` = `-(y == 0)`, `s
 about 257 KB of new code. The sweep also strips the varargs `stfd` prologue, declares
 unset-register and `saved_reg_*` reads as locals, adopts the unit's own prototype for the
 target and fixes callee arity from the unit's declarations. What stays UNHANDLED is recorded
-hand-work: paired-single (`ps_*`, `psq_*`), supervisor code (`mtmsr`, `mfspr HID`, BATs) and
-64-bit carry pairs. Many new drafts still fail to compile on `void *` member access, irregular
+hand-work: paired-single code beyond the vector add/sub block (`ps_mul`/`madd`/`sum`/`merge`
+in `NuVecMagSqr`, `NuVecCross`, `NuVecMtxTransform`, `NuMtxMul`, `fn_8000EFE0`, and the
+`psq_l`/`psq_st` dumps in the runtime region past 0x801503A0), supervisor code (`mtmsr`,
+`mfspr HID`, BATs) and 64-bit carry pairs. The game's 8-instruction `psq_l`/`ps_add|ps_sub`/
+`psq_st` block (24 functions, mostly `chris`/`podrace`) is source-level inline asm:
+`src/numath/nuvec_ps.h` holds it as `NuVecAddPS`/`NuVecSubPS`, `fold_ps` turns each block into
+a call m2c can read and `fix_ps_calls` keeps the arguments to `(dst, a, b)`. That drafts all
+24 functions; `NuVecAdd`/`NuVecSub` match from it, and the rest still need typing. Many new drafts still fail to compile on `void *` member access, irregular
 switches and stack-address typing; those need the shared headers. The
 first sweep matched 183 functions (13,608 verified bytes) in under ten minutes of wall
 time, more than any agent sprint so far. Check its output with `bash build.sh` and

@@ -161,6 +161,10 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   already declares the target with a different signature). m2c's compare-in-GPR idioms
   (`mfcr` + `rlwinm`, `cror`, carry sequences) need the patched m2c from `tools/fetch_m2c.sh`;
   an unpatched checkout leaves them as `M2C_CARRY`/`M2C_ERROR` and the sweep reports UNHANDLED.
+- Paired-single add/sub in game code is an inline `asm volatile` block, written with the
+  `NuVecAddPS`/`NuVecSubPS` macros from `numath/nuvec_ps.h` (numeric register syntax,
+  because the assembler rejects `f1` inside `asm()`). Use `(dst, a, b)`; the sweep emits
+  them for you. Other paired-single operations have no macro yet.
 - An out-parameter whose address is passed to several calls is kept in a callee-saved
   register when it is a 4- or 8-byte scalar. Declared at its real size (the 12-byte
   `NuSpecialFind` result), `addi rN, r1, 8` is recomputed before each call instead

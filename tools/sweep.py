@@ -116,6 +116,70 @@ def fold_cror(asm: str) -> str:
     return "\n".join(ln for ln in lines if ln is not None) + "\n"
 
 
+# Game code inlines NuVecAdd/NuVecSub as a fixed eight-instruction paired-single asm block
+# (src/numath/nuvec_ps.h): psq_l f1,f3,f2,f4 from two base registers, ps_add|ps_sub twice,
+# psq_st twice through a third. m2c has no paired-single model, so the block becomes a call
+# `NuVec{Add,Sub}PS(dst, a, b)`; the draft includes the header whose macro reproduces it.
+PS_BLOCK = re.compile(
+    r"psq_l f1, 0x0\((?P<a>r\d+)\), 0, qr0\npsq_l f3, 0x0\((?P<b>r\d+)\), 0, qr0\n"
+    r"psq_l f2, 0x8\((?P=a)\), 1, qr0\npsq_l f4, 0x8\((?P=b)\), 1, qr0\n"
+    r"ps_(?P<op>add|sub) f1, f1, f3\nps_(?P=op) f2, f2, f4\n"
+    r"psq_st f1, 0x0\((?P<d>r\d+)\), 0, qr0\npsq_st f2, 0x8\((?P=d)\), 1, qr0\n")
+ASM_COMMENT = re.compile(r"^/\*.*?\*/\s*")
+PS_CALLS = ("NuVecAddPS", "NuVecSubPS")
+
+
+def fix_ps_calls(body: str) -> str:
+    """Give every NuVec{Add,Sub}PS call exactly its three arguments."""
+    for fn in PS_CALLS:
+        for start, end, args in reversed(list(call_sites(body, fn))):
+            fixed = (args[:3] + ["0"] * 3)[:3]
+            call = f"{fn}({', '.join(fixed)})"
+            # The block is an asm statement with no value; m2c models r3 as the return
+            # value, and after the fold's `mr r3, dst` that is the destination.
+            if (m := re.search(r"([ \t]*)(\w+) = $", body[:start])) and body[end:end + 1] == ";":
+                body = (body[:m.start()] + f"{m.group(1)}{call};\n{m.group(1)}{m.group(2)} = {fixed[0]}"
+                        + body[end:])
+            else:
+                body = body[:start] + call + body[end:]
+    return body
+
+
+def moves_to_args(srcs: list[str]) -> list[str]:
+    """`mr` lines that load SRCS into r3, r4, r5 in parallel (r0 breaks a cycle). Registers
+    already in place get a trailing `mr rN, rN` so m2c still sees them passed."""
+    pending = [(f"r{3 + i}", s) for i, s in enumerate(srcs) if s != f"r{3 + i}"]
+    out = []
+    while pending:
+        free = next(((d, s) for d, s in pending if all(d != s2 for _, s2 in pending)), None)
+        if free is None:
+            d0 = pending[0][0]
+            out.append(f"\tmr r0, {d0}")
+            pending = [(d, "r0" if s == d0 else s) for d, s in pending]
+            continue
+        pending.remove(free)
+        out.append(f"\tmr {free[0]}, {free[1]}")
+    out += [f"\tmr r{3 + i}, r{3 + i}" for i, s in enumerate(srcs) if s == f"r{3 + i}"]
+    return out
+
+
+def fold_ps(asm: str) -> str:
+    """Rewrite each inlined paired-single vector add/sub block as a call m2c can read."""
+    lines = asm.splitlines()
+    text = [ASM_COMMENT.sub("", ln).strip() for ln in lines]
+    out, i = [], 0
+    while i < len(lines):
+        m = PS_BLOCK.match("\n".join(text[i:i + 8]) + "\n") if i + 8 <= len(lines) else None
+        if not m:
+            out.append(lines[i])
+            i += 1
+            continue
+        body = [*moves_to_args([m["d"], m["a"], m["b"]]), f"\tbl {PS_CALLS[m['op'] == 'sub']}"]
+        out.extend(body)
+        i += 8
+    return "\n".join(out) + "\n"
+
+
 # m2c writes `*(base + off)` when it cannot type the pointer; ProDG rejects a deref of an
 # integer or void *. Most such accesses are words, so give them an s32 pointer. Binary `*`
 # is always spaced in m2c output, and an existing `*(T *)` cast is left alone.
@@ -201,7 +265,7 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
         return "no-asm", ""
     m2c = draft_fn.m2c_dir()
     m2c_in = task / "asm_m2c.s"
-    m2c_in.write_text(fold_cror(strip_vararg_saves(asm.read_text())))
+    m2c_in.write_text(fold_ps(fold_cror(strip_vararg_saves(asm.read_text()))))
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
         cmd += ["--no-cache", "--context", str(context)]
@@ -217,6 +281,10 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
         return "m2c-failed", ""
     body = draft_fn.clean(body, name, asm.read_text())
     body = body.replace('#include "types.h"\n', "", 1).strip() + "\n"
+    if any(c in body for c in PS_CALLS):  # the macros stand in for m2c's guessed prototypes
+        body = re.sub(rf"^(?=\S)[^\n]*\b(?:{'|'.join(PS_CALLS)})\([^\n]*\);\n", "", body, flags=re.M)
+        body = fix_ps_calls(body)
+        body = '#include "numath/nuvec_ps.h"\n' + body
     return "ok", body
 
 

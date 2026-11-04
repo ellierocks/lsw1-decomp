@@ -78,3 +78,27 @@ class SweepRepairTest(unittest.TestCase):
         from variant_search import find_function
         text = "void g(void) {\n    if (f(1) != 0) {\n    }\n}\n\nint f(int a) {\n    return a;\n}\n"
         self.assertEqual(find_function(text, "f").body.strip(), "return a;")
+
+    def test_moves_to_args_orders_parallel_moves(self):
+        self.assertEqual(self.sweep.moves_to_args(["r4", "r3", "r5"]),
+                         ["\tmr r0, r3", "\tmr r3, r4", "\tmr r4, r0", "\tmr r5, r5"])
+        self.assertEqual(self.sweep.moves_to_args(["r30", "r31", "r29"]),
+                         ["\tmr r3, r30", "\tmr r4, r31", "\tmr r5, r29"])
+
+    def test_fold_ps_replaces_add_block_with_call(self):
+        block = ["psq_l f1, 0x0(r4), 0, qr0", "psq_l f3, 0x0(r5), 0, qr0",
+                 "psq_l f2, 0x8(r4), 1, qr0", "psq_l f4, 0x8(r5), 1, qr0",
+                 "ps_add f1, f1, f3", "ps_add f2, f2, f4",
+                 "psq_st f1, 0x0(r3), 0, qr0", "psq_st f2, 0x8(r3), 1, qr0"]
+        asm = "\n".join(f"/* 80000000 00000000  00 00 00 00 */\t{ln}" for ln in ["li r0, 1", *block, "blr"])
+        out = self.sweep.fold_ps(asm)
+        self.assertIn("bl NuVecAddPS", out)
+        self.assertNotIn("psq_", out)
+        self.assertIn("blr", out)
+        self.assertIn("bl NuVecSubPS", self.sweep.fold_ps(asm.replace("ps_add", "ps_sub")))
+
+    def test_fix_ps_calls_pads_trims_and_drops_value(self):
+        body = "void f(void) {\n    temp_r31 = NuVecSubPS(&sp8, a);\n    NuVecAddPS(x, y, z, w);\n}\n"
+        out = self.sweep.fix_ps_calls(body)
+        self.assertIn("    NuVecSubPS(&sp8, a, 0);\n    temp_r31 = &sp8;", out)
+        self.assertIn("NuVecAddPS(x, y, z);", out)
