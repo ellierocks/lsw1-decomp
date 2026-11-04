@@ -160,6 +160,15 @@ def drop_redeclared(context: str, body: str) -> tuple[str, list[str]]:
     return _EXTERN.sub(extern, body), dropped
 
 
+def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0) -> None:
+    """Record an interactive attempt for tools/sprint_bench.py (no-op without a started run)."""
+    try:
+        import sprint_bench
+        sprint_bench.append("score", name=name, verdict=verdict, exact=exact, target=target)
+    except (OSError, ValueError):
+        pass
+
+
 def splice_body(text: str, name: str, body: str) -> str:
     from variant_search import VariantError, find_function
     body = body.strip("\n")
@@ -240,6 +249,8 @@ def main(argv=None) -> int:
                              args.cc1_native.resolve() if args.cc1_native else None)
         if err:
             print(f"error: compile failed\n{err}", file=sys.stderr)
+            if not args.no_queue and not args.compile_only:
+                bench_note(args.name, "ERROR")
             return vf.EXIT_ERROR
         if args.compile_only:
             return 0
@@ -265,6 +276,7 @@ def main(argv=None) -> int:
     rep["score"] = score(rep)
     if not args.no_queue:
         note_queue(args.name)
+        bench_note(args.name, rep.get("verdict", ""), rep.get("exact_insns", 0), rep.get("target_insns", 0))
     if args.json:
         print(json.dumps(rep, indent=2))
         return code

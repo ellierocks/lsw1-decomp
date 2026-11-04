@@ -86,6 +86,8 @@ had been made by hand, in a run that verified 81 functions.
 
 ## Kickoff (read only this much)
 
+0. When the kickoff prompt gives a model and launch time, start the
+   [benchmark](#benchmark) first: `python3 tools/sprint_bench.py start --model MODEL --launched-at EPOCH`.
 1. AGENTS.md and this page.
 2. Take the unit's near-misses from `work/sweep/results.json`, largest first, then fill
    with `python3 tools/next_target.py --unit UNIT --limit 40`. Save the list as the
@@ -148,6 +150,18 @@ timer. Missing historical measurements remain unknown. `sprint_finish.py` gives 
 `git fetch` a 60-second timeout and retries GitHub SSH public-key failures through
 the current `gh` login. If `--baseline` cannot fetch, it warns and checks
 freshness against the last fetched `origin/main`.
+
+### Benchmark
+
+`tools/sprint_bench.py` records what a run spends its wall time on, so runs and models can
+be compared and slow steps found. `start` (kickoff step 0) splits startup into worktree creation
+and agent boot from the launch time. Wrap setup commands as
+`python3 tools/sprint_bench.py time LABEL -- CMD` (labels `bootstrap`, `build`, `sweep`,
+`baseline`, `ghidra`), and add milestones with `mark LABEL`. Each interactive `score_fn.py` attempt is
+logged on its own (attempts, compile errors, first score, first match). `sprint_finish.py`
+times its build and writes the run summary to `~/.cache/lsw1/bench/`, which outlives the
+worktree. `report` shows the current run; `compare` lists every finished run, with verified
+functions per active hour and attempts per match by model.
 
 ### Provider usage and cost
 
