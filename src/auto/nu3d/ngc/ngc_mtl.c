@@ -230,3 +230,7 @@ void fn_80033EA4(u16 *arg0) {
         }
     }
 }
+
+void fn_8003294C(void) {
+    volatile s32 pad[2];
+}

@@ -123,3 +123,7 @@ void fn_80146DF8(void) {
         lbl_8040B060[0] = 1;
     }
 }
+
+void fn_801470AC(void) {
+    volatile s32 pad[4];
+}

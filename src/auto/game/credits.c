@@ -137,3 +137,6 @@ void fn_8010B940(s32 arg0, s32 arg1, s32 arg2) {
     fn_8000E3C0(arg0, lbl_8040B120);
     NuMtxTranslate(arg0, arg2);
 }
+
+typedef struct { u8 pad[0x250]; u8 arr[1]; } D250;
+u8 fn_80108DA8(D250 *arg0, s32 arg1) { return arg0->arr[arg1]; }
