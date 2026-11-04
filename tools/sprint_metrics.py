@@ -1,9 +1,91 @@
 """Local sprint accounting. No transcript scanning, pricing guesses or account access."""
 import json
 import math
+import os
+import time
 from pathlib import Path
 
 NEAR_MISS_RATIO = 0.95
+
+
+DEFAULT_IDLE_CAP = 900.0  # seconds; a gap between activity events counts only up to this
+IDLE_CAP_ENV = 'LSW1_IDLE_CAP'
+
+
+def idle_cap(explicit=None, state=None, environ=None):
+    """Idle cap in seconds: explicit value, then $LSW1_IDLE_CAP, then the saved one, then 15 min."""
+    environ = os.environ if environ is None else environ
+    for value in (explicit, environ.get(IDLE_CAP_ENV), (state or {}).get('idle_cap')):
+        if value in (None, ''):
+            continue
+        cap = float(value)
+        if cap <= 0:
+            raise ValueError('idle cap must be positive seconds')
+        return cap
+    return DEFAULT_IDLE_CAP
+
+
+def advance(state, now, cap):
+    """Close the gap since the last activity event in the running phase.
+
+    The gap adds to wall-clock in full but to active time only up to `cap`; the rest is idle
+    (rate-limit stalls, machine suspend, waits nobody paused). Legacy states without `last`
+    treat the phase start as the last event and their recorded seconds as wall-clock.
+    """
+    state.setdefault('seconds', {})
+    state.setdefault('wall', dict(state['seconds']))
+    phase = state.get('active')
+    if phase in (None, 'paused'):
+        return state
+    last = state.get('last', state.get('since', now))
+    gap = now - last
+    if gap < 0:
+        raise ValueError('clock moved backwards; retain the timing file and correct the clock')
+    counted = min(gap, cap)
+    state['seconds'][phase] = state['seconds'].get(phase, 0) + counted
+    state['wall'][phase] = state['wall'].get(phase, 0) + gap
+    state['idle_seconds'] = state.get('idle_seconds', 0) + (gap - counted)
+    state['last'] = now
+    return state
+
+
+def write_state(path: Path, state):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + f'.{os.getpid()}.tmp')
+    tmp.write_text(json.dumps(state, indent=2) + '\n')
+    os.replace(tmp, path)
+
+
+def record_activity(path: Path, now=None, cap=None):
+    """Note a tool run as an activity event. Returns the new state, or None without a running timer."""
+    try:
+        state = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    if state.get('active') in (None, 'paused'):
+        return None
+    now = time.time() if now is None else now
+    try:
+        advance(state, now, idle_cap(cap, state))
+    except ValueError:
+        return state
+    try:
+        write_state(path, state)
+    except OSError:
+        pass
+    return state
+
+
+def switch_phase(path: Path, name, now=None, cap=None):
+    """Close the running phase (an activity event) and start `name`; `paused` stops the clock."""
+    now = time.time() if now is None else now
+    state = json.loads(path.read_text()) if path.exists() else {'seconds': {}}
+    if cap is not None:
+        state['idle_cap'] = idle_cap(cap)
+    advance(state, now, idle_cap(None, state))
+    state.update(active=name, since=now, last=now)
+    write_state(path, state)
+    return state
 
 
 def active_seconds(state):
@@ -11,9 +93,38 @@ def active_seconds(state):
 
 
 def timing_report(state):
-    """Measured active seconds per phase. Time is reported, never used as a stop rule."""
+    """Measured active seconds per phase. Time is reported, never used as a stop rule.
+
+    `active_seconds` excludes idle gaps beyond the cap; `wall_seconds` is the plain wall-clock
+    inside the same phases, so the difference is visible.
+    """
+    wall = state.get('wall', state.get('seconds', {}))
     return {'active_seconds': round(active_seconds(state), 1),
-            'phases': {k: round(v, 1) for k, v in state.get('seconds', {}).items()}}
+            'phases': {k: round(v, 1) for k, v in state.get('seconds', {}).items()},
+            'wall_seconds': round(sum(wall.values()), 1),
+            'wall_phases': {k: round(v, 1) for k, v in wall.items()},
+            'idle_excluded_seconds': round(state.get('idle_seconds', 0), 1),
+            'idle_cap_seconds': idle_cap(None, state)}
+
+
+def dedupe(names):
+    """Names without repeats, first occurrence order kept."""
+    return list(dict.fromkeys(names))
+
+
+def queue_add(path: Path, names):
+    """Append names missing from the saved sprint queue. Returns the added names, or None
+    when no baseline exists (nothing is created)."""
+    try:
+        base = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    queue = dedupe(base.get('queue', []))
+    added = [n for n in dedupe(names) if n not in queue]
+    if added or queue != base.get('queue'):
+        base['queue'] = queue + added
+        write_state(path, base)
+    return added
 
 
 def near_miss(exact, target):

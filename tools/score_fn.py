@@ -22,7 +22,8 @@ new function never needs a placeholder or a cleanup pass after a plateau:
     python3 tools/score_fn.py fn_X src/auto/u.c --body /tmp/try.c --diff --apply
 
 During a timed sprint (`work/sprint_timing.json` active) the result line ends
-with the measured active seconds. A mismatch at 95% exact or better also prints
+with the measured active seconds (idle gaps over 15 min are not counted). With a sprint
+baseline, any scored function is added to the saved queue if absent. A mismatch at 95% exact or better also prints
 NEAR MISS: those are finished with targeted changes, not parked on attempt count.
 
 `--json` prints
@@ -96,18 +97,23 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
 
 
 def timer_suffix(timing: Path = ROOT / "work" / "sprint_timing.json") -> str:
-    """Measured active seconds of a running sprint timer, or nothing when none is running."""
-    try:
-        state = json.loads(timing.read_text())
-    except (OSError, ValueError):
+    """Measured active seconds of a running sprint timer, or nothing when none is running.
+
+    A score run is an activity event: the gap since the previous event counts toward active
+    time only up to the idle cap (15 min; $LSW1_IDLE_CAP or `sprint_finish.py --idle-cap`).
+    """
+    from sprint_metrics import active_seconds, record_activity
+    state = record_activity(timing)
+    if state is None:
         return ""
-    if state.get("active") in (None, "paused"):
-        return ""
-    import time
-    from sprint_metrics import active_seconds
-    seconds = dict(state.get("seconds", {}))
-    seconds[state["active"]] = seconds.get(state["active"], 0) + max(0.0, time.time() - state["since"])
-    return f"  [active {active_seconds({'seconds': seconds}):.0f}s]"
+    return f"  [active {active_seconds(state):.0f}s]"
+
+
+def note_queue(name: str, baseline: Path = ROOT / "work" / "sprint_baseline.json") -> None:
+    """Append a scored function to the saved sprint queue (no-op without a sprint baseline)."""
+    from sprint_metrics import queue_add
+    if queue_add(baseline, [name]):
+        print(f"queue: added {name} to the sprint queue", file=sys.stderr)
 
 
 def main(argv=None) -> int:
@@ -193,6 +199,7 @@ def main(argv=None) -> int:
         print(f"error: {rep.get('error')}", file=sys.stderr)
         return code
     rep["score"] = score(rep)
+    note_queue(args.name)
     if args.json:
         print(json.dumps(rep, indent=2))
         return code
