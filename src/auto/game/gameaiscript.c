@@ -1343,3 +1343,714 @@ s32 Action_SetIgnoreAntinodes_Level(void *sys, void *process, struct gameaiscrip
     }
     return 1;
 }
+
+s32 fn_800955A8(s32, void *);
+
+s32 Action_AnimTimeRandom(void *sys, void *process, void *arg2) {
+    void **temp_r4;
+    void *temp_r4_2;
+
+    if (arg2 != NULL) {
+        temp_r4 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r4 != NULL) {
+            temp_r4_2 = *temp_r4;
+            if (temp_r4_2 != NULL) {
+                fn_800955A8((*(s32 *)((s8 *)(temp_r4_2) + (0x60))), temp_r4_2 + 8);
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_BreakFormation(void *sys, void *process, void *arg2) {
+    void *temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void **)((s8 *)(arg2) + (0xF0)));
+        if (temp_r5 != NULL) {
+            (*(s32 *)((s8 *)(temp_r5) + (0x50))) = (s32) ((*(s32 *)((s8 *)(temp_r5) + (0x50))) & 0xEFFFFFFF);
+        }
+    }
+    return 1;
+}
+
+s32 fn_80106CD8(s32, s32);
+
+s32 Action_CloseDoor(void *sys, void *process, void *packet, s32 *arg3, s32 arg4, s32 arg5) {
+    if ((arg5 != 0) && (arg4 != 0)) {
+        fn_80106CD8(*arg3, 0);
+    }
+    return 1;
+}
+
+s32 fn_8007EBD0(s32, s32 *);
+extern s32 str_ScriptState_InActive[];
+
+s32 Action_DeActivate(void *sys, s32 arg1, void *arg2) {
+    void *temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void **)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((s32) (*(s32 *)((s8 *)(temp_r5) + (0))) != 0)) {
+            (*(s32 *)((s8 *)(temp_r5) + (0x20C))) = (s32) ((*(s32 *)((s8 *)(temp_r5) + (0x20C))) & 0xFFF7FFFF);
+            fn_8007EBD0(arg1, str_ScriptState_InActive);
+        }
+    }
+    return 1;
+}
+
+s32 Action_DumpCollectables(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return 1;
+    }
+    (*(s32 *)((s8 *)((*(void **)((s8 *)(temp_r5_2) + (0xEEC)))) + (0x140))) = 0;
+    return 1;
+}
+
+s32 Action_FormationMove(void *sys, void *process, void *arg2) {
+    void *temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void **)((s8 *)(arg2) + (0xF0)));
+        if (temp_r5 != NULL) {
+            (*(s32 *)((s8 *)(temp_r5) + (0x50))) = (s32) ((*(s32 *)((s8 *)(temp_r5) + (0x50))) | 0x10000000);
+        }
+    }
+    return 1;
+}
+
+s32 fn_80108710(s32, s32);
+
+s32 Action_LockDoor(void *sys, void *process, void *packet, s32 *arg3, s32 arg4, s32 arg5) {
+    if ((arg5 != 0) && (arg4 != 0)) {
+        fn_80108710(*arg3, 0);
+    }
+    return 1;
+}
+
+s32 Action_PressActionButton(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r11;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return 1;
+    }
+    temp_r11 = (*(void **)((s8 *)((*(void **)((s8 *)(temp_r5_2) + (0xEEC)))) + (0x61C)));
+    (*(s32 *)((s8 *)(temp_r11) + (8))) = (s32) ((*(s32 *)((s8 *)(temp_r11) + (8))) | 0x40);
+    (*(s32 *)((s8 *)(temp_r5_2) + (0xF24))) = (s32) ((*(s32 *)((s8 *)(temp_r5_2) + (0xF24))) | 0x08400000);
+    return 1;
+}
+
+s32 Action_PressJumpButton(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r11;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return 1;
+    }
+    temp_r11 = (*(void **)((s8 *)((*(void **)((s8 *)(temp_r5_2) + (0xEEC)))) + (0x61C)));
+    (*(s32 *)((s8 *)(temp_r11) + (8))) = (s32) ((*(s32 *)((s8 *)(temp_r11) + (8))) | 0x20);
+    return 1;
+}
+
+s32 Action_PressSpecialButton(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r11;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return 1;
+    }
+    temp_r11 = (*(void **)((s8 *)((*(void **)((s8 *)(temp_r5_2) + (0xEEC)))) + (0x61C)));
+    (*(s32 *)((s8 *)(temp_r11) + (8))) = (s32) ((*(s32 *)((s8 *)(temp_r11) + (8))) | 0x80);
+    return 1;
+}
+
+s32 Action_PressTagButton(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r11;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return 1;
+    }
+    temp_r11 = (*(void **)((s8 *)((*(void **)((s8 *)(temp_r5_2) + (0xEEC)))) + (0x61C)));
+    (*(s32 *)((s8 *)(temp_r11) + (8))) = (s32) ((*(s32 *)((s8 *)(temp_r11) + (8))) | 0x10);
+    return 1;
+}
+
+s32 fn_800C71AC();
+extern s32 lbl_804093AC;
+
+s32 Action_SetTableLocator(void *sys, void *process, void *arg2, char *param, s32 arg4, s32 arg5) {
+    void **temp_r5;
+    void *temp_r31;
+
+    if (((s32) lbl_804093AC == 0x7B) && (arg5 != 0) && (arg2 != NULL)) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r31 = *temp_r5;
+            if (temp_r31 != NULL) {
+                (*(s32 *)((s8 *)(temp_r31) + (0x39C))) = fn_800C71AC();
+            }
+        }
+    }
+    return 1;
+}
+
+s32 fn_801087C4(s32, s32);
+
+s32 Action_UnLockDoor(void *sys, void *process, void *packet, s32 *arg3, s32 arg4, s32 arg5) {
+    if ((arg5 != 0) && (arg4 != 0)) {
+        fn_801087C4(*arg3, 0);
+    }
+    return 1;
+}
+
+s32 Action_UseWeapon(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return 1;
+    }
+    (*(s32 *)((s8 *)(temp_r5_2) + (0xF28))) = (s32) ((*(s32 *)((s8 *)(temp_r5_2) + (0xF28))) | 0x80000000);
+    return 1;
+}
+
+extern f32 lbl_801AE8BC[];
+extern f32 lbl_801AE8C0[];
+
+f32 Condition_Active(void *sys, void *process, void *arg2) {
+    if ((arg2 != NULL) && ((s32) (*(u8 *)((s8 *)(arg2) + (0x16C))) == 2)) {
+        return lbl_801AE8BC[0];
+    }
+    return lbl_801AE8C0[0];
+}
+
+extern f32 lbl_801AE9B0[];
+extern f32 lbl_801AE9B4[];
+
+f32 Condition_AIOverrideControl(void *sys, void *process, void *arg2, char *param, void *arg4) {
+    void **temp_r5;
+    void *var_r9;
+
+    var_r9 = NULL;
+    if (arg4 != NULL) {
+        var_r9 = arg4;
+    } else if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            var_r9 = *temp_r5;
+        }
+    }
+    if ((var_r9 != NULL) && ((*(s32 *)((s8 *)(var_r9) + (0x20C))) & 0x800000)) {
+        return lbl_801AE9B0[0];
+    }
+    return lbl_801AE9B4[0];
+}
+
+extern f32 lbl_801AE9D0[];
+extern f32 lbl_801AE9D4[];
+
+f32 Condition_BeenAlerted(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((s32) (*(s32 *)((s8 *)(*temp_r5) + (0xEFC))) != 0)) {
+            return lbl_801AE9D0[0];
+        }
+    }
+    return lbl_801AE9D4[0];
+}
+
+extern f32 lbl_801AEA2C[];
+extern f32 lbl_801AEA30[];
+
+f32 Condition_BeenHit(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = *temp_r5;
+            if ((temp_r5_2 != NULL) && (((*(f32 *)((s8 *)(temp_r5_2) + (0x1044))) > lbl_801AEA2C[0]) || ((s32) (*(s32 *)((s8 *)(temp_r5_2) + (0xF24))) < 0))) {
+                return lbl_801AEA30[0];
+            }
+        }
+    }
+    return lbl_801AEA2C[0];
+}
+
+extern f32 lbl_801AEB8C[];
+extern f32 lbl_801AEB90[];
+
+f32 Condition_BigJumpComplete(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((s32) (*(u8 *)((s8 *)((*(void **)((s8 *)(*temp_r5) + (0xEEC)))) + (0x7DF))) == 0x24)) {
+            return lbl_801AEB8C[0];
+        }
+    }
+    return lbl_801AEB90[0];
+}
+
+extern f32 lbl_801AEA24[];
+extern f32 lbl_801AEA28[];
+
+f32 Condition_Blocking(void *sys, void *process, void *arg2) {
+    u8 temp_r0;
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = *temp_r5;
+            if ((temp_r5_2 != NULL) && ((temp_r0 = (*(u8 *)((s8 *)((*(void **)((s8 *)(temp_r5_2) + (0xEEC)))) + (0x7DF))), (((s8) temp_r0 == 0xD) != 0)) || ((s8) temp_r0 == 0x1C))) {
+                return lbl_801AEA24[0];
+            }
+        }
+    }
+    return lbl_801AEA28[0];
+}
+
+extern f32 lbl_801AEB80[];
+extern f32 lbl_801AEB84[];
+
+f32 Condition_BoltsDontGetDeflectedBack(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((*(s32 *)((s8 *)(*temp_r5) + (0xF28))) & 0x02000000)) {
+            return lbl_801AEB80[0];
+        }
+    }
+    return lbl_801AEB84[0];
+}
+
+extern f32 lbl_801AEA00[];
+
+f32 Condition_CollectedCount(void *sys, void *process, void *arg2) {
+    void **temp_r5_2;
+    void *temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5_2 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5_2 != NULL) {
+            temp_r5 = *temp_r5_2;
+            if (temp_r5 != NULL) {
+                return (f32) (f64) (*(u32 *)((s8 *)((*(void **)((s8 *)(temp_r5) + (0xEEC)))) + (0x140)));
+            }
+        }
+    }
+    return lbl_801AEA00[0];
+}
+
+extern f32 lbl_801AEA70[];
+
+f32 Condition_Context(void *sys, void *process, void *arg2) {
+    void **temp_r5_2;
+    void *temp_r5;
+
+    if ((arg2 == NULL) || (temp_r5_2 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5_2 == NULL) != 0)) || (temp_r5 = *temp_r5_2, ((temp_r5 == NULL) != 0))) {
+        return lbl_801AEA70[0];
+    }
+    return (f32) (f64) (s8) (*(u8 *)((s8 *)((*(void **)((s8 *)(temp_r5) + (0xEEC)))) + (0x7DF)));
+}
+
+extern f32 lbl_801AEAE4[];
+extern f32 lbl_801AEAE8[];
+
+f32 Condition_CutSceneFinished(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(s32 *)((s8 *)(arg4) + (0x88))) & 0x80000)) {
+        return lbl_801AEAE4[0];
+    }
+    return lbl_801AEAE8[0];
+}
+
+extern f32 lbl_801AEAEC[];
+extern f32 lbl_801AEAF0[];
+extern s32 lbl_80409940;
+extern s32 lbl_8040B25C;
+
+f32 Condition_CutScenePlaying(void *sys, void *process, void *packet, char *param, s32 arg4) {
+    if ((((s32) lbl_8040B25C != -1) || ((s32) lbl_80409940 != -1)) && ((arg4 == -1) || (arg4 == (s32) lbl_8040B25C) || (arg4 == (s32) lbl_80409940))) {
+        return lbl_801AEAEC[0];
+    }
+    return lbl_801AEAF0[0];
+}
+
+extern f32 lbl_801AE8CC[];
+extern f32 lbl_801AE8D0[];
+
+f32 Condition_DoorLocked(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(s32 *)((s8 *)(arg4) + (0x18))) & 8)) {
+        return lbl_801AE8CC[0];
+    }
+    return lbl_801AE8D0[0];
+}
+
+extern f32 lbl_801AE8E4[];
+extern f32 lbl_801AE8E8[];
+
+f32 Condition_DoorOpen(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(s32 *)((s8 *)(arg4) + (0x18))) & 0x80)) {
+        return lbl_801AE8E4[0];
+    }
+    return lbl_801AE8E8[0];
+}
+
+extern f32 lbl_801AE8DC[];
+extern f32 lbl_801AE8E0[];
+
+f32 Condition_DoorOpenedByPlayer(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(s32 *)((s8 *)(arg4) + (0x18))) & 0x1000) && ((s32) (*(s32 *)((s8 *)(arg4) + (0xA0))) == (s32) lbl_80409004)) {
+        return lbl_801AE8DC[0];
+    }
+    return lbl_801AE8E0[0];
+}
+
+extern f32 lbl_801AE8D4[];
+extern f32 lbl_801AE8D8[];
+
+f32 Condition_DoorOpened(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(s32 *)((s8 *)(arg4) + (0x18))) & 0x1000)) {
+        return lbl_801AE8D4[0];
+    }
+    return lbl_801AE8D8[0];
+}
+
+extern f32 lbl_801AE968[];
+extern f32 lbl_801AE96C[];
+
+f32 Condition_EitherPlayerIs(void *sys, void *process, void *packet, char *param, s32 arg4) {
+    if (((s32) lbl_80409004 == arg4) || ((s32) lbl_80409008 == arg4)) {
+        return lbl_801AE968[0];
+    }
+    return lbl_801AE96C[0];
+}
+
+extern f32 lbl_801AEB20[];
+extern f32 lbl_801AEB24[];
+extern f32 lbl_801AEB28[];
+
+f32 Condition_FinishedSpline(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if ((arg2 == NULL) || (temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50))), ((temp_r5 == NULL) != 0)) || (temp_r5_2 = *temp_r5, ((temp_r5_2 == NULL) != 0))) {
+        return lbl_801AEB20[0];
+    }
+    if ((s32) (*(s32 *)((s8 *)(temp_r5_2) + (0x69C))) != 0) {
+        if ((s32) (*(u8 *)((s8 *)(temp_r5_2) + (0x6A3))) != 0) {
+            return lbl_801AEB24[0];
+        }
+        return lbl_801AEB28[0];
+    }
+    return lbl_801AEB24[0];
+}
+
+extern f32 lbl_801AE998[];
+extern f32 lbl_801AE99C[];
+
+f32 Condition_ForceBeingUsed(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(u16 *)((s8 *)(arg4) + (0x20))) & 0x1000)) {
+        return lbl_801AE998[0];
+    }
+    return lbl_801AE99C[0];
+}
+
+extern f32 lbl_801AE9A0[];
+extern f32 lbl_801AE9A4[];
+
+f32 Condition_ForceComplete(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((*(u16 *)((s8 *)(arg4) + (0x20))) & 1)) {
+        return lbl_801AE9A0[0];
+    }
+    return lbl_801AE9A4[0];
+}
+
+extern f32 lbl_801AE908[];
+extern f32 lbl_801AE90C[];
+
+f32 Condition_GadgetActive(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((s32) (*(u8 *)((s8 *)(arg4) + (0x22))) == 2) && ((s32) (*(u8 *)((s8 *)(arg4) + (0x23))) != 0)) {
+        return lbl_801AE908[0];
+    }
+    return lbl_801AE90C[0];
+}
+
+extern f32 lbl_801AE8C4[];
+extern f32 lbl_801AE8C8[];
+
+f32 Condition_GotBlaster(void *sys, void *process, void *arg2) {
+    void *temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void **)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = (*(void **)((s8 *)(temp_r5) + (0x64)));
+            if ((temp_r5_2 != NULL) && ((*(s32 *)((s8 *)(temp_r5_2) + (4))) & 0x80)) {
+                return lbl_801AE8C4[0];
+            }
+        }
+    }
+    return lbl_801AE8C8[0];
+}
+
+extern f32 lbl_801AEA50[];
+
+f32 Condition_HitPoints(void *sys, void *process, void *arg2, char *param, void *arg4) {
+    void **temp_r5;
+    void *var_r7;
+
+    var_r7 = arg4;
+    if (var_r7 == NULL) {
+        if (arg2 != NULL) {
+            temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+            if (temp_r5 != NULL) {
+                var_r7 = *temp_r5;
+            }
+        }
+        if (var_r7 == NULL) {
+            return lbl_801AEA50[0];
+        }
+        goto block_6;
+    }
+block_6:
+    return (f32) (f64) (s8) (*(u8 *)((s8 *)(var_r7) + (0x1085)));
+}
+
+extern f32 lbl_801AEA40[];
+
+f32 Condition_HoverPhase(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            return (f32) (f64) (*(u8 *)((s8 *)((*(void **)((s8 *)(*temp_r5) + (0xEEC)))) + (0x7CB)));
+        }
+    }
+    return lbl_801AEA40[0];
+}
+
+extern f32 lbl_801AE950[];
+extern f32 lbl_801AE954[];
+
+f32 Condition_IAmA(void *sys, void *process, void *arg2, char *param, s32 arg4) {
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = *temp_r5;
+            if ((temp_r5_2 != NULL) && ((s16) (*(s16 *)((s8 *)(temp_r5_2) + (0x1074))) == arg4)) {
+                return lbl_801AE950[0];
+            }
+        }
+    }
+    return lbl_801AE954[0];
+}
+
+extern f32 lbl_801AE948[];
+extern f32 lbl_801AE94C[];
+
+f32 Condition_IAmAPartyCharacter(void *sys, void *process, void *arg2) {
+    void *temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void **)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((s8) (*(u8 *)((s8 *)(temp_r5) + (0x284))) != -1)) {
+            return lbl_801AE948[0];
+        }
+    }
+    return lbl_801AE94C[0];
+}
+
+extern f32 lbl_801AE930[];
+extern f32 lbl_801AE934[];
+
+f32 Condition_IAm_Level(void *sys, void *process, void *arg2, s8 *arg3, s32 arg4) {
+    s8 *temp_r3_2;
+    void **temp_r5;
+    void *temp_r3;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((temp_r5_2 = *temp_r5, ((temp_r5_2 == arg4) != 0)) || ((temp_r3 = (*(void **)((s8 *)(temp_r5_2) + (0x64))), ((temp_r3 == NULL) == 0)) && (temp_r3_2 = (*(s8 **)((s8 *)(temp_r3) + (0xC))), ((temp_r3_2 == NULL) == 0)) && (NuStrICmp(temp_r3_2, arg3) == 0)))) {
+            return lbl_801AE930[0];
+        }
+    }
+    return lbl_801AE934[0];
+}
+
+extern f32 lbl_801AE9B8[];
+extern f32 lbl_801AE9BC[];
+
+f32 Condition_IsOnScreen(void *sys, void *process, void *arg2, char *param, void *arg4) {
+    void **temp_r5;
+    void *var_r9;
+
+    var_r9 = NULL;
+    if (arg4 != NULL) {
+        var_r9 = arg4;
+    } else if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            var_r9 = *temp_r5;
+        }
+    }
+    if ((var_r9 != NULL) && ((s32) (*(u8 *)((s8 *)(var_r9) + (0x28C))) != 0)) {
+        return lbl_801AE9B8[0];
+    }
+    return lbl_801AE9BC[0];
+}
+
+extern f32 lbl_801AEA68[];
+extern f32 lbl_801AEA6C[];
+extern u8 lbl_80409998;
+
+f32 Condition_IsSetAlive(void *sys, void *process, void *arg2, char *param, s32 arg4) {
+    if ((arg2 != NULL) && ((s32) (*(s32 *)((s8 *)(arg2) + (0x50))) != 0) && (lbl_80409998 & arg4)) {
+        return lbl_801AEA68[0];
+    }
+    return lbl_801AEA6C[0];
+}
+
+s32 NuCameraClipTestBoundingSphere(s32, s32 *, f32);
+extern f32 lbl_801AEA1C[];
+extern f32 lbl_801AEA20[];
+extern s32 lbl_801B0F08[];
+
+f32 Condition_LocatorOnScreen(void *sys, void *process, void *packet, char *param, s32 arg4) {
+    if ((arg4 != 0) && (NuCameraClipTestBoundingSphere(arg4 + 0x10, lbl_801B0F08, lbl_801AEA1C[0]) != 0)) {
+        return lbl_801AEA1C[0];
+    }
+    return lbl_801AEA20[0];
+}
+
+extern f32 lbl_801AE9C8[];
+extern f32 lbl_801AE9CC[];
+
+f32 Condition_OnGround(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            temp_r5_2 = *temp_r5;
+            if ((temp_r5_2 != NULL) && ((*(s32 *)((s8 *)(temp_r5_2) + (0x284))) & 0xFFFF00)) {
+                return lbl_801AE9C8[0];
+            }
+        }
+    }
+    return lbl_801AE9CC[0];
+}
+
+extern f32 lbl_801AE9F0[];
+extern f32 lbl_801AE9F4[];
+
+f32 Condition_OnSameObjectAsPlayer(void *sys, void *process, void *arg2) {
+    s16 temp_r5_3;
+    void **temp_r5;
+    void *temp_r5_2;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((void *) lbl_80409004 != NULL)) {
+            temp_r5_2 = *temp_r5;
+            if (((*(s32 *)((s8 *)(temp_r5_2) + (0x284))) & 0xFFFF00) && ((*(s32 *)((s8 *)(lbl_80409004) + (0x284))) & 0xFFFF00)) {
+                temp_r5_3 = (*(s16 *)((s8 *)(temp_r5_2) + (0x282)));
+                if ((temp_r5_3 != -1) && (temp_r5_3 == (s16) (*(s16 *)((s8 *)(lbl_80409004) + (0x282))))) {
+                    return lbl_801AE9F0[0];
+                }
+            }
+        }
+    }
+    return lbl_801AE9F4[0];
+}
+
+extern f32 lbl_801AEB94[];
+extern f32 lbl_801AEB98[];
+
+f32 Condition_RespawnLocatorIs(void *sys, void *process, void *arg2, char *param, s32 arg4) {
+    if ((arg4 != 0) && (arg2 != NULL) && ((s32) (*(s32 *)((s8 *)(arg2) + (0x164))) == arg4)) {
+        return lbl_801AEB94[0];
+    }
+    return lbl_801AEB98[0];
+}
+
+extern f32 lbl_801AEB78[];
+extern f32 lbl_801AEB7C[];
+
+f32 Condition_StuckDontJumpNow(void *sys, void *process, void *arg2) {
+    if ((arg2 != NULL) && ((*(s32 *)((s8 *)(arg2) + (0x1A0))) & 0x80)) {
+        return lbl_801AEB78[0];
+    }
+    return lbl_801AEB7C[0];
+}
+
+extern f32 lbl_801AEA54[];
+
+f32 Condition_StuckTime_Level(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if (temp_r5 != NULL) {
+            return (*(f32 *)((s8 *)(*temp_r5) + (0x1E8)));
+        }
+    }
+    return lbl_801AEA54[0];
+}
+
+extern f32 lbl_801AE910[];
+extern f32 lbl_801AE914[];
+
+f32 Condition_TubeActive(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && ((s32) (*(u8 *)((s8 *)(arg4) + (0x2C))) != 0)) {
+        return lbl_801AE910[0];
+    }
+    return lbl_801AE914[0];
+}
+
+extern f32 lbl_801AE928[];
+extern f32 lbl_801AE92C[];
+
+f32 Condition_TurretAlive(void *sys, void *process, void *packet, char *param, void *arg4) {
+    if ((arg4 != NULL) && !((*(u16 *)((s8 *)(arg4) + (0x6E))) & 0x80)) {
+        return lbl_801AE928[0];
+    }
+    return lbl_801AE92C[0];
+}
+
+extern f32 lbl_801AE920[];
+extern f32 lbl_801AE924[];
+
+f32 Condition_UsingForceLightning(void *sys, void *process, void *arg2) {
+    void **temp_r5;
+
+    if (arg2 != NULL) {
+        temp_r5 = (*(void ***)((s8 *)(arg2) + (0x50)));
+        if ((temp_r5 != NULL) && ((s32) (*(u8 *)((s8 *)((*(void **)((s8 *)(*temp_r5) + (0xEEC)))) + (0x7DF))) == 0x27)) {
+            return lbl_801AE920[0];
+        }
+    }
+    return lbl_801AE924[0];
+}
