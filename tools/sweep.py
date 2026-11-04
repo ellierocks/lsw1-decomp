@@ -235,11 +235,46 @@ SP_DECL = re.compile(r"^(?P<ind>[ \t]+)(?P<t>[su](?:8|16|32)|f32) (?P<v>sp(?P<of
 SIZES = {"s8": 1, "u8": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4}
 
 
+def call_args(text: str, start: int) -> tuple[list[str], int] | None:
+    """The comma-separated arguments of the call whose `(` is at START, and the index after `)`."""
+    depth, args, cur = 0, [], start + 1
+    for i in range(start, len(text)):
+        if text[i] == "(":
+            depth += 1
+        elif text[i] == ")":
+            depth -= 1
+            if depth == 0:
+                args.append(text[cur:i].strip())
+                return args, i + 1
+        elif text[i] == "," and depth == 1:
+            args.append(text[cur:i].strip())
+            cur = i + 1
+    return None
+
+
+def native_shifts(body: str) -> str:
+    """m2c's libgcc `__ashldi3(0, LO, N)` calls written as the 64-bit shift ProDG lowers to
+    them (`1LL << n`); the call order of the argument loads then follows the source."""
+    out, pos = [], 0
+    for m in re.finditer(r"\b__ashldi3\(", body):
+        if m.start() < pos:
+            continue
+        parsed = call_args(body, m.end() - 1)
+        if not parsed or len(parsed[0]) != 3 or parsed[0][0] != "0":
+            continue
+        (_, lo, n), end = parsed
+        value = f"{lo}LL" if re.fullmatch(r"\d+", lo) else f"(u64)(u32)({lo})"
+        out += [body[pos:m.start()], f"({value} << {n})"]
+        pos = end
+    return "".join(out) + body[pos:]
+
+
 def stack_arrays(body: str) -> str:
     """BODY with undeclared `spXX` slots folded into an array at a declared lower slot,
     m2c's `**(T *)` double dereference typed as `**(T **)`, and m2c's `unkspXX` sub-word
     stack reads declared as locals so the draft compiles (a ranked start, not a match)."""
     body = re.sub(r"\*\*\((\w+) \*\)", r"**(\1 **)", body)
+    body = native_shifts(body)
     unk = sorted(set(re.findall(r"\bunksp[0-9A-F]+\b", body)) - set(
         re.findall(r"^[ \t]+[\w ]+?\**\s*(unksp[0-9A-F]+);", body, flags=re.M)))
     if unk:
@@ -584,8 +619,8 @@ def main(argv=None) -> int:
     ap.add_argument("--apply", action="store_true", help="write strict MATCHes into their unit sources")
     ap.add_argument("--top", type=int, default=30, help="near-misses to print")
     ap.add_argument("--retry", metavar="VERDICT", action="append",
-                    help="resweep only the targets the last results.json gave VERDICT (repeatable, "
-                         "e.g. COMPILE-ERROR) and merge the new rows into it")
+                    help="resweep only the targets the last results.json gave VERDICT, or the named "
+                         "target (repeatable, e.g. COMPILE-ERROR), and merge the new rows into it")
     args = ap.parse_args(argv)
     if not (draft_fn.m2c_dir() / "m2c.py").is_file():
         print("error: m2c not fetched; run bash tools/fetch_m2c.sh", file=sys.stderr)
@@ -598,7 +633,7 @@ def main(argv=None) -> int:
     previous = []
     if args.retry:
         previous = json.loads((OUT / "results.json").read_text())
-        names = {r["name"] for r in previous if r["verdict"] in args.retry}
+        names = {r["name"] for r in previous if r["verdict"] in args.retry or r["name"] in args.retry}
         todo = [t for t in todo if t["name"] in names]
         previous = [r for r in previous if r["name"] not in {t["name"] for t in todo}
                     and not r.get("applied")]
@@ -619,7 +654,14 @@ def main(argv=None) -> int:
     if args.apply:
         for row in sorted((r for r in rows if r["verdict"] == "MATCH"), key=lambda r: (r["source"], r["name"])):
             body = (OUT / row["name"] / "sweep_draft.c").read_text()
-            if score(row["name"], row["source"], body, apply=True)["verdict"] == "MATCH":
+            ok = score(row["name"], row["source"], body, apply=True)["verdict"] == "MATCH"
+            if not ok:  # an earlier match in the same unit can now conflict with its externs
+                res, body = score_draft(row["name"], row["source"], body)
+                ok = res["verdict"] == "MATCH" and score(
+                    row["name"], row["source"], body, apply=True)["verdict"] == "MATCH"
+                if ok:
+                    (OUT / row["name"] / "sweep_draft.c").write_text(body)
+            if ok:
                 applied.append(row["name"])
                 row["applied"] = True
     if previous:
