@@ -2588,7 +2588,9 @@ extern char str_PlayerID_Player2[];
 
 /* Character flag word at +0x440, written by Action_SetZeroAcceleration. */
 struct gameaiscript_440_s {
-    u32 unk0 : 19;
+    u32 unk0 : 9;
+    u32 clockwise : 1;
+    u32 unk10 : 9;
     u32 zeroAcceleration : 1;
     u32 unk14 : 12;
 };
@@ -2896,6 +2898,107 @@ s32 Action_SetVisibility(void *sys, void *process, struct gameaiscript_packet_s 
         }
         if (fn_800130F4(special) != 0)
             fn_80013200(special, on);
+    }
+    return 1;
+}
+
+extern f32 lbl_801AEC00[];
+s32 Action_FaceCharacter(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    char *p;
+    s32 i;
+    f32 t;
+    f32 z;
+
+    if (firstTime != 0) {
+        for (i = 0; i < count; i++) {
+            if ((p = NuStrIStr(params[i], str_ScriptParam_Character)) != 0)
+                *(s32 *)((u8 *)packet + 0xb4) = GetNamedGameObject(sys, p + 10, 0);
+        }
+    }
+    if (packet != 0 && *(s32 *)((u8 *)packet + 0xb4) != 0)
+        *(s32 *)((u8 *)packet + 0x19c) = *(s32 *)((u8 *)packet + 0xb4) + 0x6c;
+    t = *(f32 *)((u8 *)process + 0x40);
+    z = lbl_801AEC00[0];
+    if (t > z) {
+        t -= time;
+        *(f32 *)((u8 *)process + 0x40) = t;
+        if (t <= z) {
+            *(f32 *)((u8 *)process + 0x40) = z;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern f32 fn_8000C038(void);
+extern f32 lbl_801AEBB0[];
+extern char str_ScriptDir_AntiClockwise[];
+extern char str_ScriptDir_Clockwise[];
+extern char str_ScriptDir_Reverse[];
+extern char str_ScriptTarget_Random2[];
+
+s32 Action_SetCircleDirection(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *target;
+    struct gameaiscript_440_s *f;
+    s32 i;
+
+
+    if (packet != 0 && packet->owner != 0 && (target = (u8 *)packet->owner->object) != 0 &&
+        firstTime != 0 && count != 0) {
+
+        for (i = 0; i < count; i++) {
+            f = (struct gameaiscript_440_s *)(target + 0x440);
+            if (NuStrICmp(params[i], str_ScriptDir_Clockwise) == 0)
+                f->clockwise = 1;
+            else if (NuStrICmp(params[i], str_ScriptDir_AntiClockwise) == 0)
+                f->clockwise = 0;
+            else if (NuStrICmp(params[i], str_ScriptDir_Reverse) == 0)
+                f->clockwise = !f->clockwise;
+            else if (NuStrICmp(params[i], str_ScriptTarget_Random2) == 0) {
+                if (fn_8000C038() > 0.5f)
+                    f->clockwise = 1;
+                else
+                    f->clockwise = 0;
+            }
+        }
+    }
+    return 1;
+}
+
+extern void fn_801034C4(void *, s32);
+extern s32 lbl_804099E4;
+
+s32 Action_ForceFreeze(void *sys, void *process, struct gameaiscript_packet_s *packet,
+    char **params, s32 count, s32 firstTime, f32 time)
+{
+    u8 *object;
+    u8 *target;
+    char *p;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (object = packet->owner->object) != 0) {
+        if (firstTime != 0) {
+            lbl_804099E4 = lbl_804099E4 == 0;
+            if (lbl_80409008 != 0 && lbl_804099E4 != 0)
+                target = lbl_80409008;
+            else
+                target = lbl_80409004;
+            for (i = 0; i < count; i++) {
+                if ((p = NuStrIStr(params[i], str_ScriptCategory_Character)) != 0)
+                    target = (u8 *)GetNamedGameObject(sys, p + 10, 0);
+            }
+            fn_801034C4(object, (s32)target);
+        }
+        if (*(u8 **)(*(u8 **)(object + 0xeec) + 0x650) != 0) {
+            target = *(u8 **)(*(u8 **)(object + 0xeec) + 0x650);
+            AIMoveInstruction(packet, (s32)(target + 0x3c4), target + 0x3ac, 2, *(f32 *)(target + 0x33c), 0.75f);
+            *(u8 **)((u8 *)packet + 0x19c) = target + 0x6c;
+        }
+        return 0;
     }
     return 1;
 }
