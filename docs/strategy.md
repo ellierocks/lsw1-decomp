@@ -148,7 +148,9 @@ For each queued function:
 1. **Draft.** Combine m2c (PPC) output, the Ghidra output (`work/NAME/ghidra.c` from `draft_fn.py`), CrashWOC/Nu2 donor
    C and context from shared headers.
 2. **Agent search.** Iterate with `score_fn.py`, recording candidates worth
-   keeping through `hillclimb.py try`.
+   keeping through `hillclimb.py try`. When the C behind a mismatching instruction
+   shape is unclear, look it up in RE4's matched ProDG code and LSW1's own matches with
+   the [pattern library](code_matching_workflow.md#pattern-library).
 3. **Permuter.** Run decomp-permuter on functions that are close (about 95%
    exact or better) with `tools/permute_setup.py NAME --run`, focused on the differing
    region. Use `order_search.py --climb` instead when only the statement order differs.
