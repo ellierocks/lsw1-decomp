@@ -70,7 +70,10 @@ anchor: CARDErase, CARDProgram, SISteeringAuto, axfx, mtxstack, OSTimer and
 odemustubs. These ranges stay assembly fallback and are deferred lanes, not
 blockers:
 
-- the HVQM4 decoder (`8018432C..8018A10C`), which has no donor source;
+- the HVQM4 decoder (`8018432C..8018A10C`), now split with a NonMatching
+  candidate adapted from CC0 MSSB code and retail analysis; 18/43 functions
+  (5,440 bytes) strictly verify, but no bytes are promoted. See the
+  [parked HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked);
 - the debugger driver (`8018A10C..8018AB8C`), which needs a hand-written
   `DebuggerDriver.c`;
 - `libsn` (`dummy`, `FSasync`, `sndvd`), which has no upstream source. The newlib and libgcc
@@ -215,8 +218,9 @@ sprints and strict promotion gates; asset coverage is not matching progress.
 1. Choose by expected verified code bytes per unit of effort, not phase number.
    The SDK donor queue is exhausted. Prioritize game/Nu2 matching in existing
    units; do remaining Phase 2 boundary and data work when it directly unblocks
-   a promising unit. Keep libsn, debugger, HVQM4 and the remaining [SN runtime](sn_runtime.md#not-imported) misses deferred until a
-   concrete donor or implementation lead changes their expected yield.
+   a promising unit. Resume the parked HVQM4 candidate from its strict-verification
+   handoff when pursuing SDK work; libsn, debugger and the remaining
+   [SN runtime](sn_runtime.md#not-imported) misses need concrete leads.
 2. Run the sweep first (see Phase 3), then take the sprint queue from the top of
    `work/sweep/results.json`, grouped by unit. Fetch, inspect `git worktree list`, and run
    `python3 tools/next_target.py --by-unit`. Exclude active local worktrees as
