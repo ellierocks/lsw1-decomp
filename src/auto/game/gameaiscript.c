@@ -4924,3 +4924,80 @@ s32 Action_SetDoomedEscapeLocator(void *sys, void *process, struct gameaiscript_
     }
     return 1;
 }
+
+struct gameaiscript_pathstate_s {
+    s32 node;
+    u8 *unk4;
+    s32 unk8;
+    u32 unkC;
+    s32 unk10;
+    s32 unk14;
+};
+
+extern void fn_8008B4D8(void *, u8 *, struct gameaiscript_pathstate_s *, s32, s32);
+extern f32 fn_8000ED40(f32);
+
+f32 Condition_LocatedCollectable(void *sys, void *process, struct gameaiscript_packet_s *packet, char *param)
+{
+    struct gameaiscript_vec_s d;
+    f32 best = 3.4028235e38f;
+    u8 *obj;
+    u8 *c;
+    u8 *col;
+    f32 dist;
+    s32 i;
+
+    if (packet != 0 && packet->owner != 0 && (obj = packet->owner->object) != 0) {
+        if ((col = *(u8 **)(obj + 0x660)) != 0) {
+            if (*(s32 *)(obj + 0x664) == 0) {
+                c = col;
+                if (!(c[0x3b] & 1)) {
+                if (((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unkC & 0x8000)
+                    return 1.0f;
+                fn_8008B4D8(sys, c, (struct gameaiscript_pathstate_s *)(obj + 0x66c), 0, 1);
+                if (((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unkC & 0x8000) {
+                    c[0x3b] |= 2;
+                    c[0x3d] = *((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unk4;
+                    return 1.0f;
+                }
+                if (obj[0x668] != *(u16 *)(obj + 0x678))
+                    return 0.0f;
+                c[0x3b] |= 1;
+                *(u8 **)(obj + 0x660) = 0;
+                }
+            } else
+                *(u8 **)(obj + 0x660) = 0;
+        }
+        c = *(u8 **)((u8 *)lbl_80409410 + 0x71c);
+        for (i = *(s32 *)((u8 *)lbl_80409410 + 0x734) - 1; i >= 0; i--, c += 0x40) {
+            if (c[0x39] == 0 || (c[0x3b] & 1))
+                continue;
+            d.x = *(f32 *)(obj + 0x90) - *(f32 *)(c + 0);
+            if (!(fn_8000ED40(d.x) < best))
+                continue;
+            d.z = *(f32 *)(obj + 0x98) - *(f32 *)(c + 8);
+            if (!(fn_8000ED40(d.z) < best))
+                continue;
+            d.y = *(f32 *)(obj + 0x94) - *(f32 *)(c + 4);
+            if (!(fn_8000ED40(d.y) < best))
+                continue;
+            dist = d.x * d.x + d.y * d.y + d.z * d.z;
+            if (!(dist < best))
+                continue;
+            *(u8 **)(obj + 0x660) = c;
+            best = dist;
+            *(s32 *)(obj + 0x664) = 0;
+            if (c[0x3b] & 2) {
+                ((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unk4 = 0;
+                *(u16 *)(obj + 0x678) = c[0x3d];
+            } else if ((*(u32 *)((u8 *)packet + 0x118) & 0x8000)
+                && *(s32 *)((u8 *)packet + 0x10c) == *(s32 *)(*(u8 **)((u8 *)sys + 0xc) + 8)) {
+                *(struct gameaiscript_pathstate_s *)(obj + 0x66c) = *(struct gameaiscript_pathstate_s *)((u8 *)packet + 0x10c);
+                ((struct gameaiscript_pathstate_s *)(obj + 0x66c))->unkC &= ~0x8000;
+            } else
+                memset(obj + 0x66c, 0, 0x18);
+            obj[0x668] = obj[0x679];
+        }
+    }
+    return 0.0f;
+}
