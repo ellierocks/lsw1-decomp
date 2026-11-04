@@ -153,6 +153,11 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   way (`s32 padI` for missing `argI`, `f32 fpadI` for missing `fargI`; GPR and FPR
   arguments are numbered separately) and keeps the better score. Rename the placeholders
   when the calling convention is known.
+- `crclr cr1eq` (or `crset`) before a `bl` means the callee is variadic or unprototyped at
+  that call; a prototyped declaration drops the instruction. Declare it as the target
+  calls it (`sprintf(char *, const char *, ...)`, `memset();` in game code). m2c also
+  guesses one prototype per callee, so take the real one from matched code instead;
+  `tools/sweep.py` does both (`fix_prototypes`).
 - An out-parameter whose address is passed to several calls is kept in a callee-saved
   register when it is a 4- or 8-byte scalar. Declared at its real size (the 12-byte
   `NuSpecialFind` result), `addi rN, r1, 8` is recomputed before each call instead

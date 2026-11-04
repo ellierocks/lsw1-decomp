@@ -72,7 +72,12 @@ def missing_toolchain(compiler: str) -> list[Path]:
 
 def run(cmd: list[str]) -> str:
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-    return "" if r.returncode == 0 else (r.stdout + r.stderr).strip()[-1500:] or "failed"
+    if r.returncode == 0:
+        return ""
+    out = (r.stdout + r.stderr).strip()
+    # A unit's warnings can bury the error past the tail kept here; report errors first.
+    errors = [ln for ln in out.splitlines() if ": warning:" not in ln and "In function" not in ln]
+    return ("\n".join(errors) or out)[-1500:] or "failed"
 
 
 def compile_source(source: Path, out: Path, compiler: str, extra: list[str],

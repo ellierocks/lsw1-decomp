@@ -17,6 +17,9 @@ target is drafted with and without that context and the better-scoring draft is 
 typing a header can only raise the sweep's yield. m2c declares only the arguments a
 function reads, so each draft is also scored with its signature padded to the registers
 those arguments arrive in (`pad_signature`), keeping the better score.
+Each draft's callee declarations are then repaired (`fix_prototypes`: the unit's or the
+repo's prototype, or a variadic/unprototyped one where the target sets cr1eq) and its
+undeclared stack slots folded into arrays (`stack_arrays`), keeping the better score.
 
 `--apply` writes strict MATCHes into their unit sources one at a time, re-scoring each
 against the updated file with `score_fn.py --apply`; run `bash build.sh` and
@@ -265,6 +268,166 @@ def drop_decl(body: str, sym: str, name: str) -> str | None:
     return "\n".join(kept) + "\n" if len(kept) != len(lines) else None
 
 
+# m2c names a stack slot by offset and declares only the slots it sees by name, so an
+# out-parameter `f(&sp8)` whose later words are read as `spC`/`sp10` leaves them
+# undeclared. Fold such slots into an array based at the nearest lower declared slot.
+SP_DECL = re.compile(r"^(?P<ind>[ \t]+)(?P<t>[su](?:8|16|32)|f32) (?P<v>sp(?P<off>[0-9A-F]+));\n", re.M)
+SIZES = {"s8": 1, "u8": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4, "f32": 4}
+
+
+def stack_arrays(body: str) -> str:
+    """BODY with undeclared `spXX` slots folded into an array at a declared lower slot."""
+    declared = {m["v"]: m for m in SP_DECL.finditer(body)}
+    all_decl = set(re.findall(r"^[ \t]+[\w ]+?\**\s*(sp[0-9A-F]+)(?:\[\w*\])?;", body, flags=re.M))
+    missing = sorted({v for v in re.findall(r"\bsp[0-9A-F]+\b", body) if v not in all_decl},
+                     key=lambda v: int(v[2:], 16))
+    groups: dict[str, dict[str, int]] = {}
+    for v in missing:
+        off = int(v[2:], 16)
+        bases = [m for m in declared.values() if int(m["off"], 16) < off and f"&{m['v']}" in body]
+        if not bases:
+            return body
+        base = max(bases, key=lambda m: int(m["off"], 16))
+        delta, size = off - int(base["off"], 16), SIZES[base["t"]]
+        if delta % size:
+            return body
+        groups.setdefault(base["v"], {})[v] = delta // size
+    for b, slots in groups.items():
+        m = declared[b]
+        body = body.replace(m[0], f"{m['ind']}{m['t']} {b}[{max(slots.values()) + 1}];\n", 1)
+        body = re.sub(rf"(?<![\w&]){b}\b(?!\[)", f"{b}[0]", body)
+        body = re.sub(rf"&{b}\b(?!\[)", b, body)
+        for v, i in slots.items():
+            body = re.sub(rf"\b{v}\b", f"{b}[{i}]", body)
+    return body
+
+
+# m2c guesses each callee's prototype from one call site, so a callee read with a
+# different argument count elsewhere (or a variadic one) fails to compile. Matched code
+# already declares most callees: take the unit's own declaration, else the repo's
+# (a definition first), reduced to builtin types so it compiles in any unit.
+PROTO = re.compile(r"^(?:extern\s+|static\s+)?((?:const\s+|unsigned\s+|signed\s+|struct\s+)?\w+[\s*]*?)"
+                   r"\b(\w+)\s*\(([^()]*)\)\s*(;|\{|$)", re.M)
+BUILTIN = {"void", "char", "short", "int", "long", "float", "double", "unsigned", "signed",
+           "s8", "u8", "s16", "u16", "s32", "u32", "s64", "u64", "f32", "f64", "BOOL", "size_t"}
+NOT_FUNCS = {"if", "while", "for", "switch", "return", "sizeof"}
+_PROTOS: dict[str, tuple[str, list[str]]] | None = None
+_PROTO_LOCK = threading.Lock()
+
+
+def plain_type(decl: str, named: bool) -> str | None:
+    """DECL's type with any parameter name dropped, pointers as `void *`; None if not builtin."""
+    words = decl.replace("*", " * ").replace("const ", " ").split()
+    if named and len(words) > 1 and words[-1] not in BUILTIN and words[-1] != "*":
+        words = words[:-1]
+    if "*" in words:
+        return "void *"
+    if words and all(w in BUILTIN for w in words):
+        return "u32" if words == ["size_t"] else " ".join(words)
+    return None
+
+
+def parse_proto(ret: str, params: str) -> tuple[str, list[str]] | None:
+    """(return type, parameter types) with `...` kept, or None when a type is not builtin."""
+    rtype = plain_type(ret, False)
+    plist = [p.strip() for p in params.split(",")] if params.strip() not in ("", "void") else []
+    if rtype is None or params.strip() == "":  # `T f()` says nothing about the arguments
+        return None
+    types = [p if p == "..." else plain_type(p, True) for p in plist]
+    return None if None in types else (rtype, types)
+
+
+def decl(rtype: str, fn: str) -> str:
+    return f"{rtype}{fn}" if rtype.endswith("*") else f"{rtype} {fn}"
+
+
+def find_protos(text: str) -> dict[str, list[tuple[bool, tuple[str, list[str]]]]]:
+    out: dict[str, list] = {}
+    for m in PROTO.finditer(text):
+        if m[2] not in NOT_FUNCS and (p := parse_proto(m[1], " ".join(m[3].split()))):
+            out.setdefault(m[2], []).append((m[4] == "{", p))
+    return out
+
+
+def repo_protos() -> dict[str, tuple[str, list[str]]]:
+    """Each function's prototype in src/ and include/: a definition's, else the commonest."""
+    global _PROTOS
+    with _PROTO_LOCK:
+        if _PROTOS is None:
+            found: dict[str, list] = {}
+            for p in [*(ROOT / "src").rglob("*.[ch]"), *(ROOT / "include").rglob("*.h")]:
+                for name, ps in find_protos(p.read_text(errors="replace")).items():
+                    found.setdefault(name, []).extend(ps)
+            _PROTOS = {}
+            for name, ps in found.items():
+                defs = [p for d, p in ps if d] or [p for _, p in ps]
+                _PROTOS[name] = max(defs, key=lambda p: sum(q == p for _, q in ps))
+        return _PROTOS
+
+
+def variadic_calls(asm: str) -> set[str]:
+    """Callees whose calls set or clear cr1eq: variadic or unprototyped at the call."""
+    return set(re.findall(r"\bcr(?:clr|set) cr1eq\s*\n(?:.*\n){0,2}?.*\tbl (\w+)", asm))
+
+
+def call_sites(text: str, fn: str):
+    for m in re.finditer(rf"(?<![\w.>]){re.escape(fn)}\s*\(", text):
+        try:
+            args, end = split_args(text, m.end() - 1)
+        except ValueError:
+            continue
+        yield m.start(), end, [] if args == [""] else args
+
+
+def fix_prototypes(body: str, name: str, asm: str, unit_text: str) -> str:
+    """BODY with m2c's callee declarations replaced by known or cr1eq-implied ones and
+    each call's argument list trimmed or zero-padded to the declared count."""
+    m = re.search(rf"^\w[^\n;(]*?\b{re.escape(name)}\(", body, flags=re.M)
+    if not m:
+        return body
+    head, code = body[:m.start()], body[m.start():]
+    unit = {n: p[-1][1] for n, p in find_protos(unit_text).items()}
+    repo, variadic = repo_protos(), variadic_calls(asm)
+    lines, arity = [], {}
+    for ln in head.splitlines():
+        d = PROTO.match(ln) if ln.endswith(";") and not ln.startswith("extern") else None
+        fn = d[2] if d else None
+        if not fn or fn == name:
+            lines.append(ln)
+            continue
+        ret = d[1].strip()
+        if fn in unit:
+            arity[fn] = unit[fn][1]
+            continue  # the unit's declaration governs
+        known = repo.get(fn)
+        if fn in variadic:
+            if known and "..." in known[1]:
+                lines.append(f"{decl(known[0], fn)}({', '.join(known[1])});")
+                arity[fn] = known[1]
+            else:
+                lines.append(f"{ret} {fn}();")
+        elif known:
+            lines.append(f"{decl(known[0], fn)}({', '.join(known[1]) or 'void'});")
+            arity[fn] = known[1]
+        else:
+            counts = {len(a) for _, _, a in call_sites(code, fn)}
+            want = len([p for p in d[3].split(",") if p.strip() not in ("", "void")])
+            lines.append(ln if counts <= {want} else f"{ret} {fn}();")
+    arrays = set(re.findall(r"^extern (?:const )?f(?:32|64) (\w+)\[\];", head, flags=re.M))
+    for fn, params in arity.items():
+        n, var = len([p for p in params if p != "..."]), "..." in params
+        for start, end, args in reversed(list(call_sites(code, fn))):
+            fixed = args[:n] if not var else args
+            fixed = fixed + ["0"] * (n - len(fixed))
+            # m2c passes a float constant's array by name where the value is meant.
+            fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
+                     for i, a in enumerate(fixed)]
+            if fixed != args:
+                open_paren = code.index("(", start)
+                code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
+    return "\n".join(lines) + ("\n" if lines else "") + code
+
+
 def score(name: str, source: str, body: str, apply: bool = False) -> dict:
     with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False) as f:
         f.write(body)
@@ -301,17 +464,23 @@ def sweep_one(t: dict) -> dict:
     row = {"name": name, "unit": t["unit"], "source": source, "size": t["size"]}
     best = None
     ctx = unit_context(source)
+    unit_text = (ctx or ROOT / source).read_text(errors="replace")
     for context in [None] + ([ctx] if ctx else []):
         status, body = draft(name, context)
         if status != "ok":
             res = {"verdict": status.upper()}
         else:
-            res, body = score_draft(name, source, body)
+            res, body = score_draft(name, source, stack_arrays(body))
             padded = pad_signature(body, name)
             if padded != body:
                 pad_res, padded = score_draft(name, source, padded)
                 if better(pad_res, res):
                     res, body = {**pad_res, "padded": True}, padded
+            protos = fix_prototypes(body, name, (OUT / name / "asm.s").read_text(), unit_text)
+            if protos != body:
+                proto_res, protos = score_draft(name, source, protos)
+                if better(proto_res, res):
+                    res, body = {**proto_res, "padded": res.get("padded", False), "prototypes": True}, protos
             res["context"] = context is not None
             res, body = try_variants(name, source, res, body)
         if best is None or better(res, best[0]):
