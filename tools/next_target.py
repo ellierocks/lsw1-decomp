@@ -130,10 +130,19 @@ def sprint_branches(remote: bool = True) -> set[str]:
     return {h[len(SPRINT_PREFIX):] for h in heads if h.startswith(SPRINT_PREFIX) and h != cur}
 
 
-def owned_by_sprint(unit: str, branches: set[str]) -> bool:
-    """A sprint branch owns a unit when its name matches the unit's leaf or its whole path."""
-    keys = {squash(unit.rsplit("/", 1)[-1]), squash(unit), squash(unit.removeprefix("auto/"))}
-    return any(squash(b) in keys for b in branches)
+def unit_keys(unit: str) -> set[str]:
+    return {squash(unit.rsplit("/", 1)[-1]), squash(unit), squash(unit.removeprefix("auto/"))}
+
+
+def owned_by_sprint(unit: str, branches: set[str], units: frozenset[str] = frozenset()) -> bool:
+    """A sprint branch owns a unit when its name matches the unit's leaf or its whole path. A second
+    sprint on a unit (`levels-2`) owns it too, unless the suffixed name is itself a unit (`nuanim-2`)."""
+    keys, taken = unit_keys(unit), {k for u in units for k in unit_keys(u)}
+    for b in branches:
+        base = re.sub(r"-\d+$", "", b)
+        if squash(b) in keys or (base != b and squash(b) not in taken and squash(base) in keys):
+            return True
+    return False
 
 
 def in_units(unit: str, prefixes: list[str]) -> bool:
@@ -244,7 +253,8 @@ def main(argv=None) -> int:
     rows_all = rows
     if args.by_unit:
         branches = sprint_branches(remote=not args.no_remote)
-        owned = {r["unit"] for r in rows_all if owned_by_sprint(r["unit"], branches)}
+        units = frozenset(r["unit"] for r in rows_all)
+        owned = {r["unit"] for r in rows_all if owned_by_sprint(r["unit"], branches, units)}
         return print_by_unit(rows_all, args, owned)
     rows = rows[:args.limit]
 

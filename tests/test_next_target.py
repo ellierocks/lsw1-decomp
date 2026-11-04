@@ -71,6 +71,12 @@ class SprintOwnershipTests(unittest.TestCase):
         self.assertFalse(nt.owned_by_sprint("auto/game/turret", {"nuanim-2"}))
         self.assertFalse(nt.owned_by_sprint("auto/game/turret", set()))
 
+    def test_numbered_sprint_owns_its_unit(self):
+        units = frozenset({"auto/game/levels", "auto/nu3d/nuanim", "auto/nu3d/nuanim_2"})
+        self.assertTrue(nt.owned_by_sprint("auto/game/levels", {"levels-2"}, units))
+        self.assertTrue(nt.owned_by_sprint("auto/nu3d/nuanim_2", {"nuanim-2"}, units))
+        self.assertFalse(nt.owned_by_sprint("auto/nu3d/nuanim", {"nuanim-2"}, units))
+
     def test_larger_wave_beats_tiny_finishable_unit(self):
         def row(unit, left, size=0x20):
             return {"unit": unit, "unit_left": left, "size": size, "claimed": False, "source": f"src/{unit}.c",
