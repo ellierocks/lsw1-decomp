@@ -454,3 +454,26 @@ void fn_8014BD40(void) {
         fn_800D6C50(lbl_8040B0DC, a, scale, -1, b, lbl_8040B0DD, a, scale, -1, b);
     }
 }
+
+extern s32 lbl_80409AF8;
+void fn_80147088(void *arg0) {
+    s32 old = lbl_80409AF8;
+    *(s32 *)((s8 *)arg0 + 0x1984) = 0;
+    if (old == *(s32 *)((s8 *)arg0 + 0x1988)) {
+        lbl_80409AF8 = 0;
+    }
+    *(s32 *)((s8 *)arg0 + 0x1988) = 0;
+}
+
+extern s32 lbl_801E1830[];
+void fn_80146D34(void) {
+    s32 i;
+    for (i = 3; i >= 0; i--) {
+        lbl_801E1830[i] = -1;
+    }
+}
+
+void fn_8006E370(f32);
+void fn_80146C74(void) {
+    fn_8006E370(*(f32 *)(*(s8 **)((s8 *)lbl_80409410 + 0x1984) + 0x6371C));
+}
