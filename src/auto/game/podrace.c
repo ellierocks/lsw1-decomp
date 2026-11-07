@@ -356,3 +356,67 @@ void fn_8014C728(void *arg0) {
     lbl_8040B2BC = 0;
     lbl_80409C8C = 0;
 }
+
+s32 PodraceUpdateStartLights();
+s32 fn_800133FC(void *);
+s32 fn_800137D0(void *, s32);
+void fn_8011E9C4(s32);
+s32 fn_8014EBBC();
+extern f32 NuRndrHackWaterLevel[];
+extern f32 lbl_801AFEA4[];
+extern f32 lbl_801AFEA8[];
+extern f32 lbl_801AFEAC[];
+extern f32 lbl_803E01C4[];
+extern u8 lbl_803E03C1[];
+extern f32 lbl_80408E9C;
+extern void *lbl_80409CF8;
+extern f32 lbl_80409D10;
+
+void fn_8014F058(void) {
+    if (lbl_8040B108 == 2 && *(f32 *)((s8 *)lbl_80409C94 + 0xB004) > lbl_801AFEA4[0] && lbl_80409CFC != 0) {
+        switch (lbl_8040B060[1]) {
+        case 0:
+            if (lbl_803E01C4[0] > lbl_80409D00) {
+                fn_8011E9C4(0x17);
+                lbl_8040B060[1] = 1;
+            }
+            break;
+        case 1:
+            if (lbl_80409CF8 != NULL && (*(s32 *)((s8 *)lbl_80409CF8 + 0x88) & 0x80000)) {
+                fn_8011E9C4(0x18);
+                lbl_8040B060[1] = 2;
+                lbl_80409D10 = lbl_80409D08;
+            }
+            break;
+        case 2:
+            lbl_80409D10 -= lbl_80408E9C;
+            if (lbl_80409D10 < lbl_801AFEA8[0]) {
+                fn_8011E9C4(0x19);
+                lbl_8040A820++;
+                if (lbl_8040A824 > 0 && lbl_8040A820 % lbl_8040A824 == 0) {
+                    lbl_80409D08 += lbl_80409D14;
+                    if (lbl_80409D08 > lbl_80409D0C) {
+                        lbl_80409D08 = lbl_80409D0C;
+                    }
+                }
+                lbl_8040B060[1] = 4;
+            } else if (lbl_803E01C4[0] > lbl_80409D04) {
+                lbl_8040B060[1] = 3;
+            }
+            break;
+        case 3:
+            if (fn_800130F4(lbl_803EAD24) != 0 && fn_800137D0(lbl_803EAD24, fn_800133FC(lbl_803EAD24)) == 0) {
+                lbl_8040B060[1] = 4;
+            }
+            break;
+        case 4:
+            break;
+        }
+    }
+    fn_8014EBBC();
+    PodraceUpdateStartLights();
+    if (lbl_8040B108 == 1 && lbl_8040B060[0] == 0 && lbl_803E03C1[0] == 0 && NuRndrHackWaterLevel[0] >= lbl_801AFEAC[0]) {
+        fn_800D875C(0x27E, 0);
+        lbl_8040B060[0] = 1;
+    }
+}
