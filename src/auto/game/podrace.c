@@ -215,3 +215,100 @@ void fn_8014CFA4(void) {
         }
     }
 }
+
+f32 AIParamToFloat(s32, s32);
+s32 NuStrIStr(s32, s32 *);
+extern f32 lbl_801AFF70[];
+extern s32 str_Podrace_AttemptsPerIncrement[];
+extern s32 str_Podrace_Increment[];
+extern s32 str_Podrace_LapTime[];
+extern s32 str_Podrace_MaxLapTime[];
+
+s32 PodraceLoadLapSettings(s32 pad0, s32 pad1, s32 arg2, s32 *arg3, s32 arg4, s32 arg5) {
+    s32 p;
+    s32 i;
+
+    if ((arg5 != 0) && ((*(f32 *)((s8 *)(lbl_80409C94) + (0xB00C))) == lbl_801AFF70[0])) {
+        for (i = 0; i < arg4; i++) {
+            if ((p = NuStrIStr(arg3[i], str_Podrace_MaxLapTime)) != 0) {
+                (*(f32 *)((s8 *)(lbl_80409C94) + (0xB010))) = AIParamToFloat(arg2, p + 0xB);
+            } else if ((p = NuStrIStr(arg3[i], str_Podrace_LapTime)) != 0) {
+                (*(f32 *)((s8 *)(lbl_80409C94) + (0xB00C))) = AIParamToFloat(arg2, p + 8);
+            } else if ((p = NuStrIStr(arg3[i], str_Podrace_AttemptsPerIncrement)) != 0) {
+                (*(s32 *)((s8 *)(lbl_80409C94) + (0xB018))) = (s32) AIParamToFloat(arg2, p + 0x18);
+            } else if ((p = NuStrIStr(arg3[i], str_Podrace_Increment)) != 0) {
+                (*(f32 *)((s8 *)(lbl_80409C94) + (0xB014))) = AIParamToFloat(arg2, p + 0xA);
+            }
+        }
+        if ((*(f32 *)((s8 *)(lbl_80409C94) + (0xB010))) == lbl_801AFF70[0]) {
+            (*(f32 *)((s8 *)(lbl_80409C94) + (0xB010))) = (*(f32 *)((s8 *)(lbl_80409C94) + (0xB00C)));
+        }
+    }
+    return 1;
+}
+
+f32 AIParamToFloat(s32, s32);
+s32 NuStrIStr(s32, s32 *);
+extern f32 lbl_80409D00;
+extern f32 lbl_80409D04;
+extern f32 lbl_80409D08;
+extern f32 lbl_80409D0C;
+extern f32 lbl_80409D14;
+extern s32 str_Podrace_MaxTimeAvailable[];
+extern s32 str_Podrace_TimeAvailable[];
+extern s32 str_Podrace_TimeIncrement[];
+extern s32 str_Podrace_TriggerCollapse[];
+extern s32 str_Podrace_TriggerCrash[];
+
+s32 PodraceLoadTimeTrialSettings(s32 pad0, s32 pad1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
+    s32 temp_r3;
+    s32 temp_r3_2;
+    s32 temp_r3_3;
+    s32 temp_r3_4;
+    s32 temp_r3_5;
+    s32 temp_r3_6;
+    s32 var_r28;
+    s32 var_r29;
+
+    if ((arg5 != 0) && ((s32) lbl_80409CFC == 0)) {
+        for (var_r28 = 0; var_r28 < arg4; var_r28++) {
+            var_r29 = var_r28 * 4;
+            {
+                temp_r3 = NuStrIStr(*(s32 *)(var_r29 + arg3), str_Podrace_TriggerCrash);
+                if (temp_r3 != 0) {
+                    lbl_80409D00 = AIParamToFloat(arg2, temp_r3 + 0xE);
+                } else {
+                    temp_r3_2 = NuStrIStr(*(s32 *)(var_r29 + arg3), str_Podrace_TriggerCollapse);
+                    if (temp_r3_2 != 0) {
+                        lbl_80409D04 = AIParamToFloat(arg2, temp_r3_2 + 0x11);
+                    } else {
+                        temp_r3_3 = NuStrIStr(*(s32 *)(var_r29 + arg3), str_Podrace_MaxTimeAvailable);
+                        if (temp_r3_3 != 0) {
+                            lbl_80409D0C = AIParamToFloat(arg2, temp_r3_3 + 0x13);
+                        } else {
+                            temp_r3_4 = NuStrIStr(*(s32 *)(var_r29 + arg3), str_Podrace_TimeAvailable);
+                            if (temp_r3_4 != 0) {
+                                lbl_80409D08 = AIParamToFloat(arg2, temp_r3_4 + 0xF);
+                            } else {
+                                temp_r3_5 = NuStrIStr(*(s32 *)(var_r29 + arg3), str_Podrace_TimeIncrement);
+                                if (temp_r3_5 != 0) {
+                                    lbl_80409D14 = AIParamToFloat(arg2, temp_r3_5 + 0xF);
+                                } else {
+                                    temp_r3_6 = NuStrIStr(*(s32 *)(var_r29 + arg3), str_Podrace_AttemptsPerIncrement);
+                                    if (temp_r3_6 != 0) {
+                                        lbl_8040A824 = (s32) AIParamToFloat(arg2, temp_r3_6 + 0x18);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (lbl_80409D0C < lbl_80409D08) {
+                    lbl_80409D0C = lbl_80409D08;
+                }
+            }
+        }
+        lbl_80409CFC = 1;
+    }
+    return 1;
+}
