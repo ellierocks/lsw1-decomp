@@ -64,6 +64,12 @@ class SweepRepairTest(unittest.TestCase):
         import sweep
         self.sweep = sweep
 
+    def test_unit_sweep_keeps_other_units_rows(self):
+        prev = [{"name": "a", "unit": "auto/game/obstacle"}, {"name": "b", "unit": "auto/game/main"},
+                {"name": "c", "unit": "auto/game/levels", "applied": True}]
+        kept = self.sweep.kept_rows(prev, "auto/game/obstacle", [{"name": "a"}])
+        self.assertEqual([r["name"] for r in kept], ["b"])
+
     def test_adopt_own_prototype_keeps_m2c_names(self):
         body = "extern s32 x;\n\ns32 f(void *arg0, void *arg1) {\n    return 0;\n}\n"
         out = self.sweep.adopt_own_prototype(body, "f", "u8 *f(void *, char *, s32 *);\n")

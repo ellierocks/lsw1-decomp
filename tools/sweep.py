@@ -969,6 +969,13 @@ def score_draft(name: str, source: str, body: str) -> tuple[dict, str]:
     return res, body
 
 
+def kept_rows(previous: list[dict], unit: str, todo: list[dict]) -> list[dict]:
+    """Rows of an earlier results.json that a sweep of the unit prefix UNIT does not replace."""
+    names = {t["name"] for t in todo}
+    return [r for r in previous if not r["unit"].startswith(unit) and r["name"] not in names
+            and not r.get("applied")]
+
+
 def targets(args) -> list[dict]:
     cmd = [sys.executable, str(ROOT / "tools" / "next_target.py"), "--json", "--no-remote",
            "--limit", "100000", "--max-size", args.max_size]
@@ -1003,6 +1010,9 @@ def main(argv=None) -> int:
         todo = [t for t in todo if t["name"] in names]
         previous = [r for r in previous if r["name"] not in {t["name"] for t in todo}
                     and not r.get("applied")]
+    elif args.unit and (OUT / "results.json").is_file():
+        # a unit-scoped sweep refreshes that unit's rows and keeps the rest of the ranking
+        previous = kept_rows(json.loads((OUT / "results.json").read_text()), args.unit, todo)
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
     with ThreadPoolExecutor(args.j) as pool:
@@ -1031,7 +1041,7 @@ def main(argv=None) -> int:
                 applied.append(row["name"])
                 row["applied"] = True
     if previous:
-        print(f"resweep: {len(rows)} targets; {len(previous)} rows kept from the last results.json")
+        print(f"swept {len(rows)} targets; {len(previous)} rows kept from the last results.json")
     rows += previous
     for r in rows:
         r["closeness"] = (r["exact"] / r["target"]) if r.get("target") else 0.0
