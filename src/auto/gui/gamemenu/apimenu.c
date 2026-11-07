@@ -519,3 +519,39 @@ void fn_8007818C(void) {
         }
     }
 }
+
+extern s32 lbl_80408A3C, lbl_80408A20;
+extern f32 lbl_8040945C, lbl_8040AF1C;
+extern char *lbl_80408B0C;
+extern s32 lbl_80408B80;
+
+void fn_800783B8(void *arg0) {
+    char buf[0x80];
+    s32 mode = lbl_80408A3C;
+
+    if ((mode != 0 || lbl_80408A20 != 0) && mode != 3 && mode != 4) {
+        *(f32 *)((u8 *)arg0 + 0x9C) = lbl_8040945C - (lbl_80408A84 + lbl_80408A84);
+        switch (mode) {
+        case 1:
+            fn_8007B298(lbl_80408B34, 0.0f, lbl_8040AF1C, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 0, 0, 1.5f, 2, 0, 0, lbl_80408A54);
+            break;
+        case 2:
+            fn_8007B298(lbl_80408B48, 0.0f, lbl_8040AF1C, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 0, 0, 1.5f, 2, 0, 0, lbl_80408A54);
+            break;
+        case 5:
+            fn_8007B298(lbl_80408B78, 0.0f, lbl_8040AF1C, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 0, 0, 1.5f, 2, 0, 0, lbl_80408A54);
+            break;
+        case 6:
+            fn_8007B298(lbl_80408B84, 0.0f, lbl_8040AF1C, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 0, 0, 1.5f, 2, 0, 0, lbl_80408A54);
+            break;
+        }
+        sprintf(buf, lbl_80408B40, lbl_80408A68, lbl_80408C50);
+        fn_8007B298(buf, 0.0f, 0.25f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 127, 0, 1.5f, 3, 0, 0, lbl_80408A54);
+        fn_8007B298(lbl_80408B0C, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 127, 0, 1.5f, 3, 0, 0, lbl_80408A54);
+        fn_800769B4(arg0, lbl_80408AB0, lbl_80408A57);
+        fn_800769B4(arg0, lbl_80408B18, lbl_80408A57);
+        if (lbl_80408A3C == 2) {
+            fn_800769B4(arg0, lbl_80408B80, lbl_80408A57);
+        }
+    }
+}
