@@ -26,7 +26,8 @@ only a candidate. Port it into the unit source and accept it with
 
 Focus the search. Random whole-function mutation rarely lands the one-slot
 schedule fixes a near miss needs, so mark the region that is wrong in the
-candidate (`--source`, or a copy of the unit source):
+candidate (`--source`, a copy of the unit source, or a `--body FILE` draft that is
+spliced into the unit source as `score_fn.py --body` does):
 
     /* permute: begin */ ... /* permute: end */      only randomize these lines
     /* permute: lineswap */ ... /* permute: end */   only permute these lines' order
@@ -167,7 +168,7 @@ def settings_toml(func_name: str, directory: Path) -> str:
 
 
 def setup(name: str, out: Path, source: Path | None, compiled_symbol: str | None,
-          ledger: Path, force: bool) -> dict:
+          ledger: Path, force: bool, body: Path | None = None) -> dict:
     symbols = vf.SymbolTable()
     entry = symbols.function(name)
     unit = vf.lookup_unit(entry.addr)
@@ -184,6 +185,9 @@ def setup(name: str, out: Path, source: Path | None, compiled_symbol: str | None
     if source is not None:
         source = source.resolve()
         provenance = str(source.relative_to(ROOT) if source.is_relative_to(ROOT) else source)
+    elif body is not None:
+        source = unit_source
+        provenance = str(unit_source.relative_to(ROOT))
     else:
         source = unit_source
         best = ledger_best(name, unit, compiled_symbol, str(unit_source.relative_to(ROOT)), ledger)
@@ -196,6 +200,10 @@ def setup(name: str, out: Path, source: Path | None, compiled_symbol: str | None
     out.mkdir(parents=True)
     if text is None:
         text = source.read_text()
+    if body is not None:
+        text = score_fn.splice_body(text, compiled_symbol or name, body.read_text())
+        rel_body = body.resolve()
+        provenance += f" + --body {rel_body.relative_to(ROOT) if rel_body.is_relative_to(ROOT) else rel_body}"
     marked, regions = focus(text, keep=True)
     with tempfile.TemporaryDirectory(prefix="permute_setup_") as tmp:
         src = Path(tmp) / source.name
@@ -278,6 +286,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name", help="retail function name in symbols.txt")
     ap.add_argument("--source", type=Path, help="candidate C file (default: best ledger snapshot or unit source)")
+    ap.add_argument("--body", type=Path, metavar="FILE",
+                    help="splice this draft definition into the source (as score_fn.py --body does); "
+                         "focus markers may sit in it")
     ap.add_argument("--compiled-symbol", help="symbol emitted by the source if it differs")
     ap.add_argument("--out", type=Path, help="directory (default work/permute/NAME)")
     ap.add_argument("--ledger", type=Path, default=ROOT / "work" / "hillclimb")
@@ -294,10 +305,11 @@ def main(argv=None) -> int:
         print("error: toolchain not bootstrapped; run bash tools/bootstrap.sh", file=sys.stderr)
         return 2
     rel = out.relative_to(ROOT) if out.is_relative_to(ROOT) else out
-    reuse = args.run and not args.force and (out / "settings.toml").is_file()
+    reuse = args.run and not args.force and not args.body and (out / "settings.toml").is_file()
     if not reuse:
         try:
-            meta = setup(args.name, out, args.source, args.compiled_symbol, args.ledger.resolve(), args.force)
+            meta = setup(args.name, out, args.source, args.compiled_symbol, args.ledger.resolve(), args.force,
+                         args.body)
             rep = base_score(out)
         except (vf.ToolError, ValueError, OSError) as e:
             print(f"error: {e}", file=sys.stderr)

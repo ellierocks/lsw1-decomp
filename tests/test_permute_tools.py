@@ -69,6 +69,39 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(settings["compiler_type"], "gcc")
         self.assertTrue(settings["objdump_command"].endswith("permute_objdump.py --dir /w/permute/NuFdiv"))
 
+    def test_body_is_spliced_into_unit_source_with_focus_markers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            unit = tmp / "u.c"
+            unit.write_text("int g(void);\nint f(int a)\n{\n    return a;\n}\nint h(void) { return 1; }\n")
+            body = tmp / "try.c"
+            body.write_text("int f(int a)\n{\n    /* permute: begin */\n    return a + 1;\n"
+                            "    /* permute: end */\n}\n")
+            target = tmp / "t.o"
+            target.write_bytes(b"")
+            seen = {}
+
+            def fake_preprocess(src, out, include_dir):
+                seen[out.name] = src.read_text()
+                out.write_text(src.read_text())
+                return None
+
+            entry = SimpleNamespace(addr=0x80000000, size=4)
+            with mock.patch.object(ps.vf, "SymbolTable", return_value=mock.Mock(function=lambda n: entry)), \
+                    mock.patch.object(ps.vf, "lookup_unit", return_value="u"), \
+                    mock.patch.object(ps.vf, "find_target_object", return_value=target), \
+                    mock.patch.object(ps.vf, "source_for_unit", return_value=unit), \
+                    mock.patch.object(ps, "ROOT", tmp), \
+                    mock.patch.object(ps, "preprocess", side_effect=fake_preprocess), \
+                    mock.patch.object(ps, "fast_compile_agrees", return_value=True):
+                meta = ps.setup("f", tmp / "out", None, None, tmp / "ledger", False, body)
+            self.assertEqual(meta["focus_regions"], 1)
+            self.assertIn("--body try.c", meta["base_source"])
+            self.assertIn("PERM_RANDOMIZE", seen["base.c"])
+            self.assertIn("return a + 1;", seen["base_plain.c"])
+            self.assertIn("int h(void)", seen["base_plain.c"])
+            self.assertNotIn("return a;", seen["base_plain.c"])
+
     def test_ledger_best_takes_lowest_score_with_source_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
             ledger = Path(tmp)
