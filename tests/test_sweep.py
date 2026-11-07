@@ -93,6 +93,25 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    g(1);\n    g(3);\n", out)
         self.assertIn("    k(lbl_K[0]);\n", out)
 
+    def test_fix_prototypes_places_args_by_class(self):
+        # m2c lists r3..r10 then f1..; the real prototype interleaves them and passes a ninth
+        # integer on the stack, which m2c leaves as `sp8 = x;` (fn_80077038 calling fn_8007B298).
+        body = ("s32 g(s32 *, s32, s32, s32, s32, s32, s32, s32, f32, f32);\n\n"
+                "void f(void) {\n    s32 sp8;\n\n    sp8 = lbl_A;\n"
+                "    g(&b, 1, 2, 3, 4, 5, 6, 7, x, y);\n}\n")
+        old = sweep._PROTOS
+        sweep._PROTOS = {"g": ("void", ["void *", "f32", "s32", "s32", "s32", "s32", "f32",
+                                        "s32", "s32", "s32", "s32"])}
+        try:
+            out = sweep.fix_prototypes(body, "f", "\tbl g\n", "")
+        finally:
+            sweep._PROTOS = old
+        self.assertIn("    g(&b, x, 1, 2, 3, 4, y, 5, 6, 7, lbl_A);\n", out)
+        self.assertNotIn("sp8 = lbl_A", out)
+
+    def test_place_args_needs_the_stack_store(self):
+        self.assertIsNone(sweep.place_args(["a"] * 8, ["s32"] * 8, ["s32"] * 9, "    x = 1;\n    "))
+
     def test_fix_prototypes_alias_takes_unit_params(self):
         # alias_decl kept m2c's guessed parameter for a callee the unit defines as (void):
         # the call must lose the argument (fn_800ABEB0 calling fn_800B9ED4).
@@ -101,6 +120,14 @@ class SweepRewriteTest(unittest.TestCase):
         out = sweep.fix_prototypes(body, "f", "\tbl h\n", "u16 h(void) {\n    return 1;\n}\n")
         self.assertIn("#define h ((s32(*)(void))h)\n", out)
         self.assertIn("    x = h();\n", out)
+
+    def test_fix_prototypes_alias_places_args_by_class(self):
+        # An aliased callee keeps m2c's class-sorted parameters in the `#define`; the call's
+        # arguments must still move to the unit's interleaved order (fn_80077340).
+        body = ("#define g ((s32 (*)(s32 *, s32, f32))g)\n\n"
+                "void f(void) {\n    g(&b, 1, x);\n}\n#undef g\n")
+        out = sweep.fix_prototypes(body, "f", "\tbl g\n", "void g(void *, f32, s32) {\n}\n")
+        self.assertIn("    g(&b, x, 1);\n", out)
 
     def test_byte_strides(self):
         body = ("s32 f(void) {\n    s32 *p;\n    p = lbl;\n"

@@ -484,7 +484,55 @@ def raw_protos(text: str) -> dict[str, list[str]]:
     return out
 
 
-FN_ALIAS = re.compile(r"^#define (?P<fn>\w+) \(\((?P<ret>[^()]*?)\s*\(\*\)\([^()]*\)\)(?P=fn)\)$")
+FLOATS = ("f32", "f64", "float", "double")
+
+
+def place_args(args: list[str], kinds: list[str] | None, params: list[str],
+               before: str) -> tuple[list[str], tuple[int, int] | None] | None:
+    """ARGS (one m2c call whose parameter kinds are KINDS) rearranged for PARAMS by register
+    class, or None when nothing moves. m2c lists integer and float arguments by register
+    (r3.., then f1..) and leaves an integer argument past r10 as a store to its outgoing
+    stack slot (`sp8 = x;` just before the call). Each parameter takes the next argument of
+    its class; a ninth or later integer takes that store's value, and the stores are cut:
+    the result is (arguments, (start, end) of the stores in BEFORE, or None)."""
+    # m2c sometimes misses a trailing float register it did not see written (`fmr f6, f4`
+    # read only by the callee): its call is then shorter than its own declaration.
+    if not kinds or len(kinds) < len(args) or "..." in kinds:
+        return None
+    kinds = kinds[:len(args)]
+    ints = [a for a, k in zip(args, kinds) if k.split()[0] not in FLOATS]
+    flts = [a for a, k in zip(args, kinds) if k.split()[0] in FLOATS]
+    out, gpr, stack, end = [], 0, [], before.rfind("\n") + 1
+    for p in params:
+        if p.split()[0] in FLOATS:
+            out.append(flts.pop(0) if flts else "0")
+        elif gpr < 8:
+            gpr += 1
+            out.append(ints.pop(0) if ints else "0")
+        else:
+            stack.append(len(out))
+            out.append("0")
+    if ints or flts:
+        return None
+    if not stack:
+        return (out, None) if out != args else None
+    # The stores sit on the lines just above the call, in any order.
+    cut, found = end, {}
+    while True:
+        prev = before.rfind("\n", 0, cut - 1) + 1
+        m = re.fullmatch(r"[ \t]*sp([0-9A-F]+) = ([^;\n]+);\n", before[prev:cut])
+        if not m:
+            break
+        found.setdefault(int(m[1], 16), m[2])
+        cut = prev
+    for k, i in enumerate(stack):
+        if 8 + 4 * k not in found:
+            return None
+        out[i] = found[8 + 4 * k]
+    return out, (cut, end)
+
+
+FN_ALIAS = re.compile(r"^#define (?P<fn>\w+) \(\((?P<ret>[^()]*?)\s*\(\*\)\((?P<params>[^()]*)\)\)(?P=fn)\)$")
 
 
 def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = False) -> str:
@@ -497,7 +545,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
     head, code = body[:m.start()], body[m.start():]
     unit = {n: p[-1][1] for n, p in find_protos(unit_text).items()}
     repo, variadic, raw = repo_protos(), variadic_calls(asm), raw_protos(unit_text)
-    lines, arity = [], {}
+    lines, arity, m2c_kinds = [], {}, {}
     for ln in head.splitlines():
         a = FN_ALIAS.match(ln)
         if a and a["fn"] in unit:
@@ -505,6 +553,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             # return type stays m2c's (it decides the conversion), the parameters are the unit's.
             params = unit[a["fn"]][1]
             arity[a["fn"]] = params
+            m2c_kinds[a["fn"]] = [p.strip() for p in a["params"].split(",") if p.strip() not in ("", "void")]
             lines.append(f"#define {a['fn']} (({a['ret']}(*)({', '.join(params) or 'void'})){a['fn']})")
             continue
         d = PROTO.match(ln) if ln.endswith(";") and not ln.startswith("extern") else None
@@ -513,6 +562,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             lines.append(ln)
             continue
         ret = d[1].strip()
+        m2c_kinds[fn] = [p.strip() for p in d[3].split(",") if p.strip() not in ("", "void")]
         if fn in unit:
             arity[fn] = unit[fn][1]
             continue  # the unit's declaration governs
@@ -536,15 +586,23 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
     arrays = set(re.findall(r"^extern (?:const )?f(?:32|64) (\w+)\[\];", head, flags=re.M))
     for fn, params in arity.items():
         n, var = len([p for p in params if p != "..."]), "..." in params
+        kinds = m2c_kinds.get(fn)
         for start, end, args in reversed(list(call_sites(code, fn))):
-            fixed = args[:n] if not var else args
-            fixed = fixed + ["0"] * (n - len(fixed))
+            placed = None if var else place_args(args, kinds, params, code[:start])
+            cut = None
+            if placed:
+                fixed, cut = placed
+            else:
+                fixed = args[:n] if not var else args
+                fixed = fixed + ["0"] * (n - len(fixed))
             # m2c passes a float constant's array by name where the value is meant.
             fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
                      for i, a in enumerate(fixed)]
             if fixed != args:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
+            if cut:
+                code = code[:cut[0]] + code[cut[1]:]
     return repair_indirect_prototypes("\n".join(lines) + ("\n" if lines else "") + code, asm)
 
 

@@ -48,6 +48,15 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class DropRedeclaredTest(unittest.TestCase):
+    def test_function_pointer_extern_names_the_pointer(self):
+        context = "extern void (*cb)(void);\nextern s32 n;\n"
+        body = "extern void (*cb)(void);\nextern s32 n;\nextern void (*other)(s32);\nvoid f(void) {}\n"
+        out, dropped = score_fn.drop_redeclared(context, body)
+        self.assertEqual(dropped, ["cb", "n"])
+        self.assertIn("extern void (*other)(s32);", out)
+
+
 class SweepRepairTest(unittest.TestCase):
     def setUp(self):
         import sys
