@@ -174,6 +174,14 @@ class SweepRewriteTest(unittest.TestCase):
         dep = "    " + f % ("s32", "8", "1") + "\n    " + f % ("s32", "4", "(*(s32 *)((s8 *)(p) + (8)))") + "\n"
         self.assertEqual(sweep.sorted_stores(dep), dep)
 
+    def test_loop_guard(self):
+        # GCC keeps a for loop's entry test as `cmpw i, n` (fn_80064B40).
+        body = ("    var_r30 = 0;\n    if ((s32) lbl_N > 0) {\nloop_2:\n        var_r30 += 1;\n"
+                "        if (var_r30 >= (s32) lbl_N) {\n")
+        self.assertIn("    if (var_r30 < (s32) lbl_N) {\n", sweep.loop_guard(body))
+        unrelated = body.replace("var_r30 >= (s32) lbl_N", "var_r30 >= (s32) lbl_M")
+        self.assertEqual(sweep.loop_guard(unrelated), unrelated)
+
     def test_byte_strides(self):
         body = ("s32 f(void) {\n    s32 *p;\n    p = lbl;\n"
                 "    (*(u8 *)((s8 *)(p) + (0x8B))) = 0U;\n    p += 0x9C;\n}\n")

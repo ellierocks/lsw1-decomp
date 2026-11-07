@@ -150,6 +150,24 @@ def const_rodata(body: str) -> str:
                   lambda m: f"extern const {m[1]}{m[2]}[];" if m[2] in rodata else m[0], body, flags=re.M)
 
 
+GUARD = re.compile(r"\bif \((?P<n>\(s32\) \w+(?:\[0\])?|\w+(?:\[0\])?|\(s32\) \(\*\([^;{}]*?\)\)|\(\*\([^;{}]*?\)\)) > 0\) \{")
+
+
+def loop_guard(body: str) -> str:
+    """BODY with m2c's loop guard `if (N > 0)` written as `if (i < N)` when the counter i,
+    zeroed before it, is compared with the same N at the loop's end. GCC keeps a `for`
+    loop's entry test as `cmpw i, N` with i still 0, which a constant compare cannot
+    reproduce (fn_80064B40, fn_80063D9C)."""
+    def repl(m):
+        n = m["n"]
+        bare = re.escape(n[6:] if n.startswith("(s32) ") else n)
+        cmp = re.search(rf"\b(\w+) (?:>=|<) (?:\(s32\) )?{bare}\)", body[m.end():])
+        if not cmp or not re.search(rf"^\s*{cmp[1]} = 0;$", body[:m.start()], flags=re.M):
+            return m[0]
+        return f"if ({cmp[1]} < {n}) {{"
+    return GUARD.sub(repl, body)
+
+
 def base_pointer(body: str) -> str:
     """BODY with each run of two or more consecutive statements that address one global
     through m2c's `(s8 *)(G) + off` wrapped in a block that reads G through a local
@@ -853,7 +871,7 @@ def sweep_one(t: dict) -> dict:
                 framed_res, framed = score_draft(name, source, framed)
                 if improves(framed_res, res):
                     res, body = {**framed_res, "empty_frame": True}, framed
-            for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
+            for repair in (byte_strides, base_pointer, loop_guard):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
                     alt_res, alt = score_draft(name, source, alt)
