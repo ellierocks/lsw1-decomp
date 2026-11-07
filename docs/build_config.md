@@ -386,7 +386,7 @@ under the `sn_runtime` lib and the `runtime` progress category. A unit that owns
 binary's exception tables and symbol map; an unpatched DTK is not equivalent.
 Build from that script rather than substituting the similarly named release tag.
 
-Two target-specific exceptions remain in `config.yml`:
+The analysis exclusions in `config.yml` are:
 
 - `skip_cfa_ranges` excludes `.text:0x80151AFC..0x8015BF48` because the initial
   analyzer overextended control flow into known functions. Review this region
@@ -394,6 +394,17 @@ Two target-specific exceptions remain in `config.yml`:
 - `block_relocations` excludes `.init:0x8000315C`, whose startup address cannot
   be resolved to a section by DTK. This permits splitting; it does not solve
   the linked startup differences described in [C matching](code_matching_workflow.md#remaining-link-differences).
+
+`add_relocations` restores missed `lis @ha` references across basic blocks.
+`python3 tools/missed_ha_relocs.py` proposes entries from the generated assembly
+and `symbols.txt`: every path must reach a first `@l` use of the same symbol
+and addend before any other read or clobber of the register, and both encoded
+halves must agree with that address. Unknown instructions, calls, indirect
+branches, exits and cycles before the use are rejected. The tool deliberately
+leaves unresolved cases alone, including bare constants without symbolic uses.
+Review proposals before adding them, then rebuild and compare the whole DOL
+and progress report. Existing entries disappear from the next proposal output;
+reproduce the original proposals using a split made without those entries.
 
 Compiler/DTK pin changes require a deliberate retail rebuild, strict object
 verification, linked-range comparison and report comparison. Renovate does not
