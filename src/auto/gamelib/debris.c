@@ -276,3 +276,150 @@ s16 fn_8005A43C(void) {
     return -1;
 }
 #undef lbl_8040AE4C
+
+s32 fn_8005FF74(s32, void *, s32, s16, s16, void *);
+
+void fn_80063E40(s32 arg0, void *arg1, s32 arg2, s16 arg3, s16 arg4) {
+    fn_8005FF74(arg0, arg1, arg2, arg3, arg4, 0);
+}
+
+s32 fn_800631DC(void *, s8, s32);
+
+void fn_80064A04(void *arg0, s8 arg1) {
+    fn_800631DC(arg0, arg1, 0);
+}
+
+s32 fn_800631DC(void *, s8, s32);
+
+void fn_80064A28(void *arg0) {
+    fn_800631DC(arg0, 0, 0);
+}
+
+s32 fn_8005F114(void *, s32, void *, void *, void *, s32);
+
+void fn_80063E14(void *arg0, s32 arg1, void *arg2, s32 arg3) {
+    fn_8005F114(arg0, arg1, arg2, 0, 0, arg3);
+}
+
+s32 TerrainInitEx(s32, void *, void *, s32, void *, void *, s32, s32, s32, s32);
+
+void fn_8005A3F8(s32 arg0, void *arg1, void *arg2, s32 arg3, void *arg4, void *arg5, s32 arg6) {
+    s32 sp8;
+    s32 spC;
+
+    TerrainInitEx(arg0, arg1, arg2, arg3, arg4, arg5, arg6, 0x1000, 0xC00, 0x100);
+}
+
+void fn_80064860(s32 arg0, s16 arg1, s16 arg2, f32 farg0, f32 farg1) {
+    void *temp_r9;
+
+    if (arg0 != -1) {
+        temp_r9 = (arg0 * 0x2EC) + lbl_80408404;
+        (*(s16 *)((s8 *)(temp_r9) + (0x25C))) = arg1;
+        (*(s16 *)((s8 *)(temp_r9) + (0x25E))) = arg2;
+        (*(f32 *)((s8 *)(temp_r9) + (0x260))) = farg0;
+        (*(f32 *)((s8 *)(temp_r9) + (0x264))) = farg1;
+    }
+}
+
+void fn_800648B4(s32 arg0, s32 arg1, s32 arg2, f32 farg0) {
+    void *temp_r9;
+
+    if (arg0 != -1) {
+        temp_r9 = (arg0 * 0x2EC) + lbl_80408404;
+        (*(s32 *)((s8 *)(temp_r9) + (0x250))) = arg1;
+        (*(s32 *)((s8 *)(temp_r9) + (0x254))) = arg2;
+        (*(f32 *)((s8 *)(temp_r9) + (0x258))) = farg0;
+    }
+}
+
+struct DebBits_8005A6F4 { u32 flag : 1; u32 rest : 31; };
+
+void fn_8005A6F4(s32 arg0, s32 arg1) {
+    if ((arg0 >= 0) && (arg0 < (*(s32 *)((s8 *)(lbl_8040AE4C) + (0xA59C))))) {
+        ((struct DebBits_8005A6F4 *)((s8 *)((arg0 * 0x6C) + (*(s32 *)((s8 *)(lbl_8040AE4C) + (0x68)))) + 0x4C))->flag = arg1;
+    }
+}
+
+extern s32 lbl_804083F0;
+s32 fn_8005EB80(s32 *);
+void fn_80063D9C(void) {
+    s32 sp8;
+    s32 i;
+
+    for (i = 0; i < lbl_804083F0; i++) {
+        s8 *p = (s8 *)(i * 0x2EC + lbl_80408404);
+        if (*(s16 *)(p + 0x102) != 0 && *(u8 *)(p + 0x279) != 0) {
+            sp8 = i;
+            fn_8005EB80(&sp8);
+        }
+    }
+}
+
+extern const f32 lbl_80195420[];
+
+void fn_8005A72C(s32 arg0, f32 farg0, f32 farg1, f32 farg2) {
+    if (arg0 >= 0 && arg0 < *(s32 *)((s8 *)lbl_8040AE4C + 0xA59C)) {
+        s8 *g = (s8 *)lbl_8040AE4C;
+        if (*(f32 *)(arg0 * 0x6C + *(s8 **)(g + 0x68) + 0x54) == lbl_80195420[0]) {
+            *(f32 *)(arg0 * 0x6C + *(s8 **)(g + 0x68) + 0x58) = lbl_80195420[0];
+            *(f32 *)(arg0 * 0x6C + *(s8 **)(g + 0x68) + 0x5C) = lbl_80195420[0];
+        }
+        g = (s8 *)lbl_8040AE4C;
+        *(f32 *)(arg0 * 0x6C + *(s8 **)(g + 0x68) + 0x54) = farg0;
+        *(f32 *)(arg0 * 0x6C + *(s8 **)(g + 0x68) + 0x60) = farg1;
+        *(f32 *)(arg0 * 0x6C + *(s8 **)(g + 0x68) + 0x64) = farg2;
+    }
+}
+
+s32 NuAnimCurveSetApplyToJointBasic(s32, s32, f32, f32, s32);
+extern s32 lbl_8040AEA0;
+extern s32 lbl_8040AEA4;
+
+s32 fn_80064A94(s32 arg0, f32 farg0, f32 farg1) {
+    s32 var_r30;
+    s32 var_r31;
+
+    var_r30 = 0;
+    if (var_r30 < (s32) lbl_8040AEA4) {
+        var_r31 = 0;
+loop_2:
+        if (((*(s32 *)((s8 *)((var_r31 + lbl_8040AEA0)) + (4))) & 3) && (NuAnimCurveSetApplyToJointBasic(*(s32 *)(var_r31 + lbl_8040AEA0), arg0, farg0, farg1, 3) != 0)) {
+            return *(s32 *)(var_r31 + lbl_8040AEA0);
+        }
+        var_r30 += 1;
+        var_r31 += 8;
+        if (var_r30 >= (s32) lbl_8040AEA4) {
+            goto block_6;
+        }
+        goto loop_2;
+    }
+block_6:
+    return -1;
+}
+
+s32 fn_80063834(s32, void *, f32, f32, u8);
+extern s32 lbl_8040AE9C;
+extern s32 lbl_8040AEA8;
+
+s32 fn_80064B40(s32 arg0, f32 farg0, f32 farg1) {
+    s32 var_r30;
+    s32 var_r31;
+
+    var_r30 = 0;
+    if (var_r30 < (s32) lbl_8040AEA8) {
+        var_r31 = 0;
+loop_2:
+        if (((*(s32 *)((s8 *)((var_r31 + lbl_8040AE9C)) + (4))) & 3) && (fn_80063834(*(s32 *)(var_r31 + lbl_8040AE9C), arg0, farg0, farg1, 3) != 0)) {
+            return *(s32 *)(var_r31 + lbl_8040AE9C);
+        }
+        var_r30 += 1;
+        var_r31 += 8;
+        if (var_r30 >= (s32) lbl_8040AEA8) {
+            goto block_6;
+        }
+        goto loop_2;
+    }
+block_6:
+    return -1;
+}
