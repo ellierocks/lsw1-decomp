@@ -1,4 +1,5 @@
 #include "types.h"
+#include "game/gamemenu.h"
 
 extern f32 lbl_8019B9D4[];
 extern s32 lbl_80408BF0;
@@ -72,10 +73,9 @@ void fn_80079604(u8* menu)
     }
 }
 
-extern s32 lbl_80408B00, lbl_80408B10, lbl_80408B14;
+extern char *lbl_80408B00, *lbl_80408B10, *lbl_80408B14;
 extern s32 lbl_80408AA0, lbl_80408AA4;
 extern f32 lbl_80408A84;
-extern void fn_8007AC80(s32, s32, s32, s32, s32, s32, f32, f32, f32, f32, f32, f32);
 
 void fn_80079698(u8* menu)
 {
@@ -83,7 +83,7 @@ void fn_80079698(u8* menu)
     lbl_8040A618 = 0;
     lbl_8040A61C = 127;
     lbl_8040A620 = 255;
-    fn_8007AC80(lbl_80408B00, 0, 255, 127, 0, lbl_80408A57, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f);
+    fn_8007AC80(lbl_80408B00, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 127, 0, lbl_80408A57);
     {
         f32 time = lbl_8040AF18;
         f32 offset = lbl_80408A84;
@@ -100,7 +100,7 @@ void fn_8007975C(u8* menu)
     lbl_8040A618 = 0;
     lbl_8040A61C = 127;
     lbl_8040A620 = 255;
-    fn_8007AC80(lbl_80408B10, 0, 255, 127, 0, lbl_80408A57, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f);
+    fn_8007AC80(lbl_80408B10, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 127, 0, lbl_80408A57);
     {
         f32 offset = *(f32*)(menu + 0xa8);
         s32 action = lbl_80408AA0;
@@ -116,7 +116,7 @@ void fn_80079824(u8* menu)
     lbl_8040A618 = 0;
     lbl_8040A61C = 127;
     lbl_8040A620 = 255;
-    fn_8007AC80(lbl_80408B14, 0, 255, 127, 0, lbl_80408A57, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f);
+    fn_8007AC80(lbl_80408B14, 0.0f, -0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 127, 0, lbl_80408A57);
     {
         f32 offset = *(f32*)(menu + 0xa8);
         s32 action = lbl_80408AA0;
@@ -167,12 +167,11 @@ void fn_800790C8(u8* menu)
 
 extern s32 lbl_80408A54;
 extern char *lbl_80408B7C;
-extern void fn_8007B298(char*, s32, s32, s32, s32, s32, s32, s32, s32, f32, f32, f32, f32, f32, f32, f32);
 
 void fn_80079434(u8* menu)
 {
-    fn_8007B298(lbl_80408B7C, 0, 255, 127, 0, 3, 0, 0, lbl_80408A54,
-                0.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.5f, 1.5f);
+    fn_8007B298(lbl_80408B7C, 0.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, 127, 0, 1.5f, 3, 0, 0,
+                lbl_80408A54);
     {
         f32 time = lbl_8040AF18;
         f32 offset = lbl_80408A84;
@@ -183,9 +182,8 @@ void fn_80079434(u8* menu)
     fn_800769B4(menu, lbl_80408AA4, lbl_80408A57);
 }
 
-extern s32 lbl_80408C0C, lbl_80408C10, gMenuDepth;
+extern s32 lbl_80408C0C, lbl_80408C10;
 extern f32 lbl_80408C24, lbl_80408C38;
-extern u8 gMenuStack[];
 extern void fn_80076194(void);
 extern void Menu_OpenSpecial(void*);
 
@@ -196,7 +194,7 @@ void fn_80079EBC(void)
     if (lbl_80408C0C && lbl_80408224) {
         lbl_80408C0C = 0;
         fn_80076194();
-        Menu_OpenSpecial(gMenuStack + gMenuDepth * 0xe0);
+        Menu_OpenSpecial((u8 *)gMenuStack + gMenuDepth * 0xe0);
     }
     if (lbl_80408C38 <= 0.0f)
         Menu_CloseCurrent();
@@ -212,8 +210,8 @@ void fn_8007922C(u8* menu)
     if (lbl_8040821C == 1) title = lbl_80408B78;
     else if (lbl_8040821C == 3) title = lbl_80408B84;
     else title = lbl_80408B34;
-    fn_8007B298(title, 0, 255, 127, 0, 2, 0, 0, lbl_80408A54,
-                0.0f, 0.3f, 1.0f, half, half, half, 1.5f);
+    fn_8007B298(title, 0.0f, 0.3f, 1.0f, half, half, half, 0, 255, 127, 0, 1.5f, 2, 0, 0,
+                lbl_80408A54);
     {
         f32 time = lbl_8040AF18;
         f32 offset = lbl_80408A84;
@@ -525,15 +523,12 @@ void fn_8007907C(void) {
 }
 
 s32 memset();
-extern s32 gMenuDepth;
 
 void Menu_ResetStack(void) {
     memset(gMenuStack, 0, 0x8C0);
     (*(s16 *)((s8 *)(gMenuStack) + (0x14))) = -1;
     gMenuDepth = 0;
 }
-
-extern s32 gRegisteredMenuDefinitions[];
 
 void fn_80078E90(void *arg0) {
     s16 temp_r0;
