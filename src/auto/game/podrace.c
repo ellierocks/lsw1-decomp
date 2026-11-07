@@ -420,3 +420,37 @@ void fn_8014F058(void) {
         lbl_8040B060[0] = 1;
     }
 }
+
+s32 fn_800D6C50(u8, s32, f32, s32, s32, u8, s32, f32, s32, s32);
+s32 fn_8014BBE0();
+extern s32 Shop_UpdateCodes[];
+extern s32 Shop_UpdateMainMenu[];
+extern s32 Shop_UpdateSubMenu[];
+extern s32 gShopUpdateCallback;
+extern f32 lbl_801AF9A8[];
+extern f32 lbl_801AF9AC[];
+extern u8 lbl_8040B0DC;
+extern u8 lbl_8040B0DD;
+
+void fn_8014BD40(void) {
+    f32 scale = lbl_801AF9A8[0];
+    s32 a = -1;
+    s32 b = -1;
+
+    if (gShopUpdateCallback == (s32)Shop_UpdateMainMenu) {
+        a = 0x2D6;
+        b = 0x2C5;
+    } else if (gShopUpdateCallback == (s32)Shop_UpdateSubMenu) {
+        a = 0x342;
+        if (fn_8014BBE0() == 0) {
+            scale = lbl_801AF9AC[0];
+        }
+        b = 0x2D7;
+    } else if (gShopUpdateCallback == (s32)Shop_UpdateCodes) {
+        a = 0x2D6;
+        b = 0x2D7;
+    }
+    if (a != -1 || b != -1) {
+        fn_800D6C50(lbl_8040B0DC, a, scale, -1, b, lbl_8040B0DD, a, scale, -1, b);
+    }
+}
