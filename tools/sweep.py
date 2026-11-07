@@ -524,6 +524,83 @@ def _index_loop(lines: list[str], end: int) -> list[str] | None:
     return out
 
 
+def countdown_loops(body: str) -> str:
+    """BODY with each m2c countdown loop written as the `for` loop GCC compiled. m2c prints
+    `for (i = 0; i < n; i++) f(a[i]);` as `if (n > 0) { c = n; o = 0; do { f(*(o + a));
+    o += 4; c -= 1; } while (c != 0); }`; ProDG schedules the source form differently
+    (PodraceLoadLapSettings hoisted a string address out of the draft's loop). Each stepped
+    variable is recomputed from the index at the top of the body."""
+    lines = body.split("\n")
+    for end in range(len(lines) - 1, -1, -1):
+        new = _countdown_loop(lines, end)
+        if new is not None:
+            return countdown_loops("\n".join(new))
+    return body
+
+
+def _countdown_loop(lines: list[str], end: int) -> list[str] | None:
+    m = re.fullmatch(r"([ \t]*)\} while \((\w+) != 0\);", lines[end])
+    if not m or end + 1 >= len(lines):
+        return None
+    ind, cnt = m[1], m[2]
+    inner, g = ind + "    ", ind[:-4]
+    if not ind.endswith("    ") or lines[end + 1] != f"{g}}}":
+        return None
+    starts = [i for i in range(end) if lines[i] == f"{ind}do {{"]
+    if not starts:
+        return None
+    start = starts[-1]
+    loop = lines[start + 1:end]
+    if any(ln.strip() and not ln.startswith(inner) for ln in loop):
+        return None
+    if loop[-1] != f"{inner}{cnt} -= 1;":
+        return None
+    head = start
+    while head > 0 and re.fullmatch(rf"{ind}\w+ = [^;]+;", lines[head - 1]):
+        head -= 1
+    if head < 1:
+        return None
+    gm = re.fullmatch(rf"{g}if \((.+) > 0\) \{{", lines[head - 1])
+    if not gm:
+        return None
+    n = gm[1]
+    inits = {}
+    for ln in lines[head:start]:
+        im = re.fullmatch(rf"{ind}(\w+) = ([^;]+);", ln)
+        inits[im[1]] = im[2]
+    if inits.get(cnt, "").strip("() ") != n.strip("() ") and inits.get(cnt) != n:
+        return None
+    steps = {}
+    rest = []
+    for ln in loop[:-1]:
+        sm = re.fullmatch(rf"{inner}(\w+) \+= (0x[0-9A-Fa-f]+|\d+);", ln)
+        if sm and sm[1] in inits and sm[1] not in steps:
+            steps[sm[1]] = int(sm[2], 0)
+        else:
+            rest.append(ln)
+    text = "\n".join(lines)
+    after = "\n".join(lines[end + 2:])
+    for v in [cnt, *steps]:
+        if re.search(rf"\b{v}\b", after):
+            return None
+    if re.search(rf"\b{cnt}\b", "\n".join(rest)) or set(inits) - set(steps) - {cnt}:
+        return None
+    for v in steps:
+        if re.search(rf"\b{v}\s*(?:[-+*/|&^]?=(?!=)|\+\+|--)", "\n".join(rest)):
+            return None
+    new = [f"{g}for ({cnt} = 0; {cnt} < {n}; {cnt}++) {{"]
+    for v, st in steps.items():
+        ptr = re.search(rf"^[ \t]+[\w ]*\*\s*{v};", text, flags=re.M)
+        x = inits[v]
+        if ptr:
+            new.append(f"{ind}{v} = (void *) ((s8 *) ({x}) + {cnt} * {st});")
+        else:
+            new.append(f"{ind}{v} = {cnt} * {st};" if x == "0" else f"{ind}{v} = ({x}) + {cnt} * {st};")
+    new += [ln[4:] for ln in rest]
+    new.append(f"{g}}}")
+    return lines[:head - 1] + new + lines[end + 2:]
+
+
 # m2c guesses each callee's prototype from one call site, so a callee read with a
 # different argument count elsewhere (or a variadic one) fails to compile. Matched code
 # already declares most callees: take the unit's own declaration, else the repo's
@@ -815,7 +892,7 @@ def sweep_one(t: dict) -> dict:
                 framed_res, framed = score_draft(name, source, framed)
                 if improves(framed_res, res):
                     res, body = {**framed_res, "empty_frame": True}, framed
-            for repair in (byte_strides, base_pointer, index_loops):  # scored repairs: kept only when better
+            for repair in (byte_strides, base_pointer, index_loops, countdown_loops):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
                     alt_res, alt = score_draft(name, source, alt)

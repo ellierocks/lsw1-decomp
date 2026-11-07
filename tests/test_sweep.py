@@ -178,6 +178,19 @@ class SweepRewriteTest(unittest.TestCase):
         used_after = body.replace("    }\n}\n", "    }\n    h(p);\n}\n")
         self.assertEqual(sweep.index_loops(used_after), used_after)
 
+    def test_countdown_loops(self):
+        body = ("void f(s32 arg3, s32 arg4) {\n    s32 var_r28;\n    s32 var_r29;\n    s8 *p;\n\n"
+                "    if (arg4 > 0) {\n        var_r28 = arg4;\n        var_r29 = 0;\n        p = lbl_A;\n"
+                "        do {\n            g(*(s32 *)(var_r29 + arg3), p);\n            var_r29 += 4;\n"
+                "            p += 0xC;\n            var_r28 -= 1;\n        } while (var_r28 != 0);\n    }\n}\n")
+        self.assertEqual(sweep.countdown_loops(body),
+                         "void f(s32 arg3, s32 arg4) {\n    s32 var_r28;\n    s32 var_r29;\n    s8 *p;\n\n"
+                         "    for (var_r28 = 0; var_r28 < arg4; var_r28++) {\n        var_r29 = var_r28 * 4;\n"
+                         "        p = (void *) ((s8 *) (lbl_A) + var_r28 * 12);\n"
+                         "        g(*(s32 *)(var_r29 + arg3), p);\n    }\n}\n")
+        used = body.replace("    }\n}\n", "    }\n    h(p);\n}\n")
+        self.assertEqual(sweep.countdown_loops(used), used)
+
     def test_empty_frame(self):
         asm = ("/* 0 0  94 21 FF E8 */\tstwu r1, -0x18(r1)\n/* 4 4  38 21 00 18 */\taddi r1, r1, 0x18\n"
                "/* 8 8  4E 80 00 20 */\tblr\n")
