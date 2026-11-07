@@ -423,3 +423,39 @@ loop_2:
 block_6:
     return -1;
 }
+
+s32 fn_80027348();
+s32 fn_8005F254(s32, s32, s32, s32, s32, s32, s32, s32, f32);
+extern f32 lbl_8019570C[];
+extern f32 lbl_80195710[];
+extern s32 lbl_804083FC;
+
+void fn_80063F80(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
+    s32 var_r31;
+    u8 temp_r0;
+    void *temp_r9;
+
+    if ((arg0 >= 0) && (temp_r9 = *(s32 *)((arg0 * 4) + lbl_804083FC), ((temp_r9 == NULL) == 0))) {
+        temp_r0 = (*(u8 *)((s8 *)(temp_r9) + (0x2E)));
+        switch ((s8) temp_r0) {                     /* irregular */
+        case 2:
+            var_r31 = 0xC350;
+            break;
+        case 3:
+            var_r31 = 0x9C40;
+            break;
+        case 7:
+            var_r31 = 0x4E20;
+            break;
+        case 0:
+        default:
+            var_r31 = 0x7530;
+            break;
+        }
+        if (fn_80027348() == 0) {
+            fn_8005F254(arg0, arg1, arg2, arg3 * 0x32, arg4, arg5, var_r31, 0, lbl_8019570C[0]);
+            return;
+        }
+        fn_8005F254(arg0, arg1, arg2, arg3 * 0x3C, arg4, arg5, var_r31, 0, lbl_80195710[0]);
+    }
+}
