@@ -18,6 +18,12 @@ candidate C file, then let this tool try every ordering:
 
     python3 tools/order_search.py fn_800127D8 scratch.c --const-locals -j 8
 
+With `--body try.c`, the markers sit in a single draft definition that is spliced
+into the unit source (as `score_fn.py --body` does), so no scratch copy of the
+whole unit is needed:
+
+    python3 tools/order_search.py fn_X src/auto/u.c --body try.c -j 4
+
 Each block between `/* order: begin */` and `/* order: end */` is split into
 top-level statements (a braced statement counts as one). Several blocks are
 permuted independently and searched as a product. With `--const-locals`, an
@@ -396,6 +402,9 @@ def main(argv=None) -> int:
     ap.add_argument("--compiled-symbol", help="passed to score_fn.py")
     ap.add_argument("--compiler", choices=("prodg", "sdk"), help="passed to score_fn.py")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="passed to score_fn.py")
+    ap.add_argument("--body", type=Path, metavar="FILE",
+                    help="take the marked definition from FILE (as for score_fn.py --body) and splice "
+                         "it into SOURCE, without editing SOURCE")
     ap.add_argument("--dry-run", action="store_true", help="print the variant count and exit")
     ap.add_argument("--climb", action="store_true",
                     help="hill-climb with single-statement moves instead of trying every order")
@@ -407,7 +416,12 @@ def main(argv=None) -> int:
         ap.error("--climb does not combine with --const-locals; run the exhaustive search on the "
                  "climbed order instead")
     try:
-        template = parse(args.source.read_text())
+        text = args.source.read_text()
+        if args.body:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from score_fn import splice_body
+            text = splice_body(text, args.name, args.body.read_text())
+        template = parse(text)
     except (OSError, SearchError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
