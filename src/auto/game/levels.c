@@ -4361,3 +4361,30 @@ void fn_800ABD50(void *arg0) {
         *(u8 *)(p + 0x10) -= 1;
     }
 }
+
+extern s32 lbl_801D5AA0[];
+
+void fn_800BA628(s32 arg0) {
+    s32 i_var_r31;
+    void *var_r31;
+    void *var_r30;
+    s32 *var_r3;
+    s32 temp_r3;
+
+    i_var_r31 = 0;
+    do {
+        var_r31 = (void *) ((s8 *) (lbl_801D5AA0) + i_var_r31 * 8);
+        var_r30 = (void *) ((s8 *) (arg0 + 0x76C) + i_var_r31 * 16);
+        var_r3 = (*(s32 **)((s8 *)(var_r31) + (0)));
+        if (var_r3 == NULL) {
+            var_r3 = arg0 + 0x1C0;
+        } else if (var_r3 == (s32 *)-1) {
+            var_r3 = arg0 + 0x1C8;
+        }
+        temp_r3 = *var_r3;
+        if (temp_r3 != 0) {
+            NuSpecialFind(temp_r3, var_r30, (*(s32 **)((s8 *)(var_r31) + (4))), 1);
+        }
+        i_var_r31 += 1;
+    } while (i_var_r31 <= 286);
+}

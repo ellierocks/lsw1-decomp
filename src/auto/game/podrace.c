@@ -127,3 +127,91 @@ void fn_80146DF8(void) {
 void fn_801470AC(void) {
     volatile s32 pad[4];
 }
+
+s32 fn_800130F4(void *);
+s32 fn_80013200(void *, s32);
+typedef struct { s32 a, b, c; } PodSnd12;
+extern PodSnd12 lbl_80407154[];
+
+void fn_8014D01C(u32 arg0) {
+    s32 i;
+
+    if (arg0 <= 2U) {
+        for (i = 0; i < 3; i++) {
+            if (fn_800130F4(&lbl_80407154[i]) != 0) {
+                fn_80013200(&lbl_80407154[i], 0);
+            }
+        }
+        if (fn_800130F4(&lbl_80407154[arg0]) != 0) {
+            fn_80013200(&lbl_80407154[arg0], 1);
+        }
+    }
+}
+
+s32 PodraceUpdateStartLights();
+s32 fn_8014D1F8();
+s32 fn_8014EBBC();
+extern PodSnd12 lbl_803EAD24[];
+
+void fn_8014FFE8(void) {
+    s32 i;
+
+    fn_8014EBBC();
+    PodraceUpdateStartLights();
+    fn_8014D1F8();
+    if ((s32) lbl_8040B060[0] == 1) {
+        for (i = 0; i < 10; i++) {
+            if (fn_800130F4(&lbl_803EAD24[i]) != 0) {
+                fn_80013200(&lbl_803EAD24[i], 1);
+            }
+        }
+        lbl_8040B060[0] = 2;
+    }
+}
+
+s32 PodraceCreateMine();
+s32 (*fn_80009948(s32 *, s32))();
+#define fn_8010BD90 ((s32(*)(void))fn_8010BD90)
+#define fn_80142BA8 ((s32(*)(s32, s32))fn_80142BA8)
+s32 memset();
+extern f32 lbl_801AFF48[];
+extern s32 lbl_80409CFC;
+extern s32 lbl_8040A820;
+extern s32 lbl_8040A824;
+
+void fn_8014FE90(void) {
+    void *temp_r0;
+
+    temp_r0 = (*(void **)((s8 *)(lbl_80409410) + (0x198C)));
+    lbl_80409C94 = temp_r0;
+    if (temp_r0 == NULL) {
+        fn_80009948(str_SourceFile_Podrace, 0x326)(str_Assert_Podrace_NotWorking);
+    }
+    memset(lbl_80409C94, 0, 0xB020);
+    fn_80142BA8(lbl_80409C94, 0x20);
+    PodraceCreateMine();
+    fn_8010BD90();
+    lbl_80409CFC = 0;
+    lbl_8040A820 = 0;
+    lbl_8040A824 = 1;
+    if ((s32) lbl_8040B108 <= 1) {
+        (*(f32 *)((s8 *)(lbl_80409C94) + (0xB000))) = (f32) lbl_801AFF48[0];
+    }
+}
+#undef fn_8010BD90
+#undef fn_80142BA8
+
+s32 NuSpecialFindMultiWC(s32 *, s32);
+s32 fn_800133FC(void *);
+extern s32 lbl_80407184[];
+extern PodSnd12 lbl_80407190[];
+
+void fn_8014CFA4(void) {
+    s32 i;
+
+    for (i = 0; i < lbl_8040B2BC; i++) {
+        if (fn_800130F4(&lbl_80407190[i]) != 0) {
+            NuSpecialFindMultiWC(lbl_80407184, fn_800133FC(&lbl_80407190[i]));
+        }
+    }
+}
