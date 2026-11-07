@@ -413,6 +413,36 @@ def empty_frame(body: str, asm: str) -> str:
     return EMPTY_BODY.sub(lambda b: f"{b.group(1)}\n    volatile s32 pad[{words}];\n{b.group(2)}\n", body)
 
 
+FRAME = re.compile(r"\bstwu r1, -(0x[0-9A-Fa-f]+)\(r1\)")
+SAVED = re.compile(r"\b(?:stw|stmw|stfd) (?:r(?:1[3-9]|2\d|3[01])|f(?:1[4-9]|2\d|3[01])), (0x[0-9A-Fa-f]+)\(r1\)")
+
+
+def frame_buffer(body: str, asm: str) -> str:
+    """BODY with the topmost address-taken `spXX` scalar widened to a `char` array reaching
+    the first callee-saved slot (or the frame top) of the target frame, rounded down to 8
+    bytes: m2c types a stack buffer such as a `sprintf` target by its first word, so the
+    draft's frame comes out far too small (LoadObjectFile, LoadObjectAnimFile). Unchanged
+    when the target frame leaves no gap above the slot."""
+    insns = "\n".join(m.group(1) for m in re.finditer(r"\*/\s*(.+)$", asm, re.M)) or asm
+    frame = FRAME.search(insns)
+    if not frame:
+        return body
+    saved = [int(m.group(1), 16) for m in SAVED.finditer(insns)]
+    top = min(saved) if saved else int(frame.group(1), 16)
+    taken = [m for m in SP_DECL.finditer(body)
+             if f"&{m['v']}" in body and int(m["off"], 16) < top]
+    if not taken:
+        return body
+    m = max(taken, key=lambda d: int(d["off"], 16))
+    size = (top - int(m["off"], 16)) & ~7  # GCC rounds a stack array up to 8 bytes
+    if size < 4 * SIZES[m["t"]] or size <= 8:
+        return body
+    body = body.replace(m[0], f"{m['ind']}char {m['v']}[{size:#x}];\n", 1)
+    body = re.sub(rf"\(\w+ \*\)\s*&{m['v']}\b|&{m['v']}\b", m["v"], body)
+    return re.sub(rf"(?<![\w&]){m['v']}\b(?!\[)(?=\s*(?:=[^=]|\+\+|--|[-+*/|&^]=))",
+                  f"*(s32 *){m['v']}", body)
+
+
 def byte_strides(body: str) -> str:
     """BODY with each typed local pointer that m2c steps by a byte count (`p += 0x9C` on an
     `s32 *`, which C scales by 4) stepped by bytes again. A pointer only read through
@@ -721,11 +751,13 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
-            framed = empty_frame(body, (OUT / name / "asm.s").read_text())
-            if framed != body:
-                framed_res, framed = score_draft(name, source, framed)
-                if improves(framed_res, res):
-                    res, body = {**framed_res, "empty_frame": True}, framed
+            asm_text = (OUT / name / "asm.s").read_text()
+            for framer in (empty_frame, frame_buffer):  # target frame size: kept only when better
+                framed = framer(body, asm_text)
+                if framed != body:
+                    framed_res, framed = score_draft(name, source, framed)
+                    if improves(framed_res, res):
+                        res, body = {**framed_res, framer.__name__: True}, framed
             for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
