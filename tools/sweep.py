@@ -201,7 +201,19 @@ def both_rewrites(body: str) -> str:
     return const_rodata(store_in_arms(body))
 
 
-VARIANTS = (store_in_arms, const_rodata, both_rewrites)
+NARROW_RET = re.compile(r"^(?:u8|s8|u16|s16) (?=\w+\()", re.M)
+
+
+def wide_return(body: str) -> str:
+    """BODY with a u8/s8/u16/s16 return type widened to s32 when it returns -1. m2c types
+    the return from a narrow load (`lbz`), but `li r3, -0x1` with no extension needs an int
+    return: `return -1U` from a u8 function emits `li r3, 0xff` (fn_8005A5B0)."""
+    if not re.search(r"\breturn -1U?;", body) or not NARROW_RET.search(body):
+        return body
+    return re.sub(r"\breturn -1U;", "return -1;", NARROW_RET.sub("s32 ", body, count=1))
+
+
+VARIANTS = (store_in_arms, const_rodata, both_rewrites, wide_return)
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 

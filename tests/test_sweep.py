@@ -221,5 +221,14 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n", out)  # a single access stays
 
 
+class WideReturnTests(unittest.TestCase):
+    def test_wide_return(self):
+        body = "extern void *g;\n\nu8 f(void) {\n    if (g != NULL) {\n        return *(u8 *)g;\n    }\n    return -1U;\n}\n"
+        out = sweep.wide_return(body)
+        self.assertIn("s32 f(void) {", out)
+        self.assertIn("return -1;", out)
+        self.assertEqual(sweep.wide_return(body.replace("-1U", "0")), body.replace("-1U", "0"))
+
+
 if __name__ == "__main__":
     unittest.main()
