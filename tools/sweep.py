@@ -187,19 +187,41 @@ MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\
 
 
 def swap_stores(body: str, limit: int = 8) -> list[str]:
-    """BODY with one pair of adjacent independent memory stores swapped, for each such pair:
-    GCC's scheduler often emits a function's last stores in the other order."""
+    """BODY with one pair of adjacent independent memory stores swapped, for each such pair,
+    then with each run of three or more such stores rotated by one either way: GCC's
+    scheduler often emits a function's last stores in another order. A plain name counts as
+    memory when the body declares it `extern` (`lbl_8040A820 = 0;`, fn_8014FE90)."""
     lines, out = body.split("\n"), []
+    externs = set(re.findall(r"^extern [^;(]*?\b(\w+)(?:\[\])?;", body, flags=re.M))
+
+    def store(ln: str):
+        m = MEM_STORE.match(ln)
+        if m:
+            return m
+        m = re.match(r"^(?P<ind>[ \t]+)(?P<lhs>\w+) = (?P<rhs>[^;]+);$", ln)
+        return m if m and m["lhs"] in externs else None
+
+    def independent(a, b) -> bool:
+        return (a["ind"] == b["ind"] and a["lhs"] != b["lhs"]
+                and not re.search(rf"(?<![\w.>]){re.escape(a['lhs'])}(?!\w)", b["rhs"])
+                and not re.search(rf"(?<![\w.>]){re.escape(b['lhs'])}(?!\w)", a["rhs"]))
+    ms = [store(ln) for ln in lines]
     for i in range(len(lines) - 1):
-        a, b = MEM_STORE.match(lines[i]), MEM_STORE.match(lines[i + 1])
-        if not (a and b) or a["ind"] != b["ind"] or a["lhs"] == b["lhs"]:
-            continue
-        if a["lhs"] in b["rhs"] or b["lhs"] in a["rhs"]:
-            continue
-        out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
-        if len(out) == limit:
-            break
-    return out
+        a, b = ms[i], ms[i + 1]
+        if a and b and independent(a, b):
+            out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
+    out, rots = out[:limit], []
+    i = 0
+    while i < len(lines):
+        j = i
+        while j + 1 < len(lines) and ms[j + 1] and ms[i] and all(independent(ms[k], ms[j + 1]) for k in range(i, j + 1)):
+            j += 1
+        if j - i >= 2:
+            run = lines[i:j + 1]
+            for rot in (run[-1:] + run[:-1], run[1:] + run[:1]):
+                rots.append("\n".join(lines[:i] + rot + lines[j + 1:]))
+        i = j + 1
+    return out + rots[:limit]
 
 
 # m2c declares only the arguments a function reads, named by register: GPR `argN` is
@@ -402,6 +424,105 @@ def byte_strides(body: str) -> str:
         for st in reversed(steps):
             body = body[:st.start()] + f"{m['v']} {st[1]}= {int(st[2], 0) // size};" + body[st.end():]
     return body
+
+LOOP_END = re.compile(r"^(?P<ind>[ \t]*)\} while \((?P<cond>.*)\);$")
+PTR_BOUND = re.compile(r"(\w+) <= \(void \*\) \(\(\(s8 \*\)(.+)\) \+ (0x[0-9A-Fa-f]+|\d+)\)")
+
+
+def index_loops(body: str) -> str:
+    """BODY with each m2c pointer loop rewritten over an index. m2c prints a loop over an
+    array of N-byte records as `p = B; do { ...; p += N; } while (p <= (void *) ((s8 *)B + K));`,
+    but GCC formed that pointer from `&B[i]` and compares the eliminated `s32 i` with a signed
+    `cmpw` where the draft's pointer compare gives `cmplw` (fn_8014D01C). Each such pointer, and
+    each pointer stepped beside a `c += 1` counter that starts at 0 (fn_8014CFA4), is
+    recomputed from the index at the top of the body; a pointer bound becomes `i <= K / N`."""
+    lines = body.split("\n")
+    for end in range(len(lines) - 1, -1, -1):
+        new = _index_loop(lines, end)
+        if new is not None:
+            return index_loops("\n".join(new))  # one loop per pass: line numbers shift
+    return body
+
+
+def _index_loop(lines: list[str], end: int) -> list[str] | None:
+    m = LOOP_END.match(lines[end])
+    if not m:
+        return None
+    ind, inner = m["ind"], m["ind"] + "    "
+    starts = [i for i in range(end) if lines[i] == f"{ind}do {{"]
+    if not starts:
+        return None
+    start = starts[-1]
+    loop = lines[start + 1:end]
+    if any(ln.strip() and not ln.startswith(inner) for ln in loop):
+        return None  # not the matching `do`
+    found: dict[str, list[tuple[int, int]]] = {}
+    for k, ln in enumerate(loop):
+        sm = re.fullmatch(rf"{inner}(\w+) \+= (0x[0-9A-Fa-f]+|\d+);", ln)
+        if sm:
+            found.setdefault(sm[1], []).append((k, int(sm[2], 0)))
+    steps = {v: st[0] for v, st in found.items() if len(st) == 1}
+
+    def init_of(v: str) -> tuple[int, str] | None:
+        for i in range(start - 1, -1, -1):
+            if re.search(rf"\b{v}\b", lines[i]):
+                im = re.fullmatch(rf"([ \t]*){v} = ([^;]+);", lines[i])
+                return (i, im[2]) if im and ind.startswith(im[1]) else None
+        return None
+
+    def assigned(v: str, skip: int) -> bool:
+        return any(re.search(rf"\b{v}\s*(?:[-+*/|&^]?=(?!=)|\+\+|--)|(?:\+\+|--){v}\b", ln)
+                   for k, ln in enumerate(loop) if k != skip)
+
+    after = "\n".join(lines[end + 1:])
+    counter = new_index = bound = None
+    cm = PTR_BOUND.fullmatch(m["cond"])
+    if cm and cm[1] in steps:
+        init, n = init_of(cm[1]), steps[cm[1]][1]
+        if init and init[1].strip() in (cm[2], f"(void *) {cm[2]}") and int(cm[3], 0) % n == 0:
+            new_index, bound = f"i_{cm[1]}", int(cm[3], 0) // n
+    else:
+        for v, (k, n) in steps.items():
+            init = init_of(v)
+            if n == 1 and init and init[1] == "0" and re.match(rf"{v} [<>]=? ", m["cond"]) \
+                    and not assigned(v, k):
+                counter = v
+                break
+    if not (new_index or counter):
+        return None
+    ptrs = []
+    for v, (k, n) in steps.items():
+        if v == counter or (n == 1 and v != (cm[1] if cm else None)):
+            continue
+        init = init_of(v)
+        if init and not re.search(rf"\b{v}\b", after) and not assigned(v, k):
+            ptrs.append((v, k, n, init))
+    if new_index and not any(v == cm[1] for v, *_ in ptrs):
+        return None
+    if not ptrs:
+        return None
+    idx = new_index or counter
+    drop = {k for _, k, _, _ in ptrs}
+    body = [f"{inner}{v} = (void *) ((s8 *) ({init[1]}) + {idx} * {n});" for v, _, n, init in ptrs]
+    body += [ln for k, ln in enumerate(loop) if k not in drop]
+    inits = sorted({init[0] for *_, init in ptrs})
+    out = list(lines)
+    if new_index:
+        body.append(f"{inner}{idx} += 1;")
+        out[end] = f"{ind}}} while ({idx} <= {bound});"
+    out[start + 1:end] = body
+    if new_index:
+        out[inits[0]] = re.sub(r"\S.*", f"{idx} = 0;", out[inits[0]])
+        inits = inits[1:]
+    for i in reversed(inits):
+        del out[i]
+    if new_index:
+        top = next((i for i, ln in enumerate(out) if ln == "{" or re.match(r"^\w.*\) \{$", ln)), None)
+        if top is None:
+            return None
+        out.insert(top + 1, f"    s32 {idx};")
+    return out
+
 
 # m2c guesses each callee's prototype from one call site, so a callee read with a
 # different argument count elsewhere (or a variadic one) fails to compile. Matched code
@@ -694,7 +815,7 @@ def sweep_one(t: dict) -> dict:
                 framed_res, framed = score_draft(name, source, framed)
                 if improves(framed_res, res):
                     res, body = {**framed_res, "empty_frame": True}, framed
-            for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
+            for repair in (byte_strides, base_pointer, index_loops):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
                     alt_res, alt = score_draft(name, source, alt)
@@ -810,6 +931,7 @@ def main(argv=None) -> int:
     if args.retry:
         previous = json.loads((OUT / "results.json").read_text())
         names = {r["name"] for r in previous if r["verdict"] in args.retry or r["name"] in args.retry}
+        names |= set(args.retry)  # a named target the last sweep did not cover
         todo = [t for t in todo if t["name"] in names]
         previous = [r for r in previous if r["name"] not in {t["name"] for t in todo}
                     and not r.get("applied")]

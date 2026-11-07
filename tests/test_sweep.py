@@ -149,6 +149,35 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertEqual(sweep.swap_stores(body),
                          ["void f(s32 *p) {\n    p->a = 2;\n    *(s32 *)(p + 1) = 0;\n    x = p->a;\n    p->b = p->a;\n}\n"])
 
+    def test_swap_stores_extern_globals_and_rotations(self):
+        body = ("extern s32 ga;\nextern s32 gb;\nextern s32 gc;\nvoid f(void) {\n"
+                "    ga = 0;\n    gb = 1;\n    gc = 0;\n}\n")
+        outs = sweep.swap_stores(body)
+        self.assertIn(body.replace("    ga = 0;\n    gb = 1;\n    gc = 0;", "    gc = 0;\n    ga = 0;\n    gb = 1;"), outs)
+        self.assertIn(body.replace("    ga = 0;\n    gb = 1;", "    gb = 1;\n    ga = 0;"), outs)
+        local = "void f(void) {\n    s32 x;\n    x = 0;\n    y = 1;\n}\n"
+        self.assertEqual(sweep.swap_stores(local), [])
+
+    def test_index_loops_pointer_bound(self):
+        body = ("void f(u32 arg0) {\n    void *var_r31;\n\n    var_r31 = lbl_A;\n    do {\n"
+                "        g(var_r31);\n        var_r31 += 0xC;\n"
+                "    } while (var_r31 <= (void *) (((s8 *)lbl_A) + 0x18));\n}\n")
+        self.assertEqual(sweep.index_loops(body),
+                         "void f(u32 arg0) {\n    s32 i_var_r31;\n    void *var_r31;\n\n    i_var_r31 = 0;\n"
+                         "    do {\n        var_r31 = (void *) ((s8 *) (lbl_A) + i_var_r31 * 12);\n"
+                         "        g(var_r31);\n        i_var_r31 += 1;\n    } while (i_var_r31 <= 2);\n}\n")
+
+    def test_index_loops_counter(self):
+        body = ("void f(void) {\n    void *p;\n    s32 c;\n\n    c = 0;\n    if (n > 0) {\n"
+                "        p = lbl_A;\n        do {\n            g(p);\n            c += 1;\n"
+                "            p += 0xC;\n        } while (c < n);\n    }\n}\n")
+        out = sweep.index_loops(body)
+        self.assertIn("            p = (void *) ((s8 *) (lbl_A) + c * 12);\n            g(p);\n", out)
+        self.assertNotIn("p = lbl_A;", out)
+        self.assertNotIn("p += 0xC", out)
+        used_after = body.replace("    }\n}\n", "    }\n    h(p);\n}\n")
+        self.assertEqual(sweep.index_loops(used_after), used_after)
+
     def test_empty_frame(self):
         asm = ("/* 0 0  94 21 FF E8 */\tstwu r1, -0x18(r1)\n/* 4 4  38 21 00 18 */\taddi r1, r1, 0x18\n"
                "/* 8 8  4E 80 00 20 */\tblr\n")
