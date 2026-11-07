@@ -295,3 +295,150 @@ void fn_8009D57C(void) {
     sp8 = lbl_80408F8C;
     lbl_80408E88 = fn_800092F0(lbl_8019E714, &spC, (s32 *)&sp8, 4);
 }
+
+s32 TerrainInitEx(s32, void *, s32, s32, void *, s32, s32, s32, s32, s32);
+s32 fn_8005A3F8(s32, void *, s32, s32, void *, s32, s32);
+
+void fn_800A1D44(void *arg0) {
+    s32 type;
+    s32 var_r3;
+
+    *(s32 *)((s8 *)arg0 + 0x1C4) = 0;
+    if (*(s32 *)((s8 *)*(void **)((s8 *)arg0 + 0x1A8) + 4) & 8) {
+        *(s32 *)((s8 *)arg0 + 0x184) = (*(s32 *)((s8 *)arg0 + 0x184) + 0x3F) & ~0x3F;
+        type = *(s32 *)((s8 *)arg0 + 0x198);
+        if (type == 0x21) {
+            var_r3 = TerrainInitEx(type, (s8 *)arg0 + 0x184, *(s32 *)((s8 *)arg0 + 0x188), 0, (s8 *)arg0 + 0x80, *(s32 *)((s8 *)arg0 + 0x1C0), 0, 0x100, 0x100, 0);
+        } else {
+            var_r3 = fn_8005A3F8(type, (s8 *)arg0 + 0x184, *(s32 *)((s8 *)arg0 + 0x188), 0, (s8 *)arg0 + 0x80, *(s32 *)((s8 *)arg0 + 0x1C0), 0);
+        }
+        *(s32 *)((s8 *)arg0 + 0x1C4) = var_r3;
+    }
+}
+
+void fn_8002823C(s32, s32, s32, f32, f32);
+extern f32 lbl_8019EB28[];
+extern s32 lbl_804093C8;
+
+void fn_800A039C(void) {
+    s32 temp_r11;
+    s32 temp_r9;
+    void *temp_r10;
+
+    if ((void *) lbl_80409410 != NULL) {
+        temp_r10 = (*(void **)((s8 *)(lbl_80409410) + (0x1A8)));
+        temp_r11 = (*(s32 *)((s8 *)(temp_r10) + (4)));
+        if (!(temp_r11 & 0x4000) && ((s32) lbl_804093C8 != -1) && ((s32) (temp_r11 & 0x44000) == 0x40000) && (((s32) lbl_8040AFAC == 0) || !((*(s32 *)((s8 *)((*(void **)((s8 *)(lbl_8040AFB0) + (8)))) + (0x3C))) & 0x40))) {
+            temp_r9 = (*(u8 *)((s8 *)(temp_r10) + (0x59))) << 8;
+            fn_8002823C(((*(u8 *)((s8 *)(temp_r10) + (0x5B))) << 0x18) | ((*(u8 *)((s8 *)(temp_r10) + (0x5A))) << 0x10) | temp_r9 | (*(u8 *)((s8 *)(temp_r10) + (0x58))), 0, 0, (*(f32 *)((s8 *)(temp_r10) + (0x50))), (*(f32 *)((s8 *)(temp_r10) + (0x54))));
+            return;
+        }
+    }
+    fn_8002823C(0, 0, 0, lbl_8019EB28[0], lbl_8019EB28[0]);
+}
+
+void NuPortalInit();
+void NuPortalVisibility(void *);
+void fn_8002933C(void *);
+void fn_80043328();
+void fn_80043D8C();
+void fn_80067114(void *);
+void memset();
+extern s8 lbl_802D9F18[];
+extern s8 *lbl_80408F94;
+extern s32 lbl_8040AF9C;
+
+typedef struct PortalEnt {
+    u8 pad[0x10];
+    u32 b0 : 2;
+    u32 vis : 1;
+    u32 rest : 29;
+    u8 pad2[4];
+} PortalEnt;
+
+void fn_8009EB80(void) {
+    s32 i;
+    s32 n;
+    void *temp_r31;
+    PortalEnt *e;
+    s8 *out;
+
+    if (*(void **)((s8 *)lbl_80409410 + 0x1C0) != NULL) {
+        if (lbl_8040AF9C == 0) {
+            NuPortalInit();
+            NuPortalVisibility(*(void **)((s8 *)lbl_80409410 + 0x1C0));
+            temp_r31 = *(void **)((s8 *)lbl_80409410 + 0x1C0);
+            lbl_802D9F18[0] = 1;
+            memset(lbl_80408F94, 0, 0x100);
+            if (temp_r31 != NULL) {
+                n = *(s32 *)((s8 *)temp_r31 + 0x90);
+                if (n > 0) {
+                    e = *(PortalEnt **)((s8 *)temp_r31 + 0x94);
+                    out = lbl_80408F94;
+                    for (i = 0; i < n; i++) {
+                        if (e->vis) {
+                            *out = 1;
+                        } else {
+                            *out = e->vis;
+                        }
+                        e++;
+                        out++;
+                    }
+                }
+            }
+        }
+        fn_8002933C(*(void **)((s8 *)lbl_80409410 + 0x1C0));
+        fn_80043D8C(*(void **)((s8 *)lbl_80409410 + 0x1C0));
+        fn_80043328(*(void **)((s8 *)lbl_80409410 + 0x1C0));
+        fn_80067114(*(void **)((s8 *)lbl_80409410 + 0x1C0));
+    }
+}
+
+void OSResumeThread(s32 *);
+void OSSuspendThread(s32 *);
+extern s32 lbl_802D56F8[];
+extern s32 lbl_802D5A10[];
+s32 fn_8009D4CC(void) {
+    u8 buf[0x28];
+    OSResumeThread(lbl_802D56F8);
+    OSSuspendThread(lbl_802D5A10);
+    return 0;
+}
+
+s32 NuFileExists(void *);
+s32 fn_80065C14(char *, s32);
+void fn_8006F8A8();
+int sprintf(char *, const char *, ...);
+extern char lbl_8019EAB4[];
+
+void LoadObjectAnimFile(void *arg0) {
+    char buf[0x100];
+
+    if (*(s32 *)((s8 *)arg0 + 0x5E8) == -1) {
+        sprintf(buf, lbl_8019EAB4, (s8 *)arg0 + 0x80);
+        if (NuFileExists(buf) != 0) {
+            fn_8006F8A8(1);
+            *(s32 *)((s8 *)arg0 + 0x5E8) = fn_80065C14(buf, *(s32 *)((s8 *)arg0 + 0x1C0));
+            fn_8006F8A8(0);
+        }
+    }
+}
+
+s32 NuFileExists(void *);
+void fn_80068F14(char *);
+void fn_800698B8();
+int sprintf(char *, const char *, ...);
+extern char lbl_8019EAAC[];
+extern s32 lbl_803E04F0[];
+
+void LoadObjectFile(void *arg0) {
+    char buf[0x100];
+
+    fn_800698B8();
+    if (*(s32 *)((s8 *)*(void **)((s8 *)arg0 + 0x1A8) + 4) & 0x8000) {
+        sprintf(buf, lbl_8019EAAC, (s8 *)arg0 + 0x80);
+        if (NuFileExists(lbl_803E04F0) != 0) {
+            fn_80068F14(buf);
+        }
+    }
+}
