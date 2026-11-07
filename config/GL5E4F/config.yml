@@ -18,3 +18,133 @@ skip_cfa_ranges:
 # resolve to a section, which otherwise aborts `dol split`. Block the relocation.
 block_relocations:
 - source: .init:0x8000315C
+
+# DTK misses these lis @ha relocations across basic-block boundaries. Every
+# path reaches the listed same-symbol @l use before any register read/clobber.
+# Proposed by tools/missed_ha_relocs.py; instruction bytes and the retail DOL
+# remain unchanged. Regenerate proposals from an assembly split without this list.
+add_relocations:
+# NuRndrTri3d: @l use(s) 0x80009BE0
+- source: .text:0x80009AE4
+  type: ha
+  target: lbl_80207DC0
+# NuRndrTri3d: @l use(s) 0x80009BE0
+- source: .text:0x80009B6C
+  type: ha
+  target: lbl_80207DC0
+# fn_80024DC8: @l use(s) 0x80024E2C
+- source: .text:0x80024E04
+  type: ha
+  target: lbl_801913BC
+# fn_8003A244: @l use(s) 0x8003A830
+- source: .text:0x8003A4E8
+  type: ha
+  target: lbl_8019308C
+# fn_800466E4: @l use(s) 0x80046968
+- source: .text:0x80046934
+  type: ha
+  target: lbl_801943BC
+# fn_80047198: @l use(s) 0x8004722C
+- source: .text:0x80047204
+  type: ha
+  target: lbl_802B0C20
+# fn_80047198: @l use(s) 0x8004722C
+- source: .text:0x80047210
+  type: ha
+  target: lbl_802B0C20
+# fn_80047978: @l use(s) 0x80047BFC
+- source: .text:0x80047BC8
+  type: ha
+  target: lbl_801944E4
+# fn_800483D0: @l use(s) 0x80048464
+- source: .text:0x8004843C
+  type: ha
+  target: lbl_802B10C0
+# fn_800483D0: @l use(s) 0x80048464
+- source: .text:0x80048448
+  type: ha
+  target: lbl_802B10C0
+# fn_8006D1BC: @l use(s) 0x8006D450
+- source: .text:0x8006D43C
+  type: ha
+  target: lbl_801BB44C
+# fn_800783B8: @l use(s) 0x800784CC
+- source: .text:0x80078440
+  type: ha
+  target: lbl_8019B914
+# fn_800885CC: @l use(s) 0x80088978
+- source: .text:0x80088868
+  type: ha
+  target: lbl_8019C804
+# fn_800A2498: @l use(s) 0x800A29B8
+- source: .text:0x800A280C
+  type: ha
+  target: lbl_8019FA8C
+# Menu_Unknown4_BuildOptions: @l use(s) 0x800B0B1C
+- source: .text:0x800B0B04
+  type: ha
+  target: lbl_803E04F0
+# fn_800C6430: @l use(s) 0x800C6798
+- source: .text:0x800C6768
+  type: ha
+  target: lbl_8040B060
+# fn_800D7B64: @l use(s) 0x800D7D4C
+- source: .text:0x800D7D34
+  type: ha
+  target: lbl_801A5408
+# fn_800D9BB8: @l use(s) 0x800D9DE8
+- source: .text:0x800D9DB8
+  type: ha
+  target: lbl_801A55B8
+# fn_800DA478: @l use(s) 0x800DAEC8
+- source: .text:0x800DAE88
+  type: ha
+  target: lbl_801A5698
+# fn_800DA478: @l use(s) 0x800DB564
+- source: .text:0x800DB548
+  type: ha
+  target: lbl_801A5698
+# fn_800DF360: @l use(s) 0x800DF528
+- source: .text:0x800DF4D8
+  type: ha
+  target: lbl_801A58B0
+# fn_800E5C14: @l use(s) 0x800E5CA8
+- source: .text:0x800E5C94
+  type: ha
+  target: lbl_801A6824
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5D24
+  type: ha
+  target: lbl_801A682C
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5D30
+  type: ha
+  target: lbl_801A682C
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5DB0
+  type: ha
+  target: lbl_801A682C
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5DBC
+  type: ha
+  target: lbl_801A682C
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5FBC
+  type: ha
+  target: lbl_801A682C
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5FC8
+  type: ha
+  target: lbl_801A682C
+# fn_800E5C14: @l use(s) 0x800E5FF4
+- source: .text:0x800E5FE0
+  type: ha
+  target: lbl_801A682C
+# ApplyGravity: @l use(s) 0x800E6698
+- source: .text:0x800E667C
+  type: ha
+  target: lbl_801A8E04
+# Shop_UpdateCodes: @l use(s) 0x80149E88
+- source: .text:0x80149DC8
+  type: ha
+  target: lbl_802E9C20
