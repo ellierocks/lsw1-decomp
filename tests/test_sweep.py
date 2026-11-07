@@ -32,6 +32,18 @@ class SweepRewriteTest(unittest.TestCase):
                          "        lbl_X = 0xA;\n    }\n}\n")
         self.assertEqual(sweep.store_in_arms("x = 1;\n"), "x = 1;\n")
 
+    def test_void_callees(self):
+        body = ("s32 g(s32, s32, f32);\ns32 h(s32);\nextern s32 e(void);\n\n"
+                "void f(void) {\n    g(0xB00, 0, lbl_X[0]);\n    if (h(1) != 0) {\n        e();\n    }\n}\n")
+        self.assertEqual(sweep.void_callees(body),
+                         body.replace("s32 g(s32, s32, f32);", "void g(s32, s32, f32);"))
+
+    def test_volatile_locals(self):
+        body = "void f(void) {\n    s32 sp8;\n    s32 spC;\n    s32 x;\n\n    g(&spC, &sp8, x);\n}\n"
+        self.assertEqual(sweep.volatile_locals(body),
+                         [body.replace("    s32 sp8;", "    volatile s32 sp8;"),
+                          body.replace("    s32 spC;", "    volatile s32 spC;")])
+
     def test_const_rodata(self):
         sweep._RODATA = {"lbl_801A4C2C"}
         try:

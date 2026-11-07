@@ -182,7 +182,26 @@ def both_rewrites(body: str) -> str:
     return const_rodata(store_in_arms(body))
 
 
-VARIANTS = (store_in_arms, const_rodata, both_rewrites)
+CALLEE_DECL = re.compile(r"^(?!extern\b)(?:s32|u32|int|s16|u16|s8|u8|void \*|s32 \*|u32 \*) ?(\w+)\(([^()]*)\);$",
+                         flags=re.M)
+
+
+def void_callees(body: str) -> str:
+    """BODY with each m2c-declared callee whose result is never used declared `void`.
+    m2c types every callee `s32`; a call statement that discards an `int` result
+    schedules its argument loads differently from a `void` call, so `li r3`/`li r4`
+    land on the other side of an independent `lfs` (fn_800A1C70)."""
+    out = body
+    for m in CALLEE_DECL.finditer(body):
+        fn = m[1]
+        uses = len(re.findall(rf"\b{fn}\b", body)) - 1
+        stmts = len(re.findall(rf"^[ \t]+{fn}\(.*\);$", body, flags=re.M))
+        if uses and uses == stmts:
+            out = out.replace(m[0], f"void {fn}({m[2]});", 1)
+    return out
+
+
+VARIANTS = (store_in_arms, const_rodata, both_rewrites, void_callees)
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 
@@ -199,6 +218,19 @@ def swap_stores(body: str, limit: int = 8) -> list[str]:
         out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
         if len(out) == limit:
             break
+    return out
+
+
+def volatile_locals(body: str, limit: int = 4) -> list[str]:
+    """BODY with one address-taken stack local (`sp8`, `sp10`, ...) declared `volatile`, for
+    each such local: GCC gives an address-taken local its slot when the address is first
+    expanded (call arguments right to left), a volatile one at its declaration (fn_8009D57C)."""
+    out = []
+    for m in re.finditer(r"^(?P<ind>[ \t]+)(?P<decl>(?!volatile\b)\w[\w ]*?\b(?P<v>sp[0-9A-F]+));$", body, flags=re.M):
+        if re.search(rf"&\s*{m['v']}\b", body):
+            out.append(body[:m.start()] + f"{m['ind']}volatile {m['decl']};" + body[m.end():])
+            if len(out) == limit:
+                break
     return out
 
 
@@ -749,6 +781,7 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
         return res, body
     seen = {body}
     alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    alts += [("volatile_locals", a) for a in volatile_locals(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
