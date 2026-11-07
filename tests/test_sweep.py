@@ -169,6 +169,13 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertEqual(sweep.empty_frame("void f(void) {\n    g = 1;\n}\n", asm), "void f(void) {\n    g = 1;\n}\n")
         self.assertEqual(sweep.empty_frame("void f(void) {\n}\n", "/* 0 0  4E 80 00 20 */\tblr\n"), "void f(void) {\n}\n")
 
+    def test_int_callees(self):
+        body = "void g(s32);\nvoid h(void);\nvoid f(void) {\n    g(1);\n    h();\n}\n"
+        self.assertEqual(sweep.int_callees(body), [
+            "s32 g(s32);\nvoid h(void);\nvoid f(void) {\n    g(1);\n    h();\n}\n",
+            "void g(s32);\ns32 h(void);\nvoid f(void) {\n    g(1);\n    h();\n}\n"])
+        self.assertEqual(sweep.int_callees("void f(void) {\n}\n"), [])
+
     def test_frame_buffer(self):
         asm = ("/* 0 0  94 21 FE F0 */\tstwu r1, -0x110(r1)\n/* 4 4  7C 08 02 A6 */\tmflr r0\n"
                "/* 8 8  93 E1 01 0C */\tstw r31, 0x10c(r1)\n/* c c  90 01 01 14 */\tstw r0, 0x114(r1)\n")

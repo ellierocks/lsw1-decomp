@@ -202,6 +202,16 @@ def void_callees(body: str) -> str:
 
 
 VARIANTS = (store_in_arms, const_rodata, both_rewrites, void_callees)
+VOID_DECL = re.compile(r"^void (\w+)\(([^()]*)\);$", flags=re.M)
+
+
+def int_callees(body: str, limit: int = 6) -> list[str]:
+    """BODY with one `void` callee declared `s32` instead, for each such callee: the
+    reverse of `void_callees`. A call to an `int` function whose result is dropped
+    schedules the first argument's `addi` later than a `void` call does (OSCreateThread
+    in fn_8009D23C), so neither return type is always right for a discarded result."""
+    return [body.replace(m[0], f"s32 {m[1]}({m[2]});", 1) for m in VOID_DECL.finditer(body)][:limit]
+
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 
@@ -814,6 +824,7 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     seen = {body}
     alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
     alts += [("volatile_locals", a) for a in volatile_locals(body)]
+    alts += [("int_callees", a) for a in int_callees(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
