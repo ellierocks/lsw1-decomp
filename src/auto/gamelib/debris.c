@@ -459,3 +459,28 @@ void fn_80063F80(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
         fn_8005F254(arg0, arg1, arg2, arg3 * 0x3C, arg4, arg5, var_r31, 0, lbl_80195710[0]);
     }
 }
+
+extern s32 lbl_8040A5AC;
+
+s32 fn_8005A5C8(void) {
+    if (lbl_8040A5AC != NULL) {
+        return *(u8 *)((s8 *)lbl_8040A5AC + 0x60);
+    }
+    return -1;
+}
+
+extern s32 lbl_8040A5A8;
+
+s32 fn_8005A5E0(void) {
+    if (lbl_8040A5A8 != NULL) {
+        return *(u8 *)((s8 *)lbl_8040A5A8 + 0x61);
+    }
+    return -1;
+}
+
+s32 fn_8005A5B0(void) {
+    if (lbl_8040A5A4 != NULL) {
+        return *(u8 *)((s8 *)lbl_8040A5A4 + 0x60);
+    }
+    return -1;
+}
