@@ -163,6 +163,17 @@ class SweepRewriteTest(unittest.TestCase):
         out = sweep.fix_prototypes(body, "f", "\tbl g\n", "void g(void *, f32, s32) {\n}\n")
         self.assertIn("    g(&b, x, 1);\n", out)
 
+    def test_sorted_stores(self):
+        # GCC schedules float stores first; the source wrote the fields in layout order
+        # (fn_80064860).
+        f = "(*(%s *)((s8 *)(p) + (%s))) = %s;"
+        body = "    " + "\n    ".join([f % ("f32", "0x264", "b"), f % ("s16", "0x25C", "x"),
+                                       f % ("f32", "0x260", "a")]) + "\n    q = 1;\n"
+        self.assertEqual(sweep.sorted_stores(body), "    " + "\n    ".join(
+            [f % ("s16", "0x25C", "x"), f % ("f32", "0x260", "a"), f % ("f32", "0x264", "b")]) + "\n    q = 1;\n")
+        dep = "    " + f % ("s32", "8", "1") + "\n    " + f % ("s32", "4", "(*(s32 *)((s8 *)(p) + (8)))") + "\n"
+        self.assertEqual(sweep.sorted_stores(dep), dep)
+
     def test_byte_strides(self):
         body = ("s32 f(void) {\n    s32 *p;\n    p = lbl;\n"
                 "    (*(u8 *)((s8 *)(p) + (0x8B))) = 0U;\n    p += 0x9C;\n}\n")

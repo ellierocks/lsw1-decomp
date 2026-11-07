@@ -187,6 +187,32 @@ VARIANTS = (store_in_arms, const_rodata, both_rewrites)
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 
+FIELD_LHS = re.compile(r"^\(\*\([^()]+\)\(\(s8 \*\)\((?P<base>\w+)\) \+ \((?P<off>-?(?:0x[0-9A-Fa-f]+|\d+))\)\)\)$")
+
+
+def sorted_stores(body: str) -> str:
+    """BODY with each run of adjacent independent field stores through one base pointer
+    put in ascending offset order. m2c keeps the scheduled order, in which GCC often moves
+    float stores ahead (fn_80064860 stores 0x264 first); the source usually wrote the
+    fields in layout order."""
+    lines = body.split("\n")
+    i = 0
+    while i < len(lines):
+        run = []
+        j = i
+        while j < len(lines):
+            m = MEM_STORE.match(lines[j])
+            f = m and FIELD_LHS.match(m["lhs"])
+            if not f or (run and (m["ind"] != run[0][1]["ind"] or f["base"] != run[0][2]["base"])):
+                break
+            run.append((lines[j], m, f))
+            j += 1
+        if len(run) > 1 and not any(a[1]["lhs"] in b[1]["rhs"] for a in run for b in run if a is not b):
+            lines[i:j] = [r[0] for r in sorted(run, key=lambda r: int(r[2]["off"], 0))]
+        i = max(j, i + 1)
+    return "\n".join(lines)
+
+
 def swap_stores(body: str, limit: int = 8) -> list[str]:
     """BODY with one pair of adjacent independent memory stores swapped, for each such pair:
     GCC's scheduler often emits a function's last stores in the other order."""
@@ -881,7 +907,8 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
         return res, body
     seen = {body}
-    alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    alts = [(v.__name__, v(body)) for v in VARIANTS + (sorted_stores,)]
+    alts += [("swap_stores", a) for a in swap_stores(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
