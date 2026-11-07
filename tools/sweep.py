@@ -640,8 +640,19 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
     for fn, params in arity.items():
         n, var = len([p for p in params if p != "..."]), "..." in params
         kinds = m2c_kinds.get(fn)
-        for start, end, args in reversed(list(call_sites(code, fn))):
-            placed = None if var else place_args(args, kinds, params, code[:start])
+        sites = list(call_sites(code, fn))
+        for k_site, (start, end, args) in reversed(list(enumerate(sites))):
+            live = passthrough_regs(asm, fn) if k_site == 0 and not var else None
+            new_params: dict[str, str] = {}
+            expanded = expand_by_register(args, kinds, params, live, new_params) if live else None
+            if expanded:
+                # None from place_args is "nothing moves" only when the counts already fit.
+                placed = place_args(*expanded, params, code[:start]) or (
+                    (expanded[0], None) if len(expanded[0]) == n else None)
+            if expanded and placed:
+                extra.update((k, v) for k, v in new_params.items() if k not in extra)
+            else:
+                placed = None if var else place_args(args, kinds, params, code[:start])
             cut = None
             if placed:
                 fixed, cut = placed
@@ -651,7 +662,8 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             # m2c passes a float constant's array by name where the value is meant.
             fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
                      for i, a in enumerate(fixed)]
-            fixed = passthrough(fixed, params, asm, fn, extra)
+            if live:
+                fixed = passthrough(fixed, params, live, extra)
             if fixed != args:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
@@ -662,15 +674,55 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
     return repair_indirect_prototypes("\n".join(lines) + ("\n" if lines else "") + code, asm)
 
 
-def passthrough(fixed: list[str], params: list[str], asm: str, fn: str,
+def expand_by_register(args: list[str], kinds: list[str] | None, params: list[str],
+                       live: tuple[set[int], set[int]], extra: dict[str, str]
+                       ) -> tuple[list[str], list[str]] | None:
+    """ARGS (m2c's call, KINDS its parameter kinds) spread over PARAMS' argument registers.
+
+    m2c lists only the argument registers it saw written, in register order (`g(0x1000)`
+    for a call that sets just r10), so after an unwritten register (LIVE: the caller's own
+    argument passed through) every later argument shifts left. Each unwritten slot takes
+    the target's `argN`/`fargN` (recorded in EXTRA) and each written one the next m2c
+    argument of its class. Returns (arguments, kinds) in m2c's class-sorted form for
+    `place_args`, or None when the counts do not line up or nothing is passed through."""
+    if kinds is None or len(kinds) < len(args) or "..." in kinds:
+        return None
+    kinds = kinds[:len(args)]
+    ints = [a for a, k in zip(args, kinds) if k.split()[0] not in FLOATS]
+    flts = [a for a, k in zip(args, kinds) if k.split()[0] in FLOATS]
+    n_r = min(8, sum(p.split()[0] not in FLOATS for p in params))
+    n_f = min(8, sum(p.split()[0] in FLOATS for p in params))
+    out = {}
+    for cls, n, have, regs, prefix in (("r", n_r, ints, live[0], "arg"), ("f", n_f, flts, live[1], "farg")):
+        gaps = [k for k in range(n) if k in regs]
+        if not gaps or len(have) != n - len(gaps):
+            out[cls] = None
+            continue
+        it = iter(have)
+        out[cls] = [f"{prefix}{k}" if k in regs else next(it) for k in range(n)]
+    if out["r"] is None and out["f"] is None:
+        return None
+    if out["r"] is None:
+        out["r"] = ints
+    if out["f"] is None:
+        out["f"] = flts
+    cls_params = {"r": [p for p in params if p.split()[0] not in FLOATS][:8],
+                  "f": [p for p in params if p.split()[0] in FLOATS][:8]}
+    for cls, prefix in (("r", "arg"), ("f", "farg")):
+        for k, a in enumerate(out[cls]):
+            if a == f"{prefix}{k}" and k < len(cls_params[cls]):
+                extra.setdefault(a, cls_params[cls][k])
+    return out["r"] + out["f"], ["s32"] * len(out["r"]) + ["f32"] * len(out["f"])
+
+
+def passthrough(fixed: list[str], params: list[str], live: tuple[set[int], set[int]],
                 extra: dict[str, str]) -> list[str]:
     """FIXED with each literal `0` argument whose register the target never wrote before
     calling FN replaced by the target's own incoming argument (`argN`/`fargN`, recorded in
     EXTRA with the callee's parameter type). A real zero needs an `li`/`fmr` into the
     register, so an unwritten one is the caller's value passed through (m2c and the arity
     repair both fill such registers with `0`)."""
-    live = passthrough_regs(asm, fn)
-    if not live or "..." in params:
+    if "..." in params:
         return fixed
     out, idx = list(fixed), {"f": 0, "r": 0}
     for i, p in enumerate(params):

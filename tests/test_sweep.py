@@ -118,6 +118,23 @@ class SweepRewriteTest(unittest.TestCase):
         out = sweep.fix_prototypes(body, "f", asm, "s32 g(void *, s8, s32);\n")
         self.assertIn("void f(void *arg0, s8 arg1) {\n    g(arg0, arg1, 0);\n", out)
 
+    def test_fix_prototypes_spreads_compacted_args_by_register(self):
+        # m2c lists only the registers it saw written: a call setting r6..r8 reads as
+        # g(0, 0, arg3), and one setting r10 plus two stack words as g(0x1000) after the
+        # stores (fn_80063E14, fn_8005A3F8).
+        body = "s32 g(s32, s32, s32);\n\nvoid f(s32 arg3) {\n    g(0, 0, arg3);\n}\n"
+        asm = "\tmr r8, r6\n\tli r7, 0x0\n\tli r6, 0x0\n\tbl g\n"
+        out = sweep.fix_prototypes(body, "f", asm, "s32 g(void *, s32, void *, void *, void *, s32);\n")
+        self.assertIn("void f(void *arg0, s32 arg1, void *arg2, s32 arg3) {\n"
+                      "    g(arg0, arg1, arg2, 0, 0, arg3);\n", out)
+        body = ("s32 h(s32);\n\nvoid f(void) {\n    s32 sp8;\n    s32 spC;\n\n"
+                "    sp8 = 0xC00;\n    spC = 0x100;\n    h(0x1000);\n}\n")
+        asm = ("\tli r0, 0xc00\n\tli r11, 0x100\n\tstw r0, 0x8(r1)\n\tli r10, 0x1000\n"
+               "\tstw r11, 0xc(r1)\n\tbl h\n")
+        out = sweep.fix_prototypes(body, "f", asm, "s32 h(" + ", ".join(["s32"] * 10) + ");\n")
+        self.assertIn("    h(arg0, arg1, arg2, arg3, arg4, arg5, arg6, 0x1000, 0xC00, 0x100);\n", out)
+        self.assertNotIn("sp8 = 0xC00", out)
+
     def test_passthrough_needs_the_first_call(self):
         self.assertIsNone(sweep.passthrough_regs("\tbl h\n\tbl g\n", "g"))
         gprs, fprs = sweep.passthrough_regs("\tli r4, 0x0\n\tfmr f1, f2\n\tstw r3, 0x8(r1)\n\tbl g\n", "g")
