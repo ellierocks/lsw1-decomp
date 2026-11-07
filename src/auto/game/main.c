@@ -442,3 +442,178 @@ void LoadObjectFile(void *arg0) {
         }
     }
 }
+
+void fn_80037170(void);
+extern f32 lbl_8019EB94[];
+extern f32 lbl_8040A63C;
+
+void fn_800A1CEC(void) {
+    u8 order[16] = {4, 2, 5, 3, 0, 6, 1, 7, 5, 3, 4, 2, 1, 7, 0, 6};
+
+    fn_80037170();
+    lbl_8040A63C = lbl_8019EB94[0];
+}
+
+extern s32 lbl_8040AFC8;
+extern s32 lbl_8040AFCC;
+extern s32 lbl_8040AFD0;
+extern s32 lbl_8040AFD4;
+
+s32 fn_8009FAD8(void) {
+    s32 moved;
+
+    moved = 0;
+    {
+        s32 d = lbl_8040AFC8 - lbl_8040AFD0;
+        if (d != 0) {
+            d /= 4;
+            if (d != 0) {
+                lbl_8040AFD0 += d;
+            } else if (lbl_8040AFD0 < lbl_8040AFC8) {
+                lbl_8040AFD0++;
+            } else if (lbl_8040AFD0 > lbl_8040AFC8) {
+                lbl_8040AFD0--;
+            }
+            moved = 1;
+        }
+    }
+    {
+        s32 d = lbl_8040AFCC - lbl_8040AFD4;
+        if (d != 0) {
+            d /= 4;
+            if (d != 0) {
+                lbl_8040AFD4 += d;
+            } else if (lbl_8040AFD4 < lbl_8040AFCC) {
+                lbl_8040AFD4++;
+            } else if (lbl_8040AFD4 > lbl_8040AFCC) {
+                lbl_8040AFD4--;
+            }
+            moved = 1;
+        }
+    }
+    return moved;
+}
+
+s32 (*fn_80009970(s32 *, s32))();
+s32 fn_80014EC0(s32, s32 *, s32 *, s32);
+extern s32 lbl_8019E9B8[];
+extern s32 lbl_801BC904[];
+extern s32 lbl_80408F6C;
+extern s32 lbl_80408F70;
+extern s32 str_AnimatedTextureScript_LoadFailed[];
+
+void fn_800A1FF0(void) {
+    s32 sp8;
+    s32 *p;
+
+    p = lbl_801BC904;
+    while (*p != 0) {
+        sp8 = lbl_80408F70;
+        {
+            s32 *a = &lbl_80408F6C;
+            *a = (*a + 0x3F) & ~0x3F;
+        }
+        if (fn_80014EC0(*p, &lbl_80408F6C, &sp8, 0x3C) == 0) {
+            fn_80009970(lbl_8019E9B8, 0xC0F)(str_AnimatedTextureScript_LoadFailed, *p);
+        }
+        p++;
+    }
+    {
+        s32 *a = &lbl_80408F6C;
+        *a = (*a + 0xF) & ~0xF;
+    }
+}
+
+s32 OSCreateThread(void *, void *, s32, void *, s32, s32, s32);
+void OSInitMessageQueue(s32 *, s32 *, s32);
+void OSInitSemaphore(s32 *, s32);
+void OSResumeThread(s32 *);
+s32 fn_8009D41C(void);
+s32 fn_8009D4CC(void);
+extern s32 lbl_802D4EF7[];
+extern s32 lbl_802D56F7[];
+extern s32 lbl_802D5D28[];
+extern s32 lbl_802D5D48[];
+extern s32 lbl_802D5D54[];
+extern s32 lbl_80408E78;
+
+void fn_8009D23C(void) {
+    s32 i;
+
+    if (lbl_80408E78 == 0) {
+        lbl_80408E78 = 1;
+        OSCreateThread(lbl_802D56F8, fn_8009D41C, 0, lbl_802D4EF7, 0x10000, 0x14, 0);
+        OSCreateThread(lbl_802D5A10, fn_8009D4CC, 0, lbl_802D56F7, 0x800, 0x14, 0);
+        OSInitMessageQueue(lbl_802D5D28, lbl_802D5D54, 0x10);
+        OSInitSemaphore(lbl_802D5D48, 0x10);
+        OSResumeThread(lbl_802D5A10);
+        for (i = 15; i >= 0; i--) {
+            lbl_802D5D54[i] = i;
+        }
+    }
+}
+
+void OSSendMessage(void *, void *, s32);
+void OSWaitSemaphore(void *);
+void memcpy();
+extern s32 lbl_802D5D94[];
+extern s32 lbl_80408E7C;
+extern s32 lbl_80408E80;
+
+typedef struct NetMsg {
+    s32 a;
+    s32 b;
+    u32 flags;
+    s32 pad;
+    u8 data[0x408];
+} NetMsg;
+
+void *fn_8009D160(s32 arg0, s32 arg1, void *src, s32 len) {
+    NetMsg *m;
+    void *tok;
+
+    OSWaitSemaphore(lbl_802D5D48);
+    m = &((NetMsg *)lbl_802D5D94)[lbl_80408E7C];
+    tok = lbl_802D5D54[lbl_80408E7C];
+    lbl_80408E80++;
+    if (++lbl_80408E7C > 15) {
+        lbl_80408E7C = 0;
+    }
+    m->a = arg0;
+    m->b = arg1;
+    m->flags &= 0x3FFFFFFF;
+    if (src != NULL && len != 0) {
+        memcpy(m->data, src, len);
+    }
+    OSSendMessage(lbl_802D5D28, tok, 0);
+    return m;
+}
+
+static inline void *PostMsg(void *a, void *b, void *src, s32 len) {
+    NetMsg *m;
+    void *tok;
+
+    OSWaitSemaphore(lbl_802D5D48);
+    m = &((NetMsg *)lbl_802D5D94)[lbl_80408E7C];
+    tok = lbl_802D5D54[lbl_80408E7C];
+    lbl_80408E80++;
+    if (++lbl_80408E7C > 15) {
+        lbl_80408E7C = 0;
+    }
+    m->a = (s32)a;
+    m->b = (s32)b;
+    m->flags &= 0x3FFFFFFF;
+    if (src != NULL && len != 0) {
+        memcpy(m->data, src, len);
+    }
+    OSSendMessage(lbl_802D5D28, tok, 0);
+    return m;
+}
+
+void fn_8009D000(void) {
+    PostMsg(fn_8009D550, fn_8009D540, NULL, 0);
+}
+
+void fn_8009D0AC(void) {
+    PostMsg(fn_8009D57C, fn_8009D540, NULL, 0);
+}
