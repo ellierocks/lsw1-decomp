@@ -312,3 +312,47 @@ s32 PodraceLoadTimeTrialSettings(s32 pad0, s32 pad1, s32 arg2, s32 arg3, s32 arg
     }
     return 1;
 }
+
+s32 FindForceObject(void *, s32 *, s32);
+s32 FindObstacle(void *, s32);
+s32 NuSpecialFind(s32, void *, s32 *, s32);
+s32 fn_800B9ED4();
+extern s32 lbl_801AFC08[];
+extern s32 lbl_801AFC14[];
+extern s32 *lbl_801E1924[];
+extern s32 lbl_801E193C[];
+extern s32 *lbl_801E1948[];
+extern s32 *lbl_801E1954[];
+extern s32 lbl_80407100[];
+extern PodSnd12 lbl_8040710C[];
+extern s32 lbl_80407178[];
+extern s8 lbl_80409C8C;
+extern s32 lbl_8040B2AC;
+extern s32 lbl_8040B2B0;
+extern s32 lbl_8040B2B4;
+
+void fn_8014C728(void *arg0) {
+    s32 i;
+
+    lbl_8040B2AC = lbl_80407100[0] = (fn_800B9ED4() / 21846) + 3;
+    for (i = 0; i < 6; i++) {
+        NuSpecialFind(*(s32 *)((s8 *)arg0 + 0x1C0), &lbl_8040710C[i], lbl_801E1924[i], 1);
+    }
+    for (i = 0; i < 3; i++) {
+        NuSpecialFind(*(s32 *)((s8 *)arg0 + 0x1C0), &lbl_80407154[i], lbl_801E1948[i], 1);
+    }
+    fn_8014D01C(lbl_8040B2AC - 3);
+    for (i = 0; i < 3; i++) {
+        lbl_80407178[i] = FindObstacle(arg0, lbl_801E193C[i]);
+    }
+    lbl_8040B2B0 = FindForceObject(arg0, lbl_801AFC08, 0);
+    NuSpecialFind(*(s32 *)((s8 *)arg0 + 0x1C0), lbl_80407184, lbl_801AFC14, 1);
+    for (i = 0; i < 3; i++) {
+        NuSpecialFind(*(s32 *)((s8 *)arg0 + 0x1C0), &lbl_80407190[i], lbl_801E1954[i], 1);
+    }
+    lbl_8040B2B4 = 0;
+    lbl_8040B2B8 = 0;
+    lbl_8040A80C = 0;
+    lbl_8040B2BC = 0;
+    lbl_80409C8C = 0;
+}
