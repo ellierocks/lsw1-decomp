@@ -42,6 +42,10 @@ WORK = ROOT / "work"
 
 SYMBOL_RE = re.compile(r"^(\S+) = \.text:0x([0-9A-Fa-f]+); // type:function size:0x([0-9A-Fa-f]+)")
 DEFINITION_RE = re.compile(r"^[A-Za-z_][^;{}()=]*?\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*\{", re.M)
+# newlib's K&R-compatible definitions: `_DEFUN (strlen, (str), ...)` / `_DEFUN_VOID (abort)`
+NEWLIB_DEFUN_RE = re.compile(r"^_DEFUN(?:_VOID)?\s*\(\s*([A-Za-z_]\w*)\b", re.M)
+# K&R definitions: `vprintf (fmt, ap)` then parameter declarations, then the body
+KR_DEFINITION_RE = re.compile(r"^([A-Za-z_]\w*)\s*\([\w\s,]*\)\s*\n(?:[ \t]+[^;{}()\n]+;[ \t]*\n)+\{", re.M)
 
 
 def read_symbols() -> list[tuple[str, int, int]]:
@@ -57,7 +61,10 @@ def defined_in_src() -> set[str]:
     names: set[str] = set()
     for path in SRC.rglob("*"):
         if path.suffix in (".c", ".cpp") and path.is_file():
-            names.update(DEFINITION_RE.findall(path.read_text(errors="replace")))
+            text = path.read_text(errors="replace")
+            names.update(DEFINITION_RE.findall(text))
+            names.update(NEWLIB_DEFUN_RE.findall(text))
+            names.update(KR_DEFINITION_RE.findall(text))
     return names
 
 
