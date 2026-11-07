@@ -209,6 +209,24 @@ class SweepRewriteTest(unittest.TestCase):
                       "            (*(s8 *)(MenuHeader_p + (0x174))) = -1;\n", out)
         self.assertIn("    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n", out)  # a single access stays
 
+    def test_float_positions(self):
+        body = ("s32 g(u8, s32, s32, f32, f32);\n\nvoid f(void) {\n"
+                "    g(a, b, -1, x, y);\n}\n")
+        outs = sweep.float_positions(body)
+        self.assertEqual(len(outs), 9)  # C(5,2) placements minus the trailing one
+        self.assertIn("s32 g(u8, f32, s32, f32, s32);\n\nvoid f(void) {\n    g(a, x, b, y, -1);\n}\n", outs)
+        self.assertEqual(sweep.float_positions(body.replace("f32, f32", "s32, s32")), [])
+        self.assertEqual(len(sweep.float_positions(body, limit=3)), 3)
+
+    def test_switch_pivots(self):
+        body = ("void f(void) {\n    switch (x) {\n    case 0:\n        a();\n        break;\n"
+                "    case 1:\n        b();\n        break;\n    case 2:\n        break;\n    }\n}\n")
+        outs = sweep.switch_pivots(body)
+        self.assertEqual(len(outs), 2)
+        self.assertIn("    case 3:\n        break;\n    }\n}\n", outs[0])
+        self.assertIn("    case -1:\n        break;\n    }\n}\n", outs[1])
+        self.assertEqual(sweep.switch_pivots(body.replace("    case 2:\n        break;\n", "")), [])
+
 
 if __name__ == "__main__":
     unittest.main()

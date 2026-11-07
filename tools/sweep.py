@@ -31,6 +31,7 @@ that ranking is the agent queue, biggest progress first. Task packs go to
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 import subprocess
@@ -941,12 +942,76 @@ def sweep_one(t: dict) -> dict:
     return {**row, **res}
 
 
+def float_positions(body: str, limit: int = 40) -> list[str]:
+    """BODY with a draft-declared callee's float parameters moved earlier in its prototype
+    and calls. PowerPC passes floats in f1.. whatever their position, so m2c lists them
+    last; their real positions only show in the order GCC sets the argument registers
+    (`fmr f2, f1` before or after `li r9`). Each alternative keeps the floats' relative
+    order and moves the call arguments with them; at most LIMIT in all."""
+    out = []
+    for d in PROTO.finditer(body):
+        fn, end = d[2], d[4]
+        params = [p.strip() for p in d[3].split(",") if p.strip() not in ("", "void")]
+        if end != ";" or fn in NOT_FUNCS or "..." in params:
+            continue
+        isf = [p.split()[0] in FLOATS for p in params]
+        nf = sum(isf)
+        if not nf or nf == len(params) or isf != [False] * (len(params) - nf) + [True] * nf:
+            continue
+        sites = [s for s in call_sites(body, fn) if len(s[2]) == len(params)]
+        if not sites:
+            continue
+        ints, flts = params[:-nf], params[-nf:]
+        for pos in itertools.combinations(range(len(params)), nf):
+            if list(pos) == list(range(len(params) - nf, len(params))):
+                continue
+            def place(seq_i, seq_f):
+                it, fl = iter(seq_i), iter(seq_f)
+                return [next(fl) if k in pos else next(it) for k in range(len(params))]
+            new = body
+            for start, stop, args in sorted(sites, reverse=True):
+                moved = place(args[:-nf], args[-nf:])
+                paren = new.index("(", start)
+                new = new[:paren] + "(" + ", ".join(moved) + ")" + new[stop:]
+            new = new[:d.start(3)] + ", ".join(place(ints, flts)) + new[d.end(3):]
+            out.append(new)
+            if len(out) >= limit:
+                return out
+    return out
+
+
+SWITCH = re.compile(r"^(?P<ind>[ \t]*)switch \(.*\) \{\n", re.M)
+
+
+def switch_pivots(body: str) -> list[str]:
+    """BODY with an empty `case max+1:` (then `case min-1:`) added to each switch of three
+    or more integer cases. GCC 2.95 balances its compare tree on the case count, so a
+    source case with an empty body (dropped from the code) moves the pivot."""
+    out = []
+    for m in SWITCH.finditer(body):
+        ind = m["ind"]
+        close = re.compile(rf"^{re.escape(ind)}\}}\n?", re.M).search(body, m.end())
+        if not close:
+            continue
+        labels = [int(v, 0) for v in re.findall(rf"^{re.escape(ind)}(?:    )?case (-?(?:0x[0-9A-Fa-f]+|\d+)):",
+                                                 body[m.end():close.start()], flags=re.M)]
+        if len(labels) < 3:
+            continue
+        case_ind = re.search(r"^([ \t]*)case ", body[m.end():close.start()], flags=re.M)[1]
+        for k in (max(labels) + 1, min(labels) - 1):
+            extra = f"{case_ind}case {k}:\n{case_ind}    break;\n"
+            out.append(body[:close.start()] + extra + body[close.start():])
+    return out
+
+
 def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, str]:
     """Score each VARIANTS rewrite of a draft at least 80% exact; keep the best."""
     if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
         return res, body
     seen = {body}
     alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    alts += [("switch_pivots", a) for a in switch_pivots(body)]
+    alts += [("float_positions", a) for a in float_positions(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
