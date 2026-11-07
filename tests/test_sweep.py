@@ -109,6 +109,23 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    g(&b, x, 1, 2, 3, 4, y, 5, 6, 7, lbl_A);\n", out)
         self.assertNotIn("sp8 = lbl_A", out)
 
+    def test_fix_prototypes_passes_unwritten_args_through(self):
+        # A thin wrapper leaves r3/r4 as its own arguments and sets only r5: m2c and the
+        # arity repair fill the untouched registers with 0 (fn_80064A04 calling fn_800631DC).
+        body = "s32 g(s32, s32);\n\nvoid f(void) {\n    g(0, 0);\n}\n"
+        asm = ("/* 0 */\tstwu r1, -0x8(r1)\n/* 4 */\tmflr r0\n/* 8 */\tstw r0, 0xc(r1)\n"
+               "/* c */\tli r5, 0x0\n/* 10 */\tbl g\n")
+        out = sweep.fix_prototypes(body, "f", asm, "s32 g(void *, s8, s32);\n")
+        self.assertIn("void f(void *arg0, s8 arg1) {\n    g(arg0, arg1, 0);\n", out)
+
+    def test_passthrough_needs_the_first_call(self):
+        self.assertIsNone(sweep.passthrough_regs("\tbl h\n\tbl g\n", "g"))
+        gprs, fprs = sweep.passthrough_regs("\tli r4, 0x0\n\tfmr f1, f2\n\tstw r3, 0x8(r1)\n\tbl g\n", "g")
+        self.assertEqual((gprs, fprs), ({0, 2, 3, 4, 5, 6, 7}, {1, 2, 3, 4, 5, 6, 7}))
+        body = "void g(s32, f32);\n\nvoid f(s32 arg1) {\n    g(0, 0);\n}\n"
+        out = sweep.fix_prototypes(body, "f", "\tli r3, 0x0\n\tbl g\n", "void g(s32, f32);\n")
+        self.assertIn("void f(s32 pad0, s32 arg1, f32 farg0) {\n    g(0, farg0);\n", out)
+
     def test_place_args_needs_the_stack_store(self):
         self.assertIsNone(sweep.place_args(["a"] * 8, ["s32"] * 8, ["s32"] * 9, "    x = 1;\n    "))
 

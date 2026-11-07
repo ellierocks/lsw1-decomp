@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import draft_fn  # noqa: E402
 import mac_protos  # noqa: E402
+from m2c_helpers import ASM_COMMENT as ASM_COMMENT_RE  # noqa: E402
 from m2c_helpers import (split_args, expand_macros, fold_cror, fold_ps, fix_ps_calls,
                          moves_to_args, type_derefs, strip_vararg_saves, declare_unset,
                          call_sites, PS_CALLS, prepare_asm, repair_indirect_prototypes)
@@ -231,6 +232,57 @@ def pad_signature(body: str, name: str) -> str:
     if new == m[2].strip():
         return body
     return body[:m.start(2)] + new + body[m.end(2):]
+
+
+WRITES_NONE = re.compile(r"(?:st|cmp|b|mt|tw|dcb|icb|sync|isync|cr)")
+
+
+def passthrough_regs(asm: str, fn: str) -> tuple[set[int], set[int]] | None:
+    """Argument registers (GPR r3.. as 0.., FPR f1.. as 0..) the target leaves unwritten
+    before its first call, when that call is `bl FN`: the callee receives the target's own
+    incoming arguments there (a thin wrapper `f(a) { g(a, 0); }`). None when FN is not the
+    first call."""
+    gprs, fprs = set(), set()
+    for line in asm.splitlines():
+        line = ASM_COMMENT_RE.sub("", line).strip()
+        if not line or line.startswith((".", "#")) or line.endswith(":"):
+            continue
+        op, _, rest = line.partition(" ")
+        if op in ("bl", "bctrl", "blrl"):
+            if op != "bl" or rest.strip() != fn:
+                return None
+            return ({i for i in range(8) if 3 + i not in gprs},
+                    {i for i in range(8) if 1 + i not in fprs})
+        if WRITES_NONE.match(op) or op.startswith(("psq_st", "fcmp")):
+            continue  # stores, compares, branches and moves to SPRs write no argument register
+        d = re.match(r"([rf])(\d+)\b", rest.strip())
+        if d:
+            (gprs if d[1] == "r" else fprs).add(int(d[2]))
+    return None
+
+
+def add_params(body: str, name: str, extra: dict[str, str]) -> str:
+    """BODY with NAME's m2c-style parameter list (argN/fargN) extended by EXTRA (param name
+    to type) and padded to keep each register class contiguous; unchanged when the list
+    has parameters not in m2c's register naming."""
+    m = re.search(rf"^(\w[^\n;(]*?\b{re.escape(name)})\(([^)]*)\)(\s*\{{)", body, flags=re.M)
+    if not m:
+        return body
+    regs: dict[str, dict[int, str]] = {"arg": {}, "farg": {}}
+    if m[2].strip() not in ("", "void"):
+        for param in (p.strip() for p in m[2].split(",")):
+            pm = PARAM.match(param)
+            if not pm or re.search(r"\b(?:s64|u64|long long)\b", pm["decl"]):
+                return body
+            regs[pm["kind"]][int(pm["n"])] = param
+    for nm, typ in extra.items():
+        pm = re.fullmatch(r"(f?arg)(\d+)", nm)
+        regs[pm[1]].setdefault(int(pm[2]), f"{typ}{nm}" if typ.endswith("*") else f"{typ} {nm}")
+    params = []
+    for kind, pad in (("arg", "s32 pad"), ("farg", "f32 fpad")):
+        if regs[kind]:
+            params += [regs[kind].get(i, f"{pad}{i}") for i in range(max(regs[kind]) + 1)]
+    return body[:m.start(2)] + (", ".join(params) or "void") + body[m.end(2):]
 
 
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
@@ -584,6 +636,7 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             want = len([p for p in d[3].split(",") if p.strip() not in ("", "void")])
             lines.append(ln if counts <= {want} else f"{ret} {fn}();")
     arrays = set(re.findall(r"^extern (?:const )?f(?:32|64) (\w+)\[\];", head, flags=re.M))
+    extra: dict[str, str] = {}
     for fn, params in arity.items():
         n, var = len([p for p in params if p != "..."]), "..." in params
         kinds = m2c_kinds.get(fn)
@@ -598,12 +651,40 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             # m2c passes a float constant's array by name where the value is meant.
             fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
                      for i, a in enumerate(fixed)]
+            fixed = passthrough(fixed, params, asm, fn, extra)
             if fixed != args:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
             if cut:
                 code = code[:cut[0]] + code[cut[1]:]
+    if extra:
+        code = add_params(code, name, extra)
     return repair_indirect_prototypes("\n".join(lines) + ("\n" if lines else "") + code, asm)
+
+
+def passthrough(fixed: list[str], params: list[str], asm: str, fn: str,
+                extra: dict[str, str]) -> list[str]:
+    """FIXED with each literal `0` argument whose register the target never wrote before
+    calling FN replaced by the target's own incoming argument (`argN`/`fargN`, recorded in
+    EXTRA with the callee's parameter type). A real zero needs an `li`/`fmr` into the
+    register, so an unwritten one is the caller's value passed through (m2c and the arity
+    repair both fill such registers with `0`)."""
+    live = passthrough_regs(asm, fn)
+    if not live or "..." in params:
+        return fixed
+    out, idx = list(fixed), {"f": 0, "r": 0}
+    for i, p in enumerate(params):
+        if i >= len(out):
+            break
+        cls = "f" if p.split()[0] in FLOATS else "r"
+        k = idx[cls]
+        idx[cls] += 1
+        if out[i] != "0" or k >= 8 or k not in live[0 if cls == "r" else 1]:
+            continue
+        nm = f"{'farg' if cls == 'f' else 'arg'}{k}"
+        out[i] = nm
+        extra.setdefault(nm, p)
+    return out
 
 
 def adopt_own_prototype(body: str, name: str, unit_text: str) -> str:
