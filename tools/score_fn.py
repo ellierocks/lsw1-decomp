@@ -131,7 +131,10 @@ def note_queue(name: str, baseline: Path = ROOT / "work" / "sprint_baseline.json
 
 
 _STRUCT_DEF = re.compile(r"^struct\s+(\w+)\s*\{(?:[^{}]|\{[^{}]*\})*\};[ \t]*\n?", re.M)
-_EXTERN = re.compile(r"^extern\b[^;{]*?\(?\*?\s*(\w+)\s*\)?\s*[\[(;][^;{]*;[ \t]*\n?", re.M)
+# `extern T (*name)(...)` names a function pointer; otherwise the first identifier followed by
+# `[`, `;` or a parameter list (not `(*`) is the declared name.
+_EXTERN = re.compile(r"^extern\b[^;{]*?(?:\(\s*\*\s*(\w+)\s*\)[^;{]*;|\b(\w+)\s*(?:;|(?:\[|\((?!\s*\*))[^;{]*;))"
+                     r"[ \t]*\n?", re.M)
 
 
 def _declares(text: str, ident: str) -> bool:
@@ -151,8 +154,9 @@ def drop_redeclared(context: str, body: str) -> tuple[str, list[str]]:
         return m.group(0)
 
     def extern(m):
-        if _declares(context, m.group(1)):
-            dropped.append(m.group(1))
+        ident = m.group(1) or m.group(2)
+        if _declares(context, ident):
+            dropped.append(ident)
             return ""
         return m.group(0)
 
