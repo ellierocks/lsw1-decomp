@@ -46,8 +46,32 @@ struct lbl_80409410_s {
 
 extern struct lbl_80409410_s *lbl_80409410;
 
+/* Resolved position on the sock (camera rail) system: OpenSaga SOCKPOSITION, 0x38 bytes
+ * (fn_800AAC04's caller frames reserve 0x38). Confirmed live in Cruiser_E (dolphin.py,
+ * 2026-11-08): player objects keep one at +0x600; the active player read sock 2,
+ * segment 0, ratio = distance = 0.287, midpoint beside the player's +0x6C position; an
+ * inactive player reads sock -1. The level exit callbacks (level table +0x24) route on
+ * `sock` and `distance`. */
+struct sockposition_s {
+    u8 unk0;
+    s8 sock;                      /* -1: not on a sock */
+    s16 segment;
+    f32 ratio;
+    struct nuvec_s midpoint;
+    struct nuvec_s camera;
+    s16 camera_rot[2];
+    s16 midpoint_rot[2];
+    s16 next_segment;
+    s8 candidate_count;
+    u8 flags;
+    f32 distance;                 /* along the sock from its start */
+    f32 normalized_distance;
+    u32 candidate_mask;
+};
+
 /* creature.s: clears *pos (memset 0xC), averages the players into it with NuVecAdd and
- * NuVecScale; on success passes `out` to fn_80098190, on failure stores -1 at out+1. */
-s32 fn_800AAC04(struct nuvec_s *pos, void *out);
+ * NuVecScale; on success passes `out` to fn_80098190 (OpenSaga Players_AveragePos and
+ * ComplexSockPosition), on failure stores -1 at out->sock. */
+s32 fn_800AAC04(struct nuvec_s *pos, struct sockposition_s *out);
 
 #endif

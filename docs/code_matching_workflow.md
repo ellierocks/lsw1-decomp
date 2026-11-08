@@ -348,6 +348,18 @@ These shapes were confirmed by strict matches in `auto/game/main`:
 - **Two stores of the same value** can be emitted in the opposite order to the source.
   If the relocations are swapped, swap the statements.
 
+Confirmed in `auto/game/levels` (the level exit callbacks, 2026-11-08):
+
+- **A global stored in both branches** (`if (c) g = A; else g = B;`) gives one merged
+  `stw r0` after the branches. Storing through a `level` local instead can pick r9 or r11.
+  Try both forms when only the register of the final store differs.
+- **`x >= 5 && x <= 8` on an `s8`** compiles to `addi; cmplwi` with no `extsb`. The other
+  spellings tried in Cruiser_B's callback sign-extended first.
+- **A frame slot that the target has twice** (for example a second `nuvec_s` at
+  `0x50`) can come from a `static inline` helper with its own local. Read that local's
+  fields directly (`tmp.x`), not through the pointer that the helper also keeps, or
+  GCC loads through the pointer.
+
 Targets in `auto/game/main` still open after the 2026-11 sprint, with the next
 hypothesis to try for each:
 
