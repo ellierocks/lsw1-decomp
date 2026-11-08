@@ -647,3 +647,57 @@ s32 PodraceCreateCollapsingMush(void) {
     }
     return r;
 }
+
+f32 NuFmod(f32, f32);
+void fn_8007AC80(void *, f32, f32, f32, f32, f32, f32, s32, u8, u8, u8, u8);
+void fn_800D9264(f32, f32, f32, f32, f32, f32, f32, s32, s32, s32, void *, s32);
+extern f32 lbl_801AFDD0[];
+extern f32 lbl_801AFDD4[];
+extern f32 lbl_801AFDD8[];
+extern f32 lbl_801AFDDC[];
+extern f32 lbl_801AFDE0[];
+extern f32 lbl_8040953C;
+extern f32 lbl_80409CE8;
+extern f32 lbl_80409CEC;
+extern f32 lbl_80409CF0;
+extern f32 lbl_8040A814;
+extern f32 lbl_8040A818;
+extern f32 lbl_8040A81C;
+extern s32 str_Format_Int[];
+
+void fn_8014E734(void) {
+    s32 off;
+    s8 *b;
+    f32 t;
+    f32 s;
+
+    if (lbl_8040A814 > lbl_801AFDD0[0]) {
+        off = (lbl_8040B108 + 0xD1) * 0x10;
+        b = (s8 *)lbl_80409410 + 0x774;
+        if (*(s32 *)(b + off) != 0) {
+            fn_800D9264(lbl_801AFDD0[0], lbl_8040953C, lbl_801AFDD4[0], lbl_80409CE8, lbl_80409CE8, lbl_80409CE8, lbl_8040A814, 0, 0, 0, (s8 *)lbl_80409410 + (off + 0x76C), 0);
+        }
+    }
+    if (lbl_8040A818 > lbl_801AFDD0[0] && *(f32 *)((s8 *)lbl_80409C94 + 0xB008) > lbl_801AFDD0[0]) {
+        sprintf(lbl_803E04F0, str_Format_Int, (s32)*(f32 *)((s8 *)lbl_80409C94 + 0xB008) + 1);
+        t = NuFmod(*(f32 *)((s8 *)lbl_80409C94 + 0xB008), lbl_801AFDD4[0]);
+        if (t >= lbl_801AFDD8[0]) {
+            s = (t - lbl_801AFDD8[0]) / lbl_801AFDDC[0] + lbl_801AFDD4[0];
+        } else {
+            s = lbl_801AFDD4[0];
+        }
+        s *= lbl_80409CF0;
+        fn_8007AC80(lbl_803E04F0, lbl_801AFDD0[0], lbl_80409CEC, lbl_801AFDD4[0], s, s, s, 0, 0xFF, 0x3F, 0, lbl_8040A818 * lbl_801AFDE0[0]);
+    }
+    if (lbl_8040A81C != lbl_801AFDD0[0] && *(f32 *)((s8 *)lbl_80409C94 + 0xB000) > lbl_801AFDD0[0]) {
+        sprintf(lbl_803E04F0, str_Format_Int, (s32)*(f32 *)((s8 *)lbl_80409C94 + 0xB000) + 1);
+        t = NuFmod(*(f32 *)((s8 *)lbl_80409C94 + 0xB000), lbl_801AFDD4[0]);
+        if (t >= lbl_801AFDD8[0]) {
+            s = (t - lbl_801AFDD8[0]) / lbl_801AFDDC[0] + lbl_801AFDD4[0];
+        } else {
+            s = lbl_801AFDD4[0];
+        }
+        s *= lbl_80409CF0;
+        fn_8007AC80(lbl_803E04F0, lbl_801AFDD0[0], lbl_80409CEC, lbl_801AFDD4[0], s, s, s, 0, 0, 0xFF, 0, lbl_8040A81C * lbl_801AFDE0[0]);
+    }
+}
