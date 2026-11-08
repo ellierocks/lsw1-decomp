@@ -303,3 +303,9 @@ s32 fn_8006EB98(void) {
     }
     return var_r3;
 }
+
+s32 fn_8007042C(void *, s32);
+
+void fn_800716B0(void *arg0) {
+    fn_8007042C(arg0, 0);
+}

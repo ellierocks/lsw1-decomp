@@ -140,3 +140,59 @@ void fn_8010B940(s32 arg0, s32 arg1, s32 arg2) {
 
 typedef struct { u8 pad[0x250]; u8 arr[1]; } D250;
 u8 fn_80108DA8(D250 *arg0, s32 arg1) { return arg0->arr[arg1]; }
+
+s32 NuFileExists(void *);
+s32 fn_8006A6C8(s32 *, s32, s32);
+s32 fn_800911D0(void *, void *, s32, s32, s32 *, s32);
+int sprintf(void *, void *, ...);
+extern s32 lbl_801A9CFC[];
+extern s32 lbl_801DE70C[];
+
+void LoadParticleFile(void *arg0) {
+    char sp8[0x100];
+
+    (*(s32 *)((s8 *)(arg0) + (0x5E0))) = -1;
+    sprintf(sp8, lbl_801A9CFC, arg0 + 0x80);
+    if (NuFileExists(sp8) != 0) {
+        (*(s32 *)((s8 *)(arg0) + (0x5E0))) = fn_8006A6C8(sp8, 1, (*(s32 *)((s8 *)(arg0) + (0x1C0))));
+    }
+    (*(s32 *)((s8 *)(arg0) + (0x1B8))) = fn_800911D0(arg0 + 0x184, arg0 + 0x188, 0x100, 0x42, lbl_801DE70C, (*(s32 *)((s8 *)(arg0) + (0x5E0))));
+}
+
+void fn_80007610(void *, void *);
+void fn_80007680(void *, void *);
+s32 memset();
+
+void fn_80108CCC(s32 arg0, s32 arg1) {
+    if ((arg0 != 0) && (arg1 != 0)) {
+        fn_80007680(arg0 + 0x10, arg1);
+        memset(arg1, 0, 0x160);
+        fn_80007610(arg0 + 8, arg1);
+    }
+}
+
+s32 TriggerObstacle(void *, void *);
+extern void *lbl_80409410;
+
+void fn_80108DB4(void *arg0, void *arg1) {
+    s32 var_r30;
+    u8 temp_r0;
+    void *var_r31;
+
+    var_r31 = (*(void **)((s8 *)(arg0) + (0x238)));
+    if (var_r31 != NULL) {
+        var_r30 = 0;
+        if (var_r30 < (s32) (*(s32 *)((s8 *)(lbl_80409410) + (0x23C)))) {
+            do {
+                if (((s32) (*(u8 *)((s8 *)(var_r31) + (0x22))) == 0) && !((*(s32 *)((s8 *)(var_r31) + (0x18))) & 0x20000) && ((s32) (*(u8 *)((s8 *)(var_r31) + (0x1F))) == 0)) {
+                    temp_r0 = (*(u8 *)((s8 *)(var_r31) + (0x21)));
+                    if (((s8) temp_r0 != -1) && ((s8) (*(u8 *)((s8 *)((*(void **)((s8 *)(arg1) + (0xEEC)))) + (0x7E7))) == (s8) temp_r0)) {
+                        TriggerObstacle(var_r31, arg1);
+                    }
+                }
+                var_r30 += 1;
+                var_r31 += (*(u16 *)((s8 *)(var_r31) + (0x1C)));
+            } while (var_r30 < (s32) (*(s32 *)((s8 *)(lbl_80409410) + (0x23C))));
+        }
+    }
+}

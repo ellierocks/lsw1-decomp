@@ -46,3 +46,51 @@ void fn_80015F7C(void)
     s32 v = NuFParGetInt();
     *(s16*)((u8*)lbl_8040A2F8 + 0x1b8) = v;
 }
+
+s32 fn_80013890(void *arg0, void *arg1) {
+    s32 temp_r9;
+    s32 temp_r9_2;
+
+    temp_r9 = (*(s32 *)((s8 *)(arg0) + (4)));
+    if ((temp_r9 != 0) && (temp_r9 == (s32) (*(s32 *)((s8 *)(arg1) + (4))))) {
+        return 1;
+    }
+    temp_r9_2 = (*(s32 *)((s8 *)(arg0) + (8)));
+    if (temp_r9_2 != 0 && temp_r9_2 == (s32) (*(s32 *)((s8 *)(arg1) + (8)))) {
+        return 1;
+    }
+    return 0;
+}
+
+void *NuMemAlloc(s32, s32 *, s32);
+extern s32 lbl_8018FC1C[];
+
+void fn_80015C88(s32 *arg0, s32 arg1, s32 arg2, s32 arg3) {
+    s32 var_r0;
+    s32 var_r3;
+
+    if (arg0 != NULL) {
+        var_r3 = (*arg0 + 3) & 0xFFFFFFFC;
+        *arg0 = var_r3 + 0xEC;
+    } else {
+        var_r3 = NuMemAlloc(0xEC, lbl_8018FC1C, 0x1BD);
+    }
+    if (var_r3 != 0) {
+        (*(s32 *)((s8 *)(var_r3) + (0))) = arg3;
+        (*(s32 *)((s8 *)(var_r3) + (4))) = 0;
+        (*(s32 *)((s8 *)(var_r3) + (0x88))) = 0;
+        (*(s32 *)((s8 *)(var_r3) + (0xCC))) = 0;
+        (*(s32 *)((s8 *)(var_r3) + (0xD0))) = 0;
+        (*(s32 *)((s8 *)(var_r3) + (0xD4))) = 0;
+        (*(s32 *)((s8 *)(var_r3) + (0xD8))) = 0;
+        (*(s32 *)((s8 *)(var_r3) + (0xDC))) = arg1;
+        (*(s32 *)((s8 *)(var_r3) + (0xE0))) = arg2;
+        (*(s32 *)((s8 *)(var_r3) + (0xE4))) = 0;
+        if (arg0 != NULL) {
+            var_r0 = (*(s32 *)((s8 *)(var_r3) + (0xE8))) & 0x7FFFFFFF;
+        } else {
+            var_r0 = (*(s32 *)((s8 *)(var_r3) + (0xE8))) | 0x80000000;
+        }
+        (*(s32 *)((s8 *)(var_r3) + (0xE8))) = var_r0;
+    }
+}

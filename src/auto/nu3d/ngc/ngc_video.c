@@ -184,3 +184,19 @@ s32 fn_80037228(void) {
     fn_80009948(lbl_8019253C, 0x64E)(lbl_80192678);
     return 0;
 }
+
+s32 fn_800165B4(s32, s32);
+s32 fn_80016660(s32, s32, s32 *);
+s32 fn_800166C4(s32, s32);
+extern s32 lbl_80192598[];
+
+void fn_800372F0(s32 arg0) {
+    if (arg0 == 0xB001) {
+        fn_800165B4(lbl_8040AD9C, 1);
+        fn_80016660(lbl_8040AD9C, 1, lbl_80192598);
+        return;
+    } else if (arg0 == 0xB000) {
+        fn_800166C4(lbl_8040AD9C, 1);
+        return;
+    }
+}

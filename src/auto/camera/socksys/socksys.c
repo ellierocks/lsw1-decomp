@@ -232,3 +232,15 @@ void fn_8009CAB4(s32 arg0, s32 arg1) {
     temp_r11 = (var_r11 >> 5) * 4;
     *(s32 *)(temp_r8 + temp_r11) = *(s32 *)(temp_r8 + temp_r11) | (1 << (arg1 & 0x1F));
 }
+
+s32 fn_80093D84(void *, void *, void *, void *, void *, f32, s32);
+
+void fn_80095B58(void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, f32 farg0) {
+    fn_80093D84(arg0, arg1, arg2, arg3, arg4, farg0, 0);
+}
+
+s32 fn_80093D84(void *, void *, void *, void *, void *, f32, s32);
+
+void fn_80095B7C(void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, f32 farg0) {
+    fn_80093D84(arg0, arg1, arg2, arg3, arg4, farg0, 1);
+}

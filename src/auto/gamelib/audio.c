@@ -277,3 +277,9 @@ void fn_8006DB3C(s32 arg0, s32 arg1) {
         var_ctr -= 1;
     } while (var_ctr != 0);
 }
+
+void *memset(void *, s32, u32);
+
+void fn_8006DB64(void *arg0) {
+    memset(arg0, -1, 0x64);
+}

@@ -238,3 +238,13 @@ void fn_80042EE0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
         fn_800424F4();
     }
 }
+
+void *fn_80040DE8(void *arg0, s32 arg1) {
+    void *temp_r3;
+
+    temp_r3 = arg0 + (((*(s16 *)((s8 *)(arg0) + (0x14))) * arg1) + 0x20);
+    if ((*(s32 *)((s8 *)(temp_r3) + (0xC))) & 0x8000) {
+        return temp_r3 + 0x10;
+    }
+    return NULL;
+}
