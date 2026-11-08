@@ -45,6 +45,14 @@ class DiscoveryTests(unittest.TestCase):
         self.assertIn("ternary-all", names)
         self.assertTrue(any(n.startswith("sign-param") for n in names))
 
+    def test_address_taken_locals_get_a_volatile_option(self):
+        src = "void h(void)\n{\n    s32 a;\n    s32 b;\n    s32 c;\n    a = 1;\n    g(&b, &a, c);\n}\n"
+        fn = vs.find_function(src, "h")
+        dims, lines = vs.build_dimensions(fn)
+        vol = {d.name: d for d in dims if d.name.startswith("volatile-local")}
+        self.assertEqual(sorted(vol), ["volatile-local@1", "volatile-local@2"])
+        self.assertEqual(vol["volatile-local@1"].options[1], {1: "    volatile s32 a;"})
+
     def test_initialized_locals_join_the_decl_order_and_long_lists_are_capped(self):
         decls = "\n".join(f"    s32 v{i} = {i};" for i in range(vs.MAX_DECLS + 2))
         fn = vs.find_function(f"void h(void)\n{{\n{decls}\n    g();\n}}\n", "h")

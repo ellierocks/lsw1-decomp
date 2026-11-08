@@ -32,6 +32,18 @@ class SweepRewriteTest(unittest.TestCase):
                          "        lbl_X = 0xA;\n    }\n}\n")
         self.assertEqual(sweep.store_in_arms("x = 1;\n"), "x = 1;\n")
 
+    def test_void_callees(self):
+        body = ("s32 g(s32, s32, f32);\ns32 h(s32);\nextern s32 e(void);\n\n"
+                "void f(void) {\n    g(0xB00, 0, lbl_X[0]);\n    if (h(1) != 0) {\n        e();\n    }\n}\n")
+        self.assertEqual(sweep.void_callees(body),
+                         body.replace("s32 g(s32, s32, f32);", "void g(s32, s32, f32);"))
+
+    def test_volatile_locals(self):
+        body = "void f(void) {\n    s32 sp8;\n    s32 spC;\n    s32 x;\n\n    g(&spC, &sp8, x);\n}\n"
+        self.assertEqual(sweep.volatile_locals(body),
+                         [body.replace("    s32 sp8;", "    volatile s32 sp8;"),
+                          body.replace("    s32 spC;", "    volatile s32 spC;")])
+
     def test_const_rodata(self):
         sweep._RODATA = {"lbl_801A4C2C"}
         try:
@@ -251,6 +263,42 @@ class SweepRewriteTest(unittest.TestCase):
                          "void f(void) {\n    volatile s32 pad[4];\n}\n")
         self.assertEqual(sweep.empty_frame("void f(void) {\n    g = 1;\n}\n", asm), "void f(void) {\n    g = 1;\n}\n")
         self.assertEqual(sweep.empty_frame("void f(void) {\n}\n", "/* 0 0  4E 80 00 20 */\tblr\n"), "void f(void) {\n}\n")
+
+    def test_int_callees(self):
+        body = "void g(s32);\nvoid h(void);\nvoid f(void) {\n    g(1);\n    h();\n}\n"
+        self.assertEqual(sweep.int_callees(body), [
+            "s32 g(s32);\nvoid h(void);\nvoid f(void) {\n    g(1);\n    h();\n}\n",
+            "void g(s32);\ns32 h(void);\nvoid f(void) {\n    g(1);\n    h();\n}\n"])
+        self.assertEqual(sweep.int_callees("void f(void) {\n}\n"), [])
+
+    def test_float_blocks(self):
+        body = ("void g(s32, s32, u32 *, f32, f32);\nvoid f(u32 *c, f32 x) {\n"
+                "    g(1, h(2, 3), c, x, x * 2.0f);\n}\n")
+        self.assertEqual(sweep.float_blocks(body), [
+            "void g(s32, s32, f32, f32, u32 *);\nvoid f(u32 *c, f32 x) {\n"
+            "    g(1, h(2, 3), x, x * 2.0f, c);\n}\n",
+            "void g(s32, f32, f32, s32, u32 *);\nvoid f(u32 *c, f32 x) {\n"
+            "    g(1, x, x * 2.0f, h(2, 3), c);\n}\n",
+            "void g(f32, f32, s32, s32, u32 *);\nvoid f(u32 *c, f32 x) {\n"
+            "    g(x, x * 2.0f, 1, h(2, 3), c);\n}\n"])
+        two = ("void g(s32, s32, f32);\nvoid h(s32, f32);\nvoid f(f32 x) {\n"
+               "    g(1, 2, x);\n    h(3, x);\n}\n")
+        self.assertEqual(sweep.float_blocks(two)[0],
+                         "void g(s32, f32, s32);\nvoid h(f32, s32);\nvoid f(f32 x) {\n"
+                         "    g(1, x, 2);\n    h(x, 3);\n}\n")
+        self.assertEqual(sweep.float_blocks("void g(f32, s32);\nvoid f(void) {\n    g(1.0f, 2);\n}\n"), [])
+        self.assertEqual(sweep.float_blocks("void g(s32 *, f32 *);\nvoid f(void) {\n    g(0, 0);\n}\n"), [])
+
+    def test_frame_buffer(self):
+        asm = ("/* 0 0  94 21 FE F0 */\tstwu r1, -0x110(r1)\n/* 4 4  7C 08 02 A6 */\tmflr r0\n"
+               "/* 8 8  93 E1 01 0C */\tstw r31, 0x10c(r1)\n/* c c  90 01 01 14 */\tstw r0, 0x114(r1)\n")
+        body = "void f(void *a) {\n    s32 sp8;\n\n    sprintf(&sp8, fmt, a);\n    g((s32 *)&sp8);\n}\n"
+        self.assertEqual(sweep.frame_buffer(body, asm),
+                         "void f(void *a) {\n    char sp8[0x100];\n\n    sprintf(sp8, fmt, a);\n    g(sp8);\n}\n")
+        small = asm.replace("FE F0", "FF E8").replace("-0x110", "-0x18").replace("0x10c", "0x14")
+        self.assertEqual(sweep.frame_buffer(body, small), body)
+        self.assertEqual(sweep.frame_buffer("void f(void) {\n    s32 sp8;\n    sp8 = 1;\n}\n", asm),
+                         "void f(void) {\n    s32 sp8;\n    sp8 = 1;\n}\n")
 
     def test_base_pointer(self):
         body = ("void f(void) {\n    if (x) {\n"

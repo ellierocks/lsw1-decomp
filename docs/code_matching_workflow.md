@@ -322,6 +322,48 @@ idiom to try, not evidence of identity, and a candidate still has to match throu
 of its `-mfast-cast` conversions differ from v1.76 by a dead `mr`. The donor source and
 the index stay in ignored local paths.
 
+### ProDG source idioms
+
+These shapes were confirmed by strict matches in `auto/game/main`:
+
+- **Float parameter position.** Floats use their own registers, but where they sit
+  in a callee prototype changes evaluation order and scheduling. m2c always puts them
+  last, so `sweep.py` (`float_blocks`) also tries moving the float block forward.
+- **Hidden int arguments.** An unexplained `mr r4,r5` before a call can mean the callee
+  takes one more int argument than its prototype shows. Cast the callee to the wider
+  type at those call sites.
+- **Void or int callees.** Whether a callee returns `void` or `s32` changes scheduling
+  around the call. `sweep.py` tries both (`void_callees` and `int_callees`).
+- **`mfcr` with `extrwi` after `lbz` and `andi.`** comes from a `u32` bitfield in a
+  `__attribute__((packed))` struct. A plain `u8` test gives `xori` with `extrwi` instead.
+- **`add` then `lbz off(rX)`** comes from taking the element pointer first
+  (`T *p = &arr[i]; p->field`). Indexing `arr[i].field` directly gives `lbzx`.
+- **Reloading a callback after its NULL test** needs a `volatile` function-pointer
+  member.
+- **Inline helper arguments.** A `static inline` helper's arguments are loaded before
+  its body. That reproduces early `lis`/`addi` pairs shared by several thin wrappers.
+- **Early `return 1` branches that share a tail.** GCC cross-jumps
+  `if (...) { call(x); return 1; }` chains into a single call site. A `goto` to one
+  shared block does not produce the same code.
+- **Two stores of the same value** can be emitted in the opposite order to the source.
+  If the relocations are swapped, swap the statements.
+
+Targets in `auto/game/main` still open after the 2026-11 sprint, with the next
+hypothesis to try for each:
+
+| Function | Best | Remaining mismatch | Next hypothesis |
+|---|---|---|---|
+| `fn_8009E8B4` | 173/179 | target does `lwz r0; mr r9,r0; cmpwi r0,0x7e` on `lbl_804093B0` | Local, inline, `u32` and comma forms, plus a 180 s permuter run, did not help; try the `AreaEnt` and pointer-first idioms on the surrounding reads |
+| `fn_8009EC80` | 63/65 | missing `fmr f12,f0` | float parameter position of the callee (`float_blocks`) |
+| `fn_8009D320` | 56/61 | `fn_8009D504`/`fn_8009D540` swapped between r27 and r28 | No `PostMsg` parameter order helped; the permuter reached 160 only with junk temporaries; try a non-inline helper or a macro |
+| `fn_800A1B50` | 28/33 | shared return tail and `lwzx` order | packed bitfield and pointer-first idioms |
+| `fn_800A1EE8` | 26/27 | `mr r3,r0` scheduling | return-type and temporary variants |
+| `fn_8009E7DC` | 40/54 | loads repeated after the store | volatile or pointer-alias forms |
+
+Not yet attempted: `fn_8009ED84` (159/205 m2c draft; rewrite it with the `AreaEnt`-style
+struct for `lbl_803D9A58`), `fn_8009E174` and `fn_8009E310` (drafts do not compile),
+`fn_8009FB78`, `fn_8009DCE8`, `fn_8009D5D0`, `Menu_ResetAndReturn` and `Menu_FullReset`.
+
 ### decomp-permuter
 
 For a close plateau that is not just an ordering problem, run the pinned

@@ -15,6 +15,7 @@ only the named function. `--body FILE` searches a draft that is not in the unit 
   - each braced `if` (with its `else` chain) wrapped in `do { ... } while (0)`: the extra
     loop notes change GCC's register choice and load placement around it, which matched
     fn_8000A64C and fn_800FEBEC (first MAX_DO_WHILE `if` statements).
+  - `volatile` on each address-taken local (its stack slot moves to declaration order).
 
     python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/nu3dx/nuanim.c -j 8
 
@@ -139,6 +140,15 @@ def build_dimensions(fn: Function) -> tuple[list[Dimension], list[str]]:
         if TYPE_RE.search(line) and DECL_RE.match(line):
             dims.append(Dimension(f"sign-local@{i}", "lines", i,
                                   [{}, {i: TYPE_RE.sub(lambda t: SIGN_PAIRS[t.group(1)], line, 1)}]))
+    # A local whose address is taken gets its stack slot when the address is first expanded
+    # (call arguments right to left); `volatile` gives it a slot at its declaration instead,
+    # which swaps two address-taken locals' offsets (fn_8009D57C).
+    for i, line in enumerate(lines[s:e], s):
+        m = DECL_RE.match(line)
+        if m and "volatile" not in line and not m.group("array") and re.search(rf"&\s*{m.group('name')}\b", fn.body):
+            ind = m.group("indent")
+            dims.append(Dimension(f"volatile-local@{i}", "lines", i,
+                                  [{}, {i: f"{ind}volatile {line[len(ind):]}"}]))
     for i, j in if_blocks(lines)[:MAX_DO_WHILE]:
         ind = IF_RE.match(lines[i]).group("indent")
         dims.append(Dimension(f"do-while@{i}", "lines", i,

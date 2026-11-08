@@ -214,7 +214,89 @@ def wide_return(body: str) -> str:
     return re.sub(r"\breturn -1U;", "return -1;", NARROW_RET.sub("s32 ", body, count=1))
 
 
-VARIANTS = (store_in_arms, const_rodata, both_rewrites, wide_return)
+CALLEE_DECL = re.compile(r"^(?!extern\b)(?:s32|u32|int|s16|u16|s8|u8|void \*|s32 \*|u32 \*) ?(\w+)\(([^()]*)\);$",
+                         flags=re.M)
+
+
+def void_callees(body: str) -> str:
+    """BODY with each m2c-declared callee whose result is never used declared `void`.
+    m2c types every callee `s32`; a call statement that discards an `int` result
+    schedules its argument loads differently from a `void` call, so `li r3`/`li r4`
+    land on the other side of an independent `lfs` (fn_800A1C70)."""
+    out = body
+    for m in CALLEE_DECL.finditer(body):
+        fn = m[1]
+        uses = len(re.findall(rf"\b{fn}\b", body)) - 1
+        stmts = len(re.findall(rf"^[ \t]+{fn}\(.*\);$", body, flags=re.M))
+        if uses and uses == stmts:
+            out = out.replace(m[0], f"void {fn}({m[2]});", 1)
+    return out
+
+
+VARIANTS = (store_in_arms, const_rodata, both_rewrites, wide_return, void_callees)
+VOID_DECL = re.compile(r"^void (\w+)\(([^()]*)\);$", flags=re.M)
+
+
+def int_callees(body: str, limit: int = 6) -> list[str]:
+    """BODY with one `void` callee declared `s32` instead, for each such callee: the
+    reverse of `void_callees`. A call to an `int` function whose result is dropped
+    schedules the first argument's `addi` later than a `void` call does (OSCreateThread
+    in fn_8009D23C), so neither return type is always right for a discarded result."""
+    return [body.replace(m[0], f"s32 {m[1]}({m[2]});", 1) for m in VOID_DECL.finditer(body)][:limit]
+
+PROTO_DECL = re.compile(r"^(?:\w+ \**)+?(\w+)\(([^()]+)\);$", flags=re.M)
+FLOAT_PARAM = re.compile(r"^(?:const )?(?:f32|f64|float|double)\b(?! *\*)")
+
+
+def float_blocks(body: str, limit: int = 8) -> list[str]:
+    """BODY with prototypes' trailing float parameters moved, as a block, in front of
+    earlier integer parameters, and every call reordered to match. Floats and ints use
+    separate register files, so m2c cannot see the interleaving and puts the floats
+    last; the true position changes argument evaluation order and with it the
+    scheduling (fn_8009E6FC: two callees are both `(s32 x4, f32 x4, u32 *, s32)`).
+    Each shift is tried on every eligible prototype at once first (sibling callees
+    tend to share a layout), then on each prototype alone."""
+    protos = []
+    for m in PROTO_DECL.finditer(body):
+        params = [p.strip() for p in m[2].split(",")]
+        kinds = [bool(FLOAT_PARAM.match(p)) for p in params]
+        nint = kinds.index(True) if True in kinds else len(kinds)
+        if 0 < nint < len(kinds) and all(kinds[nint:]):
+            protos.append((m, params, nint))
+
+    def move(text: str, m, params: list[str], nint: int, shift: int) -> str | None:
+        pos = nint - shift
+        if pos < 0:
+            return None
+        order = list(range(pos)) + list(range(nint, len(params))) + list(range(pos, nint))
+        proto = m[0].replace(m[2], ", ".join(params[i] for i in order))
+        text = text.replace(m[0], proto, 1)
+        dstart, done = text.index(proto), []
+        for call in re.finditer(rf"\b{m[1]}\(", text):
+            if dstart <= call.start() < dstart + len(proto):
+                continue
+            got = call_args(text, call.end() - 1)
+            if got and len(got[0]) == len(params):
+                done.append((call.end() - 1, got[1], got[0]))
+        for start, end, args in reversed(done):
+            text = text[:start] + "(" + ", ".join(args[i] for i in order) + ")" + text[end:]
+        return text if done else None
+
+    out = []
+    longest = max((nint for _, _, nint in protos), default=0)
+    if len(protos) > 1:
+        for shift in range(1, longest + 1):
+            text = body
+            for m, params, nint in protos:
+                text = move(text, m, params, nint, shift) or text
+            if text != body:
+                out.append(text)
+    for m, params, nint in protos:
+        out += [t for t in (move(body, m, params, nint, s) for s in range(1, nint + 1)) if t]
+    seen = set()
+    return [t for t in out if not (t in seen or seen.add(t))][:limit]
+
+
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 
@@ -280,6 +362,19 @@ def swap_stores(body: str, limit: int = 8) -> list[str]:
                 rots.append("\n".join(lines[:i] + rot + lines[j + 1:]))
         i = j + 1
     return out + rots[:limit]
+
+
+def volatile_locals(body: str, limit: int = 4) -> list[str]:
+    """BODY with one address-taken stack local (`sp8`, `sp10`, ...) declared `volatile`, for
+    each such local: GCC gives an address-taken local its slot when the address is first
+    expanded (call arguments right to left), a volatile one at its declaration (fn_8009D57C)."""
+    out = []
+    for m in re.finditer(r"^(?P<ind>[ \t]+)(?P<decl>(?!volatile\b)\w[\w ]*?\b(?P<v>sp[0-9A-F]+));$", body, flags=re.M):
+        if re.search(rf"&\s*{m['v']}\b", body):
+            out.append(body[:m.start()] + f"{m['ind']}volatile {m['decl']};" + body[m.end():])
+            if len(out) == limit:
+                break
+    return out
 
 
 # m2c declares only the arguments a function reads, named by register: GPR `argN` is
@@ -510,6 +605,36 @@ def empty_frame(body: str, asm: str) -> str:
         return body
     words = max(1, (int(m.group(1), 16) - 8) // 4)
     return EMPTY_BODY.sub(lambda b: f"{b.group(1)}\n    volatile s32 pad[{words}];\n{b.group(2)}\n", body)
+
+
+FRAME = re.compile(r"\bstwu r1, -(0x[0-9A-Fa-f]+)\(r1\)")
+SAVED = re.compile(r"\b(?:stw|stmw|stfd) (?:r(?:1[3-9]|2\d|3[01])|f(?:1[4-9]|2\d|3[01])), (0x[0-9A-Fa-f]+)\(r1\)")
+
+
+def frame_buffer(body: str, asm: str) -> str:
+    """BODY with the topmost address-taken `spXX` scalar widened to a `char` array reaching
+    the first callee-saved slot (or the frame top) of the target frame, rounded down to 8
+    bytes: m2c types a stack buffer such as a `sprintf` target by its first word, so the
+    draft's frame comes out far too small (LoadObjectFile, LoadObjectAnimFile). Unchanged
+    when the target frame leaves no gap above the slot."""
+    insns = "\n".join(m.group(1) for m in re.finditer(r"\*/\s*(.+)$", asm, re.M)) or asm
+    frame = FRAME.search(insns)
+    if not frame:
+        return body
+    saved = [int(m.group(1), 16) for m in SAVED.finditer(insns)]
+    top = min(saved) if saved else int(frame.group(1), 16)
+    taken = [m for m in SP_DECL.finditer(body)
+             if f"&{m['v']}" in body and int(m["off"], 16) < top]
+    if not taken:
+        return body
+    m = max(taken, key=lambda d: int(d["off"], 16))
+    size = (top - int(m["off"], 16)) & ~7  # GCC rounds a stack array up to 8 bytes
+    if size < 4 * SIZES[m["t"]] or size <= 8:
+        return body
+    body = body.replace(m[0], f"{m['ind']}char {m['v']}[{size:#x}];\n", 1)
+    body = re.sub(rf"\(\w+ \*\)\s*&{m['v']}\b|&{m['v']}\b", m["v"], body)
+    return re.sub(rf"(?<![\w&]){m['v']}\b(?!\[)(?=\s*(?:=[^=]|\+\+|--|[-+*/|&^]=))",
+                  f"*(s32 *){m['v']}", body)
 
 
 def byte_strides(body: str) -> str:
@@ -1077,11 +1202,13 @@ def sweep_one(t: dict) -> dict:
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
-            framed = empty_frame(body, (OUT / name / "asm.s").read_text())
-            if framed != body:
-                framed_res, framed = score_draft(name, source, framed)
-                if improves(framed_res, res):
-                    res, body = {**framed_res, "empty_frame": True}, framed
+            asm_text = (OUT / name / "asm.s").read_text()
+            for framer in (empty_frame, frame_buffer):  # target frame size: kept only when better
+                framed = framer(body, asm_text)
+                if framed != body:
+                    framed_res, framed = score_draft(name, source, framed)
+                    if improves(framed_res, res):
+                        res, body = {**framed_res, framer.__name__: True}, framed
             for repair in (byte_strides, base_pointer, loop_guard, index_loops, countdown_loops, positive_guards):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
@@ -1270,6 +1397,9 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     alts += [("swap_stores", a) for a in swap_stores(body)]
     alts += [("switch_pivots", a) for a in switch_pivots(body)]
     alts += [("float_positions", a) for a in float_positions(body)]
+    alts += [("volatile_locals", a) for a in volatile_locals(body)]
+    alts += [("int_callees", a) for a in int_callees(body)]
+    alts += [("float_blocks", a) for a in float_blocks(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
