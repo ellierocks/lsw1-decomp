@@ -232,3 +232,44 @@ class WideReturnTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SizedDerefsTest(unittest.TestCase):
+    """tools/patches/m2c-sized-derefs.patch: `lbzx` through an int-typed sum keeps its width."""
+
+    ASM = """.fn f, global
+\tcmpwi r3, 0xff
+\tbeq .L_0
+\tlwz r11, tbl@sda21(r0)
+\tadd r9, r3, r3
+\tlbzx r3, r9, r11
+\tblr
+.L_0:
+\tli r3, 0xff
+\tblr
+.endfn f
+"""
+
+    def run_m2c(self, sized: bool) -> str:
+        import os
+        import subprocess
+        import sys
+        import tempfile
+        from pathlib import Path
+        from tools import draft_fn
+        m2c = draft_fn.m2c_dir() / "m2c.py"
+        if not m2c.is_file():
+            self.skipTest("m2c not fetched")
+        with tempfile.TemporaryDirectory() as tmp:
+            asm, ctx = Path(tmp) / "f.s", Path(tmp) / "ctx.c"
+            asm.write_text(self.ASM)
+            ctx.write_text("extern int tbl;\n")
+            env = {**os.environ, "M2C_SIZED_DEREFS": "1"} if sized else {
+                k: v for k, v in os.environ.items() if k != "M2C_SIZED_DEREFS"}
+            return subprocess.run([sys.executable, str(m2c), "-t", draft_fn.TARGET, "--valid-syntax",
+                                   "--no-cache", "--context", str(ctx), str(asm)],
+                                  capture_output=True, text=True, env=env, check=True).stdout
+
+    def test_sized_deref_casts_to_the_load_width(self):
+        self.assertIn("*(u8 *)((", self.run_m2c(True))
+        self.assertNotIn("*(u8 *)", self.run_m2c(False))

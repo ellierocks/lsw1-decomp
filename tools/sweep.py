@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -79,8 +80,11 @@ def unit_context(source: str) -> Path | None:
         return _CONTEXTS[source]
 
 
-def draft(name: str, context: Path | None = None) -> tuple[str, str]:
-    """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'."""
+def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[str, str]:
+    """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'.
+
+    SIZED sets M2C_SIZED_DEREFS (tools/patches/m2c-sized-derefs.patch): `*(a + b)` derefs
+    keep their load width as `*(u8 *)(a + b)`, which the C types may otherwise lose."""
     task = OUT / name
     asm = task / "asm.s"
     if not asm.is_file():
@@ -94,7 +98,8 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
         cmd += ["--no-cache", "--context", str(context)]
-    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True)
+    env = {**os.environ, "M2C_SIZED_DEREFS": "1"} if sized else None
+    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True, env=env)
     if r.returncode or not r.stdout.strip():
         return "m2c-failed", ""
     out = declare_unset(r.stdout, name)
@@ -872,8 +877,14 @@ def sweep_one(t: dict) -> dict:
     best = None
     ctx = unit_context(source)
     unit_text = (ctx or ROOT / source).read_text(errors="replace")
+    drafts = []
     for context in [None] + ([ctx] if ctx else []):
-        status, body = draft(name, context)
+        plain = draft(name, context)
+        drafts.append((context, plain))
+        sized = draft(name, context, sized=True)
+        if sized != plain:  # scored only where the width casts change the draft
+            drafts.append((context, sized))
+    for context, (status, body) in drafts:
         if status != "ok":
             res = {"verdict": status.upper()}
         else:

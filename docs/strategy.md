@@ -136,7 +136,16 @@ numbered (`arg2` alone becomes `s32 pad0, s32 pad1, ... arg2`), keeping the bett
 Drafts are then repaired and rescored: m2c's guessed callee prototypes give way to the
 unit's or the repo's (call arguments trimmed or padded to match), a callee the target calls
 after `crclr`/`crset cr1eq` is declared variadic or unprototyped, and undeclared stack slots
-(`spC` beside `&sp8`) fold into an array. That cut failing drafts from 340 to 184. The pinned m2c carries
+(`spC` beside `&sp8`) fold into an array. That cut failing drafts from 340 to 184. Each draft is also
+scored in a sized form (`M2C_SIZED_DEREFS=1`, `tools/patches/m2c-sized-derefs.patch`): a
+`*(a + b)` deref through integer arithmetic is cast to the loaded width, `*(u8 *)(a + b)`,
+which ProDG needs to pick `lbzx`/`lhzx`. Applied unconditionally it improved 186 drafts but
+worsened 49, so the sweep keeps whichever form scores better. Splicing a draft replaces the
+unit's `extern T name[];` placeholder with the function's prototype (`score_fn.py`
+`function_extern`), which cleared 20 "redeclared as different kind of symbol" errors. As of
+2026-11-08 a full sweep drafts 1,475 targets: 4 MATCH, 159 COMPILE-ERROR, 12 UNHANDLED. The
+largest remaining compile-error classes are undeclared `spXX` stack sub-fields (21), pointer
+conversions (16) and duplicate `case` values from m2c's nested switches (12). The pinned m2c carries
 `tools/patches/m2c-crfields.patch` (applied by `tools/fetch_m2c.sh`, idempotent): per-field
 `crN` bits, `cror`/`crand`/... folding, `mfcr` + `rlwinm` bit extraction, `rotlw`, and the
 GCC 2.95 carry idioms (`subfic/adde` = `x == 0`, `addic/subfe` = `-(y == 0)`, `subfic/subfe/neg`

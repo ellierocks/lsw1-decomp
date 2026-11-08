@@ -57,6 +57,18 @@ class DropRedeclaredTest(unittest.TestCase):
         self.assertIn("extern void (*other)(s32);", out)
 
 
+class FunctionExternTest(unittest.TestCase):
+    def test_array_extern_becomes_the_definitions_prototype(self):
+        text = "extern s32 fn_A[];\nvoid g(void) { h(fn_A); }\n"
+        out = score_fn.splice_body(text, "fn_A", "s32 fn_A(s32 a, f32 x) {\n    return 0;\n}\n")
+        self.assertTrue(out.startswith("s32 fn_A(s32 a, f32 x);\n"))
+        self.assertNotIn("fn_A[]", out)
+
+    def test_struct_parameters_stay_unprototyped(self):
+        out = score_fn.function_extern("extern s32 fn_A[];\n", "fn_A", "void fn_A(struct S *p) {\n}\n")
+        self.assertEqual(out, "void fn_A();\n")
+
+
 class SweepRepairTest(unittest.TestCase):
     def setUp(self):
         import sys
