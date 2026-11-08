@@ -609,3 +609,41 @@ void PodraceInitBoost(void) {
         }
     }
 }
+
+s32 fn_8011EBF4(void *, s32);
+s32 fn_8003AD00(void);
+extern f32 lbl_801AFEA0[];
+extern s32 str_Podrace_CollapsingMush[];
+
+s32 PodraceCreateCollapsingMush(void) {
+    s32 r;
+    s8 *p = (s8 *)lbl_80409C94;
+
+    *(f32 *)(p + 0xB004) = lbl_801AFEA0[0];
+    memset(p + 0xA600, 0, 0xA00);
+    lbl_80409C98 = 0;
+    lbl_8040A810 = -1;
+    switch (lbl_8040B108) {
+    case 1:
+        lbl_8040B068 = 1;
+        break;
+    case 2:
+        lbl_8040B068 = 4;
+        break;
+    case 3:
+        lbl_8040B068 = 7;
+        break;
+    }
+    lbl_80409C90 = 0;
+    lbl_8040B060[0] = 0;
+    lbl_8040B060[1] = 0;
+    lbl_80409CF8 = (void *)fn_8011EBF4(lbl_80409410, 0x17);
+    r = NuSpecialFind(*(s32 *)((s8 *)lbl_80409410 + 0x1C0), lbl_803EAD24, str_Podrace_CollapsingMush, 1);
+    if (lbl_8040B108 <= 2) {
+        r = fn_8011EBF4(lbl_80409410, 0x18);
+        if (r != 0) {
+            r = fn_8003AD00();
+        }
+    }
+    return r;
+}
