@@ -4,7 +4,8 @@
 Agents use this to turn static guesses into runtime evidence without a
 debugger. Everything here reads Dolphin except the drivers (`warp`, `debug-menu`),
 which with --write make one data store that the game itself also makes or
-reads. Code reaches the game only
+reads, and the desktop commands (`launch`, `close`, `screenshot`, `hotkey`),
+which go through Hyprland and Dolphin's own hotkeys. Code reaches the game only
 through a Gecko code that the user pastes and enables. See
 docs/dolphin_runtime.md for the workflow and the rules.
 
@@ -16,6 +17,10 @@ run as the same user with scope 1 and CAP_SYS_PTRACE).
 
 Commands:
     status                     is Dolphin running GL5E4F, and is it paused?
+    launch [--state FILE]      start a graphical Dolphin on the desktop
+    close                      close a Dolphin that `launch` started
+    screenshot [--out PNG]     take a screenshot with Dolphin's hotkey
+    hotkey [ID]                press a Dolphin hotkey (save states, pause...)
     read ADDR|SYM [--type]     typed live read (see ramdump.py for more types)
     wait ADDR|SYM --equals V   block until a value is reached (state gates)
     watch ADDR|SYM [...]       print values as they change
@@ -33,6 +38,9 @@ import collections
 import json
 import os
 import re
+import shlex
+import signal
+import shutil
 import struct
 import subprocess
 import sys
@@ -66,6 +74,21 @@ SCALARS = {
     "u8": (">B", 1), "s8": (">b", 1), "u16": (">H", 2), "s16": (">h", 2),
     "u32": (">I", 4), "s32": (">i", 4), "f32": (">f", 4), "ptr": (">I", 4),
 }
+
+
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) \
+    / "lsw1-decomp/dolphin.json"
+LAUNCHED = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) \
+    / "lsw1-decomp/dolphin-launched.json"
+SCREENSHOT_SHORTCUT = "general-take-screenshot"
+LAUNCH_OVERRIDES = (
+    # Dolphin registers portal global shortcuts (screenshot, hotkey) only
+    # when hotkeys don't need window focus.
+    "Dolphin.General.HotkeysRequireFocus=False",
+    # SIGTERM closes the main window; without this it asks to confirm, and
+    # Dolphin's handler is one-shot, so `close` could not finish.
+    "Dolphin.Interface.ConfirmStop=False",
+)
 
 
 class DolphinError(RuntimeError):
@@ -185,6 +208,185 @@ def attach_or_exit(args):
     except DolphinError as e:
         sys.exit(f"error: {e}\nAsk the user to boot GL5E4F in Dolphin "
                  f"(docs/dolphin_runtime.md#asking-the-user).")
+
+
+# --------------------------------------------------------------------------- #
+# Desktop: launching, closing and screenshots (Hyprland)
+# --------------------------------------------------------------------------- #
+def machine_config():
+    """Per-machine settings, shared by all worktrees; never in git."""
+    cfg = json.loads(CONFIG.read_text()) if CONFIG.is_file() else {}
+    cfg.setdefault("launcher", os.environ.get("DOLPHIN_LAUNCHER")
+                   or shutil.which("dolphin-emu"))
+    cfg.setdefault("iso", os.environ.get("DOLPHIN_ISO"))
+    return cfg
+
+
+def hyprctl(*args, json_out=False):
+    env = dict(os.environ)
+    if "HYPRLAND_INSTANCE_SIGNATURE" not in env:
+        run = Path(env.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hypr"
+        sigs = sorted(run.iterdir(), key=lambda d: d.stat().st_mtime) \
+            if run.is_dir() else []
+        if not sigs:
+            raise DolphinError("Hyprland is not running (no $XDG_RUNTIME_DIR/hypr)")
+        env["HYPRLAND_INSTANCE_SIGNATURE"] = sigs[-1].name
+    cmd = ["hyprctl"] + (["-j"] if json_out else []) + list(args)
+    try:
+        out = subprocess.run(cmd, env=env, capture_output=True, text=True,
+                             check=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError) as e:
+        raise DolphinError(f"hyprctl {' '.join(args)} failed: {e}")
+    if args[0] == "dispatch" and out.strip() != "ok":
+        raise DolphinError(f"hyprctl {' '.join(args)}: {out.strip()}")
+    return json.loads(out) if json_out else out
+
+
+def lua_str(text):
+    """A Lua string literal (JSON escapes are valid Lua for this use)."""
+    return json.dumps(text, ensure_ascii=True)
+
+
+def dispatch(lua):
+    """Hyprland 0.57+ takes dispatchers as Lua, e.g. hl.dsp.exec_cmd("...")."""
+    return hyprctl("dispatch", lua)
+
+
+def user_dir(pid):
+    argv = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+    return user_dir_from_argv([a.decode(errors="replace") for a in argv])
+
+
+def user_dir_from_argv(argv):
+    for i, a in enumerate(argv):
+        if a in ("-u", "--user") and i + 1 < len(argv):
+            return Path(argv[i + 1])
+        if a.startswith("--user="):
+            return Path(a.partition("=")[2])
+    return Path.home() / ".local/share/dolphin-emu"
+
+
+def cmd_launch(args, syms):
+    try:
+        mem = LiveMem.attach(args.pid)
+        print(f"already running: pid {mem.pid}")
+        return 0
+    except DolphinError:
+        pass
+    cfg = machine_config()
+    if not cfg["launcher"] or not cfg["iso"]:
+        raise DolphinError(f"set launcher and iso in {CONFIG} (or "
+                           f"DOLPHIN_LAUNCHER / DOLPHIN_ISO)")
+    cmd = [cfg["launcher"]]
+    for override in LAUNCH_OVERRIDES:      # this run only; ini is untouched
+        cmd += ["-C", override]
+    cmd += ["-e", cfg["iso"]]
+    if args.state:
+        cmd += ["-s", str(Path(args.state).expanduser().resolve())]
+    # Hyprland starts it, so it belongs to the desktop, not this shell.
+    dispatch(f"hl.dsp.exec_cmd({lua_str(shlex.join(cmd))})")
+    print(f"launching: {shlex.join(cmd)}")
+    deadline = time.time() + args.timeout
+    while time.time() < deadline:
+        try:
+            mem = LiveMem.attach()
+        except DolphinError:
+            time.sleep(0.5)
+            continue
+        if frame_rate(mem, 0.5):
+            LAUNCHED.parent.mkdir(parents=True, exist_ok=True)
+            LAUNCHED.write_text(json.dumps({"pid": mem.pid,
+                                            "started": time.time()}))
+            print(f"running: pid {mem.pid}, retraceCount "
+                  f"{mem.scalar(FRAME_COUNTER, 'u32')}")
+            return 0
+        time.sleep(0.5)
+    print(f"timeout after {args.timeout:g} s waiting for GL5E4F to run")
+    return 2
+
+
+def cmd_close(args, syms):
+    if not LAUNCHED.is_file():
+        raise DolphinError("no agent-launched Dolphin recorded; the user's own "
+                           "Dolphin is theirs to close")
+    pid = json.loads(LAUNCHED.read_text())["pid"]
+    if not Path(f"/proc/{pid}").exists():
+        LAUNCHED.unlink()
+        print(f"pid {pid} already gone")
+        return 0
+    # SIGTERM closes the main window; Dolphin stops emulation and exits.
+    os.kill(pid, signal.SIGKILL if args.force else signal.SIGTERM)
+    for _ in range(100):
+        if not Path(f"/proc/{pid}").exists():
+            break
+        time.sleep(0.1)
+    else:
+        print(f"pid {pid} still running: Dolphin may be asking to confirm "
+              f"the stop. Ask the user, or use --force (SIGKILL; the "
+              f"handler is one-shot, so a second SIGTERM also kills)")
+        return 2
+    LAUNCHED.unlink()
+    print(f"closed pid {pid}")
+    return 0
+
+
+def dolphin_shortcuts():
+    """Dolphin's portal global shortcuts, as {short id: full name}."""
+    found = {}
+    for line in hyprctl("globalshortcuts").splitlines():
+        name = line.split(" -> ")[0].strip()
+        app, _, sid = name.partition(":")
+        if app.startswith("dolphin") and sid:
+            found[sid] = name
+    return found
+
+
+def press_hotkey(sid):
+    """Press one of Dolphin's hotkeys through the desktop, without focus."""
+    shortcuts = dolphin_shortcuts()
+    if not shortcuts:
+        raise DolphinError(
+            "Dolphin registered no global shortcuts: untick Config -> "
+            "Interface -> Hotkeys Require Window Focus (Wayland build only)")
+    if sid not in shortcuts:
+        near = ", ".join(k for k in shortcuts if sid.split("-")[0] in k)
+        raise DolphinError(f"no Dolphin hotkey {sid!r}"
+                           + (f"; similar: {near}" if near else ""))
+    dispatch(f"hl.dsp.global({lua_str(shortcuts[sid])})")
+    return shortcuts[sid]
+
+
+def cmd_hotkey(args, syms):
+    if not args.id:
+        for sid, name in dolphin_shortcuts().items():
+            print(sid)
+        return 0
+    print(f"pressed {press_hotkey(args.id)}")
+    return 0
+
+
+def cmd_screenshot(args, syms):
+    mem = attach_or_exit(args)
+    shots = user_dir(mem.pid) / "ScreenShots" / mem.game_id.decode()
+    before = set(shots.glob("*.png")) if shots.is_dir() else set()
+    how = press_hotkey(SCREENSHOT_SHORTCUT)
+    deadline = time.time() + args.timeout
+    while time.time() < deadline:
+        new = set(shots.glob("*.png")) - before if shots.is_dir() else set()
+        if new:
+            path = max(new, key=lambda p: p.stat().st_mtime)
+            size = -1
+            while size != path.stat().st_size:   # wait for the write to end
+                size = path.stat().st_size
+                time.sleep(0.2)
+            if args.out:
+                Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+                path = Path(shutil.copy2(path, args.out))
+            print(path)
+            return 0
+        time.sleep(0.1)
+    raise DolphinError(f"no screenshot appeared in {shots} within "
+                       f"{args.timeout:g} s ({how}); is the hotkey bound?")
 
 
 # --------------------------------------------------------------------------- #
@@ -738,6 +940,25 @@ def main(argv=None):
 
     p = sub.add_parser("status", help="report whether GL5E4F is running")
     p.set_defaults(func=cmd_status)
+
+    p = sub.add_parser("launch", help="start a graphical Dolphin")
+    p.add_argument("--state", help="save state file to load at boot")
+    p.add_argument("--timeout", type=float, default=90)
+    p.set_defaults(func=cmd_launch)
+
+    p = sub.add_parser("close", help="close the Dolphin that launch started")
+    p.add_argument("--force", action="store_true",
+                   help="SIGKILL: unsaved emulator state is lost")
+    p.set_defaults(func=cmd_close)
+
+    p = sub.add_parser("screenshot", help="take a screenshot with Dolphin")
+    p.add_argument("--out", help="copy the PNG here (keep it out of git)")
+    p.add_argument("--timeout", type=float, default=10)
+    p.set_defaults(func=cmd_screenshot)
+
+    p = sub.add_parser("hotkey", help="press a Dolphin hotkey (list if none)")
+    p.add_argument("id", nargs="?", help="e.g. load-state-load-state-slot-1")
+    p.set_defaults(func=cmd_hotkey)
 
     p = sub.add_parser("read", help="read live values")
     p.add_argument("target", help="address or symbols.txt name")

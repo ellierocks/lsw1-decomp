@@ -103,6 +103,90 @@ class RingAndDolTests(unittest.TestCase):
                            "/dev/shm/dolphin-emu.42 (deleted)")])
 
 
+SHORTCUTS = ("com.t3tools.T3Code:capture-window -> Capture a window\n"
+             "dolphin-emu:general-take-screenshot -> General: Take Screenshot\n"
+             "dolphin-emu:load-state-load-state-slot-1 -> Load State: Slot 1\n")
+
+
+class DesktopTests(unittest.TestCase):
+    def test_lua_string_escapes(self):
+        self.assertEqual(dolphin.lua_str('a "b" \\c'), '"a \\"b\\" \\\\c"')
+
+    def test_user_dir_from_argv(self):
+        f = dolphin.user_dir_from_argv
+        self.assertEqual(f(["dolphin-emu", "-u", "/x", "-e", "g"]), Path("/x"))
+        self.assertEqual(f(["dolphin-emu", "--user=/y"]), Path("/y"))
+        self.assertEqual(f(["dolphin-emu"]),
+                         Path.home() / ".local/share/dolphin-emu")
+
+    def test_hyprctl_finds_newest_instance(self):
+        with tempfile.TemporaryDirectory() as run:
+            for i, name in enumerate(["old", "new"]):
+                d = Path(run) / "hypr" / name
+                d.mkdir(parents=True)
+                os.utime(d, (1000 + i, 1000 + i))
+            done = subprocess.CompletedProcess([], 0, stdout="ok")
+            env = {"XDG_RUNTIME_DIR": run}
+            with mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(subprocess, "run",
+                                      return_value=done) as run_:
+                dolphin.dispatch('hl.dsp.global("x")')
+        self.assertEqual(run_.call_args.args[0],
+                         ["hyprctl", "dispatch", 'hl.dsp.global("x")'])
+        self.assertEqual(run_.call_args.kwargs["env"]
+                         ["HYPRLAND_INSTANCE_SIGNATURE"], "new")
+
+    def test_dispatch_error_is_raised(self):
+        bad = subprocess.CompletedProcess([], 0, stdout="error: nope")
+        with mock.patch.dict(os.environ, {"HYPRLAND_INSTANCE_SIGNATURE": "s"}), \
+                mock.patch.object(subprocess, "run", return_value=bad):
+            with self.assertRaisesRegex(dolphin.DolphinError, "nope"):
+                dolphin.dispatch("hl.dsp.exec_cmd(1)")
+
+    def test_press_hotkey(self):
+        calls = []
+
+        def fake(*args, json_out=False):
+            calls.append(args)
+            return SHORTCUTS if args == ("globalshortcuts",) else "ok"
+        with mock.patch.object(dolphin, "hyprctl", side_effect=fake):
+            self.assertEqual(dolphin.press_hotkey("general-take-screenshot"),
+                             "dolphin-emu:general-take-screenshot")
+            with self.assertRaisesRegex(dolphin.DolphinError, "slot-1"):
+                dolphin.press_hotkey("load-state-slot-9")
+        self.assertEqual(calls[1], ("dispatch", 'hl.dsp.global('
+                                    '"dolphin-emu:general-take-screenshot")'))
+
+    def test_press_hotkey_without_shortcuts_explains(self):
+        with mock.patch.object(dolphin, "hyprctl", return_value=SHORTCUTS[:51]):
+            with self.assertRaisesRegex(dolphin.DolphinError, "Window Focus"):
+                dolphin.press_hotkey("general-take-screenshot")
+
+    def test_launch_command_line(self):
+        cfg = {"launcher": "/bin/dolphin wl", "iso": "/roms/LSW (USA).rvz"}
+        sent = []
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(dolphin, "machine_config", return_value=cfg), \
+                mock.patch.object(dolphin, "dispatch", side_effect=sent.append), \
+                mock.patch.object(dolphin, "LAUNCHED", Path(tmp) / "l.json"), \
+                mock.patch.object(dolphin.LiveMem, "attach",
+                                  side_effect=dolphin.DolphinError("none")), \
+                contextlib.redirect_stdout(io.StringIO()):
+            rc = dolphin.main(["launch", "--state", "/s/x.sav",
+                               "--timeout", "0"])
+        self.assertEqual(rc, 2)
+        self.assertEqual(sent, ['hl.dsp.exec_cmd("\'/bin/dolphin wl\' '
+                                '-C Dolphin.General.HotkeysRequireFocus=False '
+                                '-C Dolphin.Interface.ConfirmStop=False '
+                                '-e \'/roms/LSW (USA).rvz\' -s /s/x.sav")'])
+
+    def test_close_refuses_unlaunched(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(dolphin, "LAUNCHED", Path(tmp) / "l.json"):
+            with self.assertRaisesRegex(SystemExit, "user's own"):
+                dolphin.main(["close"])
+
+
 CHILD = textwrap.dedent(r"""
     import mmap, os, struct, sys
     path = sys.argv[1]

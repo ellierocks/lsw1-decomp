@@ -27,7 +27,8 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
   callers and cross-references. Confirm proposed types and names against target
   assembly; donor output and generated C are evidence, not the acceptance oracle.
 - Runtime evidence: when a layout, caller or value stays ambiguous statically, check
-  `python3 tools/dolphin.py status` and use the running game. Reach a level with
+  `python3 tools/dolphin.py status` and use the running game, or `dolphin.py launch` one
+  on the desktop if none is running; `dolphin.py screenshot` shows the screen. Reach a level with
   `dolphin.py warp` once the user allows driving this session; otherwise ask for the
   state or Gecko code per [Dolphin runtime](docs/dolphin_runtime.md#asking-the-user).
   Dumps and traces stay local; unattended runs record a "Dolphin request" instead.

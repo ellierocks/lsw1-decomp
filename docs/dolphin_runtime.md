@@ -3,9 +3,9 @@
 A running game answers questions that static analysis only guesses at: which
 caller reaches a function, what a field holds in a known state, which global
 changes when something happens on screen, or how often a function runs.
-`tools/dolphin.py` reads the user's running Dolphin directly, can move the
-game to a chosen level, and `tools/ramdump.py` accepts `live` wherever it
-takes a dump.
+`tools/dolphin.py` reads the user's running Dolphin directly, can start one on
+the desktop, take screenshots, move the game to a chosen level, and
+`tools/ramdump.py` accepts `live` wherever it takes a dump.
 
 Runtime evidence supports a type, name or field offset. It does not replace the
 oracle: confirm every layout against the target assembly, and never report it as
@@ -31,6 +31,10 @@ Skip it for questions that the assembly, symbols or a dump already answer.
   after the user has said in this session that agents may drive the game. Never
   drive while the user is playing or practising. Code reaches the game only
   through a Gecko code that the user pastes and enables.
+- **Launch only when needed.** Agents may start a graphical Dolphin with
+  `launch` when nothing is running, and close only the one they started. The
+  user's own Dolphin is theirs: leave it open, and don't press its hotkeys or
+  take screenshots while they are playing or have its settings open.
 - **Ask, then verify.** Ask the user for a game state (see below). Then confirm
   it with `dolphin.py wait` or `read`; don't rely on the reply alone.
 - **Clean up.** When a trace is finished, ask the user to disable the logger
@@ -53,6 +57,41 @@ it says why: Dolphin isn't running, no game is booted, or a different game is
 loaded. Set `DOLPHIN_PID` or pass `--pid` when several Dolphins are running.
 This needs Linux, and ptrace access to Dolphin (`kernel.yama.ptrace_scope=0`
 here).
+
+## Desktop: launch, screenshots and hotkeys
+
+```sh
+python3 tools/dolphin.py launch                    # boots GL5E4F, waits for frames
+python3 tools/dolphin.py launch --state ~/x.sav    # boot into a save state
+python3 tools/dolphin.py screenshot --out /tmp/claude-1000/shots/now.png
+python3 tools/dolphin.py hotkey                    # list hotkey ids
+python3 tools/dolphin.py hotkey load-state-load-state-slot-1
+python3 tools/dolphin.py close
+```
+
+- **Setup.** Machine settings live outside git in
+  `~/.config/lsw1-decomp/dolphin.json` (`{"launcher": ..., "iso": ...}`), or
+  `DOLPHIN_LAUNCHER` / `DOLPHIN_ISO`. The desktop is Hyprland: since 0.57,
+  `hyprctl dispatch` takes Lua (`hl.dsp.exec_cmd(...)`, `hl.dsp.global(...)`).
+  The tool finds the Hyprland instance itself, since agent shells don't carry
+  the desktop environment.
+- **`launch`** has Hyprland start Dolphin, so it belongs to the desktop and
+  outlives the agent's shell, then waits until frames advance. It passes two
+  `-C` overrides for that run only: `HotkeysRequireFocus=False` (needed for
+  global shortcuts) and `ConfirmStop=False` (so `close` can finish).
+- **`screenshot`** presses Dolphin's own *Take Screenshot* hotkey through the
+  portal global shortcut, waits for the new PNG under
+  `<user dir>/ScreenShots/GL5E4F/`, and prints its path. It captures the
+  emulated frame at internal resolution without focusing the window. Read the
+  PNG to look at it; copies go outside the repo.
+- **`hotkey`** presses any registered Dolphin hotkey, such as save and load
+  state slots, pause or frame stepping. This needs the Wayland build and
+  *Hotkeys Require Window Focus* unticked (Config → Interface); otherwise
+  Dolphin registers no global shortcuts and the tool says so. Loading a state
+  or pausing is driving the game: the [rules](#rules) apply.
+- **`close`** only closes a Dolphin that `launch` recorded. It sends SIGTERM,
+  which Dolphin treats as closing the main window. Dolphin's handler fires once,
+  so if a confirmation dialog appears, ask the user; `--force` sends SIGKILL.
 
 ## Asking the user
 
