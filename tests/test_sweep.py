@@ -32,6 +32,24 @@ class SweepRewriteTest(unittest.TestCase):
                          "        lbl_X = 0xA;\n    }\n}\n")
         self.assertEqual(sweep.store_in_arms("x = 1;\n"), "x = 1;\n")
 
+    def test_switch_chain(self):
+        body = ("void f(s32 a) {\n    switch (a) {                  /* irregular */\n    case 1:\n"
+                "        g(1);\n        return;\n    case 2:\n    case 4:\n        g(2);\n        break;\n"
+                "    default:\n        g(3);\n    }\n    h();\n}\n")
+        self.assertEqual(sweep.switch_chain(body),
+                         "void f(s32 a) {\n    if (a == 1) {\n        g(1);\n        return;\n"
+                         "    } else if (a == 2 || a == 4) {\n        g(2);\n    } else {\n        g(3);\n"
+                         "    }\n    h();\n}\n")
+
+    def test_switch_chain_refuses_fallthrough_and_calls(self):
+        fall = "    switch (a) {\n    case 1:\n        g(1);\n    case 2:\n        g(2);\n    }\n"
+        self.assertEqual(sweep.switch_chain(fall), fall)
+        call = "    switch (k()) {\n    case 1:\n        g(1);\n        break;\n    case 2:\n        g(2);\n    }\n"
+        self.assertEqual(sweep.switch_chain(call), call)
+        nested = ("    switch (a) {\n    case 1:\n        if (b) {\n        default:\n            g(1);\n"
+                  "        }\n        break;\n    case 2:\n        g(2);\n    }\n")
+        self.assertEqual(sweep.switch_chain(nested), nested)
+
     def test_void_callees(self):
         body = ("s32 g(s32, s32, f32);\ns32 h(s32);\nextern s32 e(void);\n\n"
                 "void f(void) {\n    g(0xB00, 0, lbl_X[0]);\n    if (h(1) != 0) {\n        e();\n    }\n}\n")
