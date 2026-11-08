@@ -212,16 +212,24 @@ CHILD = textwrap.dedent(r"""
     m[0x101000:0x101010] = b"ep2\\Dooku_B\0\0\0\0\0"
     entry = 0x1D68E0 + 80 * 0xA8
     m[entry + 8:entry + 16] = struct.pack(">II", 0x80101000, 0x80100000)
+    m[entry + 0x24:entry + 0x28] = struct.pack(">I", 0x800CE658)  # exit
     m[0x4093AC:0x4093B4] = struct.pack(">Ii", 123, -1)
+    # A pointer chain: 0x80200000 -> 0x80300000, whose +0x601 is sock 2.
+    m[0x200000:0x200004] = struct.pack(">I", 0x80300000)
+    m[0x300601] = 2
     print("ready", flush=True)
     # Play the game: advance frames and apply pending level changes.
     import select, time
-    frame = 1234
+    frame, dropped = 1234, False
     while not select.select([sys.stdin], [], [], 0.005)[0]:
         frame += 1
         m[0x40AA14:0x40AA18] = struct.pack(">I", frame)
         cur, nxt = struct.unpack(">Ii", m[0x4093AC:0x4093B4])
-        if nxt != -1:
+        if nxt != -1 and not dropped:
+            # Like the intro movie: take the first request, load nothing.
+            m[0x4093B0:0x4093B4] = struct.pack(">i", -1)
+            dropped = True
+        elif nxt != -1:
             m[0x4093AC:0x4093B4] = struct.pack(">Ii", nxt, -1)
 """)
 
@@ -293,7 +301,32 @@ class FakeDolphinTests(unittest.TestCase):
             rc = dolphin.main(["--pid", str(self.child.pid), "warp", "dooku_b",
                                "--write", "--timeout", "5"])
         self.assertEqual(rc, 0, out.getvalue())
-        self.assertIn("loaded: 80 Dooku_B", out.getvalue())
+        self.assertIn("requested again", out.getvalue())
+        self.assertIn("loaded: 80 Dooku_B (2 requests)", out.getvalue())
+
+    def test_pointer_chain_read(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            dolphin.main(["--pid", str(self.child.pid), "read",
+                          "0x80200000->0x600+1", "--type", "s8"])
+        self.assertRegex(out.getvalue(), r"0x80300601 .* 2\n")
+        mem = dolphin.LiveMem.attach(self.child.pid)
+        self.addCleanup(mem.close)
+        syms = dolphin.Symbols()
+        with self.assertRaisesRegex(dolphin.DolphinError, "not a MEM1 pointer"):
+            dolphin.resolve_addr("0x80407B40->0", syms, mem)
+        with self.assertRaisesRegex(dolphin.DolphinError, "bad address"):
+            dolphin.resolve_addr("0x80200000->x", syms, mem)
+        self.assertEqual(dolphin.resolve_addr("gPlayer1Pointer+4-4", syms),
+                         0x801D5338)
+
+    def test_levels_callbacks(self):
+        out = io.StringIO()
+        with mock.patch.object(dolphin, "find_dol", return_value=None), \
+                contextlib.redirect_stdout(out):
+            dolphin.main(["--pid", str(self.child.pid), "levels", "--callbacks"])
+        self.assertEqual(out.getvalue().split("\n")[1].split(),
+                         ["exit=fn_800CE658"])
 
     def test_debug_menu_write(self):
         out = io.StringIO()
