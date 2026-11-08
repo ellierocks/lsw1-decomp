@@ -10,9 +10,12 @@ only the named function. `--body FILE` searches a draft that is not in the unit 
     register order and prologue scheduling; the first MAX_DECLS when there are more),
   - `x = c ? a : b;` against an explicit if/else with the store in each branch,
   - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local,
-  - `volatile` on each address-taken local (its stack slot moves to declaration order).
   - an extra `case K:` on a switch's `default:` arm, K next to or between the other cases
-    (it changes GCC's case-tree balancing without changing behavior; fn_80063F80).
+    (it changes GCC's case-tree balancing without changing behavior; fn_80063F80),
+  - each braced `if` (with its `else` chain) wrapped in `do { ... } while (0)`: the extra
+    loop notes change GCC's register choice and load placement around it, which matched
+    fn_8000A64C and fn_800FEBEC (first MAX_DO_WHILE `if` statements).
+  - `volatile` on each address-taken local (its stack slot moves to declaration order).
 
     python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/nu3dx/nuanim.c -j 8
 
@@ -47,11 +50,13 @@ import order_search as osr  # noqa: E402
 ROOT = osr.ROOT
 DEFAULT_LIMIT = 2000
 MAX_DECLS = 6
+MAX_DO_WHILE = 16
 SIGN_PAIRS = {"s32": "u32", "u32": "s32", "s16": "u16", "u16": "s16", "s8": "u8", "u8": "s8"}
 DECL_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<type>(?:struct \w+|[A-Za-z_]\w*)\s*\**)\s*(?P<name>\w+)"
                      r"(?P<array>\[\w*\])?(?:\s*=\s*[^;]+)?;[ \t]*$")
 TERNARY_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<lhs>[^=?;{}()]+?)\s=\s(?P<cond>[^?;{}]+?)\s\?\s"
                         r"(?P<a>[^?:;{}]+?)\s:\s(?P<b>[^?:;{}]+?);[ \t]*$")
+IF_RE = re.compile(r"^(?P<indent>[ \t]+)if \(.*\{[ \t]*$")
 TYPE_RE = re.compile(r"\b(s32|u32|s16|u16|s8|u8)\b")
 
 
@@ -144,6 +149,13 @@ def build_dimensions(fn: Function) -> tuple[list[Dimension], list[str]]:
             ind = m.group("indent")
             dims.append(Dimension(f"volatile-local@{i}", "lines", i,
                                   [{}, {i: f"{ind}volatile {line[len(ind):]}"}]))
+    for i, j in if_blocks(lines)[:MAX_DO_WHILE]:
+        ind = IF_RE.match(lines[i]).group("indent")
+        dims.append(Dimension(f"do-while@{i}", "lines", i,
+                              [{}, {i: f"{ind}do {{\n    {lines[i]}", j: f"    {lines[j]}\n{ind}}} while (0);"}]))
+    # Binary dimensions first: within one change count, their few variants run before the
+    # (up to MAX_DECLS!) declaration permutations.
+    dims.sort(key=lambda d: d.kind == "order")
     return dims, lines
 
 
@@ -179,6 +191,28 @@ def default_case_dims(lines: list[str]) -> list[Dimension]:
             opts = [{}] + [{i: f"{d['indent']}case {v}:\n{line}"} for v in default_case_values(cases)]
             dims.append(Dimension(f"default-case@{i}", "lines", i, opts))
     return dims
+
+
+def if_blocks(lines: list[str]) -> list[tuple[int, int]]:
+    """(first, last) line of each braced `if` statement, `else` chain included."""
+    blocks = []
+    for i, line in enumerate(lines):
+        m = IF_RE.match(line)
+        if not m:
+            continue
+        close = m.group("indent") + "}"
+        for j in range(i + 1, len(lines)):
+            if not lines[j].startswith(close):
+                continue
+            rest = lines[j][len(close):].strip()
+            if rest.startswith("else"):
+                if rest.endswith("{"):
+                    continue
+                break  # `} else stmt;` without braces: leave it alone
+            if not rest:
+                blocks.append((i, j))
+            break
+    return blocks
 
 
 def sign_param_dims(fn: Function) -> list[Dimension]:

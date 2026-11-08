@@ -18,6 +18,10 @@ if [[ ! -f build/tools/dtk_patched ]]; then
     bash tools/build_patched_dtk.sh
 fi
 python3 configure.py
+# Shared-toolchain worktrees: keep ninja from refetching tools other worktrees are running.
+if [[ -L build/tools && -z ${LSW1_REFRESH:-} ]]; then
+    python3 tools/ninja_mark_tools.py --primary "$(git worktree list --porcelain | sed -n '1s/^worktree //p')"
+fi
 ninja build/GL5E4F/report.json
 ninja build/GL5E4F/main.dol
 python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units

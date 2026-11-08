@@ -259,8 +259,11 @@ under 3 minutes at `-j 8`: `fn_800262BC` after 1366 variants and `fn_80025FA0` a
 
 For a draft within about ten instructions, `variant_search.py` tries the rewrites that solved
 most plateaus without markers: the declaration order of the leading locals (stack layout and
-register order), `x = c ? a : b;` against an explicit if/else, and `s32`/`u32` (also 16 and 8
-bit) for each parameter and local. It varies only the named function in the unit source:
+register order), `x = c ? a : b;` against an explicit if/else, `s32`/`u32` (also 16 and 8
+bit) for each parameter and local, and each braced `if` wrapped in `do { ... } while (0)`.
+The wrap adds loop notes that move GCC's register choice and load placement; it matched
+`fn_8000A64C` and `fn_800FEBEC`, both first found by the permuter. Single-option rewrites run
+before the declaration permutations. It varies only the named function in the unit source:
 
 ```sh
 python3 tools/variant_search.py NAME src/UNIT.c -j 8 [--dry-run] [--max-changes 2]
@@ -273,6 +276,11 @@ whole declaration permutation, or all ternaries together, count as one change. T
 variant goes to `work/variant_search/NAME/best.c`; port it and accept it with
 `verify_fn.py --build --strict-symbols`. It reproduced both the `Curve2` local-order fix and the
 ternary/if-else fix from the `nuanim_2` sprint within the first 32 compiles.
+
+Rodata constants also steer CSE. Use `extern const f32 lbl_X[]` when retail hoists one load
+out of a loop or across calls (`fn_800ECAE8`), and plain `extern f32` when retail reloads after
+every store. When one block keeps the value in a register across stores and the rest of the
+function reloads it, a block-local `f32 zero = lbl_X[0];` gives both (`fn_800FEBEC`).
 
 ### Pattern library
 

@@ -59,16 +59,11 @@ if [[ -z ${LSW1_NO_SHARE:-} ]]; then
     done
 fi
 # Tell ninja the shared tools are current: a fresh checkout has no log entry for them and newer
-# sources than their outputs, so any later ninja build would otherwise refetch them. Log lines are
-# copied from the primary checkout, so a changed pin (different command) still triggers a fetch.
+# sources than their recorded mtimes, so any later ninja build would otherwise refetch them into the
+# shared directories. Entries take the primary checkout's command hash, so a changed pin still fetches.
 if [[ -z ${LSW1_NO_SHARE:-} && -z ${LSW1_REFRESH:-} && -n ${primary:-} && $primary != "$PWD" \
       && -f $primary/.ninja_log ]]; then
-    tools_re='\tbuild/(tools/(wibo|objdiff-cli|sjiswrap\.exe)|compilers|binutils)\t'
-    if ! grep -qP "$tools_re" .ninja_log 2>/dev/null; then
-        [[ -f .ninja_log ]] || echo '# ninja log v7' > .ninja_log
-        grep -P "$tools_re" "$primary/.ninja_log" >> .ninja_log || true
-    fi
-    touch -c build/tools/wibo build/tools/objdiff-cli build/tools/sjiswrap.exe build/compilers build/binutils
+    python3 tools/ninja_mark_tools.py --primary "$primary"
 fi
 bash tools/fetch_dolsdk.sh >/dev/null 2>&1 || echo 'note: dolsdk2004 donor not fetched; run tools/fetch_dolsdk.sh when online' >&2
 bash tools/fetch_permuter.sh >/dev/null 2>&1 || echo 'note: decomp-permuter not fetched; run tools/fetch_permuter.sh when online' >&2

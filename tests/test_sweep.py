@@ -214,6 +214,48 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertEqual(sweep.swap_stores(body),
                          ["void f(s32 *p) {\n    p->a = 2;\n    *(s32 *)(p + 1) = 0;\n    x = p->a;\n    p->b = p->a;\n}\n"])
 
+    def test_swap_stores_extern_globals_and_rotations(self):
+        body = ("extern s32 ga;\nextern s32 gb;\nextern s32 gc;\nvoid f(void) {\n"
+                "    ga = 0;\n    gb = 1;\n    gc = 0;\n}\n")
+        outs = sweep.swap_stores(body)
+        self.assertIn(body.replace("    ga = 0;\n    gb = 1;\n    gc = 0;", "    gc = 0;\n    ga = 0;\n    gb = 1;"), outs)
+        self.assertIn(body.replace("    ga = 0;\n    gb = 1;", "    gb = 1;\n    ga = 0;"), outs)
+        local = "void f(void) {\n    s32 x;\n    x = 0;\n    y = 1;\n}\n"
+        self.assertEqual(sweep.swap_stores(local), [])
+
+    def test_index_loops_pointer_bound(self):
+        body = ("void f(u32 arg0) {\n    void *var_r31;\n\n    var_r31 = lbl_A;\n    do {\n"
+                "        g(var_r31);\n        var_r31 += 0xC;\n"
+                "    } while (var_r31 <= (void *) (((s8 *)lbl_A) + 0x18));\n}\n")
+        self.assertEqual(sweep.index_loops(body),
+                         "void f(u32 arg0) {\n    s32 i_var_r31;\n    void *var_r31;\n\n    i_var_r31 = 0;\n"
+                         "    do {\n        var_r31 = (void *) ((s8 *) (lbl_A) + i_var_r31 * 12);\n"
+                         "        g(var_r31);\n        i_var_r31 += 1;\n    } while (i_var_r31 <= 2);\n}\n")
+
+    def test_index_loops_counter(self):
+        body = ("void f(void) {\n    void *p;\n    s32 c;\n\n    c = 0;\n    if (n > 0) {\n"
+                "        p = lbl_A;\n        do {\n            g(p);\n            c += 1;\n"
+                "            p += 0xC;\n        } while (c < n);\n    }\n}\n")
+        out = sweep.index_loops(body)
+        self.assertIn("            p = (void *) ((s8 *) (lbl_A) + c * 12);\n            g(p);\n", out)
+        self.assertNotIn("p = lbl_A;", out)
+        self.assertNotIn("p += 0xC", out)
+        used_after = body.replace("    }\n}\n", "    }\n    h(p);\n}\n")
+        self.assertEqual(sweep.index_loops(used_after), used_after)
+
+    def test_countdown_loops(self):
+        body = ("void f(s32 arg3, s32 arg4) {\n    s32 var_r28;\n    s32 var_r29;\n    s8 *p;\n\n"
+                "    if (arg4 > 0) {\n        var_r28 = arg4;\n        var_r29 = 0;\n        p = lbl_A;\n"
+                "        do {\n            g(*(s32 *)(var_r29 + arg3), p);\n            var_r29 += 4;\n"
+                "            p += 0xC;\n            var_r28 -= 1;\n        } while (var_r28 != 0);\n    }\n}\n")
+        self.assertEqual(sweep.countdown_loops(body),
+                         "void f(s32 arg3, s32 arg4) {\n    s32 var_r28;\n    s32 var_r29;\n    s8 *p;\n\n"
+                         "    for (var_r28 = 0; var_r28 < arg4; var_r28++) {\n        var_r29 = var_r28 * 4;\n"
+                         "        p = (void *) ((s8 *) (lbl_A) + var_r28 * 12);\n"
+                         "        g(*(s32 *)(var_r29 + arg3), p);\n    }\n}\n")
+        used = body.replace("    }\n}\n", "    }\n    h(p);\n}\n")
+        self.assertEqual(sweep.countdown_loops(used), used)
+
     def test_empty_frame(self):
         asm = ("/* 0 0  94 21 FF E8 */\tstwu r1, -0x18(r1)\n/* 4 4  38 21 00 18 */\taddi r1, r1, 0x18\n"
                "/* 8 8  4E 80 00 20 */\tblr\n")
@@ -267,6 +309,36 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("        {\n            s8 *MenuHeader_p = (s8 *)MenuHeader;\n"
                       "            (*(s8 *)(MenuHeader_p + (0x174))) = -1;\n", out)
         self.assertIn("    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n", out)  # a single access stays
+
+    def test_float_positions(self):
+        body = ("s32 g(u8, s32, s32, f32, f32);\n\nvoid f(void) {\n"
+                "    g(a, b, -1, x, y);\n}\n")
+        outs = sweep.float_positions(body)
+        self.assertEqual(len(outs), 9)  # C(5,2) placements minus the trailing one
+        self.assertIn("s32 g(u8, f32, s32, f32, s32);\n\nvoid f(void) {\n    g(a, x, b, y, -1);\n}\n", outs)
+        self.assertEqual(sweep.float_positions(body.replace("f32, f32", "s32, s32")), [])
+        self.assertEqual(len(sweep.float_positions(body, limit=3)), 3)
+
+    def test_switch_pivots(self):
+        body = ("void f(void) {\n    switch (x) {\n    case 0:\n        a();\n        break;\n"
+                "    case 1:\n        b();\n        break;\n    case 2:\n        break;\n    }\n}\n")
+        outs = sweep.switch_pivots(body)
+        self.assertEqual(len(outs), 2)
+        self.assertIn("    case 3:\n        break;\n    }\n}\n", outs[0])
+        self.assertIn("    case -1:\n        break;\n    }\n}\n", outs[1])
+        self.assertEqual(sweep.switch_pivots(body.replace("    case 2:\n        break;\n", "")), [])
+
+    def test_positive_guards(self):
+        body = ("s32 f(void) {\n    if (((s32) x != 0x1C) || (y == 0) || !(a > b) || !((c) < (d - e))) {\n"
+                "        return 0;\n    }\n    return 1;\n}\n")
+        self.assertEqual(sweep.positive_guards(body),
+                         "s32 f(void) {\n    if ((s32) x == 0x1C && y != 0 && a > b && (c) < (d - e)) {\n"
+                         "        return 1;\n    }\n    return 0;\n}\n")
+        # A lone conjunction, or a float comparison without `!`, is not flipped unsafely.
+        same = body.replace("((s32) x != 0x1C) || (y == 0) || !(a > b) || !((c) < (d - e))", "(a && b)")
+        self.assertEqual(sweep.positive_guards(same), same)
+        self.assertEqual(sweep.negate("a < b"), "!(a < b)")
+        self.assertEqual(sweep.negate("!(a) && b"), "!(!(a) && b)")
 
 
 class WideReturnTests(unittest.TestCase):
