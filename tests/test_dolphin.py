@@ -58,6 +58,22 @@ class EncoderTests(unittest.TestCase):
                                      dolphin.stw(11, 28, 12)])
 
 
+class LevelTests(unittest.TestCase):
+    LEVELS = [(0, "a\\Negotiations_A", "Negotiations_A"),
+              (1, "a\\Kamino_A", "Kamino_A"), (2, "a\\Kamino_C", "Kamino_C"),
+              (3, "Map\\Map_E", "Map_E")]
+
+    def test_resolve_level(self):
+        r = dolphin.resolve_level
+        self.assertEqual(r(self.LEVELS, "3")[2], "Map_E")
+        self.assertEqual(r(self.LEVELS, "kamino_c")[0], 2)
+        self.assertEqual(r(self.LEVELS, "negot")[0], 0)
+        with self.assertRaisesRegex(dolphin.DolphinError, "Kamino_A"):
+            r(self.LEVELS, "kamino")
+        with self.assertRaises(dolphin.DolphinError):
+            r(self.LEVELS, "99")
+
+
 class RingAndDolTests(unittest.TestCase):
     def test_decode_entries_wraps(self):
         raw = bytearray(dolphin.RING_BYTES)
@@ -87,7 +103,7 @@ class RingAndDolTests(unittest.TestCase):
                            "/dev/shm/dolphin-emu.42 (deleted)")])
 
 
-CHILD = textwrap.dedent("""
+CHILD = textwrap.dedent(r"""
     import mmap, os, struct, sys
     path = sys.argv[1]
     with open(path, "w+b") as f:
@@ -97,8 +113,22 @@ CHILD = textwrap.dedent("""
     m[0:6] = b"GL5E4F"
     m[0x40AA14:0x40AA18] = struct.pack(">I", 1234)
     m[0x407B40:0x407B44] = struct.pack(">I", 0xDEADBEEF)
+    # Level table: entry 80 named Dooku_B; current level 123, none pending.
+    m[0x100000:0x100008] = b"Dooku_B\0"
+    m[0x101000:0x101010] = b"ep2\\Dooku_B\0\0\0\0\0"
+    entry = 0x1D68E0 + 80 * 0xA8
+    m[entry + 8:entry + 16] = struct.pack(">II", 0x80101000, 0x80100000)
+    m[0x4093AC:0x4093B4] = struct.pack(">Ii", 123, -1)
     print("ready", flush=True)
-    sys.stdin.read()
+    # Play the game: advance frames and apply pending level changes.
+    import select, time
+    frame = 1234
+    while not select.select([sys.stdin], [], [], 0.005)[0]:
+        frame += 1
+        m[0x40AA14:0x40AA18] = struct.pack(">I", frame)
+        cur, nxt = struct.unpack(">Ii", m[0x4093AC:0x4093B4])
+        if nxt != -1:
+            m[0x4093AC:0x4093B4] = struct.pack(">Ii", nxt, -1)
 """)
 
 
@@ -129,7 +159,7 @@ class FakeDolphinTests(unittest.TestCase):
     def test_live_reads(self):
         mem = dolphin.LiveMem.attach(self.child.pid)
         self.addCleanup(mem.close)
-        self.assertEqual(mem.scalar(dolphin.FRAME_COUNTER, "u32"), 1234)
+        self.assertGreaterEqual(mem.scalar(dolphin.FRAME_COUNTER, "u32"), 1234)
         self.assertEqual(mem.scalar(0xC0407B40, "u32"), 0xDEADBEEF)
         with self.assertRaises(dolphin.DolphinError):
             mem.read(0x81800000, 4)
@@ -152,11 +182,30 @@ class FakeDolphinTests(unittest.TestCase):
         self.assertEqual(live.scalar(0x80407B40, "u32"), 0xDEADBEEF)
         self.assertEqual(live.path.name, f"live:{self.child.pid}")
 
+    def test_warp_dry_run_does_not_write(self):
+        out = io.StringIO()
+        with mock.patch.object(dolphin, "find_dol", return_value=None), \
+                contextlib.redirect_stdout(out):
+            dolphin.main(["--pid", str(self.child.pid), "warp", "Dooku_B"])
+        mem = dolphin.LiveMem.attach(self.child.pid)
+        self.addCleanup(mem.close)
+        self.assertIn("dry run", out.getvalue())
+        self.assertEqual(mem.scalar(dolphin.CUR_LEVEL, "u32"), 123)
+
+    def test_warp_write_waits_for_load(self):
+        out = io.StringIO()
+        with mock.patch.object(dolphin, "find_dol", return_value=None), \
+                contextlib.redirect_stdout(out):
+            rc = dolphin.main(["--pid", str(self.child.pid), "warp", "dooku_b",
+                               "--write", "--timeout", "5"])
+        self.assertEqual(rc, 0, out.getvalue())
+        self.assertIn("loaded: 80 Dooku_B", out.getvalue())
+
     def test_wait_reaches_value(self):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rc = dolphin.main(["--pid", str(self.child.pid), "wait",
-                               "0x8040AA14", "--equals", "1234",
+                               "0x8040AA14", "--type", "u32",
                                "--timeout", "2"])
         self.assertEqual(rc, 0)
         self.assertIn("reached", out.getvalue())

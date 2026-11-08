@@ -3,8 +3,9 @@
 A running game answers questions that static analysis only guesses at: which
 caller reaches a function, what a field holds in a known state, which global
 changes when something happens on screen, or how often a function runs.
-`tools/dolphin.py` reads the user's running Dolphin directly, and
-`tools/ramdump.py` accepts `live` wherever it takes a dump.
+`tools/dolphin.py` reads the user's running Dolphin directly, can move the
+game to a chosen level, and `tools/ramdump.py` accepts `live` wherever it
+takes a dump.
 
 Runtime evidence supports a type, name or field offset. It does not replace the
 oracle: confirm every layout against the target assembly, and never report it as
@@ -25,9 +26,11 @@ Skip it for questions that the assembly, symbols or a dump already answer.
 
 ## Rules
 
-- **Read-only.** Agents read through `/proc/<pid>/mem` and never write to
-  Dolphin's memory. Code reaches the game only through a Gecko code that the
-  user pastes and enables.
+- **Reads by default.** Agents read through `/proc/<pid>/mem`. The only writes
+  are the [drivers](#driving-the-game) below, such as `warp --write`, and only
+  after the user has said in this session that agents may drive the game. Never
+  drive while the user is playing or practising. Code reaches the game only
+  through a Gecko code that the user pastes and enables.
 - **Ask, then verify.** Ask the user for a game state (see below). Then confirm
   it with `dolphin.py wait` or `read`; don't rely on the reply alone.
 - **Clean up.** When a trace is finished, ask the user to disable the logger
@@ -53,8 +56,10 @@ here).
 
 ## Asking the user
 
-When a question needs a state that the game isn't in, or needs a Gecko code
-enabled, ask the user with **one self-contained request**:
+When a question needs a state that the game isn't in, first check whether a
+[driver](#driving-the-game) reaches it and whether the user has allowed driving
+this session. Otherwise, or when a Gecko code is needed, ask the user with
+**one self-contained request**:
 
 1. **State:** the level, area, menu or event. Give the route if it isn't obvious,
    and say what to avoid, such as "stand still, don't enter range of Dooku".
@@ -67,8 +72,8 @@ enabled, ask the user with **one self-contained request**:
 
 Example:
 
-> Could you load Episode II, Chapter 6 and reach Dooku's second phase (after the
-> first lightsaber duel)? Please stand still near the entrance. Also enable this
+> Could you load the Count Dooku chapter (Episode II) and reach his second phase
+> (after the first lightsaber duel)? Please stand still near the entrance. Also enable this
 > Gecko code, named "trace NuRandInt":
 >
 > ```
@@ -114,6 +119,50 @@ python3 tools/ramdump.py diff dooku_stage2 live --section sbss
 Memory Engine locks and code writes are unreliable for experiments. A lock
 can't hold a value that the game rewrites many times per frame, and Dolphin's
 JIT can keep running code it has already compiled. Use Gecko codes instead.
+
+## Driving the game
+
+Drivers put the game into a state by making the same store that the game
+itself makes. They are dry runs unless given `--write`. They refuse to act while
+emulation is paused or another change is pending, and they wait until the game
+confirms the new state.
+
+```sh
+python3 tools/dolphin.py levels                 # index, name and path
+python3 tools/dolphin.py levels dooku
+python3 tools/dolphin.py level                  # live current and pending level
+python3 tools/dolphin.py warp Dooku_B           # dry run
+python3 tools/dolphin.py warp Dooku_B --write   # load it and wait
+```
+
+`warp` takes an index, an exact name or a unique substring.
+
+**How the warp works:**
+- The level table is `lbl_801D68E0`: 127 entries of `0xA8` bytes, with the path
+  at `+8` and the name at `+0xC`. Indices 0–122 are story and bonus levels,
+  then 123 `Map_E` (the Dex's Diner hub), 124 `titles`, 125 `credits` and 126
+  `status`.
+- `lbl_804093AC` holds the current level and `lbl_804093B0` the pending level
+  (-1 for none). The main loop in `game/main.s` loads the pending level.
+- Doors, cutscenes, menus and `SceneSelect_HandleSelection` change the level by
+  storing an index there, so `warp` does exactly the same thing.
+
+**Not covered:** a warp loads the level with the current party and story
+state. It doesn't select characters, restore a save or skip into a later phase
+of a fight. Ask the user for those, or make them reproducible with a Dolphin
+save state that the user names.
+
+**Adding a driver:** as research finds more of the game's own state switches
+(character select, story flags, phase triggers, free play), turn each one into
+a driver in `tools/dolphin.py` with the same shape:
+1. Cite the game code that makes the same store, in the doc and the code.
+2. Make it a dry run unless given `--write`, and check for paused emulation and
+   pending changes.
+3. Wait until the game confirms the new state, and report a timeout.
+4. Test it against the fake Dolphin in `tests/test_dolphin.py`.
+
+Never patch code or freeze values to force a state. Drivers make one-shot data
+stores; anything ongoing is a Gecko code the user enables.
 
 ## Call tracing with a Gecko logger
 

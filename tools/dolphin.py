@@ -2,8 +2,9 @@
 """Read the running Dolphin's GL5E4F RAM and build Gecko call tracers.
 
 Agents use this to turn static guesses into runtime evidence without a
-debugger. Everything here is read-only towards Dolphin: the only way code
-reaches the game is a Gecko code that the user pastes and enables. See
+debugger. Everything here reads Dolphin except `warp --write`, which stores one level
+index the same way the game's doors and menus do. Code reaches the game only
+through a Gecko code that the user pastes and enables. See
 docs/dolphin_runtime.md for the workflow and the rules.
 
 Dolphin keeps emulated RAM in an unlinked shared-memory file
@@ -18,6 +19,9 @@ Commands:
     wait ADDR|SYM --equals V   block until a value is reached (state gates)
     watch ADDR|SYM [...]       print values as they change
     snapshot LABEL             save MEM1 to dumps/LABEL.raw + manifest entry
+    levels                     list level indices and names (retail DOL)
+    level                      current and pending level of the live game
+    warp LEVEL --write         request a level change (the one write we make)
     trace-code FUNC[...]       emit a Gecko C2 logger for function entries
     trace-tail                 read the logger ring, summarise callers/values
 """
@@ -42,6 +46,12 @@ MEM1_BASE = 0x80000000
 MEM1_SIZE = 0x1800000
 SDA_BASE = 0x8040FA40   # r13
 FRAME_COUNTER = 0x8040AA14  # retraceCount
+
+LEVEL_TABLE = 0x801D68E0      # lbl_801D68E0, 0xA8-byte entries
+LEVEL_ENTRY = 0xA8             # +8 path, +0xC name
+LEVEL_COUNT = 127             # 124 titles, 125 credits, 126 status
+CUR_LEVEL = 0x804093AC        # lbl_804093AC, current level index
+NEXT_LEVEL = 0x804093B0       # lbl_804093B0, pending level index or -1
 
 DEFAULT_RING = 0x80D00000
 RING_BYTES = 0x10000          # entry area; header is 16 bytes before it
@@ -149,6 +159,14 @@ class LiveMem:
     def scalar(self, addr, kind):
         fmt, width = SCALARS[kind]
         return struct.unpack(fmt, self.read(addr, width))[0]
+
+    def write_u32(self, addr, value):
+        """The only write path; callers gate it behind --write."""
+        if not (MEM1_BASE <= addr and addr + 4 <= MEM1_BASE + MEM1_SIZE):
+            raise DolphinError(f"0x{addr:08X} is outside MEM1")
+        with open(f"/proc/{self.pid}/mem", "r+b", buffering=0) as fh:
+            fh.seek(self.host_base + addr - MEM1_BASE)
+            fh.write(struct.pack(">I", value & 0xFFFFFFFF))
 
     def read_all(self):
         out = bytearray()
@@ -485,6 +503,112 @@ def original_word(addr, args):
     return word
 
 
+# --------------------------------------------------------------------------- #
+# Levels
+# --------------------------------------------------------------------------- #
+def level_names(read):
+    """[(index, path, name)] from the level table via read(addr, n)."""
+    def cstr(ptr):
+        if not MEM1_BASE <= ptr < MEM1_BASE + MEM1_SIZE:
+            return ""
+        return read(ptr, 64).split(b"\0")[0].decode("latin-1")
+    out = []
+    for i in range(LEVEL_COUNT):
+        path_ptr, name_ptr = struct.unpack(
+            ">II", read(LEVEL_TABLE + i * LEVEL_ENTRY + 8, 8))
+        out.append((i, cstr(path_ptr), cstr(name_ptr)))
+    return out
+
+
+def dol_reader():
+    dol = find_dol()
+    if not dol:
+        return None
+    data = dol.read_bytes()
+
+    def read(addr, n):
+        offs = struct.unpack(">18I", data[0:0x48])
+        addrs = struct.unpack(">18I", data[0x48:0x90])
+        sizes = struct.unpack(">18I", data[0x90:0xD8])
+        for o, a, s in zip(offs, addrs, sizes):
+            if s and a <= addr < a + s:
+                return data[o + addr - a:o + addr - a + n]
+        return b"\0" * n
+    return read
+
+
+def load_levels(args):
+    read = dol_reader()
+    if read is None:
+        read = attach_or_exit(args).read
+    return level_names(read)
+
+
+def resolve_level(levels, text):
+    if re.fullmatch(r"\d+", text):
+        i = int(text)
+        if 0 <= i < len(levels):
+            return levels[i]
+        raise DolphinError(f"level index {i} out of range 0..{len(levels) - 1}")
+    exact = [l for l in levels if l[2].lower() == text.lower()]
+    if exact:
+        return exact[0]
+    part = [l for l in levels if text.lower() in (l[1] + " " + l[2]).lower()]
+    if len(part) == 1:
+        return part[0]
+    hint = ", ".join(l[2] for l in part[:8]) or "none"
+    raise DolphinError(f"level '{text}' is ambiguous or unknown (matches: {hint})")
+
+
+def level_label(levels, i):
+    if i == 0xFFFFFFFF or i == -1:
+        return "-1 (none)"
+    return f"{i} {levels[i][2]}" if 0 <= i < len(levels) else f"{i} (?)"
+
+
+def cmd_levels(args, syms):
+    for i, path, name in load_levels(args):
+        if not args.filter or args.filter.lower() in (path + name).lower():
+            print(f"{i:4d}  {name:<24} {path}")
+
+
+def cmd_level(args, syms):
+    levels = load_levels(args)
+    mem = attach_or_exit(args)
+    print(f"current: {level_label(levels, mem.scalar(CUR_LEVEL, 'u32'))}")
+    print(f"pending: {level_label(levels, mem.scalar(NEXT_LEVEL, 'u32'))}")
+
+
+def cmd_warp(args, syms):
+    levels = load_levels(args)
+    index, path, name = resolve_level(levels, args.level)
+    if not args.write:
+        print(f"target {index} {name} ({path})")
+        print("dry run: pass --write to request the change (only with the "
+              "user's go-ahead for this session)")
+        return 0
+    mem = attach_or_exit(args)
+    cur, pending = mem.scalar(CUR_LEVEL, "s32"), mem.scalar(NEXT_LEVEL, "s32")
+    print(f"current {level_label(levels, cur)}; target {index} {name} ({path})")
+    if pending != -1:
+        raise DolphinError(f"a level change to {level_label(levels, pending)} "
+                           f"is already pending; wait for it to finish")
+    if not frame_rate(mem, 0.1):
+        raise DolphinError("emulation is paused; ask the user to resume")
+    mem.write_u32(NEXT_LEVEL, index)
+    print(f"requested: lbl_804093B0 = {index}")
+    deadline = time.time() + args.timeout
+    while time.time() < deadline:
+        cur, pending = mem.scalar(CUR_LEVEL, "s32"), mem.scalar(NEXT_LEVEL, "s32")
+        if cur == index and pending == -1:
+            print(f"loaded: {index} {name}")
+            return 0
+        time.sleep(0.1)
+    print(f"timeout: current {level_label(levels, cur)}, pending "
+          f"{level_label(levels, pending)}")
+    return 2
+
+
 def cmd_trace_code(args, syms):
     lines = [f"$Trace ring 0x{args.ring:08X} [decomp agent]",
              f"04{(args.ring + 4) & 0x1FFFFFF:06X} {RING_MAGIC:08X}"]
@@ -620,6 +744,20 @@ def main(argv=None):
     p.add_argument("--note", help="game state, kept in dumps/manifest.txt")
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_snapshot)
+
+    p = sub.add_parser("levels", help="list level indices and names")
+    p.add_argument("filter", nargs="?")
+    p.set_defaults(func=cmd_levels)
+
+    p = sub.add_parser("level", help="show the live current/pending level")
+    p.set_defaults(func=cmd_level)
+
+    p = sub.add_parser("warp", help="request a level change")
+    p.add_argument("level", help="index, exact name (Dooku_B) or unique substring")
+    p.add_argument("--write", action="store_true",
+                   help="actually write; without it this is a dry run")
+    p.add_argument("--timeout", type=float, default=60)
+    p.set_defaults(func=cmd_warp)
 
     p = sub.add_parser("trace-code", help="print a Gecko logger for functions")
     p.add_argument("functions", nargs="+",
