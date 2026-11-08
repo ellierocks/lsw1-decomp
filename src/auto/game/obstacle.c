@@ -3778,3 +3778,225 @@ s32 fn_800F8414(void *arg0, s32 arg1, s32 arg2)
   }
   *((s16 *) (((s8 *) arg0) + 0x4E)) = 4;
 }
+
+s32 fn_800B9ED4(void);
+void GameObjectNearFloor(void *, void *);
+void fn_80071D08(s32, s32);
+extern const f32 lbl_801A8E40[];
+extern const f32 lbl_801A8E44[];
+extern const f32 lbl_801A8E48[];
+extern const f32 lbl_801A8E4C[];
+extern f32 lbl_804097B0;
+
+s32 ResetCode(u8 *obj)
+{
+    u8 *e;
+    f32 t;
+    s16 type;
+
+    (*(u8 **)(obj + 0xEEC))[0x7C2] = 0;
+    *(f32 *)(*(u8 **)(obj + 0xEEC) + 0x5D4) = (f32)fn_800B9ED4() * lbl_801A8E40[0] * lbl_801A8E44[0] - lbl_801A8E48[0];
+    *(f32 *)(*(u8 **)(obj + 0xEEC) + 0x5D8) = (f32)fn_800B9ED4() * lbl_801A8E40[0] * lbl_801A8E44[0] - lbl_801A8E48[0];
+    *(f32 *)(*(u8 **)(obj + 0xEEC) + 0x5DC) = (f32)fn_800B9ED4() * lbl_801A8E40[0] * lbl_801A8E44[0] - lbl_801A8E48[0];
+    *(s32 *)(*(u8 **)(obj + 0xEEC) + 0x684) = 0;
+    *(s32 *)(*(u8 **)(obj + 0xEEC) + 0x680) = 0;
+    *(s32 *)(*(u8 **)(obj + 0xEEC) + 0x644) = 0;
+    (*(u8 **)(obj + 0xEEC))[0x7BC] = 0;
+    (*(s8 **)(obj + 0xEEC))[0x7E1] = -1;
+    *(u32 *)(*(u8 **)(obj + 0xEEC) + 0x7B0) &= ~0x08000000;
+    *(u32 *)(*(u8 **)(obj + 0xEEC) + 0x7B0) &= ~0x20000000;
+    (*(u8 **)(obj + 0xEEC))[0x7D0] = 1;
+    (*(u8 **)(obj + 0xEEC))[0x7DA] = 0;
+    *(s32 *)(*(u8 **)(obj + 0xEEC) + 0x6A4) = 0;
+    *(f32 *)(*(u8 **)(obj + 0xEEC) + 0x738) = lbl_801A8E4C[0];
+    {
+    s8 *q = *(s8 **)(obj + 0xEEC);
+    q[0x7EB] = -1;
+    q[0x7EA] = -1;
+    q[0x7E9] = -1;
+    q[0x7E8] = -1;
+    }
+    *(s16 *)(obj + 0x5A) = -1;
+    type = *(s16 *)(obj + 0x1074);
+    if (type != 7 && type != 0x43 && type != 0xF) {
+        if (!(*(s32 *)(*(u8 **)(obj + 0x64) + 4) & 0x40)) {
+            (*(u8 **)(obj + 0xEEC))[0x7CB] = 0;
+        }
+    }
+    if (obj[0x285] != 0) {
+        *(f32 *)(*(u8 **)(obj + 0xEEC) + 0x6E8) = lbl_804097B0;
+    } else {
+        e = *(u8 **)(obj + 0xEEC);
+        t = *(f32 *)(e + 0x6E8);
+        if (t > lbl_801A8E4C[0]) {
+            *(f32 *)(e + 0x6E8) = t - lbl_80408E9C;
+        }
+    }
+    GameObjectNearFloor(obj, *(u8 **)(obj + 0xEEC) + 0x760);
+    if (*(s32 *)(*(u8 **)(obj + 0xEEC) + 0x820) != -1) {
+        fn_80071D08(*(s32 *)(*(u8 **)(obj + 0xEEC) + 0x820), 0);
+    }
+}
+
+extern const f32 lbl_801A9088[];
+extern const f32 lbl_801A908C[];
+extern u8 *lbl_80409430;
+extern f32 lbl_8040A72C;
+extern s32 lbl_8040B058;
+
+u8 *fn_800ECAE8(u8 *obj, f32 range)
+{
+    f32 dir[3];
+    f32 d[3];
+    f32 r2 = range * range;
+    s32 *tbl;
+    u8 *ent;
+    u16 ang;
+    s8 idx;
+    u8 *best;
+    s32 i;
+    f32 bestd;
+    u8 *p;
+    f32 dist;
+
+    tbl = *(s32 **)(lbl_80409410 + 0x2DC);
+    if (tbl != NULL && (idx = obj[0x601]) != -1 &&
+        (ent = (u8 *)(idx * 0x104 + *tbl), *(u16 *)(ent + 0x64) & 0x40)) {
+        ang = *(u16 *)(obj + 0x626) + *(u16 *)(ent + 0x6A);
+    } else {
+        ang = gCameraAngles[0];
+    }
+    best = NULL;
+    i = 0;
+    NuVecRotateY(dir, lbl_801D5988, *(u16 *)(*(u8 **)(*(u8 **)(obj + 0xEEC) + 0x61C) + 0x26) + ang);
+    bestd = lbl_801A9088[0];
+    for (p = lbl_80409430; i < lbl_8040B058; i++, p += 0x1098) {
+        if (p != obj && (*(u32 *)(p + 0x20C) & 0x80080000) == 0x80080000 && p[0x28F] == 0 &&
+            (*(s32 *)(p + 0x208) & 1)) {
+            dist = fn_8000CD08(p + 0x6C, obj + 0x6C, d);
+            if (dist < r2 && dir[0] * d[0] + dir[2] * d[2] < lbl_801A908C[0] && dist < bestd) {
+                bestd = dist;
+                best = p;
+            }
+        }
+    }
+    lbl_8040A72C = bestd;
+    return best;
+}
+
+s32 fn_800BA1E8(void *);
+void fn_800D4E70(void *);
+extern const f32 lbl_801A9B64[];
+struct TrigVec { s32 x, y, z; };
+struct TrigEntry { u8 pad0[0x10]; struct TrigVec pos; u8 pad1C[0x14]; u8 flags; u8 hit; u8 pad32[2]; };
+
+void TriggerObstacle(u8 *obj, u8 *player)
+{
+    s32 i;
+    struct TrigEntry *t;
+    u8 *e;
+
+    obj[0x1F] = 1;
+    for (i = 0; i < obj[0x1E]; i++) {
+        t = (struct TrigEntry *)(obj + 0xA8) + i;
+        if (!(t->flags & 0x18)) {
+            *(struct TrigVec *)fn_80013380(t) = t->pos;
+            if (fn_800BA1E8(t) != 0) {
+                t->hit = 1;
+            }
+            if ((u16)(*(u16 *)(obj + 0x24) + 2) > 1) {
+                fn_8006DE5C(*(s16 *)(obj + 0x24), (s32)(obj + 0x38));
+            }
+            if (*(s16 *)(obj + 0x26) != -1) {
+                fn_8006DE5C(*(s16 *)(obj + 0x26), (s32)(obj + 0x38));
+            }
+        }
+    }
+    fn_80106128(obj);
+    if (player != NULL) {
+        e = *(u8 **)(player + 0xEEC);
+        if (e != NULL) {
+            if (obj[0x22] == 1) {
+                NewRumble(**(s32 **)(e + 0x61C), lbl_801A9B64[0]);
+            } else {
+                fn_800D4E70(player);
+            }
+        } else {
+            JudderGameCamera(MenuHeader, 0, 0, lbl_801A9B64[0]);
+        }
+    }
+}
+
+s32 fn_800FAE64(s32, s32);
+extern f32 lbl_801A9744[];
+extern const f32 lbl_801A9748[];
+
+void fn_800FEBEC(s32 arg0) {
+    f32 temp_f0;
+    f32 temp_f0_2;
+    f32 temp_f0_3;
+    f32 temp_f13;
+    s16 temp_r4_2;
+    void *temp_r11;
+    void *temp_r11_2;
+    void *temp_r11_3;
+    void *temp_r4;
+    void *temp_r9;
+    void *temp_r9_2;
+    void *temp_r9_3;
+
+    ResetCode((u8 *)arg0);
+    ApplyGravity(arg0, 0, 0, lbl_801A9744[0], lbl_801A9748[0]);
+    (*(s8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7B4))) = 1;
+    temp_r11 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+    (*(s32 *)((s8 *)(arg0) + (0xF24))) = (s32) ((*(s32 *)((s8 *)(arg0) + (0xF24))) | 0x10000000);
+    if ((s32) (*(u8 *)((s8 *)(temp_r11) + (0x7DF))) == 0x19) {
+        (*(f32 *)((s8 *)(temp_r11) + (0x714))) = (f32) ((*(f32 *)((s8 *)(temp_r11) + (0x714))) - lbl_80408E9C);
+        temp_r11_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+        temp_f0 = (*(f32 *)((s8 *)(temp_r11_2) + (0x714)));
+        if ((temp_f0 <= lbl_801A9744[0])) {
+            *(s8 *)((s8 *)temp_r11_2 + 0x7DF) = -1;
+        }
+    }
+    temp_r11_3 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+    if (*(u8 *)((s8 *)temp_r11_3 + 0x7DF) == 0x26) {
+        f32 zero;
+        temp_f13 = *(f32 *)((s8 *)temp_r11_3 + 0x714);
+        zero = lbl_801A9744[0];
+        do {
+            if (temp_f13 > zero) {
+                *(f32 *)((s8 *)temp_r11_3 + 0x714) = temp_f13 - lbl_80408E9C;
+            }
+        } while (0);
+        temp_r9 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+        if (*(f32 *)((s8 *)temp_r9 + 0x714) <= zero && *(u8 *)((s8 *)arg0 + 0x285) != 0) {
+            *(s8 *)((s8 *)temp_r9 + 0x7DF) = -1;
+            *(f32 *)((s8 *)arg0 + 0x78) = zero;
+            *(f32 *)((s8 *)arg0 + 0x80) = zero;
+        }
+    }
+    ForcedBackCode((void *) arg0);
+    fn_800EC0A0((void *) arg0);
+    temp_r4 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+    if (*(u8 *)((s8 *)temp_r4 + 0x7DF) == 0x1B) {
+        temp_r4_2 = *(s16 *)((s8 *)temp_r4 + 0x7A6);
+        if (((s32 *)*(s32 *)((s8 *)*(void **)((s8 *)arg0 + 0x60) + 0xC))[temp_r4_2] == 0 || fn_80095630(arg0 + 8, temp_r4_2, 1, 0) != 0) {
+            temp_r9_2 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+            *(f32 *)((s8 *)temp_r9_2 + 0x714) = *(f32 *)((s8 *)temp_r9_2 + 0x714) - lbl_80408E9C;
+            temp_r9_3 = (*(void **)((s8 *)(arg0) + (0xEEC)));
+            if (*(f32 *)((s8 *)temp_r9_3 + 0x714) <= lbl_801A9744[0]) {
+                *(s8 *)((s8 *)temp_r9_3 + 0x7DF) = -1;
+            } else if ((u32)(*(u16 *)((s8 *)arg0 + 0x1074) - 0x1D) <= 1U) {
+                fn_801044F0((void *)arg0);
+            }
+        }
+    }
+    fn_800F99D4((void *) arg0, (*(s32 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x61C)))) + (8))) & 0x40, 0, 0, 0, 0);
+    if ((s16) (*(u16 *)((s8 *)(arg0) + (0x1074))) == 0x3F) {
+        fn_800FAE64(arg0, (*(s32 *)((s8 *)((*(void **)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x61C)))) + (8))) & 0x80);
+    }
+    if ((*(s32 *)((s8 *)(arg0) + (0x20C))) & 0x01000000) {
+        ForceCode((void *) arg0, 0, 0, -1, 0);
+    }
+    FallLandCode((void *) arg0);
+}

@@ -124,6 +124,20 @@ class SearchTests(unittest.TestCase):
                 self.assertEqual(os_.main(["f", str(src), "--const-locals", "--dry-run"]), 0)
             self.assertIn("48 variants", out.getvalue())
 
+    def test_body_is_spliced_into_source(self):
+        unit = "int g(void);\nvoid f(struct s* p)\n{\n    p->a = 0;\n}\nint h(void) { return 1; }\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "u.c"
+            src.write_text(unit)
+            body = Path(tmp) / "try.c"
+            body.write_text(SOURCE)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(os_.main(["f", str(src), "--body", str(body), "--const-locals",
+                                           "--dry-run"]), 0)
+            self.assertIn("48 variants", out.getvalue())
+            self.assertEqual(src.read_text(), unit)
+
 
 BIG = "void f(int* x)\n{\n    /* order: begin */\n" + "".join(
     f"    x[{k}] = {k};\n" for k in range(9)) + "    /* order: end */\n}\n"
