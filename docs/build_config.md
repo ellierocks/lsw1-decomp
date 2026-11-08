@@ -399,8 +399,12 @@ The analysis exclusions in `config.yml` are:
 `python3 tools/missed_ha_relocs.py` proposes entries from the generated assembly
 and `symbols.txt`: every path must reach a first `@l` use of the same symbol
 and addend before any other read or clobber of the register, and both encoded
-halves must agree with that address. Unknown instructions, calls, indirect
-branches, exits and cycles before the use are rejected. The tool deliberately
+halves must agree with that address. Unknown instructions, indirect
+branches and exits before the use are rejected. Calls and cycles are rejected
+for volatile registers. For a nonvolatile register (r14–r31) the proof crosses
+direct `bl` calls, treats `blr` or an `lmw` that restores the register as a dead
+end, and accepts a loop when its exits qualify; at least one agreeing `@l` use
+must still be reached. The proof is a linear depth-first walk. The tool deliberately
 leaves unresolved cases alone, including bare constants without symbolic uses.
 Review proposals before adding them, then rebuild and compare the whole DOL
 and progress report. Existing entries disappear from the next proposal output;

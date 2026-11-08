@@ -3,8 +3,12 @@
 
 Run after build.sh: python3 tools/missed_ha_relocs.py > work/missing-ha.yml
 The output is a proposal for manual review, never an automatic config edit.
-Unknown instructions, calls, indirect control flow, cycles, exits, register
-reads without an @l relocation, and clobbers before the use all fail closed.
+Unknown instructions, indirect control flow, cycles, register reads without an
+@l relocation, and clobbers before the use all fail closed. For r14-r31 only, a
+direct `bl` is crossed (the EABI preserves those registers) and a path that
+reaches `blr` or an `lmw` restoring the register without reading it is dead,
+and a loop is accepted when its exits qualify; at least one path must still
+reach the use.
 Every successor must reach a first @l use of the identical symbol/addend.
 
 Schema: pinned DTK e4219e7, src/cmd/dol.rs AddRelocationConfig and
@@ -34,12 +38,12 @@ LIS = re.compile(r"(r\d+),\s*(-?(?:0x[\da-fA-F]+|\d+))$")
 # checking the first operand misses update loads/stores, lmw and string loads.
 SAFE = set("""
     add add. addc addc. adde adde. addi addic addic. addis addme addze
-    subf subf. subfc subfe subfic subfme subfze neg neg.
+    subf subf. subfc subfe subfic subic subic. subfme subfze neg neg.
     mullw mullw. mulli mulhw mulhwu divw divwu
     and and. andc andc. andi. andis. or or. orc xor xor. xori xoris ori oris
     nand nor eqv slw srw sraw srawi rlwinm rlwinm. rlwimi rlwnm
     clrlwi clrlwi. clrrwi rotlw rotlwi extsh extsh. extsb extsb.
-    li lis mr cmpwi cmplwi cmpw cmplw
+    li lis mr mr. cmpwi cmplwi cmpw cmplw
     lbz lbzu lbzx lbzux lhz lhzu lhzx lhzux lha lhau lhax lhaux
     lwz lwzu lwzx lwzux stb stbu stbx stbux sth sthu sthx sthux
     stw stwu stwx stwux lfs lfsu lfsx lfsux lfd lfdu lfdx lfdux
@@ -51,6 +55,8 @@ SAFE = set("""
     cror crand crxor crnor crandc creqv crorc crnand crclr crset crmove
     nop sync isync eieio
 """.split())
+LMW = re.compile(r"r(\d+), *-?(?:0x[\da-fA-F]+|\d+)\(r1\)")
+DEAD = ("dead",)  # a path that ends (or restores the register) without reading it
 MEMORY_LOW = set("lbz lhz lha lwz stb sth stw lfs lfd stfs stfd".split())
 
 
@@ -143,6 +149,81 @@ def low_use(insn: Instruction, register: str, symbols: dict[str, int]):
     return name, addend, target
 
 
+def step(insn: Instruction, register: str, high: int, symbols: dict[str, int],
+         nonvolatile: bool):
+    """Classify one instruction on a path from the lis: a use, a dead end, a
+    failure (None) or the list of successor addresses."""
+    use = low_use(insn, register, symbols)
+    if use:
+        name, addend, target = use
+        return ("use", name, addend) if ((target + 0x8000) >> 16) & 0xFFFF == high else None
+    address = insn.address
+    opcode = insn.word >> 26
+    restore = LMW.fullmatch(insn.operands) if insn.mnemonic == "lmw" else None
+    if nonvolatile and (insn.mnemonic == "blr" or (restore and int(restore[1]) <= int(register[1:]))):
+        # The epilogue restores (or the return abandons) the nonvolatile register
+        # without reading it: the lis value is dead on this path.
+        return DEAD
+    if opcode == 18 and insn.word & 1 and nonvolatile:
+        # The EABI preserves r14-r31 across a direct call (`bl`).
+        return [address + 4]
+    if opcode in {16, 18}:
+        if insn.word & 1:
+            return None  # A linked branch may clobber a volatile register.
+        bits = 26 if opcode == 18 else 16
+        displacement = signed(insn.word & ((1 << bits) - 4), bits)
+        successors = [displacement if insn.word & 2 else address + displacement]
+        if opcode == 16 and ((insn.word >> 21) & 20) != 20:
+            successors.append(address + 4)
+        return successors
+    if insn.mnemonic not in SAFE or re.search(rf"\b{register}\b", insn.operands):
+        return None
+    return [address + 4]
+
+
+def prove(instructions: dict[int, Instruction], start: int, register: str, high: int,
+          symbols: dict[str, int]):
+    """Walk every path from `start` until the register is used or dead. All reached
+    uses must agree on symbol and addend, and at least one must exist. A cycle fails
+    for volatile registers; for r14-r31 its exits decide (a pure cycle has none)."""
+    nonvolatile = int(register[1:]) >= 14
+    uses, found = set(), set()
+    state = {}  # address -> 1 while on the DFS stack, 2 when finished
+    stack = [(start, None)]
+    while stack:
+        address, successors = stack.pop()
+        if successors is None:
+            if state.get(address) == 1:
+                if not nonvolatile:
+                    return None
+                continue
+            if state.get(address) == 2:
+                continue
+            if address not in instructions:
+                return None
+            outcome = step(instructions[address], register, high, symbols, nonvolatile)
+            if outcome is None:
+                return None
+            if outcome is DEAD or outcome[0] == "use":
+                state[address] = 2
+                if outcome is not DEAD:
+                    uses.add(address)
+                    found.add(outcome[1:])
+                continue
+            state[address] = 1
+            successors = iter(outcome)
+        nxt = next(successors, None)
+        if nxt is None:
+            state[address] = 2
+            continue
+        stack.append((address, successors))
+        stack.append((nxt, None))
+    if len(found) != 1:
+        return None
+    name, addend = found.pop()
+    return name, addend, frozenset(uses)
+
+
 def propose(function: Function, symbols: dict[str, int]) -> list[Proposal]:
     instructions = {insn.address: insn for insn in function.instructions}
     proposals = []
@@ -154,49 +235,7 @@ def propose(function: Function, symbols: dict[str, int]) -> list[Proposal]:
         high = int(immediate, 0) & 0xFFFF
         if register == "r0" or lis.word != (15 << 26 | int(register[1:]) << 21 | high):
             continue
-        active = set()
-        memo = {}
-
-        def visit(address):
-            if address in active or address not in instructions:
-                return None
-            if address in memo:
-                return memo[address]
-            insn = instructions[address]
-            use = low_use(insn, register, symbols)
-            if use:
-                name, addend, target = use
-                if ((target + 0x8000) >> 16) & 0xFFFF != high:
-                    return None
-                return (name, addend, frozenset({address}))
-            opcode = insn.word >> 26
-            if opcode in {16, 18}:
-                # A linked branch may clobber any register; don't cross calls.
-                if insn.word & 1:
-                    return None
-                bits = 26 if opcode == 18 else 16
-                displacement = signed(insn.word & ((1 << bits) - 4), bits)
-                target = displacement if insn.word & 2 else address + displacement
-                successors = [target]
-                if opcode == 16 and ((insn.word >> 21) & 20) != 20:
-                    successors.append(address + 4)
-            else:
-                if insn.mnemonic not in SAFE or re.search(rf"\b{register}\b", insn.operands):
-                    return None
-                successors = [address + 4]
-            active.add(address)
-            results = [visit(successor) for successor in successors]
-            active.remove(address)
-            result = None
-            if all(results) and len({item[:2] for item in results}) == 1:
-                result = (*results[0][:2], frozenset().union(*(item[2] for item in results)))
-            memo[address] = result
-            return result
-
-        try:
-            result = visit(lis.address + 4)
-        except RecursionError:
-            result = None  # An unusually long path cannot be proved by this pass.
+        result = prove(instructions, lis.address + 4, register, high, symbols)
         if result:
             name, addend, uses = result
             proposals.append(Proposal(function.section, lis.address, name, addend,

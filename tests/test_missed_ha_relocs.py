@@ -67,6 +67,37 @@ class MissedHaTests(unittest.TestCase):
             with self.subTest(instruction=instruction):
                 self.assertEqual(proposals([LIS, instruction, LOAD, RETURN]), [])
 
+    # r31 forms of LIS/LOAD for the nonvolatile rules (EABI preserves r14-r31).
+    SAVED_LIS = (0x3FE0801A, "lis r31, 0x801a")
+    SAVED_LOAD = (0xC03FB914, "lfs f1, constant@l(r31)")
+    SAVED_RESTORE = (0xBBA1000C, "lmw r29, 0xc(r1)")
+
+    def test_nonvolatile_register_crosses_direct_calls(self):
+        result, = proposals([self.SAVED_LIS, branch(1, 3, link=True), self.SAVED_LOAD, RETURN])
+        self.assertEqual(result.uses, (START + 8,))
+
+    def test_nonvolatile_epilogue_path_is_dead_but_one_use_is_required(self):
+        rows = [self.SAVED_LIS, branch(1, 4, conditional=True), self.SAVED_LOAD, NOP,
+                self.SAVED_RESTORE, RETURN]
+        result, = proposals(rows)
+        self.assertEqual(result.uses, (START + 8,))
+        self.assertEqual(proposals([self.SAVED_LIS, self.SAVED_RESTORE, RETURN]), [])
+        # An lmw that restores only higher registers leaves r29 live: no dead end.
+        self.assertEqual(proposals([(0x3FA0801A, "lis r29, 0x801a"),
+                                    (0xBBC1000C, "lmw r30, 0xc(r1)"), RETURN]), [])
+
+    def test_nonvolatile_loop_with_qualifying_exit_is_accepted(self):
+        rows = [self.SAVED_LIS, NOP, branch(2, 1, conditional=True), self.SAVED_LOAD, RETURN]
+        result, = proposals(rows)
+        self.assertEqual(result.uses, (START + 12,))
+        self.assertEqual(proposals([self.SAVED_LIS, branch(1, 1)]), [])
+        self.assertEqual(proposals([self.SAVED_LIS, NOP, branch(2, 1, conditional=True),
+                                    (0x7FE3FB78, "mr r3, r31"), RETURN]), [])
+
+    def test_nonvolatile_indirect_calls_still_fail(self):
+        self.assertEqual(proposals([self.SAVED_LIS, (0x4E800421, "bctrl"),
+                                    self.SAVED_LOAD, RETURN]), [])
+
     def test_unrelocated_read_or_write_and_update_addressing_fail(self):
         for instruction in [(0x7D695B78, "mr r9, r11"),
                             (0x81610000, "lwz r11, 0x0(r1)"),

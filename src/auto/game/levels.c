@@ -1178,6 +1178,124 @@ void fn_800BCED8(void) {
     }
 }
 
+extern s32 lbl_801A1EC4[];
+extern s32 lbl_801A1ED4[];
+extern s32 lbl_801A1EE4[];
+extern f32 lbl_801A1EFC[];
+extern s32 lbl_803EB084[];
+extern s32 lbl_803EB090[];
+extern s32 lbl_803EB09C[];
+extern s32 lbl_803EB0A8[];
+extern s32 lbl_8040A670;
+extern f32 lbl_801A1F28[];
+extern s32 lbl_803EB0B4[];
+extern s32 lbl_803EB0C0[];
+extern s32 lbl_803EB0CC[];
+extern s32 lbl_8040922C;
+extern s32 lbl_80409230;
+extern s32 lbl_80409234;
+s32 fn_800131B8(s32 *);
+
+/* Retake_D (exit) and Retake_E (update) lifts: each special's instance animation plays
+ * a start sound once while running (flags < 0) and a stop sound at its end frame. Live in
+ * Retake_E (2026-11-08): the specials are lift_r2_lift*, end frame 64, ltime 1 at rest. */
+#define NuSpecialExistsFn ((s32 (*)(struct nuhspecial_s *))fn_800130F4)
+#define NuSpecialGetInstAnim ((struct nuinstanim_s *(*)(struct nuhspecial_s *))fn_8001384C)
+#define fn_800133FC_ ((s32 (*)(struct nuhspecial_s *))fn_800133FC)
+#define SPECIAL(x) ((struct nuhspecial_s *)(x))
+
+#define RETAKE_LIFT_FLAG(sp, bit) \
+    if (NuSpecialExistsFn(SPECIAL(sp)) != 0) { \
+        ia = NuSpecialGetInstAnim(SPECIAL(sp)); \
+        if (ia != NULL) { \
+            end = *SPECIAL(sp)->scene->instanim_data[ia->anim_ix]; \
+            if (ia->flags < 0) { \
+                fn_8006DCD4(lbl_801A1EC4, fn_800133FC_(SPECIAL(sp)) + 0x30); \
+            } else if (ia->ltime >= end && !(lbl_8040B154 & bit)) { \
+                lbl_8040B154 |= bit; \
+                fn_8006DCD4(lbl_801A1ED4, fn_800133FC_(SPECIAL(sp)) + 0x30); \
+            } else if (ia->ltime <= lbl_801A1EFC[0]) { \
+                lbl_8040B154 &= ~bit; \
+            } \
+        } \
+    }
+
+void fn_800BD1F4(void) {
+    struct nuinstanim_s *ia;
+    f32 end;
+
+    exit_by_spline(NULL, 0x25, 0x27);
+    RETAKE_LIFT_FLAG(lbl_803EB084, 1)
+    RETAKE_LIFT_FLAG(lbl_803EB090, 2)
+    RETAKE_LIFT_FLAG(lbl_803EB09C, 4)
+    if (NuSpecialExistsFn(SPECIAL(lbl_803EB0A8)) != 0) {
+        ia = NuSpecialGetInstAnim(SPECIAL(lbl_803EB0A8));
+        if (ia != NULL) {
+            end = *SPECIAL(lbl_803EB0A8)->scene->instanim_data[ia->anim_ix];
+            if (ia->flags < 0 && lbl_8040A670 == 0) {
+                lbl_8040A670 = 1;
+                fn_8006DCD4(lbl_801A1EE4, fn_800133FC_(SPECIAL(lbl_803EB0A8)) + 0x30);
+            } else if (ia->ltime <= lbl_801A1EFC[0] || ia->ltime >= end) {
+                lbl_8040A670 = 0;
+            }
+        }
+    }
+}
+
+#define fn_800131B8_ ((s32 (*)(struct nuhspecial_s *))fn_800131B8)
+
+void fn_800BD594(void) {
+    struct nuinstanim_s *ia;
+    f32 end;
+    s32 r;
+
+    if (NuSpecialExistsFn(SPECIAL(lbl_803EB0B4)) != 0) {
+        ia = NuSpecialGetInstAnim(SPECIAL(lbl_803EB0B4));
+        if (ia != NULL) {
+            end = *SPECIAL(lbl_803EB0B4)->scene->instanim_data[ia->anim_ix];
+            if (ia->flags < 0 && lbl_8040922C == 0) {
+                lbl_8040922C = 1;
+                fn_8006DCD4(lbl_801A1EE4, fn_800133FC_(SPECIAL(lbl_803EB0B4)) + 0x30);
+            } else if (ia->ltime <= lbl_801A1F28[0] || ia->ltime >= end) {
+                lbl_8040922C = 0;
+            }
+        }
+    }
+    if (NuSpecialExistsFn(SPECIAL(lbl_803EB0C0)) != 0) {
+        r = fn_800131B8_(SPECIAL(lbl_803EB0C0));
+        if (r == 1) {
+            ia = NuSpecialGetInstAnim(SPECIAL(lbl_803EB0C0));
+            if (ia != NULL) {
+                end = *SPECIAL(lbl_803EB0C0)->scene->instanim_data[ia->anim_ix];
+                if (ia->flags < 0 && lbl_80409230 == 0) {
+                    lbl_80409230 = r;
+                    fn_8006DCD4(lbl_801A1EE4, fn_800133FC_(SPECIAL(lbl_803EB0C0)) + 0x30);
+                } else if (ia->ltime <= lbl_801A1F28[0] || ia->ltime >= end) {
+                    lbl_80409230 = 0;
+                }
+            }
+        }
+    }
+    if (NuSpecialExistsFn(SPECIAL(lbl_803EB0CC)) != 0) {
+        ia = NuSpecialGetInstAnim(SPECIAL(lbl_803EB0CC));
+        if (ia != NULL) {
+            end = *SPECIAL(lbl_803EB0CC)->scene->instanim_data[ia->anim_ix];
+            if (ia->flags < 0) {
+                fn_8006DCD4(lbl_801A1EC4, fn_800133FC_(SPECIAL(lbl_803EB0CC)) + 0x30);
+            } else if (lbl_80409234 == 0 && ia->ltime >= end) {
+                lbl_80409234 = 1;
+                fn_8006DCD4(lbl_801A1ED4, fn_800133FC_(SPECIAL(lbl_803EB0CC)) + 0x30);
+            }
+        }
+    }
+}
+#undef NuSpecialExistsFn
+#undef NuSpecialGetInstAnim
+#undef fn_800133FC_
+#undef fn_800131B8_
+#undef SPECIAL
+#undef RETAKE_LIFT_FLAG
+
 extern s32 lbl_801A25D4[];
 extern s32 lbl_801A25DC[];
 extern s32 lbl_801A25E4[];
@@ -2131,6 +2249,125 @@ s32 fn_800BA244(s32 *arg0)
   }
   return 0;
 }
+
+#define NuSpecialExistsFn ((s32 (*)(struct nuhspecial_s *))fn_800130F4)
+#define NuSpecialGetInstAnim ((struct nuinstanim_s *(*)(struct nuhspecial_s *))fn_8001384C)
+#define PlaySfxAt ((s32 (*)(s32 *, void *))fn_8006DCD4)
+#define FindPlayer ((s8 *(*)(s32, s32, s32))fn_800D515C)
+s32 fn_8011E9C4(s32);
+/* Maul_F: the first three blocks track force-object lifts (lbl_803EAEC4 entries hold a
+ * nuhspecial_s at +4; confirmed live) and the last three track special lifts. The
+ * duplicated 0x7E fallback keeps the retail placement of the r29-r31 re-`lis`. */
+extern s32 lbl_801A2150[];
+extern s32 lbl_801A2164[];
+extern s32 lbl_801A2170[];
+extern f32 lbl_801A217C[];
+extern f32 lbl_801A2180[];
+extern s32 lbl_801D68E4[];
+extern s32 lbl_803EAD48[];
+extern s32 lbl_803EAD54[];
+extern s32 lbl_803EAD60[];
+extern s32 lbl_803EAEC4[];
+extern s32 lbl_80408F2C;
+extern s32 lbl_80408FE0;
+extern s32 lbl_804091F8;
+extern s32 lbl_80409240;
+extern s32 lbl_804093B0;
+extern s32 lbl_8040AF64;
+extern s32 lbl_8040AF94;
+extern u8 lbl_8040B060[];
+extern s32 lbl_8040B154;
+
+#define MAULF_FORCE(i, bit) \
+    if (lbl_803EAEC4[i] != 0) { \
+        ia = NuSpecialGetInstAnim((struct nuhspecial_s *)(lbl_803EAEC4[i] + 4)); \
+        if (ia != NULL) { \
+            if (ia->flags < 0) { \
+                if (!(lbl_8040B154 & bit)) { \
+                    lbl_8040B154 |= bit; \
+                    PlaySfxAt(lbl_801A2150, &ia->pad0[0x30]); \
+                } \
+            } else if (ia->ltime <= lbl_801A2180[0]) { \
+                lbl_8040B154 &= ~bit; \
+            } \
+        } \
+    }
+
+#define MAULF_SPECIAL(sp, bit) \
+    if (NuSpecialExistsFn((struct nuhspecial_s *)sp) != 0) { \
+        ia = NuSpecialGetInstAnim((struct nuhspecial_s *)sp); \
+        if (ia != NULL) { \
+            if (ia->flags < 0) { \
+                PlaySfxAt(lbl_801A2164, &ia->pad0[0x30]); \
+            } else if (ia->ltime > lbl_801A2180[0] && !(lbl_8040B154 & bit)) { \
+                lbl_8040B154 |= bit; \
+                PlaySfxAt(lbl_801A2170, &ia->pad0[0x30]); \
+            } \
+        } \
+    }
+
+void MaulFUpdate(void) {
+    struct nuinstanim_s *ia;
+    s8 *p;
+    struct episode_s *area;
+    s32 i;
+    s32 n;
+
+    if ((void *)lbl_80409240 != NULL && *(f32 *)(lbl_80409240 + 0x28) == lbl_801A217C[0] && lbl_8040B060[0] == 0) {
+        p = FindPlayer(8, 1, 1);
+        if (p == NULL || !(*(s32 *)(p + 0xF24) & 2) || (*(u8 *)(p + 0x28F) == 0 && *(u8 *)(p + 0x1085) != 0)) {
+            p = NULL;
+        }
+        if (p != NULL) {
+            lbl_8040B060[0] = 1;
+            if (lbl_804091F8 != 0) {
+                lbl_80408F2C = 1;
+                lbl_804093B0 = 0x7B;
+                if (lbl_80408FE0 == 0) {
+                    area = (struct episode_s *)lbl_80409410->unk1AC;
+                    if (area != NULL) {
+                        i = 0;
+                        n = -1;
+                        if (i < area->count) {
+                            do {
+                                n = area->levels[i];
+                                if (!(lbl_801D68E4[n * 0xA8 / 4] & 0x4000)) {
+                                    n = -1;
+                                    i++;
+                                }
+                            } while (i < area->count && n == -1);
+                        }
+                        if (n != -1) {
+                            lbl_804093B0 = n;
+                        }
+                    } else {
+                        lbl_804093B0 = 0x7E;
+                    }
+                } else {
+                    lbl_804093B0 = 0x7E;
+                }
+                if (lbl_8040AF64 != -1) {
+                    lbl_8040AF94 = 1;
+                }
+            } else {
+                fn_8011E9C4(0x25);
+            }
+        }
+    }
+    MAULF_FORCE(0, 1)
+    MAULF_FORCE(1, 2)
+    MAULF_FORCE(2, 4)
+    MAULF_SPECIAL(lbl_803EAD48, 8)
+    MAULF_SPECIAL(lbl_803EAD54, 0x10)
+    MAULF_SPECIAL(lbl_803EAD60, 0x20)
+}
+
+#undef MAULF_SPECIAL
+#undef MAULF_FORCE
+#undef FindPlayer
+#undef PlaySfxAt
+#undef NuSpecialGetInstAnim
+#undef NuSpecialExistsFn
 
 extern s32 lbl_801A2194[];
 extern s32 lbl_803EB120[];
@@ -3306,6 +3543,159 @@ void fn_800BD8E8(void) {
     lbl_80409238 = CheckAIMessage(lbl_80408F58, lbl_801A1FD0, 0);
     lbl_8040923C = CheckAIMessage(lbl_80408F58, lbl_801A1FE0, 0);
 }
+
+#define NuSpecialExistsFn ((s32 (*)(struct nuhspecial_s *))fn_800130F4)
+#define NuSpecialGetInstAnim ((struct nuinstanim_s *(*)(struct nuhspecial_s *))fn_8001384C)
+#define NuSpecialGetMtx ((s8 *(*)(struct nuhspecial_s *))fn_800133FC)
+#define PlaySfxAt ((s32 (*)(s32 *, void *))fn_8006DCD4)
+#define SPECIAL(x) ((struct nuhspecial_s *)(x))
+s32 fn_8010B780(s32, s32, s32);
+s32 fn_800958F8(s32, s32, s32);
+extern f32 lbl_801A206C[];
+extern f32 lbl_801A2070[];
+extern f32 lbl_801A2074[];
+extern f32 lbl_801A2078[];
+extern f32 lbl_801A207C[];
+extern s32 lbl_801A1FE8[];
+extern s32 lbl_801A1FF4[];
+extern s32 lbl_801A2000[];
+extern s32 lbl_801A2014[];
+extern s32 lbl_801A2024[];
+extern s32 lbl_801A2034[];
+extern s32 lbl_801A2048[];
+extern s32 lbl_801A205C[];
+extern s32 lbl_803EAEC4[];
+
+/* Maul_A update (level table +0x20): a cutscene timer (lbl_8040B060 state 0 -> 1 -> 2)
+ * that, once lbl_8040B0C8 reaches its end, enables the two force objects, then one-shot
+ * sounds keyed to the six specials found by fn_800BD8E8 and the lbl_803EAED0 object. */
+void fn_800BDA3C(void) {
+    struct nuinstanim_s *ia;
+    struct nuinstanim_s *t;
+    f32 start;
+    f32 end;
+    s32 i;
+    s32 *fo;
+    s32 a;
+    s32 b;
+
+    start = lbl_801A206C[0];
+    switch (lbl_8040B060[0]) {
+    case 0:
+        if ((void *)lbl_80409238 != NULL && *(f32 *)(lbl_80409238 + 0x28) != start) {
+            lbl_8040B0C8 = start;
+            lbl_8040B060[0] = 1;
+        }
+        break;
+    case 1:
+        fo = lbl_803EAEC4; /* unused, but keeps the retail lis/addi/mr placement */
+        lbl_8040B0C8 += lbl_80408E9C;
+        if (lbl_8040B0C8 >= lbl_801A2070[0]) {
+            lbl_8040B060[0] = 2;
+            fn_80105500(lbl_80409410, 1, 10, 1);
+            fn_80105500(lbl_80409410, 5, 10, 1);
+            lbl_803EAEC4[0] = FindForceObject(lbl_80409410, lbl_801A1FE8, 0);
+            lbl_803EAEC4[1] = FindForceObject(lbl_80409410, lbl_801A1FF4, 0);
+            for (i = 0; i < 2; i++) {
+                if (lbl_803EAEC4[i] != 0) {
+                    fn_8010B780(lbl_80409410->unk1BC, 1, lbl_803EAEC4[i] + 0x78);
+                    fn_800958F8(lbl_80409410->unk1B8, 0x2E, lbl_803EAEC4[i] + 0x78);
+                }
+            }
+        }
+        break;
+    }
+
+    if (NuSpecialExistsFn(SPECIAL(lbl_803EB0D8)) != 0) {
+        ia = NuSpecialGetInstAnim(SPECIAL(lbl_803EB0D8));
+        if (ia != NULL && ia->flags < 0 && ia->ltime >= lbl_801A2074[0] && lbl_8040A674 == 0) {
+            lbl_8040A674 = 1;
+            PlaySfxAt(lbl_801A2000, NuSpecialGetMtx(SPECIAL(lbl_803EB0D8)) + 0x30);
+        }
+    }
+    if (NuSpecialExistsFn(SPECIAL(lbl_803EB0E4)) != 0) {
+        ia = NuSpecialGetInstAnim(SPECIAL(lbl_803EB0E4));
+        if (ia != NULL && ia->flags < 0 && ia->ltime >= lbl_801A2074[0] && lbl_8040A675 == 0) {
+            lbl_8040A675 = 1;
+            PlaySfxAt(lbl_801A2000, NuSpecialGetMtx(SPECIAL(lbl_803EB0E4)) + 0x30);
+        }
+    }
+
+    {
+        s32 *sp = lbl_803EB0F0;
+        end = lbl_801A2078[0];
+        if (NuSpecialExistsFn(SPECIAL(sp)) != 0 && (t = NuSpecialGetInstAnim(SPECIAL(sp))) != NULL
+            && t->flags < 0) {
+            b = 1;
+            if (t->ltime >= end) {
+                b = 2;
+            }
+        } else {
+            b = 0;
+        }
+    }
+    if (b > 0 && lbl_8040A676 == 0) {
+        lbl_8040A676 = 1;
+        PlaySfxAt(lbl_801A2014, NuSpecialGetMtx(SPECIAL(lbl_803EB0F0)) + 0x30);
+    }
+    if (b == 2 && lbl_8040A677 == 0) {
+        lbl_8040A677 = 1;
+    }
+    if (lbl_8040A677 != 0) {
+        PlaySfxAt(lbl_801A2024, NuSpecialGetMtx(SPECIAL(lbl_803EB0F0)) + 0x30);
+    }
+
+    {
+        s32 *sp = lbl_803EB108;
+        if (NuSpecialExistsFn(SPECIAL(sp)) != 0 && (t = NuSpecialGetInstAnim(SPECIAL(sp))) != NULL
+            && t->flags < 0) {
+            a = 1;
+        } else {
+            a = 0;
+        }
+    }
+    {
+        s32 *sp = lbl_803EB114;
+        if (NuSpecialExistsFn(SPECIAL(sp)) != 0 && (t = NuSpecialGetInstAnim(SPECIAL(sp))) != NULL
+            && t->flags < 0) {
+            b = 1;
+        } else {
+            b = 0;
+        }
+    }
+    if (lbl_8040A678 == 0 && a == 1) {
+        lbl_8040A678 = a;
+        PlaySfxAt(lbl_801A2034, NuSpecialGetMtx(SPECIAL(lbl_803EB108)) + 0x30);
+    }
+    if (lbl_8040A679 == 0 && b == 1) {
+        lbl_8040A679 = b;
+        PlaySfxAt(lbl_801A2048, NuSpecialGetMtx(SPECIAL(lbl_803EB114)) + 0x30);
+    }
+    if (lbl_8040A678 == 1 && a == 0 && lbl_8040A679 == 1 && b == 0 && lbl_8040A67C == 0) {
+        lbl_8040A677 = 0;
+        lbl_8040A67C = 1;
+        PlaySfxAt(lbl_801A205C, NuSpecialGetMtx(SPECIAL(lbl_803EB0FC)) + 0x30);
+    }
+
+    if (lbl_803EAED0[0] != 0 && lbl_8040A67B == 0) {
+        t = NuSpecialGetInstAnim(SPECIAL(lbl_803EAED0[0] + 4));
+        if (t != NULL && t->flags >= 0 && t->ltime > lbl_801A207C[0]) {
+            lbl_8040A67B = 1;
+        }
+    }
+    if (lbl_8040A67B == 1 && lbl_803EAED0[0] != 0 && ia->flags >= 0) {
+        lbl_8040A67D = 1;
+    }
+    if (lbl_8040A67D == 1 && lbl_803EAED0[0] != 0) {
+        PlaySfxAt(lbl_801A2024, NuSpecialGetMtx(SPECIAL(lbl_803EAED0[0] + 4)) + 0x30);
+    }
+}
+
+#undef SPECIAL
+#undef PlaySfxAt
+#undef NuSpecialGetMtx
+#undef NuSpecialGetInstAnim
+#undef NuSpecialExistsFn
 
 s32 fn_8000E250(s32, s32);
 s32 fn_8000E3C0(s32, s32);

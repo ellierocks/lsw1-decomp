@@ -40,6 +40,14 @@ add_relocations:
 - source: .text:0x8003A4E8
   type: ha
   target: lbl_8019308C
+# fn_800434C8: @l use(s) 0x80043CB4
+- source: .text:0x80043A00
+  type: ha
+  target: lbl_80193DF4
+# fn_800434C8: @l use(s) 0x80043CBC
+- source: .text:0x80043ADC
+  type: ha
+  target: lbl_80193E00
 # fn_800466E4: @l use(s) 0x80046968
 - source: .text:0x80046934
   type: ha
@@ -64,6 +72,10 @@ add_relocations:
 - source: .text:0x80048448
   type: ha
   target: lbl_802B10C0
+# NewScanRot: @l use(s) 0x80050A28
+- source: .text:0x800507B8
+  type: ha
+  target: lbl_80194FFC
 # fn_8006D1BC: @l use(s) 0x8006D450
 - source: .text:0x8006D43C
   type: ha
@@ -72,6 +84,10 @@ add_relocations:
 - source: .text:0x80078440
   type: ha
   target: lbl_8019B914
+# AIScriptParseConditions: @l use(s) 0x8007C418
+- source: .text:0x8007C384
+  type: ha
+  target: str_ScriptToken_Goto
 # fn_800885CC: @l use(s) 0x80088978
 - source: .text:0x80088868
   type: ha
@@ -80,10 +96,50 @@ add_relocations:
 - source: .text:0x800A280C
   type: ha
   target: lbl_8019FA8C
+# fn_800A8FF4: @l use(s) 0x800A9548
+- source: .text:0x800A9370
+  type: ha
+  target: lbl_8019FD10
+# fn_800A8FF4: @l use(s) 0x800A9548
+- source: .text:0x800A9420
+  type: ha
+  target: lbl_8019FD10
 # Menu_Unknown4_BuildOptions: @l use(s) 0x800B0B1C
 - source: .text:0x800B0B04
   type: ha
   target: lbl_803E04F0
+# BoltHitGameObjects: @l use(s) 0x800B6668
+- source: .text:0x800B6410
+  type: ha
+  target: lbl_801A17FC
+# fn_800BDA3C: @l use(s) 0x800BDBA4
+- source: .text:0x800BDA70
+  type: ha
+  target: lbl_803EB0D8
+# fn_800BDA3C: @l use(s) 0x800BDC18
+- source: .text:0x800BDA74
+  type: ha
+  target: lbl_803EB0E4
+# fn_800BDA3C: @l use(s) 0x800BDBA4
+- source: .text:0x800BDAC0
+  type: ha
+  target: lbl_803EB0D8
+# fn_800BDA3C: @l use(s) 0x800BDC18
+- source: .text:0x800BDAC8
+  type: ha
+  target: lbl_803EB0E4
+# MaulFUpdate: @l use(s) 0x800BE570
+- source: .text:0x800BE314
+  type: ha
+  target: lbl_803EAD48
+# MaulFUpdate: @l use(s) 0x800BE5EC
+- source: .text:0x800BE318
+  type: ha
+  target: lbl_803EAD54
+# MaulFUpdate: @l use(s) 0x800BE668
+- source: .text:0x800BE31C
+  type: ha
+  target: lbl_803EAD60
 # fn_800C6430: @l use(s) 0x800C6798
 - source: .text:0x800C6768
   type: ha
@@ -144,6 +200,42 @@ add_relocations:
 - source: .text:0x800E667C
   type: ha
   target: lbl_801A8E04
+# fn_800F9374: @l use(s) 0x800F9638
+- source: .text:0x800F94BC
+  type: ha
+  target: lbl_801A94F0
+# fn_800F9374: @l use(s) 0x800F9630
+- source: .text:0x800F94C0
+  type: ha
+  target: lbl_801A94F4
+# fn_800F9374: @l use(s) 0x800F9654
+- source: .text:0x800F94C4
+  type: ha
+  target: lbl_801BB478
+# fn_800F9374: @l use(s) 0x800F96D8
+- source: .text:0x800F94D0
+  type: ha
+  target: lbl_801A94F8
+# fn_800F9374: @l use(s) 0x800F96C4
+- source: .text:0x800F94D4
+  type: ha
+  target: JangoRocket_Kill
+# fn_800F9374: @l use(s) 0x800F96CC
+- source: .text:0x800F94D8
+  type: ha
+  target: JangoRocket_Move
+# fn_800F9374: @l use(s) 0x800F96D4
+- source: .text:0x800F94DC
+  type: ha
+  target: fn_801045B0
+# fn_800F9374: @l use(s) 0x800F96DC
+- source: .text:0x800F94E0
+  type: ha
+  target: PartCollide
+# fn_8010C570: @l use(s) 0x8010C778
+- source: .text:0x8010C6BC
+  type: ha
+  target: lbl_801AA300
 # Shop_UpdateCodes: @l use(s) 0x80149E88
 - source: .text:0x80149DC8
   type: ha

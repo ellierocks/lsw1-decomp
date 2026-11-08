@@ -34,8 +34,10 @@ struct lbl_80409410_s {
     s32 unk19C;                   /* mode: 3, 9, 0xA, 0xB, 0xD, 0x15 (pickups mode19C) */
     u8 pad1A0[0x1A8 - 0x1A0];
     void *unk1A8;                 /* flags word at +4 (0x4000, 0x4002, 0x5000) */
-    void *unk1AC;                 /* s32 at +0x18/+0x1C, pointer at +0x40 */
-    u8 pad1B0[0x1C0 - 0x1B0];
+    void *unk1AC;                 /* episode_s; also s32 at +0x18/+0x1C, pointer at +0x40 */
+    u8 pad1B0[0x1B8 - 0x1B0];
+    s32 unk1B8;                   /* first argument of fn_800958F8 (Maul_A) */
+    s32 unk1BC;                   /* first argument of fn_8010B780 (Maul_A) */
     s32 unk1C0;                   /* scene handle: first argument of NuSpecialFind */
     u8 pad1C4[0x240 - 0x1C4];
     struct lbl_80409410_240_s *unk240;
@@ -45,6 +47,44 @@ struct lbl_80409410_s {
 };
 
 extern struct lbl_80409410_s *lbl_80409410;
+
+/* Animated scene-instance state: OpenSaga `nuinstanim_s` (0x60 bytes). LSW1 reads anim_ix
+ * with `lbz 0x5c` where the donor has a u16. `flags` < 0 (bit 31, the donor's `playing`
+ * bitfield) while the animation runs. Consumers: the Retake_D/Retake_E callbacks. */
+struct nuinstanim_s {
+    u8 pad0[0x4C];
+    f32 ltime;                    /* current frame */
+    s32 flags;                    /* < 0: playing */
+    u8 pad54[0x5C - 0x54];
+    u8 anim_ix;                   /* index into nugscn_s.instanim_data */
+    u8 pad5D[0x60 - 0x5D];
+};
+
+/* Scene behind a special handle. instanim_data[i] points at animation data whose first
+ * f32 is its end frame (OpenSaga NuSpecialGetAnimEndFrame). */
+struct nugscn_s {
+    u8 pad0[0x50];
+    f32 **instanim_data;
+};
+
+/* Special handle filled by NuSpecialFind (12 bytes: OpenSaga nuhspecial_s). */
+struct nuhspecial_s {
+    struct nugscn_s *scene;
+    void *special;
+    void *display;
+};
+
+/* fn_800130F4 is OpenSaga NuSpecialExistsFn and fn_8001384C NuSpecialGetInstAnim; the unit
+ * still declares both with older m2c prototypes, so callers cast them locally. */
+
+/* Current episode behind lbl_80409410->unk1AC: an entry of lbl_801DC088. Confirmed live
+ * in Maul_F (dolphin.py, 2026-11-08): levels -> 44, 45, 46, 47..., count 7. Consumer:
+ * MaulFUpdate, which searches the chapters for the first with level-table flag 0x4000. */
+struct episode_s {
+    s16 *levels;                  /* level ids of the chapters */
+    u8 pad4[0x3A - 0x4];
+    u8 count;
+};
 
 /* Resolved position on the sock (camera rail) system: OpenSaga SOCKPOSITION, 0x38 bytes
  * (fn_800AAC04's caller frames reserve 0x38). Confirmed live in Cruiser_E (dolphin.py,
