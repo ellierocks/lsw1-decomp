@@ -62,6 +62,53 @@ class DiscoveryTests(unittest.TestCase):
         self.assertLess(vs.count(dims, 1), vs.count(dims, 2))
 
 
+IF_SOURCE = """void k(s32 a)
+{
+    if (a) {
+        g(1);
+    } else if (a > 2) {
+        g(2);
+    } else {
+        g(3);
+    }
+    if (a) {
+        if (a == 4) {
+            g(4);
+        }
+    }
+    if (a) g(5);
+}
+"""
+
+
+class DoWhileTests(unittest.TestCase):
+    def test_braced_ifs_and_else_chains_are_found(self):
+        lines = vs.find_function(IF_SOURCE, "k").body.split("\n")
+        blocks = vs.if_blocks(lines)
+        self.assertEqual([(lines[i].strip(), lines[j].strip()) for i, j in blocks],
+                         [("if (a) {", "}"), ("if (a) {", "}"), ("if (a == 4) {", "}")])
+        self.assertEqual(blocks[0][1] - blocks[0][0], 6)
+
+    def test_wrapping_puts_the_whole_chain_in_a_do_while(self):
+        fn = vs.find_function(IF_SOURCE, "k")
+        dims, lines = vs.build_dimensions(fn)
+        i = next(n for n, d in enumerate(dims) if d.name.startswith("do-while"))
+        choice = [0] * len(dims)
+        choice[i] = 1
+        out = vs.render(fn, dims, lines, tuple(choice))
+        self.assertIn("    do {\n        if (a) {\n        g(1);", out)
+        self.assertIn("        g(3);\n        }\n    } while (0);\n    if (a) {", out)
+        self.assertEqual(out.count("while (0)"), 1)
+
+    def test_binary_dimensions_come_before_the_declaration_order(self):
+        fn = vs.find_function("void k(s32 a)\n{\n    s32 x;\n    s32 y;\n" + IF_SOURCE.split("{\n", 1)[1], "k")
+        dims, _ = vs.build_dimensions(fn)
+        kinds = [d.kind for d in dims]
+        self.assertEqual(kinds[-1], "order")
+        self.assertEqual(kinds.count("order"), 1)
+        self.assertTrue(any(d.name.startswith("do-while") for d in dims))
+
+
 class RenderTests(unittest.TestCase):
     def setUp(self):
         self.fn = vs.find_function(SOURCE, "f")
