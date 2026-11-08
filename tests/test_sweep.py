@@ -227,6 +227,18 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    case -1:\n        break;\n    }\n}\n", outs[1])
         self.assertEqual(sweep.switch_pivots(body.replace("    case 2:\n        break;\n", "")), [])
 
+    def test_positive_guards(self):
+        body = ("s32 f(void) {\n    if (((s32) x != 0x1C) || (y == 0) || !(a > b) || !((c) < (d - e))) {\n"
+                "        return 0;\n    }\n    return 1;\n}\n")
+        self.assertEqual(sweep.positive_guards(body),
+                         "s32 f(void) {\n    if ((s32) x == 0x1C && y != 0 && a > b && (c) < (d - e)) {\n"
+                         "        return 1;\n    }\n    return 0;\n}\n")
+        # A lone conjunction, or a float comparison without `!`, is not flipped unsafely.
+        same = body.replace("((s32) x != 0x1C) || (y == 0) || !(a > b) || !((c) < (d - e))", "(a && b)")
+        self.assertEqual(sweep.positive_guards(same), same)
+        self.assertEqual(sweep.negate("a < b"), "!(a < b)")
+        self.assertEqual(sweep.negate("!(a) && b"), "!(!(a) && b)")
+
 
 if __name__ == "__main__":
     unittest.main()
