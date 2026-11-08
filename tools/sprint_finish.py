@@ -150,15 +150,21 @@ def merge_base() -> str:
     return run(["git", "merge-base", "HEAD", "origin/main"]).stdout.strip() or "origin/main"
 
 
+def global_functions(text: str) -> list[str]:
+    """Like defined_functions, but without `static` helpers, which have no retail symbol."""
+    return list(dict.fromkeys(m.group(1) for m in _DEF.finditer(text)
+                              if not re.match(r"\s*static\b", m.group(0))))
+
+
 def matched_from_diff(unit: str, base: str | None = None) -> list[str]:
-    """Functions defined in UNIT now that were not defined there at the merge base."""
+    """Non-static functions defined in UNIT now that were not defined there at the merge base."""
     path = Path(unit)
     if not path.is_absolute():
         path = ROOT / path
     rel = path.resolve().relative_to(ROOT)
     old = run(["git", "show", f"{base or merge_base()}:{rel.as_posix()}"])
     before = set(defined_functions(old.stdout)) if old.returncode == 0 else set()
-    return [fn for fn in defined_functions(path.read_text()) if fn not in before]
+    return [fn for fn in global_functions(path.read_text()) if fn not in before]
 
 
 def tool_commits(base: str | None = None) -> list[str]:
