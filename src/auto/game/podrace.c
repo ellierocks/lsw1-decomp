@@ -701,3 +701,15 @@ void fn_8014E734(void) {
         fn_8007AC80(lbl_803E04F0, lbl_801AFDD0[0], lbl_80409CEC, lbl_801AFDD4[0], s, s, s, 0, 0, 0xFF, 0, lbl_8040A81C * lbl_801AFDE0[0]);
     }
 }
+
+extern void *lbl_8040A7E8;
+extern void *lbl_8040B0A4;
+typedef struct { s32 a, b, c; } PodV12;
+
+void fn_8014BE18(PodV12 *out) {
+    if (gShopUpdateCallback == (s32)Shop_UpdateMainMenu && lbl_8040A7E8 != NULL && gShopCurrentCategory != -1) {
+        *out = *(PodV12 *)(*(s8 **)((s8 *)lbl_8040A7E8 + 8) + gShopCurrentCategory * *(s16 *)((s8 *)lbl_8040A7E8 + 2));
+        return;
+    }
+    *out = *(PodV12 *)lbl_8040B0A4;
+}
