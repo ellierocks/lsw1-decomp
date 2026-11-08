@@ -569,3 +569,43 @@ void fn_8014FF48(void) {
     lbl_80409C90 = 0;
     fn_8014D0A8();
 }
+
+int sprintf(void *, void *, ...);
+extern s32 lbl_803E04F0[];
+extern u8 lbl_803EACDE[];
+extern s32 lbl_804091F8;
+extern s32 str_Podrace_Boost[];
+
+void PodraceInitBoost(void) {
+    s32 i;
+    s32 temp_r0;
+
+    temp_r0 = *(s32 *)((s8 *)lbl_80409410 + 0x198C);
+    lbl_80409C94 = temp_r0;
+    if (temp_r0 == 0) {
+        fn_80009948(str_SourceFile_Podrace, 0x326)(str_Assert_Podrace_NotWorking);
+    }
+    memset(lbl_80409C94, 0, 0xB020);
+    fn_80142BA8(lbl_80409C94, 0x20);
+    PodraceCreateMine();
+    fn_8010BD90();
+    lbl_8040B060[0] = 0;
+    for (i = 0; i < 10; i++) {
+        sprintf(lbl_803E04F0, str_Podrace_Boost, i + 1);
+        NuSpecialFind(*(s32 *)((s8 *)lbl_80409410 + 0x1C0), &lbl_803EAD24[i], lbl_803E04F0, 1);
+    }
+    if (lbl_804091F8 != 0 || lbl_803EACDE[0] != 0) {
+        for (i = 0; i < 10; i++) {
+            if (fn_800130F4(&lbl_803EAD24[i]) != 0) {
+                fn_80013200(&lbl_803EAD24[i], 1);
+            }
+        }
+        lbl_8040B060[0] = 2;
+        return;
+    }
+    for (i = 0; i < 17; i++) {
+        if (fn_800130F4(&lbl_803EAD24[i]) != 0) {
+            fn_80013200(&lbl_803EAD24[i], 0);
+        }
+    }
+}
