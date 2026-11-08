@@ -455,6 +455,38 @@ class Symbols:
 # --------------------------------------------------------------------------- #
 # Status / read / wait / watch / snapshot
 # --------------------------------------------------------------------------- #
+ADDR_STEP = re.compile(r"(->|[+-])\s*(0[xX][0-9a-fA-F]+|\d+)")
+
+
+def resolve_addr(text, syms, mem=None):
+    """Address of `text`: an address or symbol, then any +OFF/-OFF and ->OFF
+    steps. `->OFF` loads the 32-bit pointer at the address so far and adds OFF,
+    so `gPlayer1Pointer->0x600` is field 0x600 of the player-1 object. Null or
+    out-of-MEM1 pointers raise instead of reading garbage."""
+    text = text.replace(" ", "")
+    m = re.match(r"[^-+]+", text)
+    if not m:
+        raise DolphinError(f"bad address expression '{text}'")
+    addr, rest = syms.addr(m.group(0)), text[m.end():]
+    while rest:
+        step = ADDR_STEP.match(rest)
+        if not step:
+            raise DolphinError(f"bad address expression '{text}' at '{rest}'")
+        op, off = step.group(1), int(step.group(2), 0)
+        if op == "->":
+            if mem is None:
+                raise DolphinError("'->' needs a running Dolphin")
+            ptr = mem.scalar(addr, "u32")
+            if not MEM1_BASE <= ptr < MEM1_BASE + MEM1_SIZE:
+                raise DolphinError(f"{syms.name(addr)} holds 0x{ptr:08X}, "
+                                   f"not a MEM1 pointer, in '{text}'")
+            addr = ptr + off
+        else:
+            addr += off if op == "+" else -off
+        rest = rest[step.end():]
+    return addr
+
+
 def frame_rate(mem, secs=0.25):
     a = mem.scalar(FRAME_COUNTER, "u32")
     time.sleep(secs)
@@ -490,7 +522,7 @@ def fmt(kind, v):
 
 def cmd_read(args, syms):
     mem = attach_or_exit(args)
-    addr = syms.addr(args.target)
+    addr = resolve_addr(args.target, syms, mem)
     width = SCALARS[args.type][1]
     for i in range(args.count):
         a = addr + i * width
@@ -507,7 +539,7 @@ def parse_value(text, kind):
 
 def cmd_wait(args, syms):
     mem = attach_or_exit(args)
-    addr = syms.addr(args.target)
+    addr = resolve_addr(args.target, syms, mem)
     start = mem.scalar(addr, args.type)
     want = None if args.equals is None else parse_value(args.equals, args.type)
     deadline = time.time() + args.timeout
@@ -524,7 +556,7 @@ def cmd_wait(args, syms):
 
 def cmd_watch(args, syms):
     mem = attach_or_exit(args)
-    targets = [(syms.addr(t), t) for t in args.targets]
+    targets = [(resolve_addr(t, syms, mem), t) for t in args.targets]
     last = {}
     end = time.time() + args.seconds
     while time.time() < end:
@@ -797,10 +829,35 @@ def level_label(levels, i):
     return f"{i} {levels[i][2]}" if 0 <= i < len(levels) else f"{i} (?)"
 
 
+# Code pointers in each level-table entry. +0x18/+0x1C/+0x20 hold the named
+# *Init (29), *Reset (10) and *Update (4) functions in symbols.txt; +0x24 is
+# the exit router, which stores the next level into lbl_804093B8 (OpenSaga
+# other_level_override) from the players' sock position or spline side.
+# +0x28 and +0x2C are unidentified.
+LEVEL_CALLBACKS = (0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C)
+LEVEL_CALLBACK_NOTES = {0x18: "init", 0x1C: "reset", 0x20: "update", 0x24: "exit"}
+
+
 def cmd_levels(args, syms):
+    read = dol_reader() if args.callbacks else None
+    if args.callbacks and read is None:
+        read = attach_or_exit(args).read
     for i, path, name in load_levels(args):
-        if not args.filter or args.filter.lower() in (path + name).lower():
-            print(f"{i:4d}  {name:<24} {path}")
+        if args.filter and args.filter.lower() not in (path + name).lower():
+            continue
+        line = f"{i:4d}  {name:<24} {path}"
+        if args.callbacks:
+            entry = read(LEVEL_TABLE + i * LEVEL_ENTRY, LEVEL_ENTRY)
+            fns = []
+            for off in LEVEL_CALLBACKS:
+                ptr = struct.unpack(">I", entry[off:off + 4])[0]
+                if ptr:
+                    tag = LEVEL_CALLBACK_NOTES.get(off, f"+0x{off:X}")
+                    fns.append(f"{tag}={syms.name(ptr)}")
+            if not fns and not args.filter:
+                continue
+            line += "\n        " + ("  ".join(fns) or "(no callbacks)")
+        print(line)
 
 
 def cmd_level(args, syms):
@@ -828,15 +885,26 @@ def cmd_warp(args, syms):
         raise DolphinError("emulation is paused; ask the user to resume")
     mem.write_u32(NEXT_LEVEL, index)
     print(f"requested: lbl_804093B0 = {index}")
+    # Boot and the intro movie take the request (pending goes back to -1)
+    # without loading anything; ask again until the level actually changes.
+    # Waiting at least a second between requests keeps this to one store per
+    # attempt, like the game's own.
+    requests, last = 1, time.time()
     deadline = time.time() + args.timeout
     while time.time() < deadline:
         cur, pending = mem.scalar(CUR_LEVEL, "s32"), mem.scalar(NEXT_LEVEL, "s32")
         if cur == index and pending == -1:
-            print(f"loaded: {index} {name}")
+            print(f"loaded: {index} {name}"
+                  + (f" ({requests} requests)" if requests > 1 else ""))
             return 0
+        if pending == -1 and cur != index and time.time() - last >= 1.0:
+            mem.write_u32(NEXT_LEVEL, index)
+            requests, last = requests + 1, time.time()
+            print(f"dropped while on {level_label(levels, cur)} (boot or a "
+                  f"movie); requested again")
         time.sleep(0.1)
     print(f"timeout: current {level_label(levels, cur)}, pending "
-          f"{level_label(levels, pending)}")
+          f"{level_label(levels, pending)} after {requests} requests")
     return 2
 
 
@@ -997,7 +1065,8 @@ def main(argv=None):
     p.set_defaults(func=cmd_hotkey)
 
     p = sub.add_parser("read", help="read live values")
-    p.add_argument("target", help="address or symbols.txt name")
+    p.add_argument("target", help="address or symbols.txt name, then +OFF "
+                   "or ->OFF steps (gPlayer1Pointer->0x600)")
     p.add_argument("--type", default="u32", choices=SCALARS)
     p.add_argument("--count", type=int, default=1)
     p.set_defaults(func=cmd_read)
@@ -1025,6 +1094,9 @@ def main(argv=None):
 
     p = sub.add_parser("levels", help="list level indices and names")
     p.add_argument("filter", nargs="?")
+    p.add_argument("--callbacks", action="store_true",
+                   help="also show each entry's code pointers (+0x24 = exit "
+                   "router) by symbol; omits levels without any")
     p.set_defaults(func=cmd_levels)
 
     p = sub.add_parser("level", help="show the live current/pending level")

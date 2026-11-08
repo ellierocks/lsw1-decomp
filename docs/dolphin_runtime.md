@@ -142,6 +142,7 @@ as above, and carry on with the static evidence.
 ```sh
 python3 tools/dolphin.py read retraceCount
 python3 tools/dolphin.py read 0x803DCF70 --type ptr --count 8
+python3 tools/dolphin.py read 'gPlayer1Pointer->0x600+1' --type s8  # pointer chain
 python3 tools/dolphin.py wait lbl_80409410 --type ptr          # any change
 python3 tools/dolphin.py wait 0x80407B40 --equals 0 --timeout 120
 python3 tools/dolphin.py watch 0x8040AA14 lbl_80407B40 --seconds 5
@@ -151,7 +152,11 @@ python3 tools/ramdump.py read live 0x80407B40 --type u32
 python3 tools/ramdump.py diff dooku_stage2 live --section sbss
 ```
 
-- **Targets** are addresses or `symbols.txt` names.
+- **Targets** are addresses or `symbols.txt` names, followed by any number of
+  steps: `+OFF` and `-OFF` add an offset, and `->OFF` loads the u32 pointer at
+  the current address and adds `OFF` to it. `read`, `wait` and `watch` accept
+  them, so a field of a heap object needs no script. A chain through a null or
+  non-MEM1 pointer stops with an error that names the step.
 - **`watch`** prints a line each time a value changes, with the frame from
   `retraceCount`. Values that change many times within a frame alias, so trace
   them instead.
@@ -174,12 +179,26 @@ confirms the new state.
 ```sh
 python3 tools/dolphin.py levels                 # index, name and path
 python3 tools/dolphin.py levels dooku
+python3 tools/dolphin.py levels --callbacks Cruiser  # code pointers per level
 python3 tools/dolphin.py level                  # live current and pending level
 python3 tools/dolphin.py warp Dooku_B           # dry run
 python3 tools/dolphin.py warp Dooku_B --write   # load it and wait
 ```
 
-`warp` takes an index, an exact name or a unique substring.
+`warp` takes an index, an exact name or a unique substring. Use `levels` for
+names: indices aren't in story order (Negotiations_C is 4, Temple_Status 0x6E).
+
+During boot and the intro movie, the game takes a pending level and resets it
+to -1 without loading anything. `warp --write` notices that (pending -1, level
+unchanged), requests the level again at most once a second, and reports how
+many requests it took. A cold boot to `Temple_C` took two requests and 21 s.
+
+`levels --callbacks` prints the code pointers of each table entry as
+`tag=symbol`, reading the DOL (or live RAM without one). Tags come from the
+callers: `+0x18` init, `+0x1C` reset, `+0x20` update, `+0x24` exit; `+0x28`
+and `+0x2C` print as offsets. With no filter it lists only levels that have
+callbacks. Use it to find the level a function belongs to before warping
+there to observe it.
 
 `debug-menu --write` sets `gLegoOptionsMenuEnabled` (`0x804090F0`) to 1. The game
 only reads that word, so "LEGO Options" stays in the pause menu until reboot.
@@ -268,6 +287,26 @@ Limits:
 - **Bad captures.** Loading a capture through a bad pointer makes Dolphin raise
   an invalid-read panic. Capture pointers only where they are known to be valid.
 
+## Using it while matching
+
+Notes from the first sprint that used runtime evidence (six level exit
+callbacks, 2026-11-08):
+
+- **Runtime reads settle types.** The m2c drafts failed only for want of the
+  `SOCKPOSITION` layout. Reading `gPlayer1Pointer->0x600` in a level confirmed
+  the donor struct, and the matched code's routing agreed with what the game
+  did there. Read the state, then write the type, then match.
+- **Use `levels` for names and owners.** Guessing level names from indices
+  went wrong once; `levels --callbacks NAME` gives the level and the callback
+  role in one step.
+- **A unit-wide resweep after a header change is slow** (about 4.5 minutes for
+  `auto/game/levels`) and found nothing new here. Retry the functions that use
+  the changed type instead.
+- **Small source variants** (store placement, range checks, an inline helper
+  for a stack slot) closed the last register and frame differences. A loop
+  that tries several bodies and keeps the first strict match was faster than
+  editing by hand; see the [ProDG idioms](code_matching_workflow.md#prodg-source-idioms) it found.
+
 ## Recorded runtime evidence
 
 These come from live sessions and are leads to confirm against assembly before
@@ -296,6 +335,18 @@ they are used as names or types.
   `Action_UseForce`, `+0xB2`, `+0xB3` and `+0xB4` hold the throwable count,
   in-range count and chosen entry. The chosen object is
   `found[NuRandInt() % count]` (`0x80134684`).
+
+- **Level exit callbacks** (table `+0x24`, for example `fn_800CE658` for
+  Cruiser_E). Each one runs as the level ends, gets the players' sock position
+  and stores the next level in `lbl_804093B8` (OpenSaga `other_level_override`).
+  The position is OpenSaga `SOCKPOSITION` (`struct sockposition_s`, 0x38 bytes,
+  `include/game/levels.h`), from `fn_800AAC04` (`Players_AveragePos`) and
+  `fn_80098190` (`ComplexSockPosition`). Confirmed in Cruiser_E: each player
+  object keeps one at `+0x600`; the active player read sock 2, segment 0,
+  distance 0.287, and an inactive player sock -1. The matched Cruiser_E
+  callback routes to `0x5B` for sock 2 below 5.25, which agrees.
+  Temple_C has no outro level even in story mode, so its exit always reaches
+  Temple_B or Temple_Status; the story cutscene is played some other way.
 
 Add new findings here in the same form: the state, the observation, and what
 still needs assembly confirmation.

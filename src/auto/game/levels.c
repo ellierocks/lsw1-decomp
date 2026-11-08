@@ -1116,6 +1116,37 @@ void RetakeBInit(void) {
 s32 fn_800133FC(s32 *);
 s32 fn_8006DCD4(s32 *, s32);
 s32 fn_800CFD4C(f32, f32, f32, f32, f32, f32);
+
+/* Shared by the level exit callbacks: the side of the scene spline (world +0x1974) that the
+ * players' average position (or `pos`) lies on picks `yes` or `no`. */
+static inline void exit_by_spline(struct nuvec_s *pos, s32 yes, s32 no) {
+    struct nuvec_s tmp;
+    struct nuvec_s *p;
+    struct nugspline_s *spl;
+    s8 *pts;
+    s16 size;
+
+    p = NULL;
+    spl = lbl_80409410->unk1974;
+    if (spl != NULL) {
+        if (pos != NULL) {
+            tmp = *pos;
+            p = &tmp;
+        } else if (fn_800AAC04(&tmp, NULL) != 0) {
+            p = &tmp;
+        }
+        if (p != NULL) {
+            pts = spl->pts;
+            size = spl->ptsize;
+            if (fn_800CFD4C(tmp.x, tmp.z, (*(f32 *)((s8 *)(pts) + (0))), (*(f32 *)((s8 *)(pts) + (8))), (*(f32 *)((s8 *)(&pts[size]) + (0))), (*(f32 *)((s8 *)(&pts[size]) + (8)))) != 0) {
+                lbl_804093B8 = yes;
+            } else {
+                lbl_804093B8 = no;
+            }
+        }
+    }
+}
+
 extern s32 lbl_801A1D04[];
 extern s32 lbl_803EB038[];
 
@@ -1727,6 +1758,43 @@ void CruiserAInit(void) {
     }
 }
 
+extern f32 lbl_801A4EF4[];
+
+/* Cruiser_B exit (level table +0x24): socks 5-8, or sock 2 short of 8.125, lead to
+ * Cruiser_G (0x5E); everything else to Cruiser_C (0x5A). */
+void fn_800CE4EC(void) {
+    struct nuvec_s pos;
+    struct sockposition_s sp;
+    s32 level;
+
+    if (fn_800AAC04(&pos, &sp) != 0) {
+        if (((sp.sock >= 5) && (sp.sock <= 8)) || ((sp.sock == 2) && (sp.distance < lbl_801A4EF4[0]))) {
+            level = 0x5E;
+        } else {
+            level = 0x5A;
+        }
+        lbl_804093B8 = level;
+    }
+}
+
+extern f32 lbl_801A4EF8[];
+
+/* Cruiser_C exit: sock 5, or sock 6 past 2.5, leads to Cruiser_B (0x59); else Cruiser_D. */
+void fn_800CE558(void) {
+    struct nuvec_s pos;
+    struct sockposition_s sp;
+    s32 level;
+
+    if (fn_800AAC04(&pos, &sp) != 0) {
+        if ((sp.sock == 5) || ((sp.sock == 6) && (sp.distance > lbl_801A4EF8[0]))) {
+            level = 0x59;
+        } else {
+            level = 0x5B;
+        }
+        lbl_804093B8 = level;
+    }
+}
+
 s32 fn_800CFD4C(f32, f32, f32, f32, f32, f32);
 
 void fn_800CE5C4(void) {
@@ -1750,6 +1818,23 @@ void fn_800CE5C4(void) {
             } else {
                 lbl_804093B8 = 0x5A;
             }
+        }
+    }
+}
+
+extern f32 lbl_801A4EFC[];
+
+/* Cruiser_E exit: sock 2 short of 5.25 (the Cruiser_D end) leads back to Cruiser_D (0x5B);
+ * else Cruiser_F (0x5D). */
+void fn_800CE658(void) {
+    struct nuvec_s pos;
+    struct sockposition_s sp;
+
+    if (fn_800AAC04(&pos, &sp) != 0) {
+        if ((sp.sock == 2) && (sp.distance < lbl_801A4EFC[0])) {
+            lbl_804093B8 = 0x5B;
+        } else {
+            lbl_804093B8 = 0x5D;
         }
     }
 }
@@ -1924,6 +2009,39 @@ void fn_800CED34(void) {
 s32 fn_80105500(struct lbl_80409410_s *, s8, s32, s32);
 extern s32 lbl_801A307C[];
 extern s16 lbl_803ED3AC[];
+
+/* Bonus_A exit: sock 3 with one candidate leads to Bonus_Status (0x7A); else Bonus_B. */
+void fn_800CF138(void) {
+    struct nuvec_s pos;
+    struct sockposition_s sp;
+
+    if ((fn_800AAC04(&pos, &sp) != 0) && (sp.sock != -1)) {
+        if ((sp.sock == 3) && (sp.candidate_count == 1)) {
+            lbl_804093B8 = 0x7A;
+        } else {
+            lbl_804093B8 = 0x79;
+        }
+    }
+}
+
+s32 fn_800CFD4C(f32, f32, f32, f32, f32, f32);
+
+/* Temple_C exit: socks 10-13 (the far end) load Temple_Status (0x6E); elsewhere the side of
+ * the spline picks Temple_B (0x6C) or Temple_Status. Chapter 6 has no outro level, so the
+ * exit goes to the status level in story mode as well (Ellie: the story cutscene is played
+ * at the end some other way). */
+void fn_800C61DC(void) {
+    struct nuvec_s pos;
+    struct sockposition_s sp;
+
+    if ((fn_800AAC04(&pos, &sp) != 0) && (sp.sock != -1)) {
+        if ((sp.sock >= 10) && (sp.sock <= 13)) {
+            lbl_804093B8 = 0x6E;
+            return;
+        }
+        exit_by_spline(NULL, 0x6C, 0x6E);
+    }
+}
 
 void MapEReset(void) {
     s32 temp_r3;
@@ -2424,6 +2542,23 @@ void fn_800AB85C(void) {
 s32 fn_800131B8(s32 *);
 void fn_8006DE5C(s32, s32);
 extern s32 lbl_80408FE0;
+
+s32 fn_800CFD4C(f32, f32, f32, f32, f32, f32);
+
+/* Negotiations_A exit (level table +0x24): on socks 3, 7 and 8 the side of the
+ * spline picks Negotiations_C (4) or Negotiations_B (3); any other sock leads to _B. */
+void fn_800BBE10(void) {
+    struct nuvec_s pos;
+    struct sockposition_s sp;
+
+    if ((fn_800AAC04(&pos, &sp) != 0) && (sp.sock != -1)) {
+        if ((sp.sock == 3) || (sp.sock == 7) || (sp.sock == 8)) {
+            exit_by_spline(&pos, 4, 3);
+        } else {
+            lbl_804093B8 = 3;
+        }
+    }
+}
 
 void fn_800BBED0(void) {
     struct nuvec_s sp8;
