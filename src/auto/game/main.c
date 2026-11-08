@@ -907,3 +907,65 @@ void fn_8009E6FC(void) {
         fn_80027564();
     }
 }
+
+typedef struct AreaEnt { s32 pad; s32 flags; u8 pad2[0x3C]; s8 lev; u8 pad3[0x63]; } AreaEnt;
+extern AreaEnt lbl_801D68E0[];
+extern s32 lbl_804093AC;
+extern s32 lbl_80408F30;
+extern s32 lbl_80408F18;
+extern s32 lbl_80408ED4;
+
+void fn_8009E620(void) {
+    s32 lev;
+    LevData *p;
+
+    lbl_80408F30 = 0;
+    lev = lbl_801D68E0[lbl_804093B0].lev;
+    if ((lbl_801D68E0[lbl_804093AC].flags & 0x4000) && lbl_804093B0 != 0x7B
+        && (lev == -1 || (p = &lbl_801DC074[lev], !(((u8 *)p)[0x32] & 4)))) {
+        lbl_80408ED4 = 1;
+        lbl_80408F18 = 1;
+        return;
+    }
+    if (lbl_8040913C == -1 && lbl_804093B0 != -1) {
+        if (lbl_801D68E0[lbl_804093AC].flags & 0x4000) {
+            if (lbl_804093B0 != 0x7B) {
+                lbl_80408F30 = 1;
+            }
+        } else if (lev != -1 && lev == lbl_804093C8) {
+            lbl_80408F30 = 1;
+        }
+    }
+}
+
+s32 OSReceiveMessage(void *, void *, s32);
+s32 OSSignalSemaphore(void *);
+typedef struct NetJob {
+    void (*volatile run)(struct NetJob *);
+    void (*volatile done)(struct NetJob *);
+    u8 state;
+    u8 pad1[3];
+    s32 pad;
+    u8 data[0x408];
+} NetJob;
+
+s32 fn_8009D41C(void) {
+    s32 idx;
+
+    for (;;) {
+        OSReceiveMessage(lbl_802D5D28, &idx, 1);
+        lbl_8040A624 = (s32)&((NetJob *)lbl_802D5D94)[idx];
+        if ((NetJob *)lbl_8040A624 != NULL) {
+            ((NetJob *)lbl_8040A624)->state |= 0x80;
+            if (((NetJob *)lbl_802D5D94)[idx].run != NULL) {
+                ((NetJob *)lbl_802D5D94)[idx].run((NetJob *)lbl_8040A624);
+            }
+            if (((NetJob *)lbl_8040A624)->done != NULL) {
+                ((NetJob *)lbl_8040A624)->done((NetJob *)lbl_8040A624);
+            }
+            lbl_8040A624 = 0;
+        }
+        OSSignalSemaphore(lbl_802D5D48);
+        lbl_80408E80--;
+    }
+}
