@@ -26,6 +26,10 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 - Binary evidence: [Ghidra and REA](docs/research.md#ghidra-and-rea) provide decompiles,
   callers and cross-references. Confirm proposed types and names against target
   assembly; donor output and generated C are evidence, not the acceptance oracle.
+- Runtime evidence: when a layout, caller or value stays ambiguous statically, check
+  `python3 tools/dolphin.py status` and use the running game, or ask the user for a
+  specific game state and Gecko code per [Dolphin runtime](docs/dolphin_runtime.md#asking-the-user).
+  Read-only; dumps and traces stay local; unattended runs record a "Dolphin request" instead.
 - Naming and research: [research](docs/research.md); check rejected renames first.
   [Nu2](docs/nu2_engine_reference.md), [menus](docs/menu_system.md) and
   [scripts](docs/scripts.md) hold subsystem evidence. Confirm donor types against LSW1 accesses.

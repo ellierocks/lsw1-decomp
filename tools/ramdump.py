@@ -19,7 +19,9 @@ Dump format: a raw little-endian-free MEM1 image. GC MEM1 starts at
 that blob, so address 0x80000000 == file offset 0. The console is big-endian,
 so all multi-byte values are decoded big-endian.
 
-Dumps are large (24 MiB); keep them out of git. By default this looks for them
+Use `live` (or `live:PID`) in place of a dump to read the running Dolphin
+through tools/dolphin.py, e.g. `diff hub live`. Dumps are large (24 MiB);
+keep them out of git. By default this looks for them
 under ./dumps/ and supports a label manifest (dumps/manifest.txt: "label = file"
 per line) so you can say `read title 0x80407B40` instead of a path.
 
@@ -104,7 +106,7 @@ class Dump:
     def __init__(self, path, base=MEM1_BASE):
         self.path = path
         self.base = base
-        self.data = path.read_bytes()
+        self.data = path.read_bytes()   # a Path or a LiveSource
 
     def offset(self, addr):
         # Accept cached (0x80xxxxxx) and uncached (0xC0xxxxxx) MEM1 mirrors,
@@ -128,8 +130,33 @@ class Dump:
         return struct.unpack(fmt, self.read(addr, width))[0]
 
 
+class LiveSource:
+    """`live` or `live:PID`: MEM1 of the running Dolphin, read once."""
+
+    def __init__(self, pid=None):
+        self.pid = pid
+        self.name = f"live:{pid}" if pid else "live"
+
+    def read_bytes(self):
+        try:
+            from tools import dolphin
+        except ImportError:
+            import dolphin
+        try:
+            mem = dolphin.LiveMem.attach(self.pid)
+        except dolphin.DolphinError as e:
+            sys.exit(f"error: {e}")
+        try:
+            return mem.read_all()
+        finally:
+            mem.close()
+
+
 def resolve_dump_path(arg):
-    """A path, or a label looked up in dumps/manifest.txt."""
+    """A path, `live[:PID]`, or a label looked up in dumps/manifest.txt."""
+    if arg == "live" or arg.startswith("live:"):
+        pid = arg.partition(":")[2]
+        return LiveSource(int(pid) if pid else None)
     p = Path(arg)
     if p.is_file():
         return p

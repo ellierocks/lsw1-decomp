@@ -1,0 +1,647 @@
+#!/usr/bin/env python3
+"""Read the running Dolphin's GL5E4F RAM and build Gecko call tracers.
+
+Agents use this to turn static guesses into runtime evidence without a
+debugger. Everything here is read-only towards Dolphin: the only way code
+reaches the game is a Gecko code that the user pastes and enables. See
+docs/dolphin_runtime.md for the workflow and the rules.
+
+Dolphin keeps emulated RAM in an unlinked shared-memory file
+(`/dev/shm/dolphin-emu.<pid>`) mapped into its own address space. MEM1 is the
+mapping that is at least 24 MiB and starts with the game ID, read through
+`/proc/<pid>/mem`. Linux only; needs ptrace access (yama ptrace_scope 0, or
+run as the same user with scope 1 and CAP_SYS_PTRACE).
+
+Commands:
+    status                     is Dolphin running GL5E4F, and is it paused?
+    read ADDR|SYM [--type]     typed live read (see ramdump.py for more types)
+    wait ADDR|SYM --equals V   block until a value is reached (state gates)
+    watch ADDR|SYM [...]       print values as they change
+    snapshot LABEL             save MEM1 to dumps/LABEL.raw + manifest entry
+    trace-code FUNC[...]       emit a Gecko C2 logger for function entries
+    trace-tail                 read the logger ring, summarise callers/values
+"""
+import argparse
+import bisect
+import collections
+import json
+import os
+import re
+import struct
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
+DUMPS_DIR = ROOT / "dumps"
+GAME_ID = b"GL5E4F"
+
+MEM1_BASE = 0x80000000
+MEM1_SIZE = 0x1800000
+SDA_BASE = 0x8040FA40   # r13
+FRAME_COUNTER = 0x8040AA14  # retraceCount
+
+DEFAULT_RING = 0x80D00000
+RING_BYTES = 0x10000          # entry area; header is 16 bytes before it
+ENTRY = 16                    # [lr|tag, frame, cap0, cap1]
+RING_MAGIC = 0x54524345       # 'TRCE', kept alive by a 04 line
+
+SCALARS = {
+    "u8": (">B", 1), "s8": (">b", 1), "u16": (">H", 2), "s16": (">h", 2),
+    "u32": (">I", 4), "s32": (">i", 4), "f32": (">f", 4), "ptr": (">I", 4),
+}
+
+
+class DolphinError(RuntimeError):
+    pass
+
+
+# --------------------------------------------------------------------------- #
+# Live process access
+# --------------------------------------------------------------------------- #
+def parse_maps(text):
+    """Yield (start, end, path) for Dolphin shared-memory mappings."""
+    for line in text.splitlines():
+        parts = line.split(None, 5)
+        if len(parts) < 6 or "dolphin-emu." not in parts[5]:
+            continue
+        lo, hi = (int(x, 16) for x in parts[0].split("-"))
+        yield lo, hi, parts[5].strip()
+
+
+def candidate_pids():
+    env = os.environ.get("DOLPHIN_PID")
+    if env:
+        return [int(env)]
+    pids = []
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            comm = (d / "comm").read_text().strip()
+        except OSError:
+            continue
+        if comm.startswith("dolphin") and "memory" not in comm:
+            pids.append(int(d.name))
+    return sorted(pids)
+
+
+class LiveMem:
+    """MEM1 of a running Dolphin, addressed by GameCube address."""
+
+    def __init__(self, pid, host_base, game_id):
+        self.pid = pid
+        self.host_base = host_base
+        self.game_id = game_id
+        self._fh = open(f"/proc/{pid}/mem", "rb", buffering=0)
+
+    @classmethod
+    def attach(cls, pid=None, game_id=GAME_ID):
+        pids = [pid] if pid else candidate_pids()
+        if not pids:
+            raise DolphinError("no Dolphin process found (set DOLPHIN_PID "
+                               "or pass --pid)")
+        seen = []
+        for p in pids:
+            try:
+                maps = Path(f"/proc/{p}/maps").read_text()
+                fh = open(f"/proc/{p}/mem", "rb", buffering=0)
+            except OSError as e:
+                seen.append(f"pid {p}: {e.strerror}")
+                continue
+            heads = []
+            with fh:
+                for lo, hi, _path in parse_maps(maps):
+                    if hi - lo < MEM1_SIZE:
+                        continue
+                    try:
+                        fh.seek(lo)
+                        head = fh.read(6)
+                    except OSError:
+                        continue
+                    if head == game_id:
+                        return cls(p, lo, head)
+                    heads.append(head)
+            seen.append(f"pid {p}: RAM holds {heads[0]!r}" if heads
+                        else f"pid {p}: no game booted")
+        raise DolphinError("GL5E4F not running in Dolphin (" +
+                           "; ".join(seen) + ")")
+
+    def close(self):
+        self._fh.close()
+
+    def __del__(self):
+        fh = getattr(self, "_fh", None)
+        if fh is not None:
+            fh.close()
+
+    def read(self, addr, n):
+        if addr >= 0xC0000000:
+            addr = (addr & 0x01FFFFFF) | MEM1_BASE
+        off = addr - MEM1_BASE
+        if not (0 <= off and off + n <= MEM1_SIZE):
+            raise DolphinError(f"0x{addr:08X}+{n} is outside MEM1")
+        self._fh.seek(self.host_base + off)
+        return self._fh.read(n)
+
+    def scalar(self, addr, kind):
+        fmt, width = SCALARS[kind]
+        return struct.unpack(fmt, self.read(addr, width))[0]
+
+    def read_all(self):
+        out = bytearray()
+        for off in range(0, MEM1_SIZE, 0x100000):
+            out += self.read(MEM1_BASE + off, 0x100000)
+        return bytes(out)
+
+
+def attach_or_exit(args):
+    try:
+        return LiveMem.attach(getattr(args, "pid", None))
+    except DolphinError as e:
+        sys.exit(f"error: {e}\nAsk the user to boot GL5E4F in Dolphin "
+                 f"(docs/dolphin_runtime.md#asking-the-user).")
+
+
+# --------------------------------------------------------------------------- #
+# Symbols
+# --------------------------------------------------------------------------- #
+SYM_LINE = re.compile(r"^([A-Za-z_$][\w$]*)\s*=\s*\.(\w+):0x([0-9A-Fa-f]+);"
+                      r"(?:.*?size:0x([0-9A-Fa-f]+))?")
+
+
+class Symbols:
+    def __init__(self, path=SYMBOLS):
+        self.by_name, rows = {}, []
+        if path.is_file():
+            for line in path.read_text(errors="replace").splitlines():
+                m = SYM_LINE.match(line.strip())
+                if m:
+                    addr, size = int(m[3], 16), int(m[4] or "0", 16)
+                    self.by_name[m[1]] = (addr, m[2], size)
+                    rows.append((addr, size, m[1], m[2]))
+        rows.sort()
+        self._rows, self._addrs = rows, [r[0] for r in rows]
+
+    def addr(self, text):
+        try:
+            return int(text, 0)
+        except ValueError:
+            pass
+        if text not in self.by_name:
+            raise DolphinError(f"unknown symbol or address '{text}'")
+        return self.by_name[text][0]
+
+    def name(self, addr):
+        i = bisect.bisect_right(self._addrs, addr) - 1
+        if i >= 0:
+            a, size, name, _sec = self._rows[i]
+            if addr < a + max(size, 4):
+                return name if addr == a else f"{name}+0x{addr - a:X}"
+        return f"0x{addr:08X}"
+
+
+# --------------------------------------------------------------------------- #
+# Status / read / wait / watch / snapshot
+# --------------------------------------------------------------------------- #
+def frame_rate(mem, secs=0.25):
+    a = mem.scalar(FRAME_COUNTER, "u32")
+    time.sleep(secs)
+    return (mem.scalar(FRAME_COUNTER, "u32") - a) & 0xFFFFFFFF
+
+
+def cmd_status(args, syms):
+    try:
+        mem = LiveMem.attach(args.pid)
+    except DolphinError as e:
+        print(f"dolphin: not available -- {e}")
+        return 1
+    frames = frame_rate(mem)
+    state = "running" if frames else "paused (or not yet retracing)"
+    print(f"dolphin: pid {mem.pid}, game {mem.game_id.decode()}, {state}")
+    print(f"retraceCount = {mem.scalar(FRAME_COUNTER, 'u32')} "
+          f"(+{frames} in 0.25 s)")
+    ring = ring_state(mem, args.ring)
+    if ring["magic"]:
+        print(f"trace ring at 0x{args.ring:08X}: active "
+              f"(offset 0x{ring['offset']:X}) -- remind the user to disable "
+              f"the logger code when done")
+    return 0
+
+
+def fmt(kind, v):
+    if kind == "f32":
+        return f"{v:.6g}"
+    if kind in ("u32", "ptr", "u16", "u8"):
+        return f"0x{v:0{SCALARS[kind][1] * 2}X}"
+    return str(v)
+
+
+def cmd_read(args, syms):
+    mem = attach_or_exit(args)
+    addr = syms.addr(args.target)
+    width = SCALARS[args.type][1]
+    for i in range(args.count):
+        a = addr + i * width
+        v = mem.scalar(a, args.type)
+        note = ""
+        if args.type == "ptr" and MEM1_BASE <= v < MEM1_BASE + MEM1_SIZE:
+            note = f"  -> {syms.name(v)}"
+        print(f"0x{a:08X} {syms.name(a):<32} {fmt(args.type, v)}{note}")
+
+
+def parse_value(text, kind):
+    return float(text) if kind == "f32" else int(text, 0)
+
+
+def cmd_wait(args, syms):
+    mem = attach_or_exit(args)
+    addr = syms.addr(args.target)
+    start = mem.scalar(addr, args.type)
+    want = None if args.equals is None else parse_value(args.equals, args.type)
+    deadline = time.time() + args.timeout
+    while time.time() < deadline:
+        v = mem.scalar(addr, args.type)
+        if (want is not None and v == want) or (want is None and v != start):
+            print(f"reached: {syms.name(addr)} = {fmt(args.type, v)}")
+            return 0
+        time.sleep(args.interval)
+    print(f"timeout after {args.timeout:g} s: {syms.name(addr)} = "
+          f"{fmt(args.type, mem.scalar(addr, args.type))}")
+    return 2
+
+
+def cmd_watch(args, syms):
+    mem = attach_or_exit(args)
+    targets = [(syms.addr(t), t) for t in args.targets]
+    last = {}
+    end = time.time() + args.seconds
+    while time.time() < end:
+        frame = mem.scalar(FRAME_COUNTER, "u32")
+        for addr, label in targets:
+            v = mem.scalar(addr, args.type)
+            if last.get(addr) != v:
+                print(f"frame {frame:>8}  {label:<24} {fmt(args.type, v)}")
+                last[addr] = v
+        time.sleep(args.interval)
+
+
+def cmd_snapshot(args, syms):
+    if not re.fullmatch(r"[\w.-]+", args.label):
+        sys.exit("error: label must be letters, digits, '.', '_' or '-'")
+    mem = attach_or_exit(args)
+    DUMPS_DIR.mkdir(exist_ok=True)
+    path = DUMPS_DIR / f"{args.label}.raw"
+    if path.exists() and not args.force:
+        sys.exit(f"error: {path} exists (pass --force to replace it)")
+    data = mem.read_all()
+    path.write_bytes(data)
+    manifest = DUMPS_DIR / "manifest.txt"
+    lines = manifest.read_text().splitlines() if manifest.exists() else []
+    lines = [l for l in lines if l.partition("=")[0].strip() != args.label]
+    note = f"  # {args.note}" if args.note else ""
+    lines.append(f"{args.label} = {path.name}{note}")
+    manifest.write_text("\n".join(lines) + "\n")
+    frame = struct.unpack(">I", data[FRAME_COUNTER - MEM1_BASE:][:4])[0]
+    print(f"saved {path} (frame {frame}); use `ramdump.py ... {args.label}`")
+
+
+# --------------------------------------------------------------------------- #
+# Minimal PowerPC encoder (enough for the logger hook)
+# --------------------------------------------------------------------------- #
+def _d(op, rt, ra, imm):
+    return (op << 26) | (rt << 21) | (ra << 16) | (imm & 0xFFFF)
+
+
+def lis(rt, imm):        return _d(15, rt, 0, imm)
+def addi(rt, ra, imm):   return _d(14, rt, ra, imm)
+def ori(ra, rs, imm):    return _d(24, rs, ra, imm)
+def lwz(rt, d, ra):      return _d(32, rt, ra, d)
+def stw(rs, d, ra):      return _d(36, rs, ra, d)
+def add(rt, ra, rb):     return (31 << 26) | (rt << 21) | (ra << 16) | (rb << 11) | (266 << 1)
+def mflr(rt):            return (31 << 26) | (rt << 21) | (0x100 << 11) | (339 << 1)
+
+
+def rlwinm(ra, rs, sh, mb, me):
+    return (21 << 26) | (rs << 21) | (ra << 16) | (sh << 11) | (mb << 6) | (me << 1)
+
+
+SCRATCH = {0, 11, 12}
+# D-form opcodes: (reads rD/rS?, reads rA as a base register?)
+_DFORM = {
+    14: (False, True), 15: (False, True),           # addi, addis
+    24: (True, False), 25: (True, False), 26: (True, False), 27: (True, False),
+    28: (True, False), 29: (True, False),           # ori/oris/xori/xoris/andi./andis.
+    32: (False, True), 33: (False, True), 34: (False, True), 35: (False, True),
+    40: (False, True), 41: (False, True), 42: (False, True), 43: (False, True),
+    48: (False, True), 49: (False, True), 50: (False, True), 51: (False, True),
+    36: (True, True), 37: (True, True), 38: (True, True), 39: (True, True),
+    44: (True, True), 45: (True, True), 52: (True, True), 53: (True, True),
+    54: (True, True), 55: (True, True), 46: (True, True), 47: (True, True),
+    10: (False, True), 11: (False, True), 7: (False, True), 8: (False, True),
+    12: (False, True), 13: (False, True),
+}
+
+
+def check_relocatable(word):
+    """Return why `word` can't run inside a C2 hook, or None if it can.
+
+    The hook body clobbers r0, r11 and r12 before running the displaced
+    instruction, so that instruction must not read them, and it must not be
+    PC-relative.
+    """
+    op = word >> 26
+    rd, ra, rb = (word >> 21) & 31, (word >> 16) & 31, (word >> 11) & 31
+    if op in (16, 18, 19):
+        return "branch or condition-register instruction (PC-relative)"
+    if op in _DFORM:
+        reads_rd, reads_ra = _DFORM[op]
+        if op in (14, 15) and ra == 0:
+            reads_ra = False   # addi/lis with rA=0 means literal zero
+        used = ({rd} if reads_rd else set()) | ({ra} if reads_ra else set())
+        bad = used & SCRATCH
+        return f"reads scratch register r{min(bad)}" if bad else None
+    if op == 31:
+        xo = (word >> 1) & 0x3FF
+        if xo in (339, 371):       # mfspr/mftb read no GPR
+            return None
+        bad = {rd, ra, rb} & SCRATCH
+        return f"may read scratch register r{min(bad)}" if bad else None
+    if op == 21 or op == 20 or op == 23:
+        bad = {rd, ra} & SCRATCH
+        return f"may read scratch register r{min(bad)}" if bad else None
+    return f"opcode {op} is not on the known-safe list"
+
+
+CAPTURE = re.compile(r"^(?:r(\d+)|\[r(\d+)([+-]0x[0-9a-fA-F]+|[+-]\d+)?\]|"
+                     r"mem:(\S+)|sda:(-?0x[0-9a-fA-F]+|-?\d+))$")
+
+
+def capture_insns(spec, syms, slot):
+    """Instructions that store one captured word to slot(r12)."""
+    if spec in ("none", "0"):
+        return []
+    m = CAPTURE.match(spec)
+    if not m:
+        raise DolphinError(f"bad capture '{spec}' (use r3, [r3+0x40], "
+                           f"mem:SYMBOL_OR_ADDR or sda:-0x7f00)")
+    reg, base, off, mem_, sda = m.groups()
+    if reg is not None:
+        r = int(reg)
+        if r in SCRATCH or r > 31:
+            raise DolphinError(f"r{r} is clobbered by the hook; capture "
+                               f"another register")
+        return [stw(r, slot, 12)]
+    if base is not None:
+        r = int(base)
+        if r in SCRATCH or r > 31:
+            raise DolphinError(f"r{r} is clobbered by the hook")
+        return [lwz(11, int(off or "0", 0), r), stw(11, slot, 12)]
+    if sda is not None:
+        return [lwz(11, int(sda, 0), 13), stw(11, slot, 12)]
+    addr = syms.addr(mem_)
+    hi, lo = (addr + 0x8000) >> 16, addr & 0xFFFF
+    return [lis(11, hi), lwz(11, lo, 11), stw(11, slot, 12)]
+
+
+def hook_body(ring, tag, captures, syms):
+    if not 0 <= tag <= 3:
+        raise DolphinError("tag must be 0..3 (stored in the return address's "
+                           "low bits)")
+    if len(captures) > 2:
+        raise DolphinError("at most two captures per hook")
+    caps = list(captures) + ["none"] * (2 - len(captures))
+    frame_off = FRAME_COUNTER - SDA_BASE
+    body = [
+        lis(12, (ring + 0x8000) >> 16),
+        addi(12, 12, ring & 0xFFFF),
+        lwz(11, 0, 12),
+        addi(11, 11, ENTRY),
+        rlwinm(11, 11, 0, 16, 27),      # wrap within 64 KiB, 16-byte entries
+        stw(11, 0, 12),
+        add(12, 12, 11),                # r12 = ring + offset; entry at +16
+        mflr(0),
+        ori(0, 0, tag),
+        stw(0, 16, 12),
+        lwz(11, frame_off, 13),
+        stw(11, 20, 12),
+    ]
+    for i, spec in enumerate(caps):
+        body += capture_insns(spec, syms, 24 + 4 * i)
+    return body
+
+
+def gecko_c2(addr, body, original):
+    words = body + [original]
+    if len(words) % 2 == 0:
+        words.append(0x60000000)
+    words.append(0)
+    lines = [f"C2{addr & 0x1FFFFFF:06X} {len(words) // 2:08X}"]
+    for i in range(0, len(words), 2):
+        lines.append(f"{words[i]:08X} {words[i + 1]:08X}")
+    return lines
+
+
+# --------------------------------------------------------------------------- #
+# Original instructions (from the retail DOL)
+# --------------------------------------------------------------------------- #
+def find_dol():
+    cands = [ROOT / "orig/GL5E4F/sys/main.dol"]
+    try:
+        common = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "--path-format=absolute",
+             "--git-common-dir"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+        cands.append(Path(common).parent / "orig/GL5E4F/sys/main.dol")
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    for c in cands:
+        if c.is_file():
+            return c
+    return None
+
+
+def dol_word(dol_bytes, addr):
+    offs = struct.unpack(">18I", dol_bytes[0:0x48])
+    addrs = struct.unpack(">18I", dol_bytes[0x48:0x90])
+    sizes = struct.unpack(">18I", dol_bytes[0x90:0xD8])
+    for o, a, s in zip(offs, addrs, sizes):
+        if s and a <= addr < a + s:
+            return struct.unpack(">I", dol_bytes[o + addr - a:][:4])[0]
+    raise DolphinError(f"0x{addr:08X} is not in any DOL section")
+
+
+def original_word(addr, args):
+    dol = find_dol()
+    if dol:
+        return dol_word(dol.read_bytes(), addr)
+    mem = attach_or_exit(args)
+    word = mem.scalar(addr, "u32")
+    if word >> 26 == 18:
+        raise DolphinError("no retail DOL and the live word is a branch "
+                           "(already hooked?)")
+    return word
+
+
+def cmd_trace_code(args, syms):
+    lines = [f"$Trace ring 0x{args.ring:08X} [decomp agent]",
+             f"04{(args.ring + 4) & 0x1FFFFFF:06X} {RING_MAGIC:08X}"]
+    tags = []
+    for tag, spec in enumerate(args.functions):
+        target, _, off = spec.partition("+")
+        addr = syms.addr(target) + (int(off, 0) if off else 0)
+        word = original_word(addr, args)
+        why = check_relocatable(word)
+        if why:
+            sys.exit(f"error: {syms.name(addr)} first instruction "
+                     f"0x{word:08X}: {why}; pick another offset with "
+                     f"FUNC+0x4")
+        if off and int(off, 0):
+            print(f"warning: hooking {syms.name(addr)} mid-function; r11/r12 "
+                  f"must be dead there", file=sys.stderr)
+        body = hook_body(args.ring, tag, args.capture, syms)
+        lines += gecko_c2(addr, body, word)
+        tags.append(f"tag {tag} = {syms.name(addr)}")
+    if args.ring == DEFAULT_RING:
+        try:
+            mem = LiveMem.attach(args.pid)
+            area = mem.read(args.ring, RING_BYTES + 16)
+            if any(area[8:]) and not mem.scalar(args.ring + 4, "u32") == RING_MAGIC:
+                print("warning: ring area is not zero in the current state; "
+                      "pick a free --ring", file=sys.stderr)
+        except DolphinError:
+            print("note: Dolphin not attached, ring area not checked",
+                  file=sys.stderr)
+    print("\n".join(lines))
+    print("# " + "; ".join(tags) + f"; captures: {', '.join(args.capture) or 'none'}",
+          file=sys.stderr)
+
+
+# --------------------------------------------------------------------------- #
+# Ring reader
+# --------------------------------------------------------------------------- #
+def ring_state(mem, ring):
+    off, magic = struct.unpack(">II", mem.read(ring, 8))
+    return {"offset": off, "magic": magic == RING_MAGIC}
+
+
+def decode_entries(raw, start_off, end_off):
+    """Entries written after start_off up to and including end_off."""
+    n = ((end_off - start_off) & (RING_BYTES - 1)) // ENTRY
+    off, out = start_off, []
+    for _ in range(n):
+        off = (off + ENTRY) & (RING_BYTES - 1)
+        lr, frame, c0, c1 = struct.unpack(">4I", raw[off:off + ENTRY])
+        out.append({"lr": lr & ~3, "tag": lr & 3, "frame": frame,
+                    "c0": c0, "c1": c1})
+    return out
+
+
+def summarise(events, syms, top=25):
+    callers = collections.Counter((e["tag"], syms.name(e["lr"]))
+                                  for e in events)
+    frames = {e["frame"] for e in events}
+    span = (max(frames) - min(frames) + 1) if frames else 0
+    print(f"{len(events)} calls over {span} frames")
+    for (tag, name), n in callers.most_common(top):
+        vals = collections.Counter(e["c0"] for e in events
+                                   if e["tag"] == tag and syms.name(e["lr"]) == name)
+        common = ", ".join(f"0x{v:X}x{c}" for v, c in vals.most_common(3))
+        print(f"  {n:7d}  tag {tag}  {name:<40} c0: {common}")
+
+
+def cmd_trace_tail(args, syms):
+    mem = attach_or_exit(args)
+    if not ring_state(mem, args.ring)["magic"]:
+        sys.exit("error: logger not active (no magic at ring+4); ask the "
+                 "user to enable the trace code")
+    entries_base = args.ring + 16
+    last = ring_state(mem, args.ring)["offset"]
+    events, overruns, end = [], 0, time.time() + args.seconds
+    while time.time() < end:
+        cur = ring_state(mem, args.ring)["offset"]
+        if cur != last:
+            raw = mem.read(entries_base, RING_BYTES)
+            got = decode_entries(raw, last, cur)
+            if events and got and got[0]["frame"] - events[-1]["frame"] > 2:
+                overruns += 1
+            events += got
+            last = cur
+        time.sleep(0.001)
+    if overruns:
+        print(f"warning: {overruns} possible ring overruns; trace fewer "
+              f"functions or poll a quieter state")
+    if args.lr:
+        want = syms.addr(args.lr)
+        events = [e for e in events if e["lr"] == want]
+    summarise(events, syms)
+    if args.out:
+        Path(args.out).write_text(json.dumps(events))
+        print(f"wrote {len(events)} events to {args.out}")
+
+
+# --------------------------------------------------------------------------- #
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--pid", type=int, help="Dolphin pid (default: detect)")
+    ap.add_argument("--ring", type=lambda s: int(s, 0), default=DEFAULT_RING,
+                    help="trace ring address (default 0x80D00000)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("status", help="report whether GL5E4F is running")
+    p.set_defaults(func=cmd_status)
+
+    p = sub.add_parser("read", help="read live values")
+    p.add_argument("target", help="address or symbols.txt name")
+    p.add_argument("--type", default="u32", choices=SCALARS)
+    p.add_argument("--count", type=int, default=1)
+    p.set_defaults(func=cmd_read)
+
+    p = sub.add_parser("wait", help="block until a value is reached")
+    p.add_argument("target")
+    p.add_argument("--type", default="u32", choices=SCALARS)
+    p.add_argument("--equals", help="value to wait for (default: any change)")
+    p.add_argument("--timeout", type=float, default=600)
+    p.add_argument("--interval", type=float, default=0.05)
+    p.set_defaults(func=cmd_wait)
+
+    p = sub.add_parser("watch", help="print values as they change")
+    p.add_argument("targets", nargs="+")
+    p.add_argument("--type", default="u32", choices=SCALARS)
+    p.add_argument("--seconds", type=float, default=10)
+    p.add_argument("--interval", type=float, default=0.005)
+    p.set_defaults(func=cmd_watch)
+
+    p = sub.add_parser("snapshot", help="save MEM1 under dumps/")
+    p.add_argument("label")
+    p.add_argument("--note", help="game state, kept in dumps/manifest.txt")
+    p.add_argument("--force", action="store_true")
+    p.set_defaults(func=cmd_snapshot)
+
+    p = sub.add_parser("trace-code", help="print a Gecko logger for functions")
+    p.add_argument("functions", nargs="+",
+                   help="up to 4 FUNC or FUNC+0xOFF; tag = position")
+    p.add_argument("--capture", action="append", default=[],
+                   help="r3 | [r3+0x40] | mem:SYMBOL | sda:-0x7f00 (max 2)")
+    p.set_defaults(func=cmd_trace_code)
+
+    p = sub.add_parser("trace-tail", help="read the logger ring")
+    p.add_argument("--seconds", type=float, default=10)
+    p.add_argument("--lr", help="keep only calls returning to this address")
+    p.add_argument("--out", help="write events as JSON (keep it local)")
+    p.set_defaults(func=cmd_trace_tail)
+
+    args = ap.parse_args(argv)
+    if args.cmd == "trace-code" and len(args.functions) > 4:
+        sys.exit("error: at most four hooked functions per ring (2-bit tag)")
+    try:
+        return args.func(args, Symbols()) or 0
+    except DolphinError as e:
+        sys.exit(f"error: {e}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -175,9 +175,12 @@ mostly in SDK math. Read those functions from the assembly.
 ## RAM dumps
 
 `tools/ramdump.py` reads raw Dolphin MEM1: 24 MiB (`0x1800000`), big-endian,
-with address `0x80000000` at file offset zero. Capture a stable state using
-Dolphin's memory debugger and save dumps under ignored `dumps/`. Register
-labels in `dumps/manifest.txt` to compare states such as hub and shop.
+with address `0x80000000` at file offset zero. Capture a stable state with
+`tools/dolphin.py snapshot <label>` while the game runs, or save one with
+Dolphin's memory debugger, under ignored `dumps/`. Register labels in
+`dumps/manifest.txt` to compare states such as hub and shop. Use `live` in place
+of a dump to read the running game; [Dolphin runtime evidence](dolphin_runtime.md)
+covers live reads, asking the user for a game state, and Gecko call tracing.
 
 ```sh
 python3 tools/ramdump.py read hub 0x80407B40 --type f32 --count 4
