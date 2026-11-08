@@ -2,8 +2,9 @@
 """Read the running Dolphin's GL5E4F RAM and build Gecko call tracers.
 
 Agents use this to turn static guesses into runtime evidence without a
-debugger. Everything here reads Dolphin except `warp --write`, which stores one level
-index the same way the game's doors and menus do. Code reaches the game only
+debugger. Everything here reads Dolphin except the drivers (`warp`, `debug-menu`),
+which with --write make one data store that the game itself also makes or
+reads. Code reaches the game only
 through a Gecko code that the user pastes and enables. See
 docs/dolphin_runtime.md for the workflow and the rules.
 
@@ -21,7 +22,8 @@ Commands:
     snapshot LABEL             save MEM1 to dumps/LABEL.raw + manifest entry
     levels                     list level indices and names (retail DOL)
     level                      current and pending level of the live game
-    warp LEVEL --write         request a level change (the one write we make)
+    warp LEVEL --write         request a level change
+    debug-menu --write         unhide "LEGO Options" in the pause menu
     trace-code FUNC[...]       emit a Gecko C2 logger for function entries
     trace-tail                 read the logger ring, summarise callers/values
 """
@@ -52,6 +54,8 @@ LEVEL_ENTRY = 0xA8             # +8 path, +0xC name
 LEVEL_COUNT = 127             # 124 titles, 125 credits, 126 status
 CUR_LEVEL = 0x804093AC        # lbl_804093AC, current level index
 NEXT_LEVEL = 0x804093B0       # lbl_804093B0, pending level index or -1
+
+DEBUG_MENU = 0x804090F0       # gLegoOptionsMenuEnabled; read twice, never written
 
 DEFAULT_RING = 0x80D00000
 RING_BYTES = 0x10000          # entry area; header is 16 bytes before it
@@ -609,6 +613,23 @@ def cmd_warp(args, syms):
     return 2
 
 
+def cmd_debug_menu(args, syms):
+    mem = attach_or_exit(args)
+    state = mem.scalar(DEBUG_MENU, "u32")
+    print(f"gLegoOptionsMenuEnabled = {state}")
+    want = 0 if args.off else 1
+    if state == want:
+        return 0
+    if not args.write:
+        print(f"dry run: pass --write to set it to {want} (only with the "
+              f"user's go-ahead for this session)")
+        return 0
+    mem.write_u32(DEBUG_MENU, want)
+    print(f"set to {mem.scalar(DEBUG_MENU, 'u32')}: LEGO Options is "
+          f"{'shown' if want else 'hidden'} in the pause menu until reboot")
+    return 0
+
+
 def cmd_trace_code(args, syms):
     lines = [f"$Trace ring 0x{args.ring:08X} [decomp agent]",
              f"04{(args.ring + 4) & 0x1FFFFFF:06X} {RING_MAGIC:08X}"]
@@ -758,6 +779,11 @@ def main(argv=None):
                    help="actually write; without it this is a dry run")
     p.add_argument("--timeout", type=float, default=60)
     p.set_defaults(func=cmd_warp)
+
+    p = sub.add_parser("debug-menu", help="unhide the LEGO Options debug menu")
+    p.add_argument("--off", action="store_true", help="hide it again")
+    p.add_argument("--write", action="store_true")
+    p.set_defaults(func=cmd_debug_menu)
 
     p = sub.add_parser("trace-code", help="print a Gecko logger for functions")
     p.add_argument("functions", nargs="+",

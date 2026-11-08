@@ -201,6 +201,16 @@ class FakeDolphinTests(unittest.TestCase):
         self.assertEqual(rc, 0, out.getvalue())
         self.assertIn("loaded: 80 Dooku_B", out.getvalue())
 
+    def test_debug_menu_write(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            dolphin.main(["--pid", str(self.child.pid), "debug-menu"])
+            dolphin.main(["--pid", str(self.child.pid), "debug-menu", "--write"])
+        mem = dolphin.LiveMem.attach(self.child.pid)
+        self.addCleanup(mem.close)
+        self.assertIn("dry run", out.getvalue())
+        self.assertEqual(mem.scalar(dolphin.DEBUG_MENU, "u32"), 1)
+
     def test_wait_reaches_value(self):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):

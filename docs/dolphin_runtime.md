@@ -137,6 +137,13 @@ python3 tools/dolphin.py warp Dooku_B --write   # load it and wait
 
 `warp` takes an index, an exact name or a unique substring.
 
+`debug-menu --write` sets `gLegoOptionsMenuEnabled` (`0x804090F0`) to 1. The game
+only reads that word, so "LEGO Options" stays in the pause menu until reboot.
+The menu itself (scene select, game mode, unlocks, toggles) is documented in
+[menus](menu_system.md#debug-menu--lego-options). Prefer it when a state needs
+several of those options; the user can operate it, and a driver can later make
+the same stores directly.
+
 **How the warp works:**
 - The level table is `lbl_801D68E0`: 127 entries of `0xA8` bytes, with the path
   at `+8` and the name at `+0xC`. Indices 0–122 are story and bonus levels,
