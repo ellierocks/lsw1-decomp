@@ -438,3 +438,41 @@ Useful observations:
 - **Misnamed symbols.** `NuASin` computes cos, `NuAngDiff` sin, `NuMtxMulR` matrix
   to quaternion, `NuMtlGet3dBuffer` closest points between lines, and
   `NuTexSetTexture` a vec4 by matrix product. Names were left unchanged.
+
+## Levels sprint 3
+
+Unit `auto/game/levels`: 11 functions strict-verified (3,428 code bytes), DOL
+byte-identical, no promotion. `fn_800D2E44`, `fn_800BCD9C`, `fn_800C535C`,
+`fn_800C4FDC`, `fn_800C5B9C`, `fn_800C4DAC`, `fn_800C4614`, `fn_800AB98C`,
+`Menu_Unknown5_HandleSelection`, `fn_800B2E10` and `fn_800D9AB0`. The sweep gained a
+switch-to-if/else-chain repair for small m2c switches; it found no direct wins in the
+rerun. OpenSaga had no name hits.
+
+Plateaus to resume from (best bodies kept locally under `work/t/`):
+
+| Function | Score | Mismatch | Next hypothesis |
+|---|---|---|---|
+| `fn_800BFF08` | 141/151 | target hoists `lis lbl_803EAEC4@ha` to entry for the count-6 loop | inline helper or loop shape |
+| `fn_800AC8C8` | 130/140 | target copies the arg (`fmr f11,f1`) and allocates zero to f12 in the first clamp | inline clamp helper |
+| `fn_800D4A50` | 88/108 | near/mid/range/best FPRs reversed (target f26–f29) | constant/loop shape that hoists like the target |
+| `PlayerTakeHit` | 67/68 | `lfs lbl_801A510C` scheduled above `stfs 0x714` only in target | aliasing: field type at 0x714 |
+| `fn_800D5580` | 57/64 | `lis` order for `52DC/52E0`; `li r5`/`addi r6`/`li r7` order in final call | argument temps for the pointer and zero args |
+| `Menu_Unknown13_BuildOptions` | 52/54 | `li r5`/`lfs` scheduling around `fmr f6,f5` | argument temp order |
+| `fn_800C48A4` | 49/53 | extra `mr r10,r9` copy of the struct pointer | different struct or local typing |
+| `Menu_Unknown12_BuildOptions` | 39/43 | same scheduling as Unknown13 | shared fix with Unknown13 |
+| `fn_800CC628` | 33/39 | phantom `stmw r30` with r31 unused | dead local or inline call keeping r31 reserved |
+
+Not attempted: `Menu_Unknown1_HandleSelection` (238/255 draft), `fn_800C169C`
+(372/451), `fn_800CB8F0` (241/287), `MaulFUpdate` (243/280), `fn_800B203C` (212/246),
+`fn_800CFD80` (draft does not compile), and the small `next_target.py` functions.
+
+Observations:
+
+- **Early-continue loop bodies.** The permuter's `do { } while (0)` wrapper in
+  `fn_800D4A50` corresponds to a body written with `continue`s; a named row-pointer
+  temp for the `u64` mask lookup fixed the index load order.
+- **Local float before a store.** `PlayerTakeHit` went from 61 to 67/68 once
+  `lbl_801A510C` was read into a local just before the `0x7DF` byte store.
+- **Inlined call chains.** `fn_800D5580` improved from 50 to 57/64 when the
+  `NuFmod`/divide/scale expressions were inlined into the call arguments, so the
+  quotient stays in f1.
