@@ -969,3 +969,91 @@ s32 fn_8009D41C(void) {
         lbl_80408E80--;
     }
 }
+
+s32 fn_800B9ED4();
+extern f32 lbl_8019E9F8[];
+extern f32 lbl_8019E9FC[];
+extern s32 lbl_80408F0C;
+extern s32 lbl_80408F10;
+
+void fn_8009DAE8(void) {
+    s32 r;
+
+    do {
+        r = 1 << (fn_800B9ED4() / 0x4000);
+        lbl_80408F0C = r;
+    } while (r == lbl_80408F10);
+    lbl_80408F10 = r;
+    lbl_80408F04 = lbl_8019E9F8[0];
+    if (lbl_8040913C != -1 ||
+        (lbl_804093B0 != -1 &&
+         ((lbl_804093C8 != -1 && lbl_801D68E0[lbl_804093B0].lev == lbl_804093C8) ||
+          (lbl_801D68E0[lbl_804093AC].flags & 0x4000)))) {
+        lbl_80408F00 = lbl_8019E9FC[0];
+        if (lbl_801D68E0[lbl_804093AC].flags & 0x4000) {
+            if (lbl_804093B0 == 0x7D) {
+                lbl_80408F18 = 1;
+                lbl_80408F14 = 0;
+                return;
+            }
+            if (lbl_804093B0 == 0x7B) {
+                lbl_80408F18 = 0;
+                lbl_80408F14 = 0;
+                return;
+            }
+        }
+        lbl_80408F18 = 0;
+        lbl_80408F14 = 1;
+    }
+}
+
+void NuStrCpy(char *, char *);
+s32 NuStrICmp(char *, char *);
+extern char lbl_8019E608[];
+extern char lbl_8019E610[];
+extern char lbl_8019E61C[];
+extern char lbl_8019E620[];
+extern char lbl_8019E628[];
+extern char lbl_8019E634[];
+extern char lbl_8019E640[];
+extern char lbl_8019E644[];
+extern char lbl_8019E64C[];
+extern char lbl_8019E658[];
+extern char lbl_8019E664[];
+extern char lbl_8019E668[];
+extern char lbl_8019E670[];
+extern char lbl_8019E678[];
+extern char lbl_8019E680[];
+extern char lbl_8019E684[];
+extern char lbl_8019E68C[];
+extern char lbl_8019E69C[];
+extern char lbl_8019E6A0[];
+extern char lbl_8019E6B0[];
+
+s32 fn_8009CD4C(char *name, char *out) {
+    if (NuStrICmp(name, lbl_8019E608) == 0 || NuStrICmp(name, lbl_8019E610) == 0 || NuStrICmp(name, lbl_8019E61C) == 0) {
+        NuStrCpy(out, lbl_8019E620);
+        return 1;
+    }
+    if (NuStrICmp(name, lbl_8019E628) == 0 || NuStrICmp(name, lbl_8019E634) == 0 || NuStrICmp(name, lbl_8019E640) == 0) {
+        NuStrCpy(out, lbl_8019E644);
+        return 1;
+    }
+    if (NuStrICmp(name, lbl_8019E64C) == 0 || NuStrICmp(name, lbl_8019E658) == 0 || NuStrICmp(name, lbl_8019E664) == 0) {
+        NuStrCpy(out, lbl_8019E668);
+        return 1;
+    }
+    if (NuStrICmp(name, lbl_8019E670) == 0 || NuStrICmp(name, lbl_8019E678) == 0 || NuStrICmp(name, lbl_8019E680) == 0) {
+        NuStrCpy(out, lbl_8019E684);
+        return 1;
+    }
+    if (NuStrICmp(name, lbl_8019E68C) == 0) {
+        NuStrCpy(out, lbl_8019E69C);
+        return 1;
+    }
+    if (NuStrICmp(name, lbl_8019E6A0) == 0) {
+        NuStrCpy(out, lbl_8019E6B0);
+        return 1;
+    }
+    return 0;
+}
