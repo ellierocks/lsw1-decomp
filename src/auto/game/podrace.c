@@ -540,3 +540,32 @@ void fn_801501C8(s32 arg0) {
         fn_80074D14(*(s32 *)(p + 0x740), arg0 + 0x30, 1);
     }
 }
+
+extern s32 lbl_80409C90;
+s32 fn_8014D0A8();
+extern f32 lbl_801AFF4C[];
+extern s32 lbl_80409C98;
+extern s32 lbl_8040A810;
+extern s32 lbl_8040B068;
+
+void fn_8014FF48(void) {
+    s8 *p = (s8 *)lbl_80409C94;
+
+    *(f32 *)(p + 0xB004) = lbl_801AFF4C[0];
+    memset(p + 0xA600, 0, 0xA00);
+    lbl_80409C98 = 0;
+    lbl_8040A810 = -1;
+    switch (lbl_8040B108) {
+    case 1:
+        lbl_8040B068 = 2;
+        break;
+    case 2:
+        lbl_8040B068 = 5;
+        break;
+    case 3:
+        lbl_8040B068 = 8;
+        break;
+    }
+    lbl_80409C90 = 0;
+    fn_8014D0A8();
+}
