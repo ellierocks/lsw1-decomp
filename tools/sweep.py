@@ -31,7 +31,9 @@ that ranking is the agent queue, biggest progress first. Task packs go to
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
+import os
 import re
 import subprocess
 import sys
@@ -44,6 +46,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import draft_fn  # noqa: E402
 import mac_protos  # noqa: E402
+from m2c_helpers import ASM_COMMENT as ASM_COMMENT_RE  # noqa: E402
 from m2c_helpers import (split_args, expand_macros, fold_cror, fold_ps, fix_ps_calls,
                          moves_to_args, type_derefs, strip_vararg_saves, declare_unset,
                          call_sites, PS_CALLS, prepare_asm, repair_indirect_prototypes)
@@ -78,8 +81,11 @@ def unit_context(source: str) -> Path | None:
         return _CONTEXTS[source]
 
 
-def draft(name: str, context: Path | None = None) -> tuple[str, str]:
-    """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'."""
+def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[str, str]:
+    """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'.
+
+    SIZED sets M2C_SIZED_DEREFS (tools/patches/m2c-sized-derefs.patch): `*(a + b)` derefs
+    keep their load width as `*(u8 *)(a + b)`, which the C types may otherwise lose."""
     task = OUT / name
     asm = task / "asm.s"
     if not asm.is_file():
@@ -93,7 +99,8 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
         cmd += ["--no-cache", "--context", str(context)]
-    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True)
+    env = {**os.environ, "M2C_SIZED_DEREFS": "1"} if sized else None
+    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True, env=env)
     if r.returncode or not r.stdout.strip():
         return "m2c-failed", ""
     out = declare_unset(r.stdout, name)
@@ -149,6 +156,24 @@ def const_rodata(body: str) -> str:
                   lambda m: f"extern const {m[1]}{m[2]}[];" if m[2] in rodata else m[0], body, flags=re.M)
 
 
+GUARD = re.compile(r"\bif \((?P<n>\(s32\) \w+(?:\[0\])?|\w+(?:\[0\])?|\(s32\) \(\*\([^;{}]*?\)\)|\(\*\([^;{}]*?\)\)) > 0\) \{")
+
+
+def loop_guard(body: str) -> str:
+    """BODY with m2c's loop guard `if (N > 0)` written as `if (i < N)` when the counter i,
+    zeroed before it, is compared with the same N at the loop's end. GCC keeps a `for`
+    loop's entry test as `cmpw i, N` with i still 0, which a constant compare cannot
+    reproduce (fn_80064B40, fn_80063D9C)."""
+    def repl(m):
+        n = m["n"]
+        bare = re.escape(n[6:] if n.startswith("(s32) ") else n)
+        cmp = re.search(rf"\b(\w+) (?:>=|<) (?:\(s32\) )?{bare}\)", body[m.end():])
+        if not cmp or not re.search(rf"^\s*{cmp[1]} = 0;$", body[:m.start()], flags=re.M):
+            return m[0]
+        return f"if ({cmp[1]} < {n}) {{"
+    return GUARD.sub(repl, body)
+
+
 def base_pointer(body: str) -> str:
     """BODY with each run of two or more consecutive statements that address one global
     through m2c's `(s8 *)(G) + off` wrapped in a block that reads G through a local
@@ -178,7 +203,7 @@ def base_pointer(body: str) -> str:
     return "\n".join(out)
 
 
-SWITCH = re.compile(r"^(?P<ind>[ \t]*)switch \((?P<x>.+)\) \{[ \t]*(?:/\*.*\*/)?$")
+SWITCH_LINE = re.compile(r"^(?P<ind>[ \t]*)switch \((?P<x>.+)\) \{[ \t]*(?:/\*.*\*/)?$")
 CASE = re.compile(r"^(?P<ind>[ \t]*)(?:case (?P<v>[^:]+)|default):$")
 TERMINAL = re.compile(r"^[ \t]*(?:return\b[^;]*|goto \w+|break);$")
 
@@ -194,7 +219,7 @@ def switch_chain(body: str, max_cases: int = 4) -> str:
     lines = body.split("\n")
     out, i = [], 0
     while i < len(lines):
-        m = SWITCH.match(lines[i])
+        m = SWITCH_LINE.match(lines[i])
         conv = _switch_to_chain(lines, i, m, max_cases) if m else None
         if conv is None:
             out.append(lines[i])
@@ -259,23 +284,178 @@ def both_rewrites(body: str) -> str:
     return const_rodata(store_in_arms(body))
 
 
-VARIANTS = (store_in_arms, const_rodata, both_rewrites)
+NARROW_RET = re.compile(r"^(?:u8|s8|u16|s16) (?=\w+\()", re.M)
+
+
+def wide_return(body: str) -> str:
+    """BODY with a u8/s8/u16/s16 return type widened to s32 when it returns -1. m2c types
+    the return from a narrow load (`lbz`), but `li r3, -0x1` with no extension needs an int
+    return: `return -1U` from a u8 function emits `li r3, 0xff` (fn_8005A5B0)."""
+    if not re.search(r"\breturn -1U?;", body) or not NARROW_RET.search(body):
+        return body
+    return re.sub(r"\breturn -1U;", "return -1;", NARROW_RET.sub("s32 ", body, count=1))
+
+
+CALLEE_DECL = re.compile(r"^(?!extern\b)(?:s32|u32|int|s16|u16|s8|u8|void \*|s32 \*|u32 \*) ?(\w+)\(([^()]*)\);$",
+                         flags=re.M)
+
+
+def void_callees(body: str) -> str:
+    """BODY with each m2c-declared callee whose result is never used declared `void`.
+    m2c types every callee `s32`; a call statement that discards an `int` result
+    schedules its argument loads differently from a `void` call, so `li r3`/`li r4`
+    land on the other side of an independent `lfs` (fn_800A1C70)."""
+    out = body
+    for m in CALLEE_DECL.finditer(body):
+        fn = m[1]
+        uses = len(re.findall(rf"\b{fn}\b", body)) - 1
+        stmts = len(re.findall(rf"^[ \t]+{fn}\(.*\);$", body, flags=re.M))
+        if uses and uses == stmts:
+            out = out.replace(m[0], f"void {fn}({m[2]});", 1)
+    return out
+
+
+VARIANTS = (store_in_arms, const_rodata, both_rewrites, wide_return, void_callees)
+VOID_DECL = re.compile(r"^void (\w+)\(([^()]*)\);$", flags=re.M)
+
+
+def int_callees(body: str, limit: int = 6) -> list[str]:
+    """BODY with one `void` callee declared `s32` instead, for each such callee: the
+    reverse of `void_callees`. A call to an `int` function whose result is dropped
+    schedules the first argument's `addi` later than a `void` call does (OSCreateThread
+    in fn_8009D23C), so neither return type is always right for a discarded result."""
+    return [body.replace(m[0], f"s32 {m[1]}({m[2]});", 1) for m in VOID_DECL.finditer(body)][:limit]
+
+PROTO_DECL = re.compile(r"^(?:\w+ \**)+?(\w+)\(([^()]+)\);$", flags=re.M)
+FLOAT_PARAM = re.compile(r"^(?:const )?(?:f32|f64|float|double)\b(?! *\*)")
+
+
+def float_blocks(body: str, limit: int = 8) -> list[str]:
+    """BODY with prototypes' trailing float parameters moved, as a block, in front of
+    earlier integer parameters, and every call reordered to match. Floats and ints use
+    separate register files, so m2c cannot see the interleaving and puts the floats
+    last; the true position changes argument evaluation order and with it the
+    scheduling (fn_8009E6FC: two callees are both `(s32 x4, f32 x4, u32 *, s32)`).
+    Each shift is tried on every eligible prototype at once first (sibling callees
+    tend to share a layout), then on each prototype alone."""
+    protos = []
+    for m in PROTO_DECL.finditer(body):
+        params = [p.strip() for p in m[2].split(",")]
+        kinds = [bool(FLOAT_PARAM.match(p)) for p in params]
+        nint = kinds.index(True) if True in kinds else len(kinds)
+        if 0 < nint < len(kinds) and all(kinds[nint:]):
+            protos.append((m, params, nint))
+
+    def move(text: str, m, params: list[str], nint: int, shift: int) -> str | None:
+        pos = nint - shift
+        if pos < 0:
+            return None
+        order = list(range(pos)) + list(range(nint, len(params))) + list(range(pos, nint))
+        proto = m[0].replace(m[2], ", ".join(params[i] for i in order))
+        text = text.replace(m[0], proto, 1)
+        dstart, done = text.index(proto), []
+        for call in re.finditer(rf"\b{m[1]}\(", text):
+            if dstart <= call.start() < dstart + len(proto):
+                continue
+            got = call_args(text, call.end() - 1)
+            if got and len(got[0]) == len(params):
+                done.append((call.end() - 1, got[1], got[0]))
+        for start, end, args in reversed(done):
+            text = text[:start] + "(" + ", ".join(args[i] for i in order) + ")" + text[end:]
+        return text if done else None
+
+    out = []
+    longest = max((nint for _, _, nint in protos), default=0)
+    if len(protos) > 1:
+        for shift in range(1, longest + 1):
+            text = body
+            for m, params, nint in protos:
+                text = move(text, m, params, nint, shift) or text
+            if text != body:
+                out.append(text)
+    for m, params, nint in protos:
+        out += [t for t in (move(body, m, params, nint, s) for s in range(1, nint + 1)) if t]
+    seen = set()
+    return [t for t in out if not (t in seen or seen.add(t))][:limit]
+
+
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 
+FIELD_LHS = re.compile(r"^\(\*\([^()]+\)\(\(s8 \*\)\((?P<base>\w+)\) \+ \((?P<off>-?(?:0x[0-9A-Fa-f]+|\d+))\)\)\)$")
+
+
+def sorted_stores(body: str) -> str:
+    """BODY with each run of adjacent independent field stores through one base pointer
+    put in ascending offset order. m2c keeps the scheduled order, in which GCC often moves
+    float stores ahead (fn_80064860 stores 0x264 first); the source usually wrote the
+    fields in layout order."""
+    lines = body.split("\n")
+    i = 0
+    while i < len(lines):
+        run = []
+        j = i
+        while j < len(lines):
+            m = MEM_STORE.match(lines[j])
+            f = m and FIELD_LHS.match(m["lhs"])
+            if not f or (run and (m["ind"] != run[0][1]["ind"] or f["base"] != run[0][2]["base"])):
+                break
+            run.append((lines[j], m, f))
+            j += 1
+        if len(run) > 1 and not any(a[1]["lhs"] in b[1]["rhs"] for a in run for b in run if a is not b):
+            lines[i:j] = [r[0] for r in sorted(run, key=lambda r: int(r[2]["off"], 0))]
+        i = max(j, i + 1)
+    return "\n".join(lines)
+
+
 def swap_stores(body: str, limit: int = 8) -> list[str]:
-    """BODY with one pair of adjacent independent memory stores swapped, for each such pair:
-    GCC's scheduler often emits a function's last stores in the other order."""
+    """BODY with one pair of adjacent independent memory stores swapped, for each such pair,
+    then with each run of three or more such stores rotated by one either way: GCC's
+    scheduler often emits a function's last stores in another order. A plain name counts as
+    memory when the body declares it `extern` (`lbl_8040A820 = 0;`, fn_8014FE90)."""
     lines, out = body.split("\n"), []
+    externs = set(re.findall(r"^extern [^;(]*?\b(\w+)(?:\[\])?;", body, flags=re.M))
+
+    def store(ln: str):
+        m = MEM_STORE.match(ln)
+        if m:
+            return m
+        m = re.match(r"^(?P<ind>[ \t]+)(?P<lhs>\w+) = (?P<rhs>[^;]+);$", ln)
+        return m if m and m["lhs"] in externs else None
+
+    def independent(a, b) -> bool:
+        return (a["ind"] == b["ind"] and a["lhs"] != b["lhs"]
+                and not re.search(rf"(?<![\w.>]){re.escape(a['lhs'])}(?!\w)", b["rhs"])
+                and not re.search(rf"(?<![\w.>]){re.escape(b['lhs'])}(?!\w)", a["rhs"]))
+    ms = [store(ln) for ln in lines]
     for i in range(len(lines) - 1):
-        a, b = MEM_STORE.match(lines[i]), MEM_STORE.match(lines[i + 1])
-        if not (a and b) or a["ind"] != b["ind"] or a["lhs"] == b["lhs"]:
-            continue
-        if a["lhs"] in b["rhs"] or b["lhs"] in a["rhs"]:
-            continue
-        out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
-        if len(out) == limit:
-            break
+        a, b = ms[i], ms[i + 1]
+        if a and b and independent(a, b):
+            out.append("\n".join(lines[:i] + [lines[i + 1], lines[i]] + lines[i + 2:]))
+    out, rots = out[:limit], []
+    i = 0
+    while i < len(lines):
+        j = i
+        while j + 1 < len(lines) and ms[j + 1] and ms[i] and all(independent(ms[k], ms[j + 1]) for k in range(i, j + 1)):
+            j += 1
+        if j - i >= 2:
+            run = lines[i:j + 1]
+            for rot in (run[-1:] + run[:-1], run[1:] + run[:1]):
+                rots.append("\n".join(lines[:i] + rot + lines[j + 1:]))
+        i = j + 1
+    return out + rots[:limit]
+
+
+def volatile_locals(body: str, limit: int = 4) -> list[str]:
+    """BODY with one address-taken stack local (`sp8`, `sp10`, ...) declared `volatile`, for
+    each such local: GCC gives an address-taken local its slot when the address is first
+    expanded (call arguments right to left), a volatile one at its declaration (fn_8009D57C)."""
+    out = []
+    for m in re.finditer(r"^(?P<ind>[ \t]+)(?P<decl>(?!volatile\b)\w[\w ]*?\b(?P<v>sp[0-9A-F]+));$", body, flags=re.M):
+        if re.search(rf"&\s*{m['v']}\b", body):
+            out.append(body[:m.start()] + f"{m['ind']}volatile {m['decl']};" + body[m.end():])
+            if len(out) == limit:
+                break
     return out
 
 
@@ -308,6 +488,57 @@ def pad_signature(body: str, name: str) -> str:
     if new == m[2].strip():
         return body
     return body[:m.start(2)] + new + body[m.end(2):]
+
+
+WRITES_NONE = re.compile(r"(?:st|cmp|b|mt|tw|dcb|icb|sync|isync|cr)")
+
+
+def passthrough_regs(asm: str, fn: str) -> tuple[set[int], set[int]] | None:
+    """Argument registers (GPR r3.. as 0.., FPR f1.. as 0..) the target leaves unwritten
+    before its first call, when that call is `bl FN`: the callee receives the target's own
+    incoming arguments there (a thin wrapper `f(a) { g(a, 0); }`). None when FN is not the
+    first call."""
+    gprs, fprs = set(), set()
+    for line in asm.splitlines():
+        line = ASM_COMMENT_RE.sub("", line).strip()
+        if not line or line.startswith((".", "#")) or line.endswith(":"):
+            continue
+        op, _, rest = line.partition(" ")
+        if op in ("bl", "bctrl", "blrl"):
+            if op != "bl" or rest.strip() != fn:
+                return None
+            return ({i for i in range(8) if 3 + i not in gprs},
+                    {i for i in range(8) if 1 + i not in fprs})
+        if WRITES_NONE.match(op) or op.startswith(("psq_st", "fcmp")):
+            continue  # stores, compares, branches and moves to SPRs write no argument register
+        d = re.match(r"([rf])(\d+)\b", rest.strip())
+        if d:
+            (gprs if d[1] == "r" else fprs).add(int(d[2]))
+    return None
+
+
+def add_params(body: str, name: str, extra: dict[str, str]) -> str:
+    """BODY with NAME's m2c-style parameter list (argN/fargN) extended by EXTRA (param name
+    to type) and padded to keep each register class contiguous; unchanged when the list
+    has parameters not in m2c's register naming."""
+    m = re.search(rf"^(\w[^\n;(]*?\b{re.escape(name)})\(([^)]*)\)(\s*\{{)", body, flags=re.M)
+    if not m:
+        return body
+    regs: dict[str, dict[int, str]] = {"arg": {}, "farg": {}}
+    if m[2].strip() not in ("", "void"):
+        for param in (p.strip() for p in m[2].split(",")):
+            pm = PARAM.match(param)
+            if not pm or re.search(r"\b(?:s64|u64|long long)\b", pm["decl"]):
+                return body
+            regs[pm["kind"]][int(pm["n"])] = param
+    for nm, typ in extra.items():
+        pm = re.fullmatch(r"(f?arg)(\d+)", nm)
+        regs[pm[1]].setdefault(int(pm[2]), f"{typ}{nm}" if typ.endswith("*") else f"{typ} {nm}")
+    params = []
+    for kind, pad in (("arg", "s32 pad"), ("farg", "f32 fpad")):
+        if regs[kind]:
+            params += [regs[kind].get(i, f"{pad}{i}") for i in range(max(regs[kind]) + 1)]
+    return body[:m.start(2)] + (", ".join(params) or "void") + body[m.end(2):]
 
 
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
@@ -458,6 +689,36 @@ def empty_frame(body: str, asm: str) -> str:
     return EMPTY_BODY.sub(lambda b: f"{b.group(1)}\n    volatile s32 pad[{words}];\n{b.group(2)}\n", body)
 
 
+FRAME = re.compile(r"\bstwu r1, -(0x[0-9A-Fa-f]+)\(r1\)")
+SAVED = re.compile(r"\b(?:stw|stmw|stfd) (?:r(?:1[3-9]|2\d|3[01])|f(?:1[4-9]|2\d|3[01])), (0x[0-9A-Fa-f]+)\(r1\)")
+
+
+def frame_buffer(body: str, asm: str) -> str:
+    """BODY with the topmost address-taken `spXX` scalar widened to a `char` array reaching
+    the first callee-saved slot (or the frame top) of the target frame, rounded down to 8
+    bytes: m2c types a stack buffer such as a `sprintf` target by its first word, so the
+    draft's frame comes out far too small (LoadObjectFile, LoadObjectAnimFile). Unchanged
+    when the target frame leaves no gap above the slot."""
+    insns = "\n".join(m.group(1) for m in re.finditer(r"\*/\s*(.+)$", asm, re.M)) or asm
+    frame = FRAME.search(insns)
+    if not frame:
+        return body
+    saved = [int(m.group(1), 16) for m in SAVED.finditer(insns)]
+    top = min(saved) if saved else int(frame.group(1), 16)
+    taken = [m for m in SP_DECL.finditer(body)
+             if f"&{m['v']}" in body and int(m["off"], 16) < top]
+    if not taken:
+        return body
+    m = max(taken, key=lambda d: int(d["off"], 16))
+    size = (top - int(m["off"], 16)) & ~7  # GCC rounds a stack array up to 8 bytes
+    if size < 4 * SIZES[m["t"]] or size <= 8:
+        return body
+    body = body.replace(m[0], f"{m['ind']}char {m['v']}[{size:#x}];\n", 1)
+    body = re.sub(rf"\(\w+ \*\)\s*&{m['v']}\b|&{m['v']}\b", m["v"], body)
+    return re.sub(rf"(?<![\w&]){m['v']}\b(?!\[)(?=\s*(?:=[^=]|\+\+|--|[-+*/|&^]=))",
+                  f"*(s32 *){m['v']}", body)
+
+
 def byte_strides(body: str) -> str:
     """BODY with each typed local pointer that m2c steps by a byte count (`p += 0x9C` on an
     `s32 *`, which C scales by 4) stepped by bytes again. A pointer only read through
@@ -479,6 +740,182 @@ def byte_strides(body: str) -> str:
         for st in reversed(steps):
             body = body[:st.start()] + f"{m['v']} {st[1]}= {int(st[2], 0) // size};" + body[st.end():]
     return body
+
+LOOP_END = re.compile(r"^(?P<ind>[ \t]*)\} while \((?P<cond>.*)\);$")
+PTR_BOUND = re.compile(r"(\w+) <= \(void \*\) \(\(\(s8 \*\)(.+)\) \+ (0x[0-9A-Fa-f]+|\d+)\)")
+
+
+def index_loops(body: str) -> str:
+    """BODY with each m2c pointer loop rewritten over an index. m2c prints a loop over an
+    array of N-byte records as `p = B; do { ...; p += N; } while (p <= (void *) ((s8 *)B + K));`,
+    but GCC formed that pointer from `&B[i]` and compares the eliminated `s32 i` with a signed
+    `cmpw` where the draft's pointer compare gives `cmplw` (fn_8014D01C). Each such pointer, and
+    each pointer stepped beside a `c += 1` counter that starts at 0 (fn_8014CFA4), is
+    recomputed from the index at the top of the body; a pointer bound becomes `i <= K / N`."""
+    lines = body.split("\n")
+    for end in range(len(lines) - 1, -1, -1):
+        new = _index_loop(lines, end)
+        if new is not None:
+            return index_loops("\n".join(new))  # one loop per pass: line numbers shift
+    return body
+
+
+def _index_loop(lines: list[str], end: int) -> list[str] | None:
+    m = LOOP_END.match(lines[end])
+    if not m:
+        return None
+    ind, inner = m["ind"], m["ind"] + "    "
+    starts = [i for i in range(end) if lines[i] == f"{ind}do {{"]
+    if not starts:
+        return None
+    start = starts[-1]
+    loop = lines[start + 1:end]
+    if any(ln.strip() and not ln.startswith(inner) for ln in loop):
+        return None  # not the matching `do`
+    found: dict[str, list[tuple[int, int]]] = {}
+    for k, ln in enumerate(loop):
+        sm = re.fullmatch(rf"{inner}(\w+) \+= (0x[0-9A-Fa-f]+|\d+);", ln)
+        if sm:
+            found.setdefault(sm[1], []).append((k, int(sm[2], 0)))
+    steps = {v: st[0] for v, st in found.items() if len(st) == 1}
+
+    def init_of(v: str) -> tuple[int, str] | None:
+        for i in range(start - 1, -1, -1):
+            if re.search(rf"\b{v}\b", lines[i]):
+                im = re.fullmatch(rf"([ \t]*){v} = ([^;]+);", lines[i])
+                return (i, im[2]) if im and ind.startswith(im[1]) else None
+        return None
+
+    def assigned(v: str, skip: int) -> bool:
+        return any(re.search(rf"\b{v}\s*(?:[-+*/|&^]?=(?!=)|\+\+|--)|(?:\+\+|--){v}\b", ln)
+                   for k, ln in enumerate(loop) if k != skip)
+
+    after = "\n".join(lines[end + 1:])
+    counter = new_index = bound = None
+    cm = PTR_BOUND.fullmatch(m["cond"])
+    if cm and cm[1] in steps:
+        init, n = init_of(cm[1]), steps[cm[1]][1]
+        if init and init[1].strip() in (cm[2], f"(void *) {cm[2]}") and int(cm[3], 0) % n == 0:
+            new_index, bound = f"i_{cm[1]}", int(cm[3], 0) // n
+    else:
+        for v, (k, n) in steps.items():
+            init = init_of(v)
+            if n == 1 and init and init[1] == "0" and re.match(rf"{v} [<>]=? ", m["cond"]) \
+                    and not assigned(v, k):
+                counter = v
+                break
+    if not (new_index or counter):
+        return None
+    ptrs = []
+    for v, (k, n) in steps.items():
+        if v == counter or (n == 1 and v != (cm[1] if cm else None)):
+            continue
+        init = init_of(v)
+        if init and not re.search(rf"\b{v}\b", after) and not assigned(v, k):
+            ptrs.append((v, k, n, init))
+    if new_index and not any(v == cm[1] for v, *_ in ptrs):
+        return None
+    if not ptrs:
+        return None
+    idx = new_index or counter
+    drop = {k for _, k, _, _ in ptrs}
+    body = [f"{inner}{v} = (void *) ((s8 *) ({init[1]}) + {idx} * {n});" for v, _, n, init in ptrs]
+    body += [ln for k, ln in enumerate(loop) if k not in drop]
+    inits = sorted({init[0] for *_, init in ptrs})
+    out = list(lines)
+    if new_index:
+        body.append(f"{inner}{idx} += 1;")
+        out[end] = f"{ind}}} while ({idx} <= {bound});"
+    out[start + 1:end] = body
+    if new_index:
+        out[inits[0]] = re.sub(r"\S.*", f"{idx} = 0;", out[inits[0]])
+        inits = inits[1:]
+    for i in reversed(inits):
+        del out[i]
+    if new_index:
+        top = next((i for i, ln in enumerate(out) if ln == "{" or re.match(r"^\w.*\) \{$", ln)), None)
+        if top is None:
+            return None
+        out.insert(top + 1, f"    s32 {idx};")
+    return out
+
+
+def countdown_loops(body: str) -> str:
+    """BODY with each m2c countdown loop written as the `for` loop GCC compiled. m2c prints
+    `for (i = 0; i < n; i++) f(a[i]);` as `if (n > 0) { c = n; o = 0; do { f(*(o + a));
+    o += 4; c -= 1; } while (c != 0); }`; ProDG schedules the source form differently
+    (PodraceLoadLapSettings hoisted a string address out of the draft's loop). Each stepped
+    variable is recomputed from the index at the top of the body."""
+    lines = body.split("\n")
+    for end in range(len(lines) - 1, -1, -1):
+        new = _countdown_loop(lines, end)
+        if new is not None:
+            return countdown_loops("\n".join(new))
+    return body
+
+
+def _countdown_loop(lines: list[str], end: int) -> list[str] | None:
+    m = re.fullmatch(r"([ \t]*)\} while \((\w+) != 0\);", lines[end])
+    if not m or end + 1 >= len(lines):
+        return None
+    ind, cnt = m[1], m[2]
+    inner, g = ind + "    ", ind[:-4]
+    if not ind.endswith("    ") or lines[end + 1] != f"{g}}}":
+        return None
+    starts = [i for i in range(end) if lines[i] == f"{ind}do {{"]
+    if not starts:
+        return None
+    start = starts[-1]
+    loop = lines[start + 1:end]
+    if any(ln.strip() and not ln.startswith(inner) for ln in loop):
+        return None
+    if loop[-1] != f"{inner}{cnt} -= 1;":
+        return None
+    head = start
+    while head > 0 and re.fullmatch(rf"{ind}\w+ = [^;]+;", lines[head - 1]):
+        head -= 1
+    if head < 1:
+        return None
+    gm = re.fullmatch(rf"{g}if \((.+) > 0\) \{{", lines[head - 1])
+    if not gm:
+        return None
+    n = gm[1]
+    inits = {}
+    for ln in lines[head:start]:
+        im = re.fullmatch(rf"{ind}(\w+) = ([^;]+);", ln)
+        inits[im[1]] = im[2]
+    if inits.get(cnt, "").strip("() ") != n.strip("() ") and inits.get(cnt) != n:
+        return None
+    steps = {}
+    rest = []
+    for ln in loop[:-1]:
+        sm = re.fullmatch(rf"{inner}(\w+) \+= (0x[0-9A-Fa-f]+|\d+);", ln)
+        if sm and sm[1] in inits and sm[1] not in steps:
+            steps[sm[1]] = int(sm[2], 0)
+        else:
+            rest.append(ln)
+    text = "\n".join(lines)
+    after = "\n".join(lines[end + 2:])
+    for v in [cnt, *steps]:
+        if re.search(rf"\b{v}\b", after):
+            return None
+    if re.search(rf"\b{cnt}\b", "\n".join(rest)) or set(inits) - set(steps) - {cnt}:
+        return None
+    for v in steps:
+        if re.search(rf"\b{v}\s*(?:[-+*/|&^]?=(?!=)|\+\+|--)", "\n".join(rest)):
+            return None
+    new = [f"{g}for ({cnt} = 0; {cnt} < {n}; {cnt}++) {{"]
+    for v, st in steps.items():
+        ptr = re.search(rf"^[ \t]+[\w ]*\*\s*{v};", text, flags=re.M)
+        x = inits[v]
+        if ptr:
+            new.append(f"{ind}{v} = (void *) ((s8 *) ({x}) + {cnt} * {st});")
+        else:
+            new.append(f"{ind}{v} = {cnt} * {st};" if x == "0" else f"{ind}{v} = ({x}) + {cnt} * {st};")
+    new += [ln[4:] for ln in rest]
+    new.append(f"{g}}}")
+    return lines[:head - 1] + new + lines[end + 2:]
+
 
 # m2c guesses each callee's prototype from one call site, so a callee read with a
 # different argument count elsewhere (or a variadic one) fails to compile. Matched code
@@ -661,11 +1098,23 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             want = len([p for p in d[3].split(",") if p.strip() not in ("", "void")])
             lines.append(ln if counts <= {want} else f"{ret} {fn}();")
     arrays = set(re.findall(r"^extern (?:const )?f(?:32|64) (\w+)\[\];", head, flags=re.M))
+    extra: dict[str, str] = {}
     for fn, params in arity.items():
         n, var = len([p for p in params if p != "..."]), "..." in params
         kinds = m2c_kinds.get(fn)
-        for start, end, args in reversed(list(call_sites(code, fn))):
-            placed = None if var else place_args(args, kinds, params, code[:start])
+        sites = list(call_sites(code, fn))
+        for k_site, (start, end, args) in reversed(list(enumerate(sites))):
+            live = passthrough_regs(asm, fn) if k_site == 0 and not var else None
+            new_params: dict[str, str] = {}
+            expanded = expand_by_register(args, kinds, params, live, new_params) if live else None
+            if expanded:
+                # None from place_args is "nothing moves" only when the counts already fit.
+                placed = place_args(*expanded, params, code[:start]) or (
+                    (expanded[0], None) if len(expanded[0]) == n else None)
+            if expanded and placed:
+                extra.update((k, v) for k, v in new_params.items() if k not in extra)
+            else:
+                placed = None if var else place_args(args, kinds, params, code[:start])
             cut = None
             if placed:
                 fixed, cut = placed
@@ -675,12 +1124,81 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             # m2c passes a float constant's array by name where the value is meant.
             fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
                      for i, a in enumerate(fixed)]
+            if live:
+                fixed = passthrough(fixed, params, live, extra)
             if fixed != args:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
             if cut:
                 code = code[:cut[0]] + code[cut[1]:]
+    if extra:
+        code = add_params(code, name, extra)
     return repair_indirect_prototypes("\n".join(lines) + ("\n" if lines else "") + code, asm)
+
+
+def expand_by_register(args: list[str], kinds: list[str] | None, params: list[str],
+                       live: tuple[set[int], set[int]], extra: dict[str, str]
+                       ) -> tuple[list[str], list[str]] | None:
+    """ARGS (m2c's call, KINDS its parameter kinds) spread over PARAMS' argument registers.
+
+    m2c lists only the argument registers it saw written, in register order (`g(0x1000)`
+    for a call that sets just r10), so after an unwritten register (LIVE: the caller's own
+    argument passed through) every later argument shifts left. Each unwritten slot takes
+    the target's `argN`/`fargN` (recorded in EXTRA) and each written one the next m2c
+    argument of its class. Returns (arguments, kinds) in m2c's class-sorted form for
+    `place_args`, or None when the counts do not line up or nothing is passed through."""
+    if kinds is None or len(kinds) < len(args) or "..." in kinds:
+        return None
+    kinds = kinds[:len(args)]
+    ints = [a for a, k in zip(args, kinds) if k.split()[0] not in FLOATS]
+    flts = [a for a, k in zip(args, kinds) if k.split()[0] in FLOATS]
+    n_r = min(8, sum(p.split()[0] not in FLOATS for p in params))
+    n_f = min(8, sum(p.split()[0] in FLOATS for p in params))
+    out = {}
+    for cls, n, have, regs, prefix in (("r", n_r, ints, live[0], "arg"), ("f", n_f, flts, live[1], "farg")):
+        gaps = [k for k in range(n) if k in regs]
+        if not gaps or len(have) != n - len(gaps):
+            out[cls] = None
+            continue
+        it = iter(have)
+        out[cls] = [f"{prefix}{k}" if k in regs else next(it) for k in range(n)]
+    if out["r"] is None and out["f"] is None:
+        return None
+    if out["r"] is None:
+        out["r"] = ints
+    if out["f"] is None:
+        out["f"] = flts
+    cls_params = {"r": [p for p in params if p.split()[0] not in FLOATS][:8],
+                  "f": [p for p in params if p.split()[0] in FLOATS][:8]}
+    for cls, prefix in (("r", "arg"), ("f", "farg")):
+        for k, a in enumerate(out[cls]):
+            if a == f"{prefix}{k}" and k < len(cls_params[cls]):
+                extra.setdefault(a, cls_params[cls][k])
+    return out["r"] + out["f"], ["s32"] * len(out["r"]) + ["f32"] * len(out["f"])
+
+
+def passthrough(fixed: list[str], params: list[str], live: tuple[set[int], set[int]],
+                extra: dict[str, str]) -> list[str]:
+    """FIXED with each literal `0` argument whose register the target never wrote before
+    calling FN replaced by the target's own incoming argument (`argN`/`fargN`, recorded in
+    EXTRA with the callee's parameter type). A real zero needs an `li`/`fmr` into the
+    register, so an unwritten one is the caller's value passed through (m2c and the arity
+    repair both fill such registers with `0`)."""
+    if "..." in params:
+        return fixed
+    out, idx = list(fixed), {"f": 0, "r": 0}
+    for i, p in enumerate(params):
+        if i >= len(out):
+            break
+        cls = "f" if p.split()[0] in FLOATS else "r"
+        k = idx[cls]
+        idx[cls] += 1
+        if out[i] != "0" or k >= 8 or k not in live[0 if cls == "r" else 1]:
+            continue
+        nm = f"{'farg' if cls == 'f' else 'arg'}{k}"
+        out[i] = nm
+        extra.setdefault(nm, p)
+    return out
 
 
 def adopt_own_prototype(body: str, name: str, unit_text: str) -> str:
@@ -760,18 +1278,26 @@ def sweep_one(t: dict) -> dict:
     best = None
     ctx = unit_context(source)
     unit_text = (ctx or ROOT / source).read_text(errors="replace")
+    drafts = []
     for context in [None] + ([ctx] if ctx else []):
-        status, body = draft(name, context)
+        plain = draft(name, context)
+        drafts.append((context, plain))
+        sized = draft(name, context, sized=True)
+        if sized != plain:  # scored only where the width casts change the draft
+            drafts.append((context, sized))
+    for context, (status, body) in drafts:
         if status != "ok":
             res = {"verdict": status.upper()}
         else:
             res, body = score_draft(name, source, stack_arrays(body))
-            framed = empty_frame(body, (OUT / name / "asm.s").read_text())
-            if framed != body:
-                framed_res, framed = score_draft(name, source, framed)
-                if improves(framed_res, res):
-                    res, body = {**framed_res, "empty_frame": True}, framed
-            for repair in (byte_strides, base_pointer, switch_chain):  # scored repairs: kept only when better
+            asm_text = (OUT / name / "asm.s").read_text()
+            for framer in (empty_frame, frame_buffer):  # target frame size: kept only when better
+                framed = framer(body, asm_text)
+                if framed != body:
+                    framed_res, framed = score_draft(name, source, framed)
+                    if improves(framed_res, res):
+                        res, body = {**framed_res, framer.__name__: True}, framed
+            for repair in (byte_strides, base_pointer, loop_guard, index_loops, countdown_loops, positive_guards, switch_chain):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
                     alt_res, alt = score_draft(name, source, alt)
@@ -820,12 +1346,148 @@ def sweep_one(t: dict) -> dict:
     return {**row, **res}
 
 
+def float_positions(body: str, limit: int = 40) -> list[str]:
+    """BODY with a draft-declared callee's float parameters moved earlier in its prototype
+    and calls. PowerPC passes floats in f1.. whatever their position, so m2c lists them
+    last; their real positions only show in the order GCC sets the argument registers
+    (`fmr f2, f1` before or after `li r9`). Each alternative keeps the floats' relative
+    order and moves the call arguments with them; at most LIMIT in all."""
+    out = []
+    for d in PROTO.finditer(body):
+        fn, end = d[2], d[4]
+        params = [p.strip() for p in d[3].split(",") if p.strip() not in ("", "void")]
+        if end != ";" or fn in NOT_FUNCS or "..." in params:
+            continue
+        isf = [p.split()[0] in FLOATS for p in params]
+        nf = sum(isf)
+        if not nf or nf == len(params) or isf != [False] * (len(params) - nf) + [True] * nf:
+            continue
+        sites = [s for s in call_sites(body, fn) if len(s[2]) == len(params)]
+        if not sites:
+            continue
+        ints, flts = params[:-nf], params[-nf:]
+        for pos in itertools.combinations(range(len(params)), nf):
+            if list(pos) == list(range(len(params) - nf, len(params))):
+                continue
+            def place(seq_i, seq_f):
+                it, fl = iter(seq_i), iter(seq_f)
+                return [next(fl) if k in pos else next(it) for k in range(len(params))]
+            new = body
+            for start, stop, args in sorted(sites, reverse=True):
+                moved = place(args[:-nf], args[-nf:])
+                paren = new.index("(", start)
+                new = new[:paren] + "(" + ", ".join(moved) + ")" + new[stop:]
+            new = new[:d.start(3)] + ", ".join(place(ints, flts)) + new[d.end(3):]
+            out.append(new)
+            if len(out) >= limit:
+                return out
+    return out
+
+
+SWITCH = re.compile(r"^(?P<ind>[ \t]*)switch \(.*\) \{\n", re.M)
+
+
+def switch_pivots(body: str) -> list[str]:
+    """BODY with an empty `case max+1:` (then `case min-1:`) added to each switch of three
+    or more integer cases. GCC 2.95 balances its compare tree on the case count, so a
+    source case with an empty body (dropped from the code) moves the pivot."""
+    out = []
+    for m in SWITCH.finditer(body):
+        ind = m["ind"]
+        close = re.compile(rf"^{re.escape(ind)}\}}\n?", re.M).search(body, m.end())
+        if not close:
+            continue
+        labels = [int(v, 0) for v in re.findall(rf"^{re.escape(ind)}(?:    )?case (-?(?:0x[0-9A-Fa-f]+|\d+)):",
+                                                 body[m.end():close.start()], flags=re.M)]
+        if len(labels) < 3:
+            continue
+        case_ind = re.search(r"^([ \t]*)case ", body[m.end():close.start()], flags=re.M)[1]
+        for k in (max(labels) + 1, min(labels) - 1):
+            extra = f"{case_ind}case {k}:\n{case_ind}    break;\n"
+            out.append(body[:close.start()] + extra + body[close.start():])
+    return out
+
+
+def split_top(expr: str, op: str) -> list[str]:
+    """EXPR split at each OP (`||`, `&&`, `==`, ...) outside parentheses."""
+    parts, depth, cur, i = [], 0, 0, 0
+    while i < len(expr):
+        c = expr[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        elif depth == 0 and expr.startswith(op, i) and not expr.startswith(op + "=", i) \
+                and (op not in ("==", "!=") or expr[i - 1] not in "<>=!"):
+            parts.append(expr[cur:i].strip())
+            i += len(op)
+            cur = i
+            continue
+        i += 1
+    parts.append(expr[cur:].strip())
+    return parts
+
+
+def unwrap(expr: str) -> str:
+    """EXPR without parentheses that enclose all of it."""
+    while expr.startswith("("):
+        depth = 0
+        for i, c in enumerate(expr):
+            depth += (c == "(") - (c == ")")
+            if depth == 0:
+                break
+        if i != len(expr) - 1:
+            return expr
+        expr = expr[1:-1].strip()
+    return expr
+
+
+def negate(expr: str) -> str:
+    """The C negation of EXPR without NaN-unsafe flips: `!(e)` gives e, a top-level `==`
+    or `!=` flips, anything else is wrapped in `!(...)`."""
+    e = unwrap(expr)
+    if e.startswith("!(") and unwrap(e[1:]) != e[1:]:
+        return unwrap(e[1:])  # `!(a > b)`: only when the parentheses span the rest
+    for op, inv in (("!=", "=="), ("==", "!=")):
+        sides = split_top(e, op)
+        if len(sides) == 2 and len(split_top(e, "||")) == 1 and len(split_top(e, "&&")) == 1:
+            return f"{sides[0]} {inv} {sides[1]}"
+    return f"!({e})"
+
+
+GUARD_RETURN = re.compile(r"^(?P<ind>[ \t]*)if \((?P<cond>.*)\) \{\n(?P=ind)    return (?P<a>[^;\n]+);\n"
+                          r"(?P=ind)\}\n(?P=ind)return (?P<b>[^;\n]+);\n", re.M)
+
+
+def positive_guards(body: str) -> str:
+    """BODY with each `if (A || B || !(C)) { return a; } return b;` written the other
+    way round as `if (!A && !B && C) { return b; } return a;`. m2c inverts the branch it
+    sees, so a source `if (x == 1 && y > z) return 1; return 0;` drafts as the early
+    `return 0` guard, and GCC then lays out the comparisons and `li r3` differently."""
+    def flip(m: re.Match) -> str:
+        terms = split_top(unwrap(m["cond"]), "||")
+        if len(terms) == 1 and len(split_top(terms[0], "&&")) > 1:
+            return m[0]
+        cond = " && ".join(f"({t})" if len(split_top(t, "&&")) > 1 or len(split_top(t, "||")) > 1
+                           else t for t in (negate(t) for t in terms))
+        ind = m["ind"]
+        return (f"{ind}if ({cond}) {{\n{ind}    return {m['b']};\n{ind}}}\n"
+                f"{ind}return {m['a']};\n")
+    return GUARD_RETURN.sub(flip, body)
+
+
 def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, str]:
     """Score each VARIANTS rewrite of a draft at least 80% exact; keep the best."""
     if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
         return res, body
     seen = {body}
-    alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    alts = [(v.__name__, v(body)) for v in VARIANTS + (sorted_stores,)]
+    alts += [("swap_stores", a) for a in swap_stores(body)]
+    alts += [("switch_pivots", a) for a in switch_pivots(body)]
+    alts += [("float_positions", a) for a in float_positions(body)]
+    alts += [("volatile_locals", a) for a in volatile_locals(body)]
+    alts += [("int_callees", a) for a in int_callees(body)]
+    alts += [("float_blocks", a) for a in float_blocks(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
@@ -854,6 +1516,13 @@ def score_draft(name: str, source: str, body: str) -> tuple[dict, str]:
     else:
         res = score(name, source, body)
     return res, body
+
+
+def kept_rows(previous: list[dict], unit: str, todo: list[dict]) -> list[dict]:
+    """Rows of an earlier results.json that a sweep of the unit prefix UNIT does not replace."""
+    names = {t["name"] for t in todo}
+    return [r for r in previous if not r["unit"].startswith(unit) and r["name"] not in names
+            and not r.get("applied")]
 
 
 def targets(args) -> list[dict]:
@@ -887,9 +1556,13 @@ def main(argv=None) -> int:
     if args.retry:
         previous = json.loads((OUT / "results.json").read_text())
         names = {r["name"] for r in previous if r["verdict"] in args.retry or r["name"] in args.retry}
+        names |= set(args.retry)  # a named target the last sweep did not cover
         todo = [t for t in todo if t["name"] in names]
         previous = [r for r in previous if r["name"] not in {t["name"] for t in todo}
                     and not r.get("applied")]
+    elif args.unit and (OUT / "results.json").is_file():
+        # a unit-scoped sweep refreshes that unit's rows and keeps the rest of the ranking
+        previous = kept_rows(json.loads((OUT / "results.json").read_text()), args.unit, todo)
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
     with ThreadPoolExecutor(args.j) as pool:
@@ -918,7 +1591,7 @@ def main(argv=None) -> int:
                 applied.append(row["name"])
                 row["applied"] = True
     if previous:
-        print(f"resweep: {len(rows)} targets; {len(previous)} rows kept from the last results.json")
+        print(f"swept {len(rows)} targets; {len(previous)} rows kept from the last results.json")
     rows += previous
     for r in rows:
         r["closeness"] = (r["exact"] / r["target"]) if r.get("target") else 0.0

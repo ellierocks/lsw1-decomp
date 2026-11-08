@@ -1109,7 +1109,7 @@ void fn_8011E134(void) {
 }
 
 s32 fn_8009D160(s32 *, s32 *, s32, s32);
-extern s32 fn_8011F124[];
+void fn_8011F124(void);
 extern s32 lbl_804081A8;
 extern s32 lbl_80409970;
 
@@ -1157,4 +1157,17 @@ void fn_8011BC1C(void)
   {
     *((f32 *) (new_var + 0xB4)) = temp_f1;
   }
+}
+
+s32 (*fn_80009970(s32 *, s32))();
+s32 fn_8003B5F8();
+extern s32 lbl_801ACAD4[];
+extern s32 lbl_8040AE04;
+extern s32 str_SourceFile_Cut[];
+
+void fn_8011F124(void) {
+    if ((s32) lbl_804081A8 != 0) {
+        fn_80009970(str_SourceFile_Cut, 0xE0E)(lbl_801ACAD4, lbl_8040AE04);
+        fn_8003B5F8();
+    }
 }

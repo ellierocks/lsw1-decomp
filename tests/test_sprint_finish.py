@@ -79,6 +79,11 @@ class DiffAndWorkflowTests(unittest.TestCase):
                 'struct s *b(int x,\n    int y) {\n    if (x) {\n    }\n}\n')
         self.assertEqual(sprint_finish.defined_functions(text), ['a', 'b'])
 
+    def test_global_functions_skip_static_helpers(self):
+        text = ('static inline void *Helper(void *a) {\n    return a;\n}\n'
+                'static int b(void)\n{\n}\nvoid c(void) {\n    Helper(0);\n}\n')
+        self.assertEqual(sprint_finish.global_functions(text), ['c'])
+
     def test_tool_commits_keep_only_tooling_subjects(self):
         log = 'feat(match): x\nfix(tools): sweep repair\ndocs: y\nfeat(tools): new search\n'
         done = subprocess.CompletedProcess([], 0, log, '')

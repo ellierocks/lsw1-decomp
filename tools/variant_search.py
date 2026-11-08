@@ -9,7 +9,13 @@ only the named function. `--body FILE` searches a draft that is not in the unit 
   - declaration order of the leading locals, initialized ones included (stack slot layout,
     register order and prologue scheduling; the first MAX_DECLS when there are more),
   - `x = c ? a : b;` against an explicit if/else with the store in each branch,
-  - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local.
+  - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local,
+  - an extra `case K:` on a switch's `default:` arm, K next to or between the other cases
+    (it changes GCC's case-tree balancing without changing behavior; fn_80063F80),
+  - each braced `if` (with its `else` chain) wrapped in `do { ... } while (0)`: the extra
+    loop notes change GCC's register choice and load placement around it, which matched
+    fn_8000A64C and fn_800FEBEC (first MAX_DO_WHILE `if` statements).
+  - `volatile` on each address-taken local (its stack slot moves to declaration order).
 
     python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/nu3dx/nuanim.c -j 8
 
@@ -44,11 +50,13 @@ import order_search as osr  # noqa: E402
 ROOT = osr.ROOT
 DEFAULT_LIMIT = 2000
 MAX_DECLS = 6
+MAX_DO_WHILE = 16
 SIGN_PAIRS = {"s32": "u32", "u32": "s32", "s16": "u16", "u16": "s16", "s8": "u8", "u8": "s8"}
 DECL_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<type>(?:struct \w+|[A-Za-z_]\w*)\s*\**)\s*(?P<name>\w+)"
                      r"(?P<array>\[\w*\])?(?:\s*=\s*[^;]+)?;[ \t]*$")
 TERNARY_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<lhs>[^=?;{}()]+?)\s=\s(?P<cond>[^?;{}]+?)\s\?\s"
                         r"(?P<a>[^?:;{}]+?)\s:\s(?P<b>[^?:;{}]+?);[ \t]*$")
+IF_RE = re.compile(r"^(?P<indent>[ \t]+)if \(.*\{[ \t]*$")
 TYPE_RE = re.compile(r"\b(s32|u32|s16|u16|s8|u8)\b")
 
 
@@ -127,11 +135,84 @@ def build_dimensions(fn: Function) -> tuple[list[Dimension], list[str]]:
             dims.append(Dimension(f"ternary@{i}", "lines", i, [{}, {i: expanded}]))
     if len(ternaries) >= 2:
         dims.append(Dimension("ternary-all", "lines", 0, [{}, dict(ternaries)]))
+    dims += default_case_dims(lines)
     for i, line in enumerate(lines[s:e], s):
         if TYPE_RE.search(line) and DECL_RE.match(line):
             dims.append(Dimension(f"sign-local@{i}", "lines", i,
                                   [{}, {i: TYPE_RE.sub(lambda t: SIGN_PAIRS[t.group(1)], line, 1)}]))
+    # A local whose address is taken gets its stack slot when the address is first expanded
+    # (call arguments right to left); `volatile` gives it a slot at its declaration instead,
+    # which swaps two address-taken locals' offsets (fn_8009D57C).
+    for i, line in enumerate(lines[s:e], s):
+        m = DECL_RE.match(line)
+        if m and "volatile" not in line and not m.group("array") and re.search(rf"&\s*{m.group('name')}\b", fn.body):
+            ind = m.group("indent")
+            dims.append(Dimension(f"volatile-local@{i}", "lines", i,
+                                  [{}, {i: f"{ind}volatile {line[len(ind):]}"}]))
+    for i, j in if_blocks(lines)[:MAX_DO_WHILE]:
+        ind = IF_RE.match(lines[i]).group("indent")
+        dims.append(Dimension(f"do-while@{i}", "lines", i,
+                              [{}, {i: f"{ind}do {{\n    {lines[i]}", j: f"    {lines[j]}\n{ind}}} while (0);"}]))
+    # Binary dimensions first: within one change count, their few variants run before the
+    # (up to MAX_DECLS!) declaration permutations.
+    dims.sort(key=lambda d: d.kind == "order")
     return dims, lines
+
+
+CASE_RE = re.compile(r"^\s*case (-?(?:0x[0-9A-Fa-f]+|\d+))U?:")
+DEFAULT_RE = re.compile(r"^(?P<indent>[ \t]*)default:")
+MAX_CASE_OPTIONS = 8
+
+
+def default_case_values(cases: list[int]) -> list[int]:
+    """Labels worth adding to a `default:` arm: the gaps between the other cases and the
+    values just outside them (0 and 1 first), at most MAX_CASE_OPTIONS."""
+    lo, hi = min(cases), max(cases)
+    near = [0, 1, -1, lo - 1, lo - 2, hi + 1, hi + 2] + [v for v in range(lo + 1, hi) if hi - lo <= 64]
+    out = []
+    for v in near:
+        if v not in cases and v not in out:
+            out.append(v)
+    return out[:MAX_CASE_OPTIONS]
+
+
+def default_case_dims(lines: list[str]) -> list[Dimension]:
+    """One dimension per `default:` arm (of a switch whose case labels precede it): option k
+    puts `case K:` in front of it."""
+    dims, cases = [], []
+    for i, line in enumerate(lines):
+        if "switch (" in line:
+            cases = []
+        c = CASE_RE.match(line)
+        if c:
+            cases.append(int(c[1], 0))
+        d = DEFAULT_RE.match(line)
+        if d and cases:
+            opts = [{}] + [{i: f"{d['indent']}case {v}:\n{line}"} for v in default_case_values(cases)]
+            dims.append(Dimension(f"default-case@{i}", "lines", i, opts))
+    return dims
+
+
+def if_blocks(lines: list[str]) -> list[tuple[int, int]]:
+    """(first, last) line of each braced `if` statement, `else` chain included."""
+    blocks = []
+    for i, line in enumerate(lines):
+        m = IF_RE.match(line)
+        if not m:
+            continue
+        close = m.group("indent") + "}"
+        for j in range(i + 1, len(lines)):
+            if not lines[j].startswith(close):
+                continue
+            rest = lines[j][len(close):].strip()
+            if rest.startswith("else"):
+                if rest.endswith("{"):
+                    continue
+                break  # `} else stmt;` without braces: leave it alone
+            if not rest:
+                blocks.append((i, j))
+            break
+    return blocks
 
 
 def sign_param_dims(fn: Function) -> list[Dimension]:
