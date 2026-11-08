@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import os
 import re
 import subprocess
 import sys
@@ -80,8 +81,11 @@ def unit_context(source: str) -> Path | None:
         return _CONTEXTS[source]
 
 
-def draft(name: str, context: Path | None = None) -> tuple[str, str]:
-    """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'."""
+def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[str, str]:
+    """(status, C body) for NAME; status is 'ok', 'no-asm', 'm2c-failed' or 'unhandled'.
+
+    SIZED sets M2C_SIZED_DEREFS (tools/patches/m2c-sized-derefs.patch): `*(a + b)` derefs
+    keep their load width as `*(u8 *)(a + b)`, which the C types may otherwise lose."""
     task = OUT / name
     asm = task / "asm.s"
     if not asm.is_file():
@@ -95,7 +99,8 @@ def draft(name: str, context: Path | None = None) -> tuple[str, str]:
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
         cmd += ["--no-cache", "--context", str(context)]
-    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True)
+    env = {**os.environ, "M2C_SIZED_DEREFS": "1"} if sized else None
+    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True, env=env)
     if r.returncode or not r.stdout.strip():
         return "m2c-failed", ""
     out = declare_unset(r.stdout, name)
@@ -1196,8 +1201,14 @@ def sweep_one(t: dict) -> dict:
     best = None
     ctx = unit_context(source)
     unit_text = (ctx or ROOT / source).read_text(errors="replace")
+    drafts = []
     for context in [None] + ([ctx] if ctx else []):
-        status, body = draft(name, context)
+        plain = draft(name, context)
+        drafts.append((context, plain))
+        sized = draft(name, context, sized=True)
+        if sized != plain:  # scored only where the width casts change the draft
+            drafts.append((context, sized))
+    for context, (status, body) in drafts:
         if status != "ok":
             res = {"verdict": status.upper()}
         else:
@@ -1430,6 +1441,13 @@ def score_draft(name: str, source: str, body: str) -> tuple[dict, str]:
     return res, body
 
 
+def kept_rows(previous: list[dict], unit: str, todo: list[dict]) -> list[dict]:
+    """Rows of an earlier results.json that a sweep of the unit prefix UNIT does not replace."""
+    names = {t["name"] for t in todo}
+    return [r for r in previous if not r["unit"].startswith(unit) and r["name"] not in names
+            and not r.get("applied")]
+
+
 def targets(args) -> list[dict]:
     cmd = [sys.executable, str(ROOT / "tools" / "next_target.py"), "--json", "--no-remote",
            "--limit", "100000", "--max-size", args.max_size]
@@ -1465,6 +1483,9 @@ def main(argv=None) -> int:
         todo = [t for t in todo if t["name"] in names]
         previous = [r for r in previous if r["name"] not in {t["name"] for t in todo}
                     and not r.get("applied")]
+    elif args.unit and (OUT / "results.json").is_file():
+        # a unit-scoped sweep refreshes that unit's rows and keeps the rest of the ranking
+        previous = kept_rows(json.loads((OUT / "results.json").read_text()), args.unit, todo)
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
     with ThreadPoolExecutor(args.j) as pool:
@@ -1493,7 +1514,7 @@ def main(argv=None) -> int:
                 applied.append(row["name"])
                 row["applied"] = True
     if previous:
-        print(f"resweep: {len(rows)} targets; {len(previous)} rows kept from the last results.json")
+        print(f"swept {len(rows)} targets; {len(previous)} rows kept from the last results.json")
     rows += previous
     for r in rows:
         r["closeness"] = (r["exact"] / r["target"]) if r.get("target") else 0.0

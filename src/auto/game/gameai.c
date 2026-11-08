@@ -51,11 +51,11 @@ extern s32 fn_8012A3F4[];
 extern s32 fn_8012A8C8[];
 extern s32 fn_8012AD98[];
 extern s32 fn_8012CD50[];
-extern s32 fn_8012CE08[];
-extern s32 fn_8012CE4C[];
+s32 fn_8012CE08(s32 arg0);
+u8 fn_8012CE4C(s32 arg0);
 extern s32 fn_8012CE74[];
 extern s32 fn_8012CF28[];
-extern s32 fn_8012D068[];
+s32 fn_8012D068(s32 arg0);
 extern s32 GameAIActionParseSpeed[];
 extern s32 fn_8012D13C[];
 extern s32 fn_8012D1CC[];
@@ -100,4 +100,37 @@ void fn_8012A5D0(void)
   lbl_80408CDC = lbl_801ACF04[0];
   lbl_80408CE2 = (lbl_80408CE1 = 0);
   lbl_80408CE8 = (lbl_80408CE4 = lbl_801ACF08[0]);
+}
+
+extern s32 lbl_804093EC;
+
+s32 fn_8012CE08(s32 arg0) {
+    u8 temp_r3;
+
+    if ((arg0 != 0xFF) && ((s32) lbl_804093EC != 0)) {
+        temp_r3 = *(u8 *)(((arg0 * 2) + lbl_804093EC));
+        if ((s32) temp_r3 != 0xFF) {
+            return (*(s32 *)((s8 *)(((temp_r3 * 0x48) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x20))))) + (0xC)));
+        }
+    }
+    return 0;
+}
+
+u8 fn_8012CE4C(s32 arg0) {
+    if ((arg0 != 0xFF) && ((s32) lbl_804093EC != 0)) {
+        return *(u8 *)(((arg0 * 2) + lbl_804093EC));
+    }
+    return 0xFFU;
+}
+
+s32 fn_8012D068(s32 arg0) {
+    s16 temp_r3;
+
+    if (arg0 != 0xFF) {
+        temp_r3 = *(s16 *)(((arg0 * 2) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x1C)))));
+        if (temp_r3 != -1) {
+            return (*(s32 *)((s8 *)(((temp_r3 * 0x54) + (*(s32 *)((s8 *)(lbl_80408DF0) + (0x18))))) + (4)));
+        }
+    }
+    return 0;
 }

@@ -264,3 +264,16 @@ void fn_8006E328(void)
 void fn_8006DB8C(s32 *arg0) {
     fn_8000759C(arg0, (s32) lbl_803D45B8, 0x64);
 }
+
+void fn_8006DB3C(s32 arg0, s32 arg1) {
+    s32 var_ctr;
+    s32 var_r11;
+
+    var_r11 = 0;
+    var_ctr = 0x32;
+    do {
+        *(s16 *)((var_r11 + arg0)) = *(u16 *)((var_r11 + arg0)) & *(u16 *)((var_r11 + arg1));
+        var_r11 += 2;
+        var_ctr -= 1;
+    } while (var_ctr != 0);
+}

@@ -57,12 +57,30 @@ class DropRedeclaredTest(unittest.TestCase):
         self.assertIn("extern void (*other)(s32);", out)
 
 
+class FunctionExternTest(unittest.TestCase):
+    def test_array_extern_becomes_the_definitions_prototype(self):
+        text = "extern s32 fn_A[];\nvoid g(void) { h(fn_A); }\n"
+        out = score_fn.splice_body(text, "fn_A", "s32 fn_A(s32 a, f32 x) {\n    return 0;\n}\n")
+        self.assertTrue(out.startswith("s32 fn_A(s32 a, f32 x);\n"))
+        self.assertNotIn("fn_A[]", out)
+
+    def test_struct_parameters_stay_unprototyped(self):
+        out = score_fn.function_extern("extern s32 fn_A[];\n", "fn_A", "void fn_A(struct S *p) {\n}\n")
+        self.assertEqual(out, "void fn_A();\n")
+
+
 class SweepRepairTest(unittest.TestCase):
     def setUp(self):
         import sys
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
         import sweep
         self.sweep = sweep
+
+    def test_unit_sweep_keeps_other_units_rows(self):
+        prev = [{"name": "a", "unit": "auto/game/obstacle"}, {"name": "b", "unit": "auto/game/main"},
+                {"name": "c", "unit": "auto/game/levels", "applied": True}]
+        kept = self.sweep.kept_rows(prev, "auto/game/obstacle", [{"name": "a"}])
+        self.assertEqual([r["name"] for r in kept], ["b"])
 
     def test_adopt_own_prototype_keeps_m2c_names(self):
         body = "extern s32 x;\n\ns32 f(void *arg0, void *arg1) {\n    return 0;\n}\n"

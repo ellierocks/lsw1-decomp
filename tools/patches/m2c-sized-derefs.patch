@@ -1,0 +1,29 @@
+diff --git a/m2c/translate.py b/m2c/translate.py
+index 295eb2f..03cccb5 100644
+--- a/m2c/translate.py
++++ b/m2c/translate.py
+@@ -5,6 +5,7 @@ from contextlib import contextmanager
+ from dataclasses import dataclass, field, replace
+ from enum import Enum, auto
+ import math
++import os
+ import struct
+ import sys
+ import traceback
+@@ -1643,6 +1644,16 @@ class StructAccess(Expression):
+ 
+         # Rewrite `x->unk0` to `*x` and `x.unk0` to `x`, unless has_nonzero_access
+         if self.offset == 0 and not has_nonzero_access:
++            if (
++                deref
++                and fmt.valid_syntax
++                and isinstance(var, BinaryOp)
++                and os.environ.get("M2C_SIZED_DEREFS")
++            ):
++                # `*(a + b)` relies on m2c's inferred pointer type, which the C source may
++                # not share (an int-typed global from --context): keep the access width
++                # explicit so `lbzx`/`lhax` stay byte/halfword loads.
++                return f"*({Type.ptr(self.type).format(fmt)})({var.format(fmt)})"
+             return f"{'*' if deref else ''}{var.format(fmt)}"
+ 
+         return f"{parenthesize_for_struct_access(var, fmt)}{field_name}"

@@ -173,9 +173,30 @@ def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0) -> None
         pass
 
 
+def function_extern(text: str, name: str, body: str) -> str:
+    """Turn SOURCE's data-style `extern T name[];` into a declaration of the function `body` defines.
+
+    Units reference callbacks they have not decompiled yet (parse tables, function-pointer
+    arguments) as `extern s32 fn_X[];`; defining fn_X then fails as "redeclared as different
+    kind of symbol". Either form takes the same `@ha/@l` address, so the codegen is unchanged.
+    """
+    decl = re.compile(rf"^extern\b[^;(){{}}=]*\b{re.escape(name)}\s*\[\s*\]\s*;", re.M)
+    if not decl.search(text):
+        return text
+    sig = re.search(rf"^([^\n;{{}}#]*?\b{re.escape(name)})\s*\(([^;{{}}]*)\)\s*\{{", body, re.M)
+    if not sig:
+        return text
+    head, params = sig.group(1).strip(), " ".join(sig.group(2).split())
+    # A struct tag first named in a parameter list would get prototype scope; leave those
+    # unprototyped (still compatible with the later definition).
+    proto = f"{head}({params});" if not re.search(r"\b(struct|union|enum)\b", params) else f"{head}();"
+    return decl.sub(lambda m: proto, text, count=1)
+
+
 def splice_body(text: str, name: str, body: str) -> str:
     from variant_search import VariantError, find_function
     body = body.strip("\n")
+    text = function_extern(text, name, body)
     try:
         fn = find_function(text, name)
         context = fn.before + fn.tail[1:]
