@@ -57,3 +57,22 @@ void fn_800385D4(void) {
         lbl_804080F0 = temp_r3;
     }
 }
+
+void AXFXSetHooks(s32, s32, f32);
+void NuRndrFootPrints(s32);
+void fn_80025C38(s32, s32, s32, s32, s32, s32);
+void fn_800274BC(s32);
+void fn_80027564();
+extern f32 lbl_80192B78[];
+extern s32 lbl_8040A420;
+
+void fn_80037FEC(void) {
+    s32 temp_r30;
+
+    temp_r30 = lbl_8040A420;
+    fn_800274BC(0);
+    AXFXSetHooks(0x100, 0, lbl_80192B78[0]);
+    fn_80025C38(0x400, 0x64C, 0x2000, 0x10C, -1, temp_r30);
+    fn_80027564();
+    NuRndrFootPrints(0);
+}

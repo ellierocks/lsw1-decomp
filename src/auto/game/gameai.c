@@ -134,3 +134,24 @@ s32 fn_8012D068(s32 arg0) {
     }
     return 0;
 }
+
+void *fn_8008F0C8(void *, void *, u32);
+s32 fn_8012CB04(void *);
+s32 memset();
+
+void *fn_8012CA84(s32 arg0, s32 arg1, s32 arg2) {
+    void *temp_r3;
+    void *temp_r3_2;
+
+    temp_r3 = fn_8008F0C8(arg0, arg1, 0x18);
+    if (temp_r3 != NULL) {
+        memset(temp_r3, 0, 0x18);
+        temp_r3_2 = fn_8008F0C8(arg0, arg1, arg2 * 0xA8);
+        (*(void **)((s8 *)(temp_r3) + (4))) = temp_r3_2;
+        if (temp_r3_2 != NULL) {
+            (*(s32 *)((s8 *)(temp_r3) + (0))) = arg2;
+            fn_8012CB04(temp_r3);
+        }
+    }
+    return temp_r3;
+}

@@ -234,3 +234,28 @@ void fn_80033EA4(u16 *arg0) {
 void fn_8003294C(void) {
     volatile s32 pad[2];
 }
+
+s32 fn_8002303C();
+s32 fn_8002DE44();
+extern s32 lbl_80407CE0;
+extern s32 lbl_80407CE4;
+extern s32 lbl_80407EE8;
+extern s32 lbl_8040ADAC;
+
+void fn_8002E4D8(void) {
+    s32 var_r0;
+
+    if (((s32) lbl_80407EE8 != 0) && ((s32) lbl_80407CE0 != 0)) {
+        var_r0 = lbl_8040ADAC;
+        if (var_r0 != 0) {
+            fn_8002303C(0x80, 0);
+            fn_8002DE44();
+            goto block_4;
+        }
+    } else {
+block_4:
+        var_r0 = 0;
+    }
+    lbl_80407CE4 = var_r0;
+    lbl_80407CE0 = var_r0;
+}

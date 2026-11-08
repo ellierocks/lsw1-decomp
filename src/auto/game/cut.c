@@ -1171,3 +1171,17 @@ void fn_8011F124(void) {
         fn_8003B5F8();
     }
 }
+
+f32 fn_8000ED40();
+
+void fn_8011AFEC(void) {
+    f32 temp_f1;
+
+    temp_f1 = fn_8000ED40();
+    {
+        s8 *lbl_8040A758_p = (s8 *)lbl_8040A758;
+        (*(f32 *)(lbl_8040A758_p + (0x30))) = (f32) -temp_f1;
+        (*(f32 *)(lbl_8040A758_p + (0x2C))) = temp_f1;
+        (*(f32 *)(lbl_8040A758_p + (0x34))) = temp_f1;
+    }
+}

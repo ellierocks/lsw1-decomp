@@ -476,3 +476,50 @@ Observations:
 - **Inlined call chains.** `fn_800D5580` improved from 50 to 57/64 when the
   `NuFmod`/divide/scale expressions were inlined into the call arguments, so the
   quotient stays in f1.
+
+## Sprints of 2026-11-07/08 (handoff)
+
+Merged: debris (#95, 24 functions), podrace (#96, 23), main (#97, 24), levels sprint 3
+(#98, 11, above), obstacle (#99, 4), and sweep tooling with 7 matches (#100). A
+4.5-minute small sweep (`--max-size 0x100`) on the merged tooling then matched 20 more
+functions (1,964 bytes) across 14 units. Code is now 22.0% matched. All functions
+were strict-verified; none were promoted. The credits sprint hit a rate limit before
+doing any work and has not started. `auto/game/credits` still has open near misses
+(`fn_8010BA24` 52/57).
+
+Plateaus to resume from (the sprints' best bodies are kept locally under their worktrees'
+`work/`):
+
+| Function | Unit | Score | Mismatch; next hypothesis |
+|---|---|---|---|
+| `fn_80146D5C` | podrace | 38/39 | `add r9,r9,r11` operand order on the `items[i]` index; inline accessor or pointer-increment form |
+| `fn_80146CA4` | podrace | 29/36 | f0/f13 register swap only; inline helper |
+| `fn_8014E9B8` | podrace | 117/129 | f12/f13 swap in the 0x818/0x81C clamp blocks; shared clamp helper or macro |
+| `fn_8014BEB0` | podrace | 70/79 | call-argument evaluation order (r3 set first in all three calls); true `fn_8002043C`/`fn_800203A4` float signatures |
+| `fn_8009E8B4` | main | 173/179 | `lwz r0; mr r9,r0` on `lbl_804093B0`; AreaEnt or pointer-first reads |
+| `fn_8009EC80` | main | 63/65 | missing `fmr f12,f0`; callee float position |
+| `fn_8009D320` | main | 56/61 | r27/r28 swap of the `PostMsg` function pointers; non-inline helper or macro |
+| `fn_800A1B50` | main | 28/33 | shared return tail, `lwzx` order; packed bitfield or pointer-first |
+| `fn_800A1EE8` | main | 26/27 | `mr r3,r0` scheduling; return-type or temp variants |
+| `fn_8009E7DC` | main | 40/54 | reloads after a store; volatile or alias forms |
+| `fn_800ECE68` | obstacle | 232/235 | `fmr f29` prologue slot, `stfs lbl_8040A734` should follow `lwz r9,0xeec`; one 0xeec temp loaded before both stores |
+| `fn_800F01C4` | obstacle | 195/208 | f30/f31 swap between the first `fn_800956DC` result and the clamp constant; the new do-while dimension over the clamp `if`s, or a MAX-style macro |
+
+Deferred, not attempted: podrace `fn_80146194`, `Shop_UpdateMenu`, `fn_8014ECEC`,
+`fn_80146B8C`, `fn_8014BBE0`, `Shop_DrawSubMenuTitle`, `fn_80146F20`,
+`Shop_DrawCodeBuyFeedback` and `BuyShopItem`. Main's queue also has `Menu_FullReset`,
+`Menu_ResetAndReturn`, `fn_8009D5D0`, `fn_8009DCE8`, `fn_8009E174`, `fn_8009E310`,
+`fn_8009ED84` and `fn_8009FB78` unresolved.
+
+Next leads:
+
+- **Rerun the full sweep.** The small sweep shows the merged repairs (`countdown_loops`,
+  `float_positions`, `switch_pivots`, `positive_guards`, `switch_chain`, `void_callees`,
+  `int_callees`, `volatile_locals`, `frame_buffer`, sized derefs) combine for new wins;
+  targets above 0x100 have not been swept with all of them yet.
+- **Compile-error classes** in the 2026-11-08 full sweep: undeclared `spXX` stack
+  sub-fields (21), pointer conversions (16) and duplicate `case` values from m2c's
+  nested switches (12).
+- **Name collisions between sweep helpers.** Two branches each added a module-level
+  `SWITCH` regex to `tools/sweep.py`; the later one silently shadowed the first, and
+  only `test_switch_chain` caught it. Give new helper regexes specific names.
