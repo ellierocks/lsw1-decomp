@@ -212,6 +212,59 @@ def int_callees(body: str, limit: int = 6) -> list[str]:
     in fn_8009D23C), so neither return type is always right for a discarded result."""
     return [body.replace(m[0], f"s32 {m[1]}({m[2]});", 1) for m in VOID_DECL.finditer(body)][:limit]
 
+PROTO_DECL = re.compile(r"^(?:\w+ \**)+?(\w+)\(([^()]+)\);$", flags=re.M)
+FLOAT_PARAM = re.compile(r"^(?:const )?(?:f32|f64|float|double)\b(?! *\*)")
+
+
+def float_blocks(body: str, limit: int = 8) -> list[str]:
+    """BODY with prototypes' trailing float parameters moved, as a block, in front of
+    earlier integer parameters, and every call reordered to match. Floats and ints use
+    separate register files, so m2c cannot see the interleaving and puts the floats
+    last; the true position changes argument evaluation order and with it the
+    scheduling (fn_8009E6FC: two callees are both `(s32 x4, f32 x4, u32 *, s32)`).
+    Each shift is tried on every eligible prototype at once first (sibling callees
+    tend to share a layout), then on each prototype alone."""
+    protos = []
+    for m in PROTO_DECL.finditer(body):
+        params = [p.strip() for p in m[2].split(",")]
+        kinds = [bool(FLOAT_PARAM.match(p)) for p in params]
+        nint = kinds.index(True) if True in kinds else len(kinds)
+        if 0 < nint < len(kinds) and all(kinds[nint:]):
+            protos.append((m, params, nint))
+
+    def move(text: str, m, params: list[str], nint: int, shift: int) -> str | None:
+        pos = nint - shift
+        if pos < 0:
+            return None
+        order = list(range(pos)) + list(range(nint, len(params))) + list(range(pos, nint))
+        proto = m[0].replace(m[2], ", ".join(params[i] for i in order))
+        text = text.replace(m[0], proto, 1)
+        dstart, done = text.index(proto), []
+        for call in re.finditer(rf"\b{m[1]}\(", text):
+            if dstart <= call.start() < dstart + len(proto):
+                continue
+            got = call_args(text, call.end() - 1)
+            if got and len(got[0]) == len(params):
+                done.append((call.end() - 1, got[1], got[0]))
+        for start, end, args in reversed(done):
+            text = text[:start] + "(" + ", ".join(args[i] for i in order) + ")" + text[end:]
+        return text if done else None
+
+    out = []
+    longest = max((nint for _, _, nint in protos), default=0)
+    if len(protos) > 1:
+        for shift in range(1, longest + 1):
+            text = body
+            for m, params, nint in protos:
+                text = move(text, m, params, nint, shift) or text
+            if text != body:
+                out.append(text)
+    for m, params, nint in protos:
+        out += [t for t in (move(body, m, params, nint, s) for s in range(1, nint + 1)) if t]
+    seen = set()
+    return [t for t in out if not (t in seen or seen.add(t))][:limit]
+
+
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
 
 
@@ -825,6 +878,7 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
     alts += [("volatile_locals", a) for a in volatile_locals(body)]
     alts += [("int_callees", a) for a in int_callees(body)]
+    alts += [("float_blocks", a) for a in float_blocks(body)]
     for vname, alt in alts:
         if alt in seen:
             continue
