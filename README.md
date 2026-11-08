@@ -114,6 +114,7 @@ the binary; donor projects supply evidence.
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
 | [Compiler evaluation](docs/compiler_evaluation.md) | ProDG audit, RTL diagnostics and SN GCC v1.79 results |
 | [Research](docs/research.md) | Symbol recovery, donor mining, Ghidra and REA, RAM dumps and evidence provenance |
+| [Dolphin runtime](docs/dolphin_runtime.md) | Live RAM reads, level warps, game-state requests, snapshots and Gecko call tracing |
 | [SN runtime](docs/sn_runtime.md) | Imported newlib/libgcc objects: provenance, licences, flags, boundaries and misses |
 | [Build configuration](docs/build_config.md) | Symbols, splits, compiler wiring and target-specific DTK constraints |
 | [Development workflow](docs/development_workflow.md) | Checks, PRs, CI, progress artifacts and secrets maintenance |
