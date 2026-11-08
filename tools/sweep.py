@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import draft_fn  # noqa: E402
 import mac_protos  # noqa: E402
+from m2c_helpers import ASM_COMMENT as ASM_COMMENT_RE  # noqa: E402
 from m2c_helpers import (split_args, expand_macros, fold_cror, fold_ps, fix_ps_calls,
                          moves_to_args, type_derefs, strip_vararg_saves, declare_unset,
                          call_sites, PS_CALLS, prepare_asm, repair_indirect_prototypes)
@@ -149,6 +150,24 @@ def const_rodata(body: str) -> str:
                   lambda m: f"extern const {m[1]}{m[2]}[];" if m[2] in rodata else m[0], body, flags=re.M)
 
 
+GUARD = re.compile(r"\bif \((?P<n>\(s32\) \w+(?:\[0\])?|\w+(?:\[0\])?|\(s32\) \(\*\([^;{}]*?\)\)|\(\*\([^;{}]*?\)\)) > 0\) \{")
+
+
+def loop_guard(body: str) -> str:
+    """BODY with m2c's loop guard `if (N > 0)` written as `if (i < N)` when the counter i,
+    zeroed before it, is compared with the same N at the loop's end. GCC keeps a `for`
+    loop's entry test as `cmpw i, N` with i still 0, which a constant compare cannot
+    reproduce (fn_80064B40, fn_80063D9C)."""
+    def repl(m):
+        n = m["n"]
+        bare = re.escape(n[6:] if n.startswith("(s32) ") else n)
+        cmp = re.search(rf"\b(\w+) (?:>=|<) (?:\(s32\) )?{bare}\)", body[m.end():])
+        if not cmp or not re.search(rf"^\s*{cmp[1]} = 0;$", body[:m.start()], flags=re.M):
+            return m[0]
+        return f"if ({cmp[1]} < {n}) {{"
+    return GUARD.sub(repl, body)
+
+
 def base_pointer(body: str) -> str:
     """BODY with each run of two or more consecutive statements that address one global
     through m2c's `(s8 *)(G) + off` wrapped in a block that reads G through a local
@@ -201,7 +220,6 @@ def void_callees(body: str) -> str:
     return out
 
 
-VARIANTS = (store_in_arms, const_rodata, both_rewrites, void_callees)
 VOID_DECL = re.compile(r"^void (\w+)\(([^()]*)\);$", flags=re.M)
 
 
@@ -265,7 +283,46 @@ def float_blocks(body: str, limit: int = 8) -> list[str]:
     return [t for t in out if not (t in seen or seen.add(t))][:limit]
 
 
+NARROW_RET = re.compile(r"^(?:u8|s8|u16|s16) (?=\w+\()", re.M)
+
+
+def wide_return(body: str) -> str:
+    """BODY with a u8/s8/u16/s16 return type widened to s32 when it returns -1. m2c types
+    the return from a narrow load (`lbz`), but `li r3, -0x1` with no extension needs an int
+    return: `return -1U` from a u8 function emits `li r3, 0xff` (fn_8005A5B0)."""
+    if not re.search(r"\breturn -1U?;", body) or not NARROW_RET.search(body):
+        return body
+    return re.sub(r"\breturn -1U;", "return -1;", NARROW_RET.sub("s32 ", body, count=1))
+
+
+VARIANTS = (store_in_arms, const_rodata, both_rewrites, void_callees, wide_return)
 MEM_STORE = re.compile(r"^(?P<ind>[ \t]+)(?P<lhs>\(*\*\(.+?\)\)*|\w+(?:\[[^\]]*\])?(?:(?:->|\.)\w+)+) = (?P<rhs>[^;]+);$")
+
+
+FIELD_LHS = re.compile(r"^\(\*\([^()]+\)\(\(s8 \*\)\((?P<base>\w+)\) \+ \((?P<off>-?(?:0x[0-9A-Fa-f]+|\d+))\)\)\)$")
+
+
+def sorted_stores(body: str) -> str:
+    """BODY with each run of adjacent independent field stores through one base pointer
+    put in ascending offset order. m2c keeps the scheduled order, in which GCC often moves
+    float stores ahead (fn_80064860 stores 0x264 first); the source usually wrote the
+    fields in layout order."""
+    lines = body.split("\n")
+    i = 0
+    while i < len(lines):
+        run = []
+        j = i
+        while j < len(lines):
+            m = MEM_STORE.match(lines[j])
+            f = m and FIELD_LHS.match(m["lhs"])
+            if not f or (run and (m["ind"] != run[0][1]["ind"] or f["base"] != run[0][2]["base"])):
+                break
+            run.append((lines[j], m, f))
+            j += 1
+        if len(run) > 1 and not any(a[1]["lhs"] in b[1]["rhs"] for a in run for b in run if a is not b):
+            lines[i:j] = [r[0] for r in sorted(run, key=lambda r: int(r[2]["off"], 0))]
+        i = max(j, i + 1)
+    return "\n".join(lines)
 
 
 def swap_stores(body: str, limit: int = 8) -> list[str]:
@@ -326,6 +383,57 @@ def pad_signature(body: str, name: str) -> str:
     if new == m[2].strip():
         return body
     return body[:m.start(2)] + new + body[m.end(2):]
+
+
+WRITES_NONE = re.compile(r"(?:st|cmp|b|mt|tw|dcb|icb|sync|isync|cr)")
+
+
+def passthrough_regs(asm: str, fn: str) -> tuple[set[int], set[int]] | None:
+    """Argument registers (GPR r3.. as 0.., FPR f1.. as 0..) the target leaves unwritten
+    before its first call, when that call is `bl FN`: the callee receives the target's own
+    incoming arguments there (a thin wrapper `f(a) { g(a, 0); }`). None when FN is not the
+    first call."""
+    gprs, fprs = set(), set()
+    for line in asm.splitlines():
+        line = ASM_COMMENT_RE.sub("", line).strip()
+        if not line or line.startswith((".", "#")) or line.endswith(":"):
+            continue
+        op, _, rest = line.partition(" ")
+        if op in ("bl", "bctrl", "blrl"):
+            if op != "bl" or rest.strip() != fn:
+                return None
+            return ({i for i in range(8) if 3 + i not in gprs},
+                    {i for i in range(8) if 1 + i not in fprs})
+        if WRITES_NONE.match(op) or op.startswith(("psq_st", "fcmp")):
+            continue  # stores, compares, branches and moves to SPRs write no argument register
+        d = re.match(r"([rf])(\d+)\b", rest.strip())
+        if d:
+            (gprs if d[1] == "r" else fprs).add(int(d[2]))
+    return None
+
+
+def add_params(body: str, name: str, extra: dict[str, str]) -> str:
+    """BODY with NAME's m2c-style parameter list (argN/fargN) extended by EXTRA (param name
+    to type) and padded to keep each register class contiguous; unchanged when the list
+    has parameters not in m2c's register naming."""
+    m = re.search(rf"^(\w[^\n;(]*?\b{re.escape(name)})\(([^)]*)\)(\s*\{{)", body, flags=re.M)
+    if not m:
+        return body
+    regs: dict[str, dict[int, str]] = {"arg": {}, "farg": {}}
+    if m[2].strip() not in ("", "void"):
+        for param in (p.strip() for p in m[2].split(",")):
+            pm = PARAM.match(param)
+            if not pm or re.search(r"\b(?:s64|u64|long long)\b", pm["decl"]):
+                return body
+            regs[pm["kind"]][int(pm["n"])] = param
+    for nm, typ in extra.items():
+        pm = re.fullmatch(r"(f?arg)(\d+)", nm)
+        regs[pm[1]].setdefault(int(pm[2]), f"{typ}{nm}" if typ.endswith("*") else f"{typ} {nm}")
+    params = []
+    for kind, pad in (("arg", "s32 pad"), ("farg", "f32 fpad")):
+        if regs[kind]:
+            params += [regs[kind].get(i, f"{pad}{i}") for i in range(max(regs[kind]) + 1)]
+    return body[:m.start(2)] + (", ".join(params) or "void") + body[m.end(2):]
 
 
 CONFLICT = re.compile(r"conflicting types for [`'‘](\w+)|redefinition of [`'‘](\w+)|"
@@ -709,11 +817,23 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             want = len([p for p in d[3].split(",") if p.strip() not in ("", "void")])
             lines.append(ln if counts <= {want} else f"{ret} {fn}();")
     arrays = set(re.findall(r"^extern (?:const )?f(?:32|64) (\w+)\[\];", head, flags=re.M))
+    extra: dict[str, str] = {}
     for fn, params in arity.items():
         n, var = len([p for p in params if p != "..."]), "..." in params
         kinds = m2c_kinds.get(fn)
-        for start, end, args in reversed(list(call_sites(code, fn))):
-            placed = None if var else place_args(args, kinds, params, code[:start])
+        sites = list(call_sites(code, fn))
+        for k_site, (start, end, args) in reversed(list(enumerate(sites))):
+            live = passthrough_regs(asm, fn) if k_site == 0 and not var else None
+            new_params: dict[str, str] = {}
+            expanded = expand_by_register(args, kinds, params, live, new_params) if live else None
+            if expanded:
+                # None from place_args is "nothing moves" only when the counts already fit.
+                placed = place_args(*expanded, params, code[:start]) or (
+                    (expanded[0], None) if len(expanded[0]) == n else None)
+            if expanded and placed:
+                extra.update((k, v) for k, v in new_params.items() if k not in extra)
+            else:
+                placed = None if var else place_args(args, kinds, params, code[:start])
             cut = None
             if placed:
                 fixed, cut = placed
@@ -723,12 +843,81 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
             # m2c passes a float constant's array by name where the value is meant.
             fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
                      for i, a in enumerate(fixed)]
+            if live:
+                fixed = passthrough(fixed, params, live, extra)
             if fixed != args:
                 open_paren = code.index("(", start)
                 code = code[:open_paren] + "(" + ", ".join(fixed) + ")" + code[end:]
             if cut:
                 code = code[:cut[0]] + code[cut[1]:]
+    if extra:
+        code = add_params(code, name, extra)
     return repair_indirect_prototypes("\n".join(lines) + ("\n" if lines else "") + code, asm)
+
+
+def expand_by_register(args: list[str], kinds: list[str] | None, params: list[str],
+                       live: tuple[set[int], set[int]], extra: dict[str, str]
+                       ) -> tuple[list[str], list[str]] | None:
+    """ARGS (m2c's call, KINDS its parameter kinds) spread over PARAMS' argument registers.
+
+    m2c lists only the argument registers it saw written, in register order (`g(0x1000)`
+    for a call that sets just r10), so after an unwritten register (LIVE: the caller's own
+    argument passed through) every later argument shifts left. Each unwritten slot takes
+    the target's `argN`/`fargN` (recorded in EXTRA) and each written one the next m2c
+    argument of its class. Returns (arguments, kinds) in m2c's class-sorted form for
+    `place_args`, or None when the counts do not line up or nothing is passed through."""
+    if kinds is None or len(kinds) < len(args) or "..." in kinds:
+        return None
+    kinds = kinds[:len(args)]
+    ints = [a for a, k in zip(args, kinds) if k.split()[0] not in FLOATS]
+    flts = [a for a, k in zip(args, kinds) if k.split()[0] in FLOATS]
+    n_r = min(8, sum(p.split()[0] not in FLOATS for p in params))
+    n_f = min(8, sum(p.split()[0] in FLOATS for p in params))
+    out = {}
+    for cls, n, have, regs, prefix in (("r", n_r, ints, live[0], "arg"), ("f", n_f, flts, live[1], "farg")):
+        gaps = [k for k in range(n) if k in regs]
+        if not gaps or len(have) != n - len(gaps):
+            out[cls] = None
+            continue
+        it = iter(have)
+        out[cls] = [f"{prefix}{k}" if k in regs else next(it) for k in range(n)]
+    if out["r"] is None and out["f"] is None:
+        return None
+    if out["r"] is None:
+        out["r"] = ints
+    if out["f"] is None:
+        out["f"] = flts
+    cls_params = {"r": [p for p in params if p.split()[0] not in FLOATS][:8],
+                  "f": [p for p in params if p.split()[0] in FLOATS][:8]}
+    for cls, prefix in (("r", "arg"), ("f", "farg")):
+        for k, a in enumerate(out[cls]):
+            if a == f"{prefix}{k}" and k < len(cls_params[cls]):
+                extra.setdefault(a, cls_params[cls][k])
+    return out["r"] + out["f"], ["s32"] * len(out["r"]) + ["f32"] * len(out["f"])
+
+
+def passthrough(fixed: list[str], params: list[str], live: tuple[set[int], set[int]],
+                extra: dict[str, str]) -> list[str]:
+    """FIXED with each literal `0` argument whose register the target never wrote before
+    calling FN replaced by the target's own incoming argument (`argN`/`fargN`, recorded in
+    EXTRA with the callee's parameter type). A real zero needs an `li`/`fmr` into the
+    register, so an unwritten one is the caller's value passed through (m2c and the arity
+    repair both fill such registers with `0`)."""
+    if "..." in params:
+        return fixed
+    out, idx = list(fixed), {"f": 0, "r": 0}
+    for i, p in enumerate(params):
+        if i >= len(out):
+            break
+        cls = "f" if p.split()[0] in FLOATS else "r"
+        k = idx[cls]
+        idx[cls] += 1
+        if out[i] != "0" or k >= 8 or k not in live[0 if cls == "r" else 1]:
+            continue
+        nm = f"{'farg' if cls == 'f' else 'arg'}{k}"
+        out[i] = nm
+        extra.setdefault(nm, p)
+    return out
 
 
 def adopt_own_prototype(body: str, name: str, unit_text: str) -> str:
@@ -821,7 +1010,7 @@ def sweep_one(t: dict) -> dict:
                     framed_res, framed = score_draft(name, source, framed)
                     if improves(framed_res, res):
                         res, body = {**framed_res, framer.__name__: True}, framed
-            for repair in (byte_strides, base_pointer):  # scored repairs: kept only when better
+            for repair in (byte_strides, base_pointer, loop_guard):  # scored repairs: kept only when better
                 alt = repair(body)
                 if alt != body:
                     alt_res, alt = score_draft(name, source, alt)
@@ -875,7 +1064,8 @@ def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, st
     if res["verdict"] != "MISMATCH" or (res.get("exact") or 0) < 0.8 * (res.get("target") or 1):
         return res, body
     seen = {body}
-    alts = [(v.__name__, v(body)) for v in VARIANTS] + [("swap_stores", a) for a in swap_stores(body)]
+    alts = [(v.__name__, v(body)) for v in VARIANTS + (sorted_stores,)]
+    alts += [("swap_stores", a) for a in swap_stores(body)]
     alts += [("volatile_locals", a) for a in volatile_locals(body)]
     alts += [("int_callees", a) for a in int_callees(body)]
     alts += [("float_blocks", a) for a in float_blocks(body)]

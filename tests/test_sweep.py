@@ -121,6 +121,40 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("    g(&b, x, 1, 2, 3, 4, y, 5, 6, 7, lbl_A);\n", out)
         self.assertNotIn("sp8 = lbl_A", out)
 
+    def test_fix_prototypes_passes_unwritten_args_through(self):
+        # A thin wrapper leaves r3/r4 as its own arguments and sets only r5: m2c and the
+        # arity repair fill the untouched registers with 0 (fn_80064A04 calling fn_800631DC).
+        body = "s32 g(s32, s32);\n\nvoid f(void) {\n    g(0, 0);\n}\n"
+        asm = ("/* 0 */\tstwu r1, -0x8(r1)\n/* 4 */\tmflr r0\n/* 8 */\tstw r0, 0xc(r1)\n"
+               "/* c */\tli r5, 0x0\n/* 10 */\tbl g\n")
+        out = sweep.fix_prototypes(body, "f", asm, "s32 g(void *, s8, s32);\n")
+        self.assertIn("void f(void *arg0, s8 arg1) {\n    g(arg0, arg1, 0);\n", out)
+
+    def test_fix_prototypes_spreads_compacted_args_by_register(self):
+        # m2c lists only the registers it saw written: a call setting r6..r8 reads as
+        # g(0, 0, arg3), and one setting r10 plus two stack words as g(0x1000) after the
+        # stores (fn_80063E14, fn_8005A3F8).
+        body = "s32 g(s32, s32, s32);\n\nvoid f(s32 arg3) {\n    g(0, 0, arg3);\n}\n"
+        asm = "\tmr r8, r6\n\tli r7, 0x0\n\tli r6, 0x0\n\tbl g\n"
+        out = sweep.fix_prototypes(body, "f", asm, "s32 g(void *, s32, void *, void *, void *, s32);\n")
+        self.assertIn("void f(void *arg0, s32 arg1, void *arg2, s32 arg3) {\n"
+                      "    g(arg0, arg1, arg2, 0, 0, arg3);\n", out)
+        body = ("s32 h(s32);\n\nvoid f(void) {\n    s32 sp8;\n    s32 spC;\n\n"
+                "    sp8 = 0xC00;\n    spC = 0x100;\n    h(0x1000);\n}\n")
+        asm = ("\tli r0, 0xc00\n\tli r11, 0x100\n\tstw r0, 0x8(r1)\n\tli r10, 0x1000\n"
+               "\tstw r11, 0xc(r1)\n\tbl h\n")
+        out = sweep.fix_prototypes(body, "f", asm, "s32 h(" + ", ".join(["s32"] * 10) + ");\n")
+        self.assertIn("    h(arg0, arg1, arg2, arg3, arg4, arg5, arg6, 0x1000, 0xC00, 0x100);\n", out)
+        self.assertNotIn("sp8 = 0xC00", out)
+
+    def test_passthrough_needs_the_first_call(self):
+        self.assertIsNone(sweep.passthrough_regs("\tbl h\n\tbl g\n", "g"))
+        gprs, fprs = sweep.passthrough_regs("\tli r4, 0x0\n\tfmr f1, f2\n\tstw r3, 0x8(r1)\n\tbl g\n", "g")
+        self.assertEqual((gprs, fprs), ({0, 2, 3, 4, 5, 6, 7}, {1, 2, 3, 4, 5, 6, 7}))
+        body = "void g(s32, f32);\n\nvoid f(s32 arg1) {\n    g(0, 0);\n}\n"
+        out = sweep.fix_prototypes(body, "f", "\tli r3, 0x0\n\tbl g\n", "void g(s32, f32);\n")
+        self.assertIn("void f(s32 pad0, s32 arg1, f32 farg0) {\n    g(0, farg0);\n", out)
+
     def test_place_args_needs_the_stack_store(self):
         self.assertIsNone(sweep.place_args(["a"] * 8, ["s32"] * 8, ["s32"] * 9, "    x = 1;\n    "))
 
@@ -140,6 +174,25 @@ class SweepRewriteTest(unittest.TestCase):
                 "void f(void) {\n    g(&b, 1, x);\n}\n#undef g\n")
         out = sweep.fix_prototypes(body, "f", "\tbl g\n", "void g(void *, f32, s32) {\n}\n")
         self.assertIn("    g(&b, x, 1);\n", out)
+
+    def test_sorted_stores(self):
+        # GCC schedules float stores first; the source wrote the fields in layout order
+        # (fn_80064860).
+        f = "(*(%s *)((s8 *)(p) + (%s))) = %s;"
+        body = "    " + "\n    ".join([f % ("f32", "0x264", "b"), f % ("s16", "0x25C", "x"),
+                                       f % ("f32", "0x260", "a")]) + "\n    q = 1;\n"
+        self.assertEqual(sweep.sorted_stores(body), "    " + "\n    ".join(
+            [f % ("s16", "0x25C", "x"), f % ("f32", "0x260", "a"), f % ("f32", "0x264", "b")]) + "\n    q = 1;\n")
+        dep = "    " + f % ("s32", "8", "1") + "\n    " + f % ("s32", "4", "(*(s32 *)((s8 *)(p) + (8)))") + "\n"
+        self.assertEqual(sweep.sorted_stores(dep), dep)
+
+    def test_loop_guard(self):
+        # GCC keeps a for loop's entry test as `cmpw i, n` (fn_80064B40).
+        body = ("    var_r30 = 0;\n    if ((s32) lbl_N > 0) {\nloop_2:\n        var_r30 += 1;\n"
+                "        if (var_r30 >= (s32) lbl_N) {\n")
+        self.assertIn("    if (var_r30 < (s32) lbl_N) {\n", sweep.loop_guard(body))
+        unrelated = body.replace("var_r30 >= (s32) lbl_N", "var_r30 >= (s32) lbl_M")
+        self.assertEqual(sweep.loop_guard(unrelated), unrelated)
 
     def test_byte_strides(self):
         body = ("s32 f(void) {\n    s32 *p;\n    p = lbl;\n"
@@ -214,6 +267,15 @@ class SweepRewriteTest(unittest.TestCase):
         self.assertIn("        {\n            s8 *MenuHeader_p = (s8 *)MenuHeader;\n"
                       "            (*(s8 *)(MenuHeader_p + (0x174))) = -1;\n", out)
         self.assertIn("    (*(s8 *)((s8 *)(Other) + (0x4))) = 1;\n", out)  # a single access stays
+
+
+class WideReturnTests(unittest.TestCase):
+    def test_wide_return(self):
+        body = "extern void *g;\n\nu8 f(void) {\n    if (g != NULL) {\n        return *(u8 *)g;\n    }\n    return -1U;\n}\n"
+        out = sweep.wide_return(body)
+        self.assertIn("s32 f(void) {", out)
+        self.assertIn("return -1;", out)
+        self.assertEqual(sweep.wide_return(body.replace("-1U", "0")), body.replace("-1U", "0"))
 
 
 if __name__ == "__main__":

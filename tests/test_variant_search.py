@@ -134,6 +134,17 @@ class SearchTests(unittest.TestCase):
         result = vs.search("f", SOURCE, scorer, jobs=1, limit=1000)
         self.assertEqual(result["errors"], 1)
 
+    def test_default_case_dimension(self):
+        # An extra label on the default arm rebalances GCC's case tree (fn_80063F80).
+        lines = ["    switch (x) {", "    case 2:", "        y = 1;", "        break;", "    case 7:",
+                 "        break;", "    default:", "        y = 0;", "    }"]
+        dims = vs.default_case_dims(lines)
+        self.assertEqual(len(dims), 1)
+        self.assertEqual(dims[0].options[1], {6: "    case 0:\n    default:"})
+        values = [int(o[6].split()[1].rstrip(":")) for o in dims[0].options[1:]]
+        self.assertEqual(values, [0, 1, -1, 8, 9, 3, 4, 5])
+        self.assertEqual(vs.default_case_dims(["    default:"]), [])
+
 
 if __name__ == "__main__":
     unittest.main()
