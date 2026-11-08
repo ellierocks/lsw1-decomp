@@ -9,7 +9,9 @@ only the named function. `--body FILE` searches a draft that is not in the unit 
   - declaration order of the leading locals, initialized ones included (stack slot layout,
     register order and prologue scheduling; the first MAX_DECLS when there are more),
   - `x = c ? a : b;` against an explicit if/else with the store in each branch,
-  - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local.
+  - `s32`/`u32`, `s16`/`u16`, `s8`/`u8` for each parameter and local,
+  - an extra `case K:` on a switch's `default:` arm, K next to or between the other cases
+    (it changes GCC's case-tree balancing without changing behavior; fn_80063F80).
 
     python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/nu3dx/nuanim.c -j 8
 
@@ -127,11 +129,46 @@ def build_dimensions(fn: Function) -> tuple[list[Dimension], list[str]]:
             dims.append(Dimension(f"ternary@{i}", "lines", i, [{}, {i: expanded}]))
     if len(ternaries) >= 2:
         dims.append(Dimension("ternary-all", "lines", 0, [{}, dict(ternaries)]))
+    dims += default_case_dims(lines)
     for i, line in enumerate(lines[s:e], s):
         if TYPE_RE.search(line) and DECL_RE.match(line):
             dims.append(Dimension(f"sign-local@{i}", "lines", i,
                                   [{}, {i: TYPE_RE.sub(lambda t: SIGN_PAIRS[t.group(1)], line, 1)}]))
     return dims, lines
+
+
+CASE_RE = re.compile(r"^\s*case (-?(?:0x[0-9A-Fa-f]+|\d+))U?:")
+DEFAULT_RE = re.compile(r"^(?P<indent>[ \t]*)default:")
+MAX_CASE_OPTIONS = 8
+
+
+def default_case_values(cases: list[int]) -> list[int]:
+    """Labels worth adding to a `default:` arm: the gaps between the other cases and the
+    values just outside them (0 and 1 first), at most MAX_CASE_OPTIONS."""
+    lo, hi = min(cases), max(cases)
+    near = [0, 1, -1, lo - 1, lo - 2, hi + 1, hi + 2] + [v for v in range(lo + 1, hi) if hi - lo <= 64]
+    out = []
+    for v in near:
+        if v not in cases and v not in out:
+            out.append(v)
+    return out[:MAX_CASE_OPTIONS]
+
+
+def default_case_dims(lines: list[str]) -> list[Dimension]:
+    """One dimension per `default:` arm (of a switch whose case labels precede it): option k
+    puts `case K:` in front of it."""
+    dims, cases = [], []
+    for i, line in enumerate(lines):
+        if "switch (" in line:
+            cases = []
+        c = CASE_RE.match(line)
+        if c:
+            cases.append(int(c[1], 0))
+        d = DEFAULT_RE.match(line)
+        if d and cases:
+            opts = [{}] + [{i: f"{d['indent']}case {v}:\n{line}"} for v in default_case_values(cases)]
+            dims.append(Dimension(f"default-case@{i}", "lines", i, opts))
+    return dims
 
 
 def sign_param_dims(fn: Function) -> list[Dimension]:
