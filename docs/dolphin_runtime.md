@@ -63,7 +63,7 @@ here).
 ```sh
 python3 tools/dolphin.py launch                    # boots GL5E4F, waits for frames
 python3 tools/dolphin.py launch --state ~/x.sav    # boot into a save state
-python3 tools/dolphin.py screenshot --out /tmp/claude-1000/shots/now.png
+python3 tools/dolphin.py screenshot                # prints the PNG path
 python3 tools/dolphin.py hotkey                    # list hotkey ids
 python3 tools/dolphin.py hotkey load-state-load-state-slot-1
 python3 tools/dolphin.py close
@@ -79,16 +79,21 @@ python3 tools/dolphin.py close
   outlives the agent's shell, then waits until frames advance. It passes two
   `-C` overrides for that run only: `HotkeysRequireFocus=False` (needed for
   global shortcuts) and `ConfirmStop=False` (so `close` can finish).
-- **`screenshot`** presses Dolphin's own *Take Screenshot* hotkey through the
-  portal global shortcut, waits for the new PNG under
-  `<user dir>/ScreenShots/GL5E4F/`, and prints its path. It captures the
-  emulated frame at internal resolution without focusing the window. Read the
-  PNG to look at it; copies go outside the repo.
-- **`hotkey`** presses any registered Dolphin hotkey, such as save and load
-  state slots, pause or frame stepping. This needs the Wayland build and
-  *Hotkeys Require Window Focus* unticked (Config → Interface); otherwise
-  Dolphin registers no global shortcuts and the tool says so. Loading a state
-  or pausing is driving the game: the [rules](#rules) apply.
+- **`screenshot`** captures Dolphin's game window with `grim -T <stableId>`
+  (the window titled with the game ID). It is repeatable, needs no focus, and
+  works while the window is on another workspace. The PNG goes to a temp dir
+  named with the frame, or `--out`; read it to look at the screen. Keep it out
+  of git.
+- **`hotkey`** presses a registered Dolphin hotkey through its portal global
+  shortcut. This needs the Wayland build and *Hotkeys Require Window Focus*
+  unticked (Config → Interface); otherwise Dolphin registers no global
+  shortcuts and the tool says so. **Each hotkey works once per Dolphin
+  session:** Hyprland 0.57.1's `global` dispatcher, when called from
+  `hyprctl`, sends only the press (`m_passPressed` -1 is passed as `true`), so
+  Dolphin holds the hotkey down and ignores later presses. That is why
+  `screenshot` uses grim instead of Dolphin's own hotkey. `send_shortcut` with
+  a key doesn't reach Dolphin's hotkeys either. Loading a state or pausing is
+  driving the game: the [rules](#rules) apply.
 - **`close`** only closes a Dolphin that `launch` recorded. It sends SIGTERM,
   which Dolphin treats as closing the main window. Dolphin's handler fires once,
   so if a confirmation dialog appears, ask the user; `--force` sends SIGKILL.
@@ -178,6 +183,8 @@ python3 tools/dolphin.py warp Dooku_B --write   # load it and wait
 
 `debug-menu --write` sets `gLegoOptionsMenuEnabled` (`0x804090F0`) to 1. The game
 only reads that word, so "LEGO Options" stays in the pause menu until reboot.
+The speedrun-practice Gecko code `044090F0 00000001` rewrites it every frame;
+the tool checks a few frames later and reports a revert.
 The menu itself (scene select, game mode, unlocks, toggles) is documented in
 [menus](menu_system.md#debug-menu--lego-options). Prefer it when a state needs
 several of those options; the user can operate it, and a driver can later make

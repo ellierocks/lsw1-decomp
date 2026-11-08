@@ -19,8 +19,8 @@ Commands:
     status                     is Dolphin running GL5E4F, and is it paused?
     launch [--state FILE]      start a graphical Dolphin on the desktop
     close                      close a Dolphin that `launch` started
-    screenshot [--out PNG]     take a screenshot with Dolphin's hotkey
-    hotkey [ID]                press a Dolphin hotkey (save states, pause...)
+    screenshot [--out PNG]     capture Dolphin's game window (grim -T)
+    hotkey [ID]                press a Dolphin hotkey (once per session)
     read ADDR|SYM [--type]     typed live read (see ramdump.py for more types)
     wait ADDR|SYM --equals V   block until a value is reached (state gates)
     watch ADDR|SYM [...]       print values as they change
@@ -41,6 +41,7 @@ import re
 import shlex
 import signal
 import shutil
+import tempfile
 import struct
 import subprocess
 import sys
@@ -80,7 +81,7 @@ CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) \
     / "lsw1-decomp/dolphin.json"
 LAUNCHED = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) \
     / "lsw1-decomp/dolphin-launched.json"
-SCREENSHOT_SHORTCUT = "general-take-screenshot"
+SHOTS_DIR = Path(tempfile.gettempdir()) / "lsw1-dolphin-shots"
 LAUNCH_OVERRIDES = (
     # Dolphin registers portal global shortcuts (screenshot, hotkey) only
     # when hotkeys don't need window focus.
@@ -222,7 +223,8 @@ def machine_config():
     return cfg
 
 
-def hyprctl(*args, json_out=False):
+def hypr_env():
+    """The desktop's environment; agent shells don't inherit it."""
     env = dict(os.environ)
     if "HYPRLAND_INSTANCE_SIGNATURE" not in env:
         run = Path(env.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hypr"
@@ -231,6 +233,11 @@ def hyprctl(*args, json_out=False):
         if not sigs:
             raise DolphinError("Hyprland is not running (no $XDG_RUNTIME_DIR/hypr)")
         env["HYPRLAND_INSTANCE_SIGNATURE"] = sigs[-1].name
+    return env
+
+
+def hyprctl(*args, json_out=False):
+    env = hypr_env()
     cmd = ["hyprctl"] + (["-j"] if json_out else []) + list(args)
     try:
         out = subprocess.run(cmd, env=env, capture_output=True, text=True,
@@ -365,28 +372,46 @@ def cmd_hotkey(args, syms):
     return 0
 
 
+def render_window(clients, pid, game_id):
+    """The Hyprland client showing the game: Dolphin's window titled with
+    the game ID, or its only window."""
+    mine = [c for c in clients if c.get("pid") == pid]
+    titled = [c for c in mine if f"({game_id})" in c.get("title", "")]
+    if len(titled) == 1:
+        return titled[0]
+    if len(mine) == 1:
+        return mine[0]
+    raise DolphinError(f"can't tell which of Dolphin's {len(mine)} windows "
+                       f"shows the game; enable Config -> Interface -> Show "
+                       f"Active Title in Window Title")
+
+
 def cmd_screenshot(args, syms):
+    """Capture Dolphin's render window with `grim -T` (repeatable, works on
+    hidden workspaces). Dolphin's own screenshot hotkey works only once per
+    session through hyprctl; see docs/dolphin_runtime.md."""
     mem = attach_or_exit(args)
-    shots = user_dir(mem.pid) / "ScreenShots" / mem.game_id.decode()
-    before = set(shots.glob("*.png")) if shots.is_dir() else set()
-    how = press_hotkey(SCREENSHOT_SHORTCUT)
-    deadline = time.time() + args.timeout
-    while time.time() < deadline:
-        new = set(shots.glob("*.png")) - before if shots.is_dir() else set()
-        if new:
-            path = max(new, key=lambda p: p.stat().st_mtime)
-            size = -1
-            while size != path.stat().st_size:   # wait for the write to end
-                size = path.stat().st_size
-                time.sleep(0.2)
-            if args.out:
-                Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-                path = Path(shutil.copy2(path, args.out))
-            print(path)
-            return 0
-        time.sleep(0.1)
-    raise DolphinError(f"no screenshot appeared in {shots} within "
-                       f"{args.timeout:g} s ({how}); is the hotkey bound?")
+    game = mem.game_id.decode()
+    win = render_window(hyprctl("clients", json_out=True), mem.pid, game)
+    frame = mem.scalar(FRAME_COUNTER, "u32")
+    out = Path(args.out) if args.out else \
+        SHOTS_DIR / f"{game}-{time.strftime('%Y%m%d-%H%M%S')}-f{frame}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    env = hypr_env()
+    if "WAYLAND_DISPLAY" not in env:
+        inst = [i for i in hyprctl("instances", json_out=True)
+                if i["instance"] == env["HYPRLAND_INSTANCE_SIGNATURE"]]
+        env["WAYLAND_DISPLAY"] = inst[0]["wl_socket"] if inst else "wayland-1"
+    try:
+        subprocess.run(["grim", "-T", str(win["stableId"]), str(out)],
+                       env=env, check=True, capture_output=True, text=True,
+                       timeout=15)
+    except subprocess.CalledProcessError as e:
+        raise DolphinError(f"grim failed: {e.stderr.strip()}")
+    except (OSError, subprocess.SubprocessError) as e:
+        raise DolphinError(f"grim failed: {e}")
+    print(out)
+    return 0
 
 
 # --------------------------------------------------------------------------- #
@@ -827,8 +852,19 @@ def cmd_debug_menu(args, syms):
               f"user's go-ahead for this session)")
         return 0
     mem.write_u32(DEBUG_MENU, want)
-    print(f"set to {mem.scalar(DEBUG_MENU, 'u32')}: LEGO Options is "
-          f"{'shown' if want else 'hidden'} in the pause menu until reboot")
+    # The game never writes this word, but a Gecko 04 code (speedrun
+    # practice: 044090F0 00000001) rewrites it every frame.
+    start = mem.scalar(FRAME_COUNTER, "u32")
+    deadline = time.time() + 1
+    while mem.scalar(FRAME_COUNTER, "u32") - start < 3 and time.time() < deadline:
+        time.sleep(0.01)
+    now = mem.scalar(DEBUG_MENU, "u32")
+    if now != want:
+        print(f"reverted to {now}: an enabled Gecko code writes 0x804090F0 "
+              f"every frame; ask the user to toggle that code instead")
+        return 2
+    print(f"set to {now}: LEGO Options is {'shown' if want else 'hidden'} "
+          f"in the pause menu until reboot")
     return 0
 
 
@@ -952,8 +988,8 @@ def main(argv=None):
     p.set_defaults(func=cmd_close)
 
     p = sub.add_parser("screenshot", help="take a screenshot with Dolphin")
-    p.add_argument("--out", help="copy the PNG here (keep it out of git)")
-    p.add_argument("--timeout", type=float, default=10)
+    p.add_argument("--out", help="PNG path (default: a temp dir; keep it "
+                   "out of git)")
     p.set_defaults(func=cmd_screenshot)
 
     p = sub.add_parser("hotkey", help="press a Dolphin hotkey (list if none)")

@@ -162,6 +162,16 @@ class DesktopTests(unittest.TestCase):
             with self.assertRaisesRegex(dolphin.DolphinError, "Window Focus"):
                 dolphin.press_hotkey("general-take-screenshot")
 
+    def test_render_window(self):
+        main = {"pid": 7, "title": "Dolphin 5003b70", "stableId": "a"}
+        game = {"pid": 7, "title": "Dolphin | LSW (GL5E4F)", "stableId": "b"}
+        other = {"pid": 8, "title": "x (GL5E4F)", "stableId": "c"}
+        f = dolphin.render_window
+        self.assertEqual(f([main, game, other], 7, "GL5E4F"), game)
+        self.assertEqual(f([main, other], 7, "GL5E4F"), main)
+        with self.assertRaisesRegex(dolphin.DolphinError, "Window Title"):
+            f([main, dict(main, stableId="d")], 7, "GL5E4F")
+
     def test_launch_command_line(self):
         cfg = {"launcher": "/bin/dolphin wl", "iso": "/roms/LSW (USA).rvz"}
         sent = []
