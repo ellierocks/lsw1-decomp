@@ -5001,3 +5001,44 @@ f32 Condition_LocatedCollectable(void *sys, void *process, struct gameaiscript_p
     }
     return 0.0f;
 }
+
+#define AIParamToFloat ((f32 (*)(s32, s32))AIParamToFloat)
+s32 JudderGameCamera(f32, s32 *, s32, s32);
+#define NuStrIStr ((s32 (*)(s32, s32 *))NuStrIStr)
+extern f32 lbl_801AEBDC[];
+extern s32 str_ScriptParam_AxisX[];
+extern s32 str_ScriptParam_AxisY[];
+extern s32 str_ScriptParam_AxisZ[];
+extern s32 str_ScriptParam_Time[];
+
+s32 Action_JudderGameCamera(s32 pad0, s32 pad1, s32 arg2, s32 arg3, s32 arg4, s32 arg5) {
+    s32 var_r28;
+    f32 var_f31;
+    s32 temp_r3;
+    s32 var_r29;
+    s32 var_r31;
+
+    var_f31 = lbl_801AEBDC[0];
+    var_r28 = 0;
+    if (arg5 != 0) {
+        for (var_r29 = 0; var_r29 < arg4; var_r29++) {
+            var_r31 = var_r29 * 4;
+            if (NuStrIStr(*(s32 *)(var_r31 + arg3), str_ScriptParam_AxisX) != 0) {
+                var_r28 = 0;
+            } else if (NuStrIStr(*(s32 *)(var_r31 + arg3), str_ScriptParam_AxisY) != 0) {
+                var_r28 = 1;
+            } else if (NuStrIStr(*(s32 *)(var_r31 + arg3), str_ScriptParam_AxisZ) != 0) {
+                var_r28 = 2;
+            } else {
+                temp_r3 = NuStrIStr(*(s32 *)(var_r31 + arg3), str_ScriptParam_Time);
+                if (temp_r3 != 0) {
+                    var_f31 = AIParamToFloat(arg2, temp_r3 + 5);
+                }
+            }
+        }
+        JudderGameCamera(var_f31, MenuHeader, var_r28, 0);
+    }
+    return 1;
+}
+#undef AIParamToFloat
+#undef NuStrIStr
