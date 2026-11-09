@@ -122,7 +122,9 @@ step was correct 33 of 33 times; looser alignment rules fell below 95%. It
 writes `build/pc_analysis/gc_pc_anchors.tsv` (about 470 pairs) and
 `pc_source_files.tsv`, which lists the x86 functions that reference each
 `.\dir\file.c` assert path and their paired GC functions (split evidence).
-Task packs include the target's pair in `donor_evidence.md`.
+Task packs include the target's pair in `donor_evidence.md`. In a worktree,
+which has no `orig/pc`, the exe is taken from the primary checkout, and the
+table is generated on first use (about 20 s) or after `pc_jp_pairs.tsv` changes.
 
 Read a paired body with REA: `open_binary` on
 `orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe`, then

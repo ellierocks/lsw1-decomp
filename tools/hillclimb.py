@@ -71,7 +71,7 @@ def main(argv=None):
     candidate.add_argument('--candidate', type=Path, help='compile this full candidate unit without editing SOURCE')
     candidate.add_argument('--body', type=Path, help='score this function body in the configured unit without editing it')
     ap.add_argument('--hypothesis', help='one concrete source/codegen hypothesis')
-    ap.add_argument('--donor-note', help='reviewed OpenSaga paths, GC-confirmed facts, rejected differences or lookup limit')
+    ap.add_argument('--donor-note', help='reviewed OpenSaga paths and JP PC pair, GC-confirmed facts, rejected differences or lookup limit')
     ap.add_argument('--compiled-symbol')
     ap.add_argument('--ledger', default='work/hillclimb')
     ap.add_argument('--patience', type=int, default=8)
@@ -119,7 +119,7 @@ def main(argv=None):
                 note = (f"auto: no OpenSaga name hit at {donor.get('revision')}; "
                         'renamed equivalents not searched')
             if donor['result'] != 'sdk-not-applicable' and not (note and note.strip()):
-                ap.error('game/Nu2 attempts require --donor-note: record inspected OpenSaga paths, '
+                ap.error('game/Nu2 attempts require --donor-note: record inspected OpenSaga paths and JP PC pair, '
                          'GC-confirmed facts/rejected transfers, or the no-hit/unavailable limit; '
                          'run python3 tools/opensaga.py lookup ' + args.function)
             donor['review_note'] = note

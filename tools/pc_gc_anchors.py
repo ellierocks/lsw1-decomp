@@ -28,8 +28,11 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import hashlib
+import os
 import re
 import struct
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -50,6 +53,7 @@ from string_xrefs import (  # noqa: E402
 PC_EXE_CANDIDATES = [
     ROOT / "orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe",
 ]
+PC_JP_SHA256 = "e224197c7ca58891d8bc0f3da6a3d29ed9ff213f9b8ef52e3708ec0db2f0921b"
 CONFIRMED = ROOT / "docs/symbol_donors/pc_jp_pairs.tsv"
 OUT_DIR = ROOT / "build/pc_analysis"
 STRING_RE = re.compile(rb"[\x20-\x7e]{%d,}\x00")
@@ -247,17 +251,46 @@ def propagate(pairs: dict[str, tuple[int, str]], gc_calls: dict[str, list[str]],
 
 # --- Task-pack evidence -----------------------------------------------------------
 
+def primary_root() -> Path:
+    """Return the primary checkout (worktrees have no orig/pc of their own)."""
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        return Path(common).parent
+    except (OSError, subprocess.CalledProcessError):
+        return ROOT
+
+
+def find_exe() -> Path | None:
+    """Return the pc_jp_retail exe from this checkout or the primary one."""
+    for root in (ROOT, primary_root()):
+        for path in PC_EXE_CANDIDATES:
+            candidate = root / path.relative_to(ROOT)
+            if candidate.exists():
+                return candidate
+    return None
+
+
 def donor_markdown(addr: int) -> str:
-    """Return the pc_jp_retail section for a task pack's donor_evidence.md."""
-    exe = PC_EXE_CANDIDATES[0]
+    """Return the pc_jp_retail section for a task pack's donor_evidence.md.
+
+    Generates build/pc_analysis/gc_pc_anchors.tsv on first use (about 20 s).
+    """
+    exe = find_exe()
     anchors = OUT_DIR / "gc_pc_anchors.tsv"
     lines = ["", "# Japanese PC 1.0 (x86) evidence", ""]
-    if not exe.exists():
-        lines.append("Unavailable: `orig/pc/jpn/retail` is not present (see docs/research.md#pc-builds).")
+    if exe is None:
+        lines.append("Unavailable: `orig/pc/jpn/retail` is not present here or in the primary"
+                     " checkout (see docs/research.md#pc-builds). Record this limit.")
         return "\n".join(lines) + "\n"
-    if not anchors.exists():
-        lines.append("Not generated: run `python3 tools/pc_gc_anchors.py`, then regenerate this pack.")
-        return "\n".join(lines) + "\n"
+    if not anchors.exists() or anchors.stat().st_mtime < CONFIRMED.stat().st_mtime:
+        result = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--exe", str(exe)],
+                                cwd=ROOT, capture_output=True, text=True)
+        if result.returncode != 0 or not anchors.exists():
+            lines.append("Not generated: `python3 tools/pc_gc_anchors.py` failed: "
+                         + (result.stderr.strip().splitlines() or ["no output"])[-1])
+            return "\n".join(lines) + "\n"
     key = f"0x{addr:08X}"
     row = next((line.split("\t") for line in anchors.read_text().splitlines()
                 if line.startswith(key + "\t")), None)
@@ -267,7 +300,7 @@ def donor_markdown(addr: int) -> str:
         return "\n".join(lines) + "\n"
     lines += [
         f"Paired with x86 `{row[2]}` ({row[3]}).",
-        "Read it with REA: `open_binary` on `orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe`,",
+        f"Read it with REA: `open_binary` on `{exe}`,",
         f"then `procedure_pseudo_code` at `{row[2]}`. MSVC output does not transfer; use it for call",
         "order, globals, constants, field offsets and branch structure, confirmed against GC assembly.",
         "Known global pairs: `docs/symbol_donors/pc_jp_globals.tsv`. After confirming the pair, add it to",
@@ -280,13 +313,20 @@ def donor_markdown(addr: int) -> str:
 
 # --- Pairing ------------------------------------------------------------------
 
+def write_atomic(path: Path, text: str) -> None:
+    """Write via rename so parallel task packs never read a partial file."""
+    tmp = path.with_name(f".{path.name}.{os.getpid()}")
+    tmp.write_text(text)
+    tmp.replace(path)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--exe", type=Path, help="PC exe (default: pc_jp_retail)")
     parser.add_argument("--min-len", type=int, default=6, help="minimum string length (default 6)")
     args = parser.parse_args()
 
-    exe = args.exe or next((p for p in PC_EXE_CANDIDATES if p.exists()), None)
+    exe = args.exe or find_exe()
     if exe is None or not exe.exists():
         raise SystemExit("No unwrapped PC exe found; see docs/research.md#pc-builds")
 
@@ -310,7 +350,7 @@ def main() -> None:
     pairs: dict[str, tuple[int, str]] = {}
     pc_owner: dict[int, str] = {}
     by_addr = {addr: name for name, addr in gc_addrs.items()}
-    if CONFIRMED.exists() and exe in PC_EXE_CANDIDATES:
+    if CONFIRMED.exists() and hashlib.sha256(exe.read_bytes()).hexdigest() == PC_JP_SHA256:
         for line in CONFIRMED.read_text().splitlines():
             if line.startswith(("#", "gc_addr")) or not line.strip():
                 continue
@@ -352,7 +392,7 @@ def main() -> None:
     ]
     for addr, name, pc_fn, evidence in rows:
         lines.append(f"0x{addr:08X}\t{name}\t0x{pc_fn:08X}\t{evidence}")
-    (OUT_DIR / "gc_pc_anchors.tsv").write_text("\n".join(lines) + "\n")
+    write_atomic(OUT_DIR / "gc_pc_anchors.tsv", "\n".join(lines) + "\n")
 
     src_lines = [
         "# Generated by tools/pc_gc_anchors.py",
@@ -364,7 +404,7 @@ def main() -> None:
         src_lines.append(
             f"{string}\t{','.join(f'0x{f:08X}' for f in pc_fns)}\t{','.join(gc_fns)}"
         )
-    (OUT_DIR / "pc_source_files.tsv").write_text("\n".join(src_lines) + "\n")
+    write_atomic(OUT_DIR / "pc_source_files.tsv", "\n".join(src_lines) + "\n")
 
     print(f"GC functions paired: {len(pairs)} ({confirmed} confirmed, {seeded} by strings, "
           f"{propagated} by call order); "

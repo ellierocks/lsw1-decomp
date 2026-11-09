@@ -1,6 +1,8 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
@@ -36,6 +38,22 @@ class PropagateTest(unittest.TestCase):
         pc_calls = {0x100: [0x200], 0x110: [0x300]}
         self.assertEqual(pc_gc_anchors.propagate(pairs, gc_calls, pc_calls), 0)
         self.assertNotIn("x", pairs)
+
+
+class FindExeTest(unittest.TestCase):
+    def test_worktree_falls_back_to_primary_checkout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            worktree, primary = Path(tmp, "wt"), Path(tmp, "primary")
+            rel = pc_gc_anchors.PC_EXE_CANDIDATES[0].relative_to(pc_gc_anchors.ROOT)
+            (primary / rel).parent.mkdir(parents=True)
+            (primary / rel).write_bytes(b"MZ")
+            candidates = [worktree / rel]
+            with mock.patch.object(pc_gc_anchors, "ROOT", worktree), \
+                    mock.patch.object(pc_gc_anchors, "PC_EXE_CANDIDATES", candidates), \
+                    mock.patch.object(pc_gc_anchors, "primary_root", return_value=primary):
+                self.assertEqual(pc_gc_anchors.find_exe(), primary / rel)
+                (primary / rel).unlink()
+                self.assertIsNone(pc_gc_anchors.find_exe())
 
 
 if __name__ == "__main__":
