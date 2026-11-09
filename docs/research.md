@@ -51,7 +51,8 @@ python3 tools/binary_mining_pipeline.py
 | `mac-anchor-queue` | Read Mac debug symbols directly from Mach-O binaries and align unnamed GC functions between already-named anchors. | `docs/symbol_donors/mac_anchor_rename_queue.md`, `docs/symbol_donors/mac_anchor_rename_queue.tsv` |
 | `mac-code-match` (`python3 tools/mac_code_match.py`) | Match unnamed GC functions to Mac demo functions by code body: callers/callees by name, immediates, field (width, offset), float literals, strings and order inside anchor gaps, propagated until stable. Tiered HIGH/MEDIUM/LOW with evidence; `--emit-renames FILE` writes HIGH pairs for `batch_rename.py`. Hold-out on named GC functions: HIGH 96.1% (98/102), MEDIUM 86.0% (labels are noisy: some repo names are themselves wrong). Families of near-identical functions (`Action_*`, `NuFPar*`, `CutScene*`) are the remaining false positives, so check MEDIUM by hand. | `docs/symbol_donors/mac_code_match.tsv` |
 | `mac-protos` (`python3 tools/mac_protos.py --build`) | Demangle the Mac text symbols into int/float/pointer parameter lists for `tools/sweep.py` (unknown struct pointers become `void *`; by-value structs, 64-bit integers and function pointers are dropped). | `docs/symbol_donors/mac_lsw1_demo_prototypes.tsv` |
-| `pc-versions` | Mine PC demo/retail strings shared with GC and emit DOL-addressed string proposals. | `build/pc_analysis/pc_analysis.txt`, `build/pc_analysis/pc_symbol_proposals.txt` |
+| `pc-versions` | Mine strings that any present PC build shares with GC and emit DOL-addressed string proposals. | `build/pc_analysis/pc_analysis.txt`, `build/pc_analysis/pc_symbol_proposals.txt` |
+| `pc-anchors` | Pair GC functions with readable Japanese PC 1.0 x86 functions by shared strings and aligned call order; map assert source paths to functions ([PC builds](#pc-builds)). | `build/pc_analysis/gc_pc_anchors.tsv`, `build/pc_analysis/pc_source_files.tsv` |
 | `gc-data-xrefs` | Scan GC code references to data labels and rescore Mac data symbol candidates. | `docs/symbol_donors/gc_data_xrefs.tsv`, `docs/symbol_donors/mac_data_to_gc_verified.md` |
 | `sdk-islands` | Map likely Dolphin SDK/MSL/runtime islands for later known-library matching and splits. | `docs/symbol_donors/sdk_islands.md`, `docs/symbol_donors/sdk_islands.tsv` |
 | `sdk-anchor-queue` | Consume local SDK symbol-order files and emit SDK rename candidates from named anchor gaps. | `docs/symbol_donors/sdk_anchor_rename_queue.md`, `docs/symbol_donors/sdk_anchor_rename_queue.tsv` |
@@ -90,12 +91,50 @@ before isolating a range from game code.
 | `GL5P4F/` PAL GC | Regional deltas and string confirmation | Addresses differ from US |
 | `lsw2-ps2-prototype/` | Nu2/game source paths, asserts and subsystem names | MIPS and newer lineage |
 | `tcs-wii-prototype/DATA/` | Shared diagnostics, script/data grammar | Later engine, not direct function identity |
-| `pc/usa/retail/`, `pc/usa/demo/` | Source breadcrumbs and string-label proposals | x86, stripped, platform-specific code |
+| `pc/jpn/retail/` Japanese 1.0 | GC↔x86 function pairs, readable bodies, source-file ownership ([PC builds](#pc-builds)) | MSVC x86, stripped; PC-only code paths |
+| `pc/usa/retail/`, `pc/usa/demo/`, `pc/patch2/` | Source breadcrumbs and string-label proposals | x86, stripped; SecuROM-wrapped, so code needs a runtime dump |
 
 The PS2 source paths distinguish `nu2api/nucore`, `nu2api/nu3d`,
 `gameapi/ai/aisys`, `gameapi/camera/socksys`, and `gameapi/gui/gamemenu`.
 TCS's loose `Levels/levels.txt`, `Levels/areas.txt` and `Scripts/SCRIPT.TXT`
 can clarify record grammar. Confirm that grammar in LSW1 before typing its data.
+
+### PC builds
+
+`research/revisions/builds.tsv` registers four PC builds. Only the Japanese 1.0
+disc (`pc_jp_retail`, May 2005) ships an exe without SecuROM, so it is the one
+PC build whose code can be read on disk; US retail, the US demo and patch 2
+(`pc_patch2`, January 2006) carry a `.securom` section and keep game `.text`
+encrypted until startup. Their strings remain readable for `pc-versions`.
+
+Its game code follows the GC function structure closely: `PadOutPause`
+(`0x8009F0B8`) and JP `0x00456850` test the same 13 globals in the same order.
+`pc-anchors` uses that to pair functions:
+
+```sh
+python3 tools/binary_mining_pipeline.py pc-anchors   # tools/pc_gc_anchors.py
+```
+
+It pairs a GC function with the x86 function that references the same strings
+(each string occurring once per binary), then pairs callees of paired functions
+where both ordered call lists align. On held-out string pairs the call-order
+step was correct 33 of 33 times; looser alignment rules fell below 95%. It
+writes `build/pc_analysis/gc_pc_anchors.tsv` (about 470 pairs) and
+`pc_source_files.tsv`, which lists the x86 functions that reference each
+`.\dir\file.c` assert path and their paired GC functions (split evidence).
+Task packs include the target's pair in `donor_evidence.md`.
+
+Read a paired body with REA: `open_binary` on
+`orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe`, then
+`procedure_pseudo_code` at the x86 address. Use it for call order, globals,
+constants, field offsets and branch structure. MSVC codegen does not transfer,
+and PC-specific code differs: for example, JP `0x0041CD00` (GC `fn_8011EAA8`)
+always returns 0, so PC never allows pausing a cutscene. After reading both
+bodies, record the pair in
+[pc_jp_pairs.tsv](symbol_donors/pc_jp_pairs.tsv), which seeds later runs, and
+any global pairs in [pc_jp_globals.tsv](symbol_donors/pc_jp_globals.tsv).
+Treat pairs as donor evidence under the usual naming rules; renames are not
+matching progress.
 
 Detailed cross-build evidence is retained under
 [research/revisions](../research/revisions/revision_graph.md). Concrete donor

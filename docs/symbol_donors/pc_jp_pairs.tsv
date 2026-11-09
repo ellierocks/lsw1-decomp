@@ -1,0 +1,7 @@
+# Confirmed GC function <-> pc_jp_retail (Japanese 1.0 PC exe, sha256 e224197c...0921b) pairs.
+# Seeds tools/pc_gc_anchors.py; keyed by GC address so renames do not break it.
+# Add a row only after reading both bodies (same call order, same globals/constants).
+gc_addr	pc_jp_addr	evidence
+0x8009F0B8	0x00456850	PadOutPause (Mac demo name): same gate order over 13 globals (pc_jp_globals.tsv), calls PauseGame (JP 0x456210)
+0x8011EAA8	0x0041CD00	called by PadOutPause with the current cutscene; PC body always returns 0, so PC never allows pausing cutscenes
+0x800B2ED4	0x0045F690	PadOutPause callee at the same position in both gate chains

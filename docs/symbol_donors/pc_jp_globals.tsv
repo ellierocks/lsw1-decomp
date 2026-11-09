@@ -1,0 +1,16 @@
+# GC global <-> pc_jp_retail (Japanese 1.0 PC exe) address pairs, from functions in pc_jp_pairs.tsv.
+# Meanings come from x86 readers/writers; confirm against GC accesses before naming. Renames are not matching progress.
+gc_addr	gc_label	pc_jp_addr	meaning	evidence
+0x8040912C	lbl_8040912C	0x0078B348		PadOutPause gate, same position
+0x80408FE0	lbl_80408FE0	0x00799628		PadOutPause gate; also gates the LEGO Options extras entry (JP 0x45ecbc)
+0x8040913C	lbl_8040913C	0x0076B028		PadOutPause gate
+0x804093B0	lbl_804093B0	0x00772438		PadOutPause gate
+0x80408F00	lbl_80408F00	0x007732D0		PadOutPause gate; float compared with -0.1
+0x80408EA8	lbl_80408EA8	0x00799540		PadOutPause gate
+0x80409118	lbl_80409118	0x0079A050		PadOutPause gate
+0x8040AFA8	lbl_8040AFA8	0x032B74DC		PadOutPause gate
+0x80409410	lbl_80409410	0x007731FC		PadOutPause gate; pointer read at +0x19C, +0x1AC, +0x1A8
+0x803E028C	lbl_803E028C	0x032B7434		PadOutPause gate
+0x8040AFAC	lbl_8040AFAC	0x032A02E8	cutscene playing	set at JP 0x41cd40 (starts a cutscene), cleared at 0x41d687; 33 x86 refs; holding it at 0 lets PC pause cutscenes
+0x8040AFB0	lbl_8040AFB0	0x032A02EC	current cutscene	set with the flag at JP 0x41cd40; passed to fn_8011EAA8 (JP 0x41cd00)
+0x8040AFB4	lbl_8040AFB4	0x032A0314	cutscene paused	set to 1 where the cutscene's speed field (+0x94) is zeroed

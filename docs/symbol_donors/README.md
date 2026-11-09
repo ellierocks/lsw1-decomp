@@ -17,6 +17,13 @@ file helpers, the corrected parser layout and the next queue. The
 [donor audit](opensaga_audit.md) records remaining lanes, target-specific
 counterexamples and the corrected `NuStrCpy` return contract.
 
+## Japanese PC 1.0
+
+`pc_jp_pairs.tsv` holds GC↔x86 function pairs confirmed by reading both bodies,
+keyed by GC address; it seeds `tools/pc_gc_anchors.py`. `pc_jp_globals.tsv`
+holds global pairs found in those bodies, with x86-derived meanings that still
+need GC confirmation. See [PC builds](../research.md#pc-builds).
+
 ## Names corrected by PR #5 (`e7bbacf`)
 
 The 18 address mappings are in

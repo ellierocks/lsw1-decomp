@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-PC retail/demo analysis for cross-version symbol research.
+PC build analysis for cross-version symbol research.
 
-The PC executables are stripped, but they retain useful source-file paths,
+Uses whichever PC builds are present under orig/pc (see PC_BUILDS). The PC
+executables are stripped, but they retain useful source-file paths,
 assert strings, command names, and subsystem messages.  This tool compares
 those strings with the target GameCube DOL and emits conservative research
 artifacts without mutating symbols.txt.
@@ -20,15 +21,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GC_DOL = ROOT / "orig/GL5E4F/sys/main.dol"
 GC_SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
-PC_RETAIL_CANDIDATES = [
-    ROOT / "orig/pc/usa/retail/LEGO Star Wars Game/LegoStarwars.exe",
-    ROOT / "orig/pc/usa/retail/program files/Giant/LEGO Star Wars Game/LegoStarwars.exe",
-    ROOT / "build/pc_usa/LegoStarwars.exe",
-]
-PC_DEMO_CANDIDATES = [
-    ROOT / "orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe",
-    ROOT / "build/pc_usa/LegoStarwars.exe",
-]
+# build_id -> candidate paths (first existing wins). Any present subset is used.
+PC_BUILDS = {
+    "pc_jp_retail": [ROOT / "orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe"],
+    "pc_us_retail": [
+        ROOT / "orig/pc/usa/retail/LEGO Star Wars Game/LegoStarwars.exe",
+        ROOT / "orig/pc/usa/retail/program files/Giant/LEGO Star Wars Game/LegoStarwars.exe",
+    ],
+    "pc_us_demo": [ROOT / "orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe"],
+    "pc_patch2": [ROOT / "orig/pc/patch2/LEGO Star Wars Game/LegoStarwars.exe"],
+}
 OUT_DIR = ROOT / "build/pc_analysis"
 
 
@@ -89,14 +91,6 @@ def run_strings(path: Path, min_len: int = 5) -> set[str]:
         errors="replace",
     )
     return {line.strip() for line in result.stdout.splitlines() if line.strip()}
-
-
-def first_existing(paths: list[Path], label: str) -> Path:
-    for path in paths:
-        if path.exists():
-            return path
-    joined = "\n  ".join(str(path.relative_to(ROOT)) for path in paths)
-    raise FileNotFoundError(f"No {label} executable found. Checked:\n  {joined}")
 
 
 def parse_dol_sections(data: bytes) -> list[DolSection]:
@@ -203,41 +197,42 @@ def write_list(path: Path, strings: list[str]) -> None:
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    pc_retail_exe = first_existing(PC_RETAIL_CANDIDATES, "PC retail")
-    pc_demo_exe = first_existing(PC_DEMO_CANDIDATES, "PC demo")
+    exes = {build: next(p for p in paths if p.exists())
+            for build, paths in PC_BUILDS.items() if any(p.exists() for p in paths)}
+    if not exes:
+        raise FileNotFoundError("No PC executable found. Checked:\n  " + "\n  ".join(
+            str(p.relative_to(ROOT)) for paths in PC_BUILDS.values() for p in paths))
 
-    retail = run_strings(pc_retail_exe)
-    demo = run_strings(pc_demo_exe)
+    pc = {build: run_strings(path) for build, path in exes.items()}
     gc_strings = run_strings(GC_DOL)
     gc_data = GC_DOL.read_bytes()
     sections = parse_dol_sections(gc_data)
     symbols = load_symbols(GC_SYMBOLS)
 
-    shared_retail_gc = sorted(retail & gc_strings)
-    shared_demo_gc = sorted(demo & gc_strings)
-    shared_all = sorted(retail & demo & gc_strings)
-    retail_unique = sorted(retail - demo)
-    demo_unique = sorted(demo - retail)
-
-    write_list(OUT_DIR / "retail_gc_shared_strings.txt", shared_retail_gc)
-    write_list(OUT_DIR / "demo_gc_shared_strings.txt", shared_demo_gc)
-    write_list(OUT_DIR / "pc_gc_shared_strings.txt", shared_all)
-    write_list(OUT_DIR / "retail_unique_strings.txt", retail_unique)
-    write_list(OUT_DIR / "demo_unique_strings.txt", demo_unique)
+    shared = {build: strings & gc_strings for build, strings in pc.items()}
+    for build, strings in shared.items():
+        write_list(OUT_DIR / f"{build}_gc_shared_strings.txt", sorted(strings))
+    shared_any = sorted(set().union(*shared.values()))
+    write_list(OUT_DIR / "pc_gc_shared_strings.txt", shared_any)
+    unique = {build: sorted(strings - set().union(*(o for b, o in pc.items() if b != build)))
+              for build, strings in pc.items()} if len(pc) > 1 else {}
+    for build, strings in unique.items():
+        write_list(OUT_DIR / f"{build}_unique_strings.txt", strings)
 
     categorized: dict[str, list[str]] = {}
-    for s in shared_all:
+    for s in shared_any:
         if is_key_string(s):
             categorized.setdefault(classify_string(s), []).append(s)
 
     shared_entries: list[tuple[str, str, int, str, str]] = []
     for s in sorted({item for values in categorized.values() for item in values}):
+        evidence = "+".join(b for b in pc if s in shared[b]) + "+gc"
         for section, address in find_string_addresses(s, gc_data, sections):
             current = symbols.get((section, address), "")
-            shared_entries.append((s, section, address, current, "retail+demo+gc"))
+            shared_entries.append((s, section, address, current, evidence))
 
     proposal_lines = [
-        "# PC Retail/Demo Symbol Proposals",
+        "# PC Symbol Proposals",
         "# Generated by tools/pc_versions_analysis.py",
         "# Review before applying to config/GL5E4F/symbols.txt.",
         "",
@@ -254,22 +249,13 @@ def main() -> None:
         proposal_lines.append("")
     (OUT_DIR / "pc_symbol_proposals.txt").write_text("\n".join(proposal_lines))
 
-    report_lines = [
-        "=== PC Retail/Demo Analysis ===",
-        "",
-        f"Retail executable: {pc_retail_exe.relative_to(ROOT)}",
-        f"Demo executable: {pc_demo_exe.relative_to(ROOT)}",
-        f"Retail strings: {len(retail)}",
-        f"Demo strings: {len(demo)}",
-        f"GameCube DOL strings: {len(gc_strings)}",
-        f"Retail strings shared with GameCube: {len(shared_retail_gc)}",
-        f"Demo strings shared with GameCube: {len(shared_demo_gc)}",
-        f"Strings shared by retail, demo, and GameCube: {len(shared_all)}",
-        f"Retail-only strings: {len(retail_unique)}",
-        f"Demo-only strings: {len(demo_unique)}",
-        "",
-        "=== DOL Sections ===",
-    ]
+    report_lines = ["=== PC Analysis ===", ""]
+    for build, path in exes.items():
+        report_lines.append(f"{build}: {path.relative_to(ROOT)}: {len(pc[build])} strings, "
+                            f"{len(shared[build])} shared with GameCube")
+    report_lines += [f"GameCube DOL strings: {len(gc_strings)}",
+                     f"Strings shared by any PC build and GameCube: {len(shared_any)}",
+                     "", "=== DOL Sections ==="]
     for section in sections:
         report_lines.append(
             f"{section.name}: file 0x{section.offset:X}-0x{section.offset + section.size:X}, "
@@ -283,23 +269,19 @@ def main() -> None:
     report_lines.extend(["", "=== Shared string addresses ==="])
     for s, section, address, current, evidence in shared_entries:
         name = current or "<unnamed>"
-        report_lines.append(f"{section}:0x{address:08X} {name}: {s}")
+        report_lines.append(f"{section}:0x{address:08X} {name} [{evidence}]: {s}")
 
-    report_lines.extend(["", "=== Demo-only key strings ==="])
-    report_lines.extend([s for s in demo_unique if is_key_string(s)][:300])
-
-    report_lines.extend(["", "=== Retail-only key strings ==="])
-    report_lines.extend([s for s in retail_unique if is_key_string(s)][:300])
+    for build, strings in unique.items():
+        report_lines.extend(["", f"=== {build}-only key strings ==="])
+        report_lines.extend([s for s in strings if is_key_string(s)][:300])
 
     (OUT_DIR / "pc_analysis.txt").write_text("\n".join(report_lines) + "\n")
 
-    print(f"Retail strings: {len(retail)}")
-    print(f"Demo strings: {len(demo)}")
-    print(f"Shared retail/demo/GameCube strings: {len(shared_all)}")
+    for build in exes:
+        print(f"{build}: {len(pc[build])} strings, {len(shared[build])} shared with GameCube")
     print(f"High-value shared strings with DOL addresses: {len(shared_entries)}")
     print(f"Wrote {OUT_DIR.relative_to(ROOT) / 'pc_analysis.txt'}")
     print(f"Wrote {OUT_DIR.relative_to(ROOT) / 'pc_symbol_proposals.txt'}")
-
 
 if __name__ == "__main__":
     main()
