@@ -5,3 +5,9 @@ gc_addr	pc_jp_addr	evidence
 0x8009F0B8	0x00456850	PadOutPause (Mac demo name): same gate order over 13 globals (pc_jp_globals.tsv), calls PauseGame (JP 0x456210)
 0x8011EAA8	0x0041CD00	called by PadOutPause with the current cutscene; PC body always returns 0, so PC never allows pausing cutscenes
 0x800B2ED4	0x0045F690	PadOutPause callee at the same position in both gate chains
+0x800716D4	0x004DB7B0	inferred (layout gap in rtl.c), bodies read: same branch structure and callee order
+0x800C9490	0x00450E10	InitDoors: inferred, bodies read: same door-table loop and callee order
+0x8000DE60	0x00495DC0	inferred (layout between fn_8000DD40 and NuMtxTranslate); both bodies build the same matrix, so the GC name may be wrong (check before renaming)
+0x800F10B4	0x00468340	callee of LightSabreLightCode; same logic, but PC struct offsets shifted (+0x287/+0xed8/+0x1060 against GC +0x290/+0xeec/+0x1074)
+0x800BB5A8	0x00445720	inferred (layout); Ghidra has no function at the x86 address (reached only through a pointer), objdump body matches
+0x80040284	0x004AE380	NuGCutCharAnimProcess: same loop over +0x58->+0x18 entries, +0x5c&2 test and two callbacks; PC lacks the GC lbl_8040810C test

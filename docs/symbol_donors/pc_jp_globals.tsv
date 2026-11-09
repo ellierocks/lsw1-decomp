@@ -14,3 +14,5 @@ gc_addr	gc_label	pc_jp_addr	meaning	evidence
 0x8040AFAC	lbl_8040AFAC	0x032A02E8	cutscene playing	set at JP 0x41cd40 (starts a cutscene), cleared at 0x41d687; 33 x86 refs; holding it at 0 lets PC pause cutscenes
 0x8040AFB0	lbl_8040AFB0	0x032A02EC	current cutscene	set with the flag at JP 0x41cd40; passed to fn_8011EAA8 (JP 0x41cd00)
 0x8040AFB4	lbl_8040AFB4	0x032A0314	cutscene paused	set to 1 where the cutscene's speed field (+0x94) is zeroed
+0x804081C0	lbl_804081C0	0x0079CBA0	cutscene character-anim callback (5 args), skipped when entry +0x5c bit 2 is set	NuGCutCharAnimProcess, same position
+0x804081BC	lbl_804081BC	0x0079CB9C	cutscene character-anim callback (2 args)	NuGCutCharAnimProcess, same position

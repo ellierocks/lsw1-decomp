@@ -97,6 +97,28 @@ Limits:
   consecutive `.c` paths, and each extra copy marks an anonymous TU.
 - `.data`, `.bss`, `.sdata` and `.sdata2` are not proposed yet. `.rodata` is (below).
 
+#### Japanese PC file extents
+
+`python3 tools/pc_gc_splits.py` (after `tools/pc_gc_anchors.py`) maps GC
+functions to source files through their Japanese PC 1.0 pairs
+([PC builds](research.md#pc-builds)). MSVC links each object contiguously, so an
+x86 function between the first and last loader of an assert path belongs to that
+file. A lead is the GC interval between the last pair in one file and the first
+pair in the next. Leads are evidence only. Confirm a lead from GC code before
+moving a boundary, and keep the DOL matching. Three leads fall inside the DP's
+`start_range` and narrow it:
+
+| Unit | Current start | DP `start_range` | x86 lead |
+|---|---|---|---|
+| `camera/socksys` | `0x80092E18` | `0x80092E18..0x80095BA0` | 19 pairs through `fn_80095AF8` (ends `0x80095B58`) lie in x86 `apiobject.c`; `fn_80095BA0` loads the SOCK-system string. Start is `0x80095B58` or `0x80095BA0`. |
+| `game/levels` | `0x800AB85C` | `0x800AB85C..0x800C0164` | 42 pairs through `fn_800AC728` lie in x86 `creature.c`, 89 from `0x800C0164` in `levels.c`. Start is after `0x800AC7AC`. |
+| `ai/aisys/aisys` | `0x8007E3CC` | `0x8007E3CC..0x80085A50` | Weak: two inferred pairs (`fn_8008386C`, `fn_800838EC`) lie in x86 `aiscript.c`, yet earlier `Action_*` string pairs do not. Check `fn_8008386C` before using it. |
+
+Single-pair leads inside `nuportal_gen`, `nucamera` and `nusound` are PC
+platform files or inlining, not GC boundaries. `game/levels` also maps to more
+than ten separate x86 regions without assert paths, which supports the absorbed-TU
+limit above. Use the x86 neighbours there to name the anonymous TUs.
+
 ### Provisional `.rodata` ranges
 
 `tools/rodata_splits.py` gives 59 game/Nu2 units a `.rodata` range taken from their code.

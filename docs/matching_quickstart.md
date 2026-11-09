@@ -46,10 +46,12 @@ python3 tools/sweep.py --apply          # then bash build.sh and verify_fn.py on
 python3 tools/sweep_permute.py --apply  # permuter on the biggest near-misses, unattended
 python3 tools/next_target.py
 python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
+python3 tools/next_target.py --jp-paired --max-size 0x400   # readable JP PC x86 body
 ```
 
 It lists undone functions inside split units, sorted by direct callee count and
-then size, with their unit, source and OpenSaga lookup state. Donor name leads
+then size, with their unit, source, OpenSaga lookup state and Japanese PC pair
+(`jp`, see [PC builds](research.md#pc-builds)). Donor name leads, then PC pairs,
 break otherwise equal ranking ties. Choose a `ready` row that is not `claimed`. An empty list does not mean the work is finished:
 most game code lies outside split units (Phase 2 in [strategy](strategy.md)).
 The default shows only the 15 smallest rows, so a lane of mid-size targets needs
