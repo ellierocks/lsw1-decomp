@@ -89,6 +89,12 @@ it, run `tools/ghidra_decompile.py setup` once. For "who else reads or writes th
 `tools/ghidra_decompile.py xrefs NAME`; REA covers callers, strings and tables interactively
 ([Ghidra and REA](research.md#ghidra-and-rea)).
 
+When the target has a Japanese PC pair, the task pack and `draft_fn.py` also write
+`work/NAME/jp_x86.s`: the MSVC x86 body with paired names, aligned call lists, switch
+tables and an audit verdict. After the opt-in `tools/ghidra_decompile.py setup-pc`,
+`draft_fn.py` adds `jp_ghidra.c`. `next_target.py --jp-paired` lists paired targets
+([PC builds](research.md#pc-builds)).
+
 ## 4. Score candidates (fast loop)
 
 ```sh

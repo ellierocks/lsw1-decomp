@@ -96,6 +96,16 @@ or plateau handoff; record reusable GC facts in shared headers/evidence pages.
 See the [end-to-end workflow](symbol_donors/opensaga_matching.md#end-to-end-workflow).
 Its expansion gate requires strict matches, not partial scores.
 
+`jp_x86.s` (and `jp_ghidra.c` after `setup-pc`) is the same function from the
+Japanese PC exe ([PC builds](research.md#pc-builds)). Read it for branch-heavy
+code, switches, unknown globals or constants and suspected inlines; skip it for
+straight-line leaves and anything about types, offsets, frames or argument
+counts, which do not transfer (x86 argument counts were 58% right). Check the
+header first: an inferred or `weak` pair needs the calls and constants compared
+with GC before use. In `--donor-note`, give the x86 address and pairing method,
+the facts confirmed against GC (for example, "case values 0..5 as x86"), and any
+differences, or "JP pair not read" when you skipped it.
+
 ## Measure and iterate
 
 From the repository root (replace the example function, unit and source):

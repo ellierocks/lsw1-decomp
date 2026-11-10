@@ -20,6 +20,19 @@ class Stage:
     outputs: list[Path]
     required_inputs: list[Path]
     any_inputs: tuple[Path, ...] = ()  # at least one must exist
+    # The command finds its own inputs in the primary checkout too (worktrees have no orig/pc).
+    primary_fallback: bool = False
+
+
+def primary_root() -> Path:
+    """Return the primary checkout of this repository (ROOT when not in a worktree)."""
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        return Path(common).parent
+    except (OSError, subprocess.CalledProcessError):
+        return ROOT
 
 
 STAGES = [
@@ -89,13 +102,16 @@ STAGES = [
         [sys.executable, "tools/pc_gc_anchors.py"],
         [
             Path("build/pc_analysis/gc_pc_anchors.tsv"),
+            Path("build/pc_analysis/gc_pc_globals.tsv"),
             Path("build/pc_analysis/pc_source_files.tsv"),
+            Path("build/pc_analysis/pc_functions.tsv"),
         ],
         [
             Path("orig/GL5E4F/sys/main.dol"),
             Path("config/GL5E4F/symbols.txt"),
             Path("orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe"),
         ],
+        primary_fallback=True,  # pc_gc_anchors.find_exe() also looks in the primary checkout
     ),
     Stage(
         "gc-data-xrefs",
@@ -138,8 +154,15 @@ STAGES = [
 
 
 def missing_inputs(stage: Stage) -> list[Path]:
-    missing = [p for p in stage.required_inputs if not (ROOT / p).exists()]
-    if stage.any_inputs and not any((ROOT / p).exists() for p in stage.any_inputs):
+    roots = [ROOT]
+    if stage.primary_fallback:
+        roots.append(primary_root())
+
+    def exists(path: Path) -> bool:
+        return any((root / path).exists() for root in roots)
+
+    missing = [p for p in stage.required_inputs if not exists(p)]
+    if stage.any_inputs and not any(exists(p) for p in stage.any_inputs):
         missing.extend(stage.any_inputs)
     return missing
 

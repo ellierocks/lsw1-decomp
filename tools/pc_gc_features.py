@@ -7,7 +7,9 @@ Used by tools/pc_gc_anchors.py. Both sides yield, per function:
           (GC: lis pairs and r13/r2 small-data accesses, mapped to the
           containing symbol; PC: absolute operands in .rdata/.data/.bss)
   floats  floating-point constants it loads (GC lfs/lfd; PC x87 memory operands)
-plus the code pointers stored in data (function-pointer tables).
+plus the code pointers stored in data (function-pointer tables), and (for the
+pair audit only, never for pairing) the integer constants each function
+compares, loads or multiplies by (`gc_immediates`, `pc_immediates`).
 
 The PC side disassembles with the system `objdump` (binutils with pei-i386
 support), which also gives pc_gc_anchors exact function starts and calls.
@@ -47,8 +49,10 @@ def _s16(value: int) -> int:
     return value - 0x10000 if value & 0x8000 else value
 
 
-def gc_features() -> Features:
-    """Data refs, float constants and code pointers of configured GC functions."""
+def gc_features(float_refs: bool = False) -> Features:
+    """Data refs, float constants and code pointers of configured GC functions.
+
+    With float_refs, the symbols that float loads read also count as refs."""
     data = DOL.read_bytes()
     sections = parse_dol_sections(DOL)
     text = next(s for s in sections if s.name == ".text")
@@ -96,7 +100,7 @@ def gc_features() -> Features:
                     raw = read(target, FLOAT_LOADS[op])
                     if raw and len(raw) == FLOAT_LOADS[op]:
                         floats.append(struct.unpack(">f" if FLOAT_LOADS[op] == 4 else ">d", raw)[0])
-                else:
+                if op not in FLOAT_LOADS or float_refs:
                     sym = owner(target)
                     if sym is not None and sym not in refs:
                         refs.append(sym)
@@ -114,6 +118,109 @@ def gc_features() -> Features:
                 if value in starts:
                     out.pointers.append((s.address + off, starts[value]))
     return out
+
+
+# Integer constants that say little about which function this is.
+COMMON_INTS = frozenset(range(-16, 33)) | {0x40, 0x80, 0xFF, 0x100, 0xFFFF, 0x10000, -0x80, -0x100}
+
+
+def distinctive(value: int) -> bool:
+    return value not in COMMON_INTS and not 0x80000000 <= value & 0xFFFFFFFF < 0x81800000 \
+        and not 0x400000 <= value & 0xFFFFFFFF < 0x3400000
+
+
+def gc_immediates() -> dict[str, set[int]]:
+    """Distinctive integer constants per configured GC function.
+
+    li/addi from r0, cmpwi, cmplwi, mulli and lis+ori/addi constants that are not addresses."""
+    data = DOL.read_bytes()
+    text = next(s for s in parse_dol_sections(DOL) if s.name == ".text")
+    out: dict[str, set[int]] = {}
+    for f in parse_symbols(SYMBOLS):
+        if f.section != ".text" or "type:function" not in f.meta:
+            continue
+        found: set[int] = set()
+        high: dict[int, int] = {}
+        for addr in range(f.address, f.address + f.size, 4):
+            word = struct.unpack_from(">I", data, text.offset + addr - text.address)[0]
+            op, rd, ra, imm = word >> 26, (word >> 21) & 31, (word >> 16) & 31, word & 0xFFFF
+            value = None
+            if op == 15 and ra == 0:          # lis
+                high[rd] = imm << 16
+                continue
+            if op == 14 and ra == 0:          # li
+                value = _s16(imm)
+            elif op == 14 and ra in high:     # lis+addi
+                value = (high.pop(ra) + _s16(imm)) & 0xFFFFFFFF
+            elif op == 24 and rd in high:     # lis+ori (ori rA, rS=rd field)
+                value = high.pop(rd) | imm
+            elif op == 11 or op == 7:         # cmpwi, mulli
+                value = _s16(imm)
+            elif op == 10:                    # cmplwi
+                value = imm
+            if value is not None:
+                if value & 0x80000000 and value > 0xFFFF:
+                    value -= 1 << 32
+                if distinctive(value):
+                    found.add(value)
+        out[f.name] = found
+    return out
+
+
+IMM_RE = re.compile(r"(?:^|,)(-?)0x([0-9a-f]+)$")
+
+
+def pc_immediates(listing: str, starts: list[int]) -> dict[int, set[int]]:
+    """Distinctive integer immediates per x86 function (mov, cmp, push, imul, sub/add/and
+    on registers other than esp), ignoring memory displacements and image addresses."""
+    out: dict[int, set[int]] = defaultdict(set)
+    for line in listing.splitlines():
+        m = LINE_RE.match(line)
+        if not m or m.group(2) not in {"mov", "cmp", "push", "imul", "and", "sub", "add", "test", "or"}:
+            continue
+        operands = m.group(3)
+        if "esp" in operands.split(",")[0] or "ebp" in operands.split(",")[0]:
+            continue
+        operands = re.sub(r"\[[^\]]*\]", "[]", operands)
+        im = IMM_RE.search(operands)
+        if not im:
+            continue
+        value = int(im.group(2), 16)
+        if value & 0x80000000:
+            value -= 1 << 32
+        if im.group(1):
+            value = -value
+        if not distinctive(value):
+            continue
+        i = bisect.bisect_right(starts, int(m.group(1), 16)) - 1
+        if i >= 0:
+            out[starts[i]].add(value)
+    return dict(out)
+
+
+def nice_float(raw: int) -> float | None:
+    """The float a 32-bit immediate encodes, if it looks like a source constant."""
+    if not 0x30000000 <= raw & 0x7FFFFFFF < 0x4F000000:
+        return None
+    value = struct.unpack("<f", struct.pack("<I", raw & 0xFFFFFFFF))[0]
+    short = float(f"{value:.6g}")
+    return value if struct.pack("<f", short) == struct.pack("<I", raw & 0xFFFFFFFF) else None
+
+
+JMP_RE = re.compile(r"^\s*([0-9a-f]+):\s+jmp\s+(?:0x)?([0-9a-f]+)\s*$")
+
+
+def pc_tail_calls(listing: str, starts: list[int]) -> dict[int, set[int]]:
+    """Direct jumps from one x86 function to another function start (tail calls)."""
+    start_set, out = set(starts), defaultdict(set)
+    for line in listing.splitlines():
+        m = JMP_RE.match(line)
+        if not m or int(m.group(2), 16) not in start_set:
+            continue
+        i = bisect.bisect_right(starts, int(m.group(1), 16)) - 1
+        if i >= 0 and starts[i] != int(m.group(2), 16):
+            out[starts[i]].add(int(m.group(2), 16))
+    return dict(out)
 
 
 def pe_layout(data: bytes) -> dict[str, tuple[int, int, int, int]]:

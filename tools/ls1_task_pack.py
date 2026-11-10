@@ -5,6 +5,7 @@ Output (work/<FunctionName>/ by default; ignored by git):
   prompt.md          — LLM task description
   context.md         — Struct definitions, signatures, types
   donor_evidence.md  — Pinned OpenSaga leads, the Japanese PC x86 pair, limits and review instructions
+  jp_x86.s           — Annotated Japanese PC x86 body of the paired function (only when paired)
   asm.s              — Extracted assembly for the function
   related_symbols.md — Callers, callees, Mac hints, data refs
   verify.sh          — Strict rebuild and verification command
@@ -31,10 +32,11 @@ from collections import defaultdict
 from pathlib import Path
 
 try:
-    from . import opensaga, pc_gc_anchors
+    from . import opensaga, pc_gc_anchors, pc_gc_body
 except ImportError:
     import opensaga
     import pc_gc_anchors
+    import pc_gc_body
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -399,6 +401,10 @@ shows named globals, loops and switches. Neither is matching source.
 - For callers, strings or data tables, use the REA MCP server (`open_binary` on the ELF that
   `tools/ghidra_decompile.py status` prints, `provider_id: "ghidra"`).
 - Paired-single code (`psq_l`, `ps_*`) decompiles to `halt_baddata`; read the assembly.
+- `jp_x86.s` (present when the function has a Japanese PC pair) is the same function built
+  by MSVC. Read it for branch-heavy code, switches, call-order doubts, unknown globals or
+  constants and suspected inlines; skip it for straight-line leaves. Its offsets, registers
+  and frame never transfer. An inferred pair is flagged at the top; check it first.
 
 ## Constraints
 
@@ -755,6 +761,13 @@ def gen_index(tasks, out_root):
 
 # ── main ─────────────────────────────────────────────────────────────
 
+def write_donor_evidence(name, addr, task_dir):
+    """donor_evidence.md plus the paired JP x86 body (jp_x86.s) when there is one."""
+    body = pc_gc_body.write_task_body(name, task_dir)
+    (task_dir / "donor_evidence.md").write_text(
+        opensaga.markdown(name) + pc_gc_anchors.donor_markdown(addr, body))
+
+
 def generate_object_pack(name, addr, size, out_root, mac_hits, callee_list, asm,
                           status="TODO", sec="text", context=2):
     """Generate an object-neighborhood task pack (cluster-based matching).
@@ -779,8 +792,7 @@ def generate_object_pack(name, addr, size, out_root, mac_hits, callee_list, asm,
     if task_dir.exists() and any(task_dir.iterdir()):
         raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
-    (task_dir / "donor_evidence.md").write_text(
-        opensaga.markdown(name) + pc_gc_anchors.donor_markdown(addr))
+    write_donor_evidence(name, addr, task_dir)
 
     struct_text, module = extract_struct_defs(name, addr)
     combined_asm = extract_asm_for_cluster(cluster)
@@ -934,8 +946,7 @@ def generate_pack(name, addr, size, out_root, mac_hits=None, callee_list=None, a
     if task_dir.exists() and any(task_dir.iterdir()):
         raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
-    (task_dir / "donor_evidence.md").write_text(
-        opensaga.markdown(name) + pc_gc_anchors.donor_markdown(addr))
+    write_donor_evidence(name, addr, task_dir)
 
     if mac_hits is None:
         mac_hits = find_mac_hits(display_name)

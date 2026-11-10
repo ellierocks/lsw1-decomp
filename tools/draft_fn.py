@@ -20,6 +20,11 @@ struct accesses are raw offsets. Replace them with the shared headers, then iter
 When the Ghidra project exists (`tools/ghidra_decompile.py setup`, run by bootstrap), it also
 writes `work/NAME/ghidra.c` (named globals, loops, switch recovery) unless that file is
 already there; `--ghidra` regenerates it. It is a reference, not a draft.
+
+When the function has a Japanese PC pair (docs/research.md#pc-builds), it also writes
+`work/NAME/jp_x86.s` (annotated x86 body, tools/pc_gc_body.py) if missing and, once
+`tools/ghidra_decompile.py setup-pc` has run, `work/NAME/jp_ghidra.c`. Both are references
+for call order, branches, globals and constants; PC offsets and codegen never transfer.
 """
 from __future__ import annotations
 
@@ -34,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ghidra_decompile  # noqa: E402
 import m2c_helpers as repairs
+import pc_gc_body  # noqa: E402
 TARGET = "ppc-gcc-c"
 
 
@@ -110,6 +116,28 @@ def compact_asm(asm: str) -> str:
                      for ln in asm.splitlines() if ln.strip() and not ln.startswith((".fn", ".endfn")))
 
 
+def write_jp_references(name: str, task: Path, args) -> None:
+    """jp_x86.s and (with the PC Ghidra project) jp_ghidra.c for a JP-paired function; quiet otherwise."""
+    shown = lambda p: p.relative_to(ROOT) if p.is_relative_to(ROOT) else p  # noqa: E731
+    if not (task / "jp_x86.s").is_file():
+        path, status = pc_gc_body.write_task_body(name, task)
+        if path:
+            print(f"wrote {shown(path)} ({status})")
+        elif "no JP PC pair" not in status:
+            print(f"note: {status}", file=sys.stderr)
+    jp_ghidra = task / "jp_ghidra.c"
+    if (task / "jp_x86.s").is_file() and not args.no_ghidra and ghidra_decompile.pc_ready() \
+            and (args.ghidra or not jp_ghidra.is_file()):
+        g = subprocess.run([sys.executable, str(ROOT / "tools" / "ghidra_decompile.py"), "decompile-pc", name,
+                            "--out-dir", str(task)], cwd=ROOT, capture_output=True, text=True)
+        produced = task / f"{name}.c"
+        if g.returncode == 0 and produced.is_file():
+            produced.replace(jp_ghidra)
+            print(f"wrote {shown(jp_ghidra)}")
+        else:
+            print(f"ghidra (pc): {(g.stdout + g.stderr).strip()[-300:] or 'no output'}", file=sys.stderr)
+
+
 def draft_one(name: str, args) -> int:
     task = args.out_dir / name
     asm = task / "asm.s"
@@ -149,6 +177,7 @@ def draft_one(name: str, args) -> int:
             print(f"ghidra: {(g.stdout + g.stderr).strip()[-400:] or 'no output'}", file=sys.stderr)
     elif not args.no_ghidra and not ghidra_out.is_file():
         print("note: no Ghidra reference; run python3 tools/ghidra_decompile.py setup once", file=sys.stderr)
+    write_jp_references(name, task, args)
     if args.print:
         print(f"--- {name} draft ---\n{out.read_text().strip()}\n--- {name} asm ---\n{compact_asm(asm_text)}")
     if args.score:

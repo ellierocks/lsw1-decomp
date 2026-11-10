@@ -114,6 +114,26 @@ moving a boundary, and keep the DOL matching. Three leads fall inside the DP's
 | `game/levels` | `0x800AB85C` | `0x800AB85C..0x800C0164` | 42 pairs through `fn_800AC728` lie in x86 `creature.c`, 89 from `0x800C0164` in `levels.c`. Start is after `0x800AC7AC`. |
 | `ai/aisys/aisys` | `0x8007E3CC` | `0x8007E3CC..0x80085A50` | Weak: two inferred pairs (`fn_8008386C`, `fn_800838EC`) lie in x86 `aiscript.c`, yet earlier `Action_*` string pairs do not. Check `fn_8008386C` before using it. |
 
+Checked against GC code (not applied: either move turns part of an auto unit into
+another TU, so it needs the `.sdata`/`.bss` boundaries reviewed and a relinked DOL):
+
+- `camera/socksys`: **confirmed `0x80095BA0`.** `fn_80095B58` and `fn_80095B7C`
+  are `0x24` wrappers whose only references are pointers stored by `0x80094C88`
+  inside the apiobject run. The apiobject `.rodata` ends with its `VuMath.h`
+  copy at `0x8019DFD8`; socksys `.rodata` starts at `0x8019E024` with the
+  `sock_*` strings, and `fn_80095BA0` is the first user of the
+  `socksys.c` path at `0x8019E0A0`.
+- `game/levels`: **confirmed that creature.c runs to `0x800AC8C8`.** The
+  creature.c `.rodata` (path at `0x8019FA38`) ends with a `VuMath.h` copy at
+  `0x8019FF20`. `fn_800AC7AC` is its last user, and `fn_800AC85C`, which has
+  no literals, is referenced only as a pointer from creature code
+  (`0x800AB774`). `fn_800AC8C8` starts the next literal block, which ends with
+  the `VuMath.h` copy at `0x801A0070`. The 0x800AB85C..0x800AC8C8 functions in
+  `src/auto/game/levels.c` (33, 17 of them at 100%) would have to move with the boundary.
+  The TU from `0x800AC8C8` has no path string, so it is an anonymous TU
+  absorbed into `game/levels`, not necessarily `levels.c`, whose x86 pairs
+  start at `0x800C0164`.
+
 Single-pair leads inside `nuportal_gen`, `nucamera` and `nusound` are PC
 platform files or inlining, not GC boundaries. `game/levels` also maps to more
 than ten separate x86 regions without assert paths, which supports the absorbed-TU
