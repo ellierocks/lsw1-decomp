@@ -18,6 +18,10 @@ orchestration and continuation. [Strategy](strategy.md) describes current opport
   targets when sources or tools change. `work/sweep/results.json` ranks opportunities;
   `work/sweep/NAME/sweep_draft.c` holds drafts. Automatic scoring uses `--no-queue`;
   interactive scoring adds targets to an existing queue unless given that flag.
+  m2c drafts and score verdicts are cached in `~/.cache/lsw1/sweep`, shared by every
+  checkout, so a rerun after a tool fix rescores only the drafts that changed. Without
+  `--apply`, `sweep_permute.py` can run in the background while you draft;
+  `--apply-saved` then writes its confirmed matches.
 - `next_target.py --by-unit` ranks units; `--unit UNIT --limit N` lists targets.
   Related functions can share types and draft shapes. Unit selection is a useful
   grouping, not a limit on a tool fix's scope or on collecting its matches.

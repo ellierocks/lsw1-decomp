@@ -250,7 +250,7 @@ Both are optional control-flow references; the matching build needs neither. The
 output is never matching source, and it stays local because it is derived from the retail
 binary. Write C against the target assembly and verify it with ProDG.
 
-**Setup, once per checkout (about 50 s).** `tools/bootstrap.sh` runs it when Ghidra 12.1 is
+**Setup, once per checkout (about 4 s; 46 s for the first import).** `tools/bootstrap.sh` runs it when Ghidra 12.1 is
 on PATH, in `GHIDRA_INSTALL_DIR` or in `/opt/ghidra` (`LSW1_NO_GHIDRA=1` skips it):
 
 ```sh
@@ -264,6 +264,9 @@ retail segments as named sections, every `symbols.txt` name with size and type, 
 A pre-analysis script sets r13 and r2, so small-data accesses resolve to `lbl_` globals.
 State lives in `<primary checkout>/build/ghidra/<checkout>-<hash>/`, because Ghidra rejects
 project paths that contain a `.`-prefixed element such as `.claude/worktrees`.
+The first full import also publishes its analysed project to `build/ghidra/seed/<key>/`
+(keyed by the DOL and the Ghidra scripts). Later checkouts copy that project and re-apply
+their own `symbols.txt` names; `setup --force` re-imports from scratch.
 
 **Headless (batch).** Use it for the sprint queue and for questions about globals:
 
