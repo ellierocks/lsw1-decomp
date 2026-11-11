@@ -2259,7 +2259,7 @@ void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 f
         return;
     }
     hasHdr = (type & 0x80) ? 1 : 0;
-    tbl = *(s32**)((u8*)adpcm4Table + ((type * 4) & 0xC));
+    tbl = adpcm4Table[type & 3];
     bytes = count * 2;
     if (hasHdr != 0) {
         adpcmStride4 = frame;
@@ -2272,11 +2272,10 @@ void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 f
         st->pred1 = (s16)((in[2] << 8) | in[3]);
         in += 4;
     }
-    n = count;
     p0 = st->pred0;
     p1 = st->pred1;
-    if (count != 0) {
-        do {
+    for (n = count; n != 0; n--) {
+        {
             p0 += tbl[in[0]];
             if (p0 < -0x8000) {
                 p0 = -0x8000;
@@ -2295,8 +2294,7 @@ void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 f
             out[0] = (s16)p1;
             in += 2;
             out += 2;
-            n -= 1;
-        } while (n != 0);
+        }
     }
     st->pred0 = p0;
     st->pred1 = p1;
