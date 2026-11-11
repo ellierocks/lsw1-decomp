@@ -49,6 +49,27 @@ def summarize(attempts, patience):
             'best_score': best['score'] if best else None}
 
 
+def plan_check(function, reason=None, targets=None):
+    """Whether FUNCTION is in the plan target set (tools/plan.py: this checkout's claimed item,
+    else the next item). Off-plan attempts are warned about and recorded, never blocked."""
+    if targets is None:
+        # Imported by name so plan.py stays out of score_fn's import closure (sweep's cache key):
+        # the plan check never changes a score.
+        import importlib
+        sys.path.insert(0, str(ROOT / 'tools'))
+        targets = importlib.import_module('plan').plan_targets(remote=False)
+    record = {'item': targets.get('item'), 'in_plan': function in targets.get('functions', [])}
+    if targets.get('error'):
+        record['error'] = targets['error']
+    if not record['in_plan'] and not targets.get('error'):
+        record['off_plan'] = True
+        if reason:
+            record['off_plan_reason'] = reason
+        print(f"warning: {function} is not in the plan target set (item {record['item']}); recorded as "
+              "off plan" + ('' if reason else '; pass --off-plan REASON to say why'), file=sys.stderr)
+    return record
+
+
 @contextmanager
 def lock(directory):
     """One writer per target; never truncate a prior experiment."""
@@ -72,6 +93,8 @@ def main(argv=None):
     candidate.add_argument('--body', type=Path, help='score this function body in the configured unit without editing it')
     ap.add_argument('--hypothesis', help='one concrete source/codegen hypothesis')
     ap.add_argument('--donor-note', help='reviewed OpenSaga paths and JP PC pair, GC-confirmed facts, rejected differences or lookup limit')
+    ap.add_argument('--off-plan', metavar='REASON',
+                    help='why this attempt targets a function outside the plan target set (recorded)')
     ap.add_argument('--compiled-symbol')
     ap.add_argument('--ledger', default='work/hillclimb')
     ap.add_argument('--patience', type=int, default=8)
@@ -123,6 +146,7 @@ def main(argv=None):
                          'GC-confirmed facts/rejected transfers, or the no-hit/unavailable limit; '
                          'run python3 tools/opensaga.py lookup ' + args.function)
             donor['review_note'] = note
+            plan_record = plan_check(args.function, args.off_plan)
             sources = {}
             for raw in args.source:
                 path = (ROOT / raw).resolve()
@@ -167,7 +191,8 @@ def main(argv=None):
             record = dict(identity, opensaga=donor, attempt=len(attempts) + 1,
                           timestamp=datetime.now(timezone.utc).isoformat(),
                           hypothesis=args.hypothesis, sources=sources, command=command,
-                          environment=environment,
+                          environment=environment, plan=plan_record,
+                          **({'off_plan': True} if plan_record.get('off_plan') else {}),
                           head=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                           returncode=code, score=measured, report=report,
                           stdout=output, stderr=errors)

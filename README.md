@@ -107,7 +107,7 @@ the binary; donor projects supply evidence.
 
 | Guide | Use |
 |---|---|
-| [Strategy](docs/strategy.md) | Phases and lanes: SDK import, whole-binary splits, agent draft-and-climb |
+| [Strategy](docs/strategy.md) | The staged plan to 100% (`config/plan.toml`); earlier phases in `docs/history/` |
 | [Sprint workflow](docs/sprint_workflow.md) | Matching tools, workflow improvements, queue accounting and evidence |
 | [Phase 3 batch history](docs/phase3_batches.md) | Results and failure modes from the earlier multi-unit batches |
 | [Workflow gaps](docs/workflow_gaps.md) | Ranked tooling and process gaps with evidence and state |

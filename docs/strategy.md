@@ -1,202 +1,148 @@
 # Matching strategy
 
-This is the project plan for agent-driven matching. It decides **what to work
-on**. [C matching](code_matching_workflow.md) decides **how a candidate is
-proved**. Read the current phase below before choosing a task.
+The plan from here to 100% code, then data. [`config/plan.toml`](../config/plan.toml)
+holds the stages and items in order; `python3 tools/plan.py` prints the current stage,
+each item's bytes left (from `build/GL5E4F/report.json`), claims and the next item.
+[C matching](code_matching_workflow.md) decides how a candidate is proved. The previous
+phase plan (SDK import, whole-binary splits, draft-and-climb) is in
+[strategy history](history/strategy_2026-11-10.md).
 
-## Why the plan changed
+## Rule
 
-By October 2026 the project had matched 23 of 4,147 functions (0.13% of code),
-after most of its effort had gone into symbol naming. Correctness was good: the
-ProDG wiring, the strict verifier and the promotion checks all hold. The
-bottleneck was throughput. One hand-tuned function per bounded ledger, with
-each attempt going through ninja, cannot cover 4,147 functions. The plan
-reorders the work by yield:
+Work the plan's next unclaimed item: `python3 tools/kickoff.py` names it and
+`kickoff.py --start --item ID` claims it. Go off plan only when Ellie asks, when a tooling
+fix unlocks more plan bytes than the item itself, or when Dolphin runtime evidence is
+asked for or needed to resolve an ambiguity. State an off-plan choice and its reason in
+the PR; tools record off-plan attempts as such.
 
-| Lane | Code share | Nature |
-|---|---|---|
-| Dolphin SDK import | about 12–15% | Integration: matched donor C already exists |
-| `libsn` / libc | about 1% | newlib and libgcc DImode imported from upstream ([SN runtime](sn_runtime.md)); libsn and the debugger driver stay assembly |
-| Small leaf functions (agent + permuter) | many functions | High throughput once tooling exists |
-| Nu2 engine with CrashWOC/LSW2 donors | large | Algorithms carry over; code generation must be rematched |
-| Game logic | the rest | Slowest; depends on shared types |
+## Where it starts (revision 1, 2026-11-11, main 7db800a)
 
-The matching metric (`tools/matching_progress.py`) is the measure of progress.
-Naming only counts when it unblocks a matching target.
+Code 354,044 / 1,591,228 bytes (22.25%), 2,375 / 4,192 functions. Data 127,502 /
+2,617,734 bytes (4.9%). The SDK donor queue is exhausted; what is left is game and Nu2
+code compiled with ProDG GCC 2.95, plus HVQM4, the debugger driver and libsn.
 
-## Facts the plan rests on
+## What the order rests on
 
-- **Two compilers.** Game and Nu2 code use ProDG 3.9.3 (SN GCC 2.95). The
-  Dolphin SDK is Nintendo's prebuilt CodeWarrior **GC/1.2.5n** output. The SDK
-  banners in the DOL date from April/May 2004 (`0x2301`).
-  [doldecomp/dolsdk2004](https://github.com/doldecomp/dolsdk2004) reconstructs
-  the 20 April 2004 SDK. Unmodified dolsdk2004 sources compiled with its release
-  flags give strict matches here, for example `OSSetAlarm`, `GXInitTexObj` and
-  `SIBusy`'s code.
-- **Reference implementation.** [RE4's decomp](https://github.com/adonis-singh/re4)
-  uses the same ProDG 3.9.3 + MWCC 1.2.5n/dolsdk2004 mix. Copy its solutions
-  before inventing new ones: `DolphinLib` flags and per-file overrides,
-  `strip_unused.py` for linker-stripped functions, and the CRI/`libsn` handling.
-- **The SN linker dead-strips unreferenced functions.** An SDK object whose
-  donor source has extra functions needs RE4-style post-build stripping before
-  it can be promoted.
-- **TU anchors.** The DOL contains 91 `__FILE__` paths, such as
-  `../nu2api.legogc/nu3d/ngc_obj/../nuanim.c`. Their xrefs mark real
-  translation-unit boundaries.
-- **The library region** runs from about `0x80150C3C` to the end of `.text`
-  (OS, DVD, VI, PAD, SI, EXI, AI/AR/AX/DSP, CARD, GX, HVQM4, `libsn`).
+- **Near misses are residue, not a stage.** The 56 functions at 90% or better (14,668
+  bytes) share no fixable cause: 55 have equal frames and none differ in relocations.
+  They differ by one to three instructions of scheduling or register order, and about
+  a dozen are recorded plateaus of earlier sprints and permuter runs
+  ([batch history](phase3_batches.md#sprints-of-2026-11-0708-handoff)). They are worked
+  inside their item, with permuter bursts.
+- **Mechanical repairs have stopped converting.** #117 improved 130 drafts by 5,018
+  exact instructions and matched nothing. The two largest blocker classes are source
+  shape, which no regex repair can recover:
+  `reloc:symbol+offset` (185 functions, 147 KB) is an untyped global table (in
+  `fn_80075C78`, retail indexes 32 entries of 0x6C bytes at `lbl_803D8280`; the draft
+  folds `+0x40` into the symbol), and `frame:smaller-same-gprs` (210 functions, 231 KB)
+  is a missing local or inlined helper (in `fn_80066498`, retail's frame is 16 bytes
+  bigger with nothing stored there). A type or helper written once fixes every user.
+- **Callee prototypes block callers.** Recorded plateaus wait on callee signatures
+  (`fn_8014BEB0`, `fn_8009EC80`), and the sweep's prototype repairs work only when a
+  prototype exists. 33 unmatched functions have ten or more unmatched callers each
+  (`fn_8006DCD4` 84, `NuFsqrt` 72, `fn_8001384C` 39). So the plan runs bottom-up
+  through the call graph: engine, then shared game layers, then the game units.
+- **Evidence is uneven.** JP PC 1.0 pairs cover 525 targets (458 KB), mostly in
+  `levels`, `obstacle` and `config`; OpenSaga name leads cover 196 (168 KB), mostly AI
+  and Nu2 ([PC builds](research.md#pc-builds), [OpenSaga](symbol_donors/opensaga_matching.md)).
+- **Yield is measured, not assumed.** The one bench is 29 functions in 0.6 active hours
+  on small `levels` functions; unit sprints have closed about 24 functions each. The
+  average function left is about 680 bytes against about 150 in those sprints, so expect
+  fewer functions per hour. Every item run is benched (`kickoff.py --start --item`), and
+  `plan.py` reports bytes per active hour per stage so the order can be corrected.
 
-## Phases
+## Stages
 
-### Phase 0: foundations (done in the strategy PR)
+Bytes and functions are as of revision 3 for stages 0 and 1 and revision 1 for the rest;
+`plan.py` prints the live figures. A stage is
+done when each function of each item is matched in the report or parked with a reason in
+`plan.toml`.
 
-- `tools/sdk_probe.py`: compile dolsdk2004 units, anchor them to retail by name,
-  unique code bytes and layout, and classify each function with the strict verifier.
-- `tools/score_fn.py`: compile-and-score a single function without ninja, at
-  about 0.15 s per attempt (ProDG) or 0.5 s (MWCC). This is the inner loop for
-  agents and the permuter.
-- `verify_fn.py` accepts MWCC's halfword-placed `EMB_SDA21` relocations.
-- Wrong SDK names in game code were removed. See `rejected_renames.tsv`.
+| Stage | Targets | Code bytes | Functions | Depends on |
+|---|---|---:|---:|---|
+| 0 SDK residue | debugger driver, CodeWarrior runtime and MetroTRK, HVQM4 decoder, SDK leftovers | 29,680 | 95 | nothing; CodeWarrior, so it runs alongside stage 1 |
+| 1 Engine core | prototype hubs, then `nucore`, `numath`, `rtl`, `nusound3`, `nungc`, `nufmv`, newlib, SN tail | 95,216 + hubs | 196 | source-unit scaffolding for `rnc`, `nuheap`, `nugraph_2`, `NGCStreaming2`, `HVQM4PlayerEx` ([gap 8](workflow_gaps.md#8-functions-without-a-source-unit-are-not-swept)) |
+| 2 Nu3d engine | `auto/nu3d/*`, `nu3dx/nuanim` | 152,100 | 272 | stage 1 prototypes; vector, matrix and material types; `nuportal_gen` scaffold |
+| 3 Objects, AI, camera | `apiobject`, `aisys`, `aiscript`, `gameai`, `gameaiscript`, `socksys` | 189,208 | 264 | `include/game` object and AI types ([game structs](game_structs.md)); `aiscript` scaffold |
+| 4 Gamelib and GUI | `audio`, `apimenu`, `apisave`, `saveload`, `gcutscn`, `terrain`, `debris` | 202,700 | 273 | stages 1–3 types |
+| 5a Smaller game units | `main`, `pickups`, `turret`, `rtlif`, `credits`, `cut`, `chris`, `creature`, `podrace` | 149,292 | 225 | stages 1–4 |
+| 5b Levels | `auto/game/levels`, eight address slices | 163,176 | 252 | stages 1–4 |
+| 5c Obstacle | `auto/game/obstacle`, eight address slices | 164,328 | 176 | stages 1–4; `ForceCode` and `ApplyGravity` are hubs |
+| 5d Config and force | both units have no source file yet | 91,484 | 64 | scaffolding; JP PC pairs cover 63 KB |
+| 7 Data | everything not promoted with its code | 2,490,232 | – | unit promotion; `.rodata` ownership |
 
-### Phase 1: SDK import (complete)
+Stage 0 comes first because it needs neither ProDG nor the Nu2 prototypes, and each of
+its items has a donor or a parked candidate; finishing it closes the CodeWarrior side.
+Its items can run beside stage-1 items.
 
-Eighty-nine SDK units are promoted, and the whole image still matches retail. The per-import
-figures are archived in [strategy progress](history/strategy_progress.md); the current totals are
-in the README status block and [SDK import](sdk_import.md).
+Large units are sliced into items of about 20 KB so one child can finish one. Items
+overlap only where a hub function also belongs to its unit's item.
 
-The donor queue is exhausted. Each remaining `sdk_probe.py --pending` row is
-recorded in [SDK import](sdk_import.md) as not linked in retail or as a false
-anchor: CARDErase, CARDProgram, SISteeringAuto, axfx, mtxstack, OSTimer and
-odemustubs. These ranges stay assembly fallback and are deferred lanes, not
-blockers:
+## How an item is worked
 
-- the HVQM4 decoder (`8018432C..8018A10C`), now split with a NonMatching
-  candidate adapted from CC0 MSSB code and retail analysis; 18/43 functions
-  (5,440 bytes) strictly verify, but no bytes are promoted. See the
-  [parked HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked);
-- the debugger driver (`8018A10C..8018AB8C`), which needs a hand-written
-  `DebuggerDriver.c`;
-- `libsn` (`dummy`, `FSasync`, `sndvd`), which has no upstream source. The newlib and libgcc
-  objects are imported; the remaining runtime misses are in [SN runtime](sn_runtime.md#not-imported).
+One item per thread, one PR, its own worktree, branch `t3/plan-<item>`.
 
-SISamplingRate promotes its two functions, initialized data and four-byte
-`SamplingRate` `.sbss`. BSS is verified by layout (see
-[BSS layout policy](build_config.md#bss-layout-policy)); 24 SDK units own their
-`.bss`/`.sbss`, and `ax/AXSPB` and `gx/GXDisplayList` stay on the
-`--external-bss` fallback with recorded reasons.
+1. `kickoff.py --start --item ID` claims the item, records the baseline and opens the
+   bench run. `next_target.py`, `hillclimb.py`, `sweep_permute.py` and the near-miss lane
+   default to the item's functions.
+2. Type before climbing: give the item's global tables and shared structs real types
+   (confirmed against target accesses), write missing inline helpers, and confirm the
+   prototypes of its callees. Then rerun the sweep on the item's units.
+3. Climb what remains with `score_fn.py`, JP PC bodies, OpenSaga evidence, Ghidra and
+   permuter bursts of 180 s. Park a function that plateaus with its best score, the
+   remaining mismatch and the next hypothesis.
+4. Promote a unit whose code is complete when its data permits; otherwise record what
+   data it still needs, for stage 7.
+5. `sprint_finish.py` closes the bench. The PR states matched bytes and functions from
+   `matching_progress.py`.
 
-1. Vendor the needed dolsdk2004 headers and sources under `src/dolphin/` and
-   `include/dolphin/`. Record the upstream commit in `src/dolphin/README.md`.
-2. Run `sdk_probe.py --pending --tsv work/sdk_pending.tsv` (or `--all`) for the import
-   queue and `sdk_import_unit.py UNIT --apply` for units without initialised data
-   ([quick import](sdk_import.md#importing-a-unit-quickly)). Use the `CODE_SAME` and
-   `UNVERIFIED` rows to name SDK functions and data in `symbols.txt` from
-   verified code identity. These names follow from matching code, which is the
-   one case where naming is the matching task.
-3. Add SDK splits library by library, in retail link order, using a
-   `DolphinLib` entry per archive. Port RE4's `strip_unused.py` handling for
-   donor functions the linker removed.
-4. Promote each unit through the normal promotion checks. Fix per-file
-   version drift (`MISMATCH` rows) by comparing with the retail code; the
-   OS library was rebuilt in May 2004.
+## Runtime and SDK routes
 
-### Phase 2: whole-binary splits
+Revision 3 left no code item blocked: every runtime piece has a donor, an upstream
+source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
 
-1. Add `tools/tu_boundaries.py`. It combines the `__FILE__` string xrefs,
-   alignment padding, Mac demo/lineage neighbours and SDK archive order into a
-   proposed `splits.txt` for `.text` and data. **Started:** the `.text` pass
-   exists and its proposal relinks byte-identically. Alignment padding carries
-   no signal. `tools/rodata_splits.py` adds `.rodata` ranges for the 58 units whose
-   literal references are unambiguous. Anonymous TUs, the other data sections and
-   `.rodata` for TUs cut into several units remain; see
-   [proposed TU boundaries](build_config.md#proposed-game-tu-boundaries).
-2. Add a provisional unit per TU with assembly fallback. A split change must
-   not change the relinked DOL. Mark boundaries provisional and revise them on
-   evidence, never to raise a score. **Done:** 78 `auto/` `.text` units are
-   committed. Phase 3 does not wait for the remaining boundary and data work.
-   Revise a boundary when it blocks promoting a TU.
+- **Debugger driver** (stage 0, `8018A10C..8018AB8C`, 2,688 bytes): done in #120, ported
+  from MSSB's CC0 `DebuggerDriver.c` and promoted
+  ([debugger driver](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)).
+- **CodeWarrior runtime and MetroTRK** (stage 0, `801503A0` unit and
+  `__init_cpp_exceptions`, 5,144 bytes): MSSB's CC0 `Runtime/` and `TRK_MINNOW_DOLPHIN/`.
+  `fn_801503A0` uses r31 without saving it, so the TRK bodies are CodeWarrior `asm`
+  functions, as in the donor.
+- **HVQM4 decoder** (stage 0, `dolphin/hvqm4/hvqm4dec`, 18,592 bytes): the parked
+  candidate strictly verifies 18 of 43 functions
+  ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with the two
+  scheduling near-misses, then the bit readers.
+- **SDK leftovers** (stage 0, 3,256 bytes): `Pad`, `dvdfs`, the `.init` stubs,
+  `__DVDLowTestAlarm` and the `GXGetFifo*` stubs; per-function version drift against
+  dolsdk2004.
+- **newlib** (stage 1, 13,036 bytes): what was called libsn is mostly newlib 1.8.2
+  stdio and stdlib (`sprintf` at `801541B4`, `vfprintf`, ...) in unnamed pad blocks. Name
+  the functions inside each block without moving its ends, then import them the way
+  `src/sn/` was ([SN runtime](sn_runtime.md#not-imported) lists the known failures).
+- **SN tail** (stage 1, 4,556 bytes): the libsn console and syscall stubs after the
+  debugger driver are ordinary ProDG C (standard prologues, calls to `InitializeUART`
+  and `WriteUARTN`); `cosf`, `fabsf` and `copysignf` are newlib libm. `_exit` is the crt
+  word `.long 0; blr`. An assembly body is acceptable only where the retail bytes show
+  the original was assembly (non-ABI register use, data words), with that evidence
+  recorded per function.
+- **Data** (stage 7): most comes with promoting units. The rest needs data splits per
+  section ([build configuration](build_config.md)); there is no data-matching lane yet.
 
-### Phase 3: agent draft-and-climb for game code
+## Revising the plan
 
-Use the [matching tools](sprint_workflow.md) to collect verified matches and improve
-the workflow as gaps appear. Branch-based unit detection helps avoid overlapping
-work, but does not cover arbitrary cross-unit changes. Confirm shared `nu2` and game
-header fields against consumers. Results and
-failure modes from the earlier multi-unit batches are in
-[batch history](phase3_batches.md).
-
-**Automatic progress.** `python3 tools/sweep.py --apply` drafts every ready target with m2c
-(typed by the unit's preprocessed source), strict-scores each draft and writes matches into
-their units. Each draft is then rewritten by registered repairs (prototypes, padding, sized
-derefs, paired-single and carry idioms, and more in `tools/sweep_repairs/`); a repair is kept
-only when it scores better. What stays UNHANDLED is recorded hand-work. Check applied matches
-with `bash build.sh` and `verify_fn.py --strict-symbols`. Everything else is ranked in
-`work/sweep/results.json` by size × exact-instruction ratio. Similarity helps prioritize but
-does not predict how hard the remaining mismatch is. `sweep_permute.py --apply` searches the
->=90% near misses. `python3 tools/kickoff.py` shows the current figures and whether the sweep
-is stale; rerun affected targets after header or tool changes. Dated figures, the repair list
-and the remaining compile-error classes are in the [sweep history](phase3_batches.md#sweep-history).
-Prioritize measured sweep repairs and runtime improvements using the current
-[blocker classes](sweep_blockers.md). Keep the completed pipeline as the baseline
-for speculative alternatives; a better intermediate score does not guarantee a
-better final draft.
-
-Available approaches include m2c and Ghidra drafts, donor evidence, shared types,
-manual iteration with `score_fn.py`, and automated search. The
-[pattern library](code_matching_workflow.md#pattern-library) supplies matched ProDG
-examples. `permute_setup.py NAME --run` prepares permuter search;
-`order_search.py --climb` explores statement order. Choose their order and effort
-based on the remaining mismatch, and record useful candidates with `hillclimb.py try`.
-Accept functions with `verify_fn.py --build --strict-symbols`; whole-TU promotion
-also requires section, relocation and linked-range checks.
-
-Size, callees, type coverage and donor similarity help estimate useful targets.
-The
-[OpenSaga lane](symbol_donors/opensaga_matching.md) queues parser/helpers
-before AI and animation and requires strict matches before expansion. Build
-shared `nu2` struct headers once, from donor layouts confirmed against LSW1
-field accesses. The initial OpenSaga parser/helper lane has promoted 1,460 bytes
-(12 functions, 10 newly matched); [results](symbol_donors/opensaga_matching_results.md)
-record the corrected parser layout and the next small-target queue. The
-[donor audit](symbol_donors/opensaga_audit.md) extends that queue to small
-string/math helpers, AI conditions, accessors and cutscene helpers, with
-explicit exclusions for changed TCS behavior.
+`plan.py` says when the plan needs revision: an unmatched report function no item
+covers, an item naming a unit or function the report lacks, a stage left with only
+claimed, parked or blocked work, or a finished item run that matched nothing. Revise
+`plan.toml` (bump `revision`), this file and the PR together. Never reorder to chase a
+score; reorder on evidence such as measured yield, a new donor or a type that unlocks
+another stage.
 
 ## Rules that do not change
 
-- The strict verifier, pinned compilers and the retail DOL are the oracle.
-  Never weaken them, and never move a split to improve a score.
-- VERIFIED is not PROMOTED. Promotion needs unit sections, relocations and
-  linked retail ranges with no regression.
-- Donor code is evidence. A donor function counts only after it matches
+- The strict verifier, pinned compilers and the retail DOL are the oracle. Never weaken
+  them, change pins, or move a split to improve a score.
+- VERIFIED is not PROMOTED. Promotion needs unit sections, relocations and linked retail
+  ranges with no regression. Renames are not matching progress.
+- Donor code and generated C are evidence; a function counts only after it matches
   strictly with this game's compiler.
-- Raw experiment logs, probe TSVs and proprietary artifacts stay under the
-  ignored `work/` directory.
-
-## Asset evidence for blocked targets
-
-Use the [asset inventory and script index](asset_mining.md#available-tooling) when
-a selected handler or loader needs argument, count, stride or format evidence.
-Start with original LSW1 inputs and retain their hashes and source locations.
-Lexical command hits are leads; connect them through GC parser/dispatch/access
-evidence before expanding shared types. This supports matching and strict promotion gates; asset coverage is not matching progress.
-
-## Choosing a task
-
-1. Choose by expected verified code bytes per unit of effort, not phase number.
-   The SDK donor queue is exhausted. Prioritize game/Nu2 matching in existing
-   units; do remaining Phase 2 boundary and data work when it directly unblocks
-   a promising unit. Resume the parked HVQM4 candidate from its strict-verification
-   handoff when pursuing SDK work; libsn, debugger and the remaining
-   [SN runtime](sn_runtime.md#not-imported) misses need concrete leads.
-2. `python3 tools/kickoff.py` prints the shortlist (sweep lanes and `next_target.py --by-unit`
-   units) with sibling-worktree state. Inspect active worktrees, branches and PRs before
-   editing overlapping targets; branch-name ownership detection covers only its documented
-   naming convention. Related families
-   can reuse types and tooling fixes. Inspect owned data before assuming code matches
-   permit promotion. When using a sprint queue, finish accounting includes every
-   selected target.
-3. When parking a target, retain its best score, remaining mismatch and a useful next
-   hypothesis in the task's `status.md` and PR.
-4. When the plan changes, update this file in the same PR. Sprint results stay in
-   the PR.
+- Raw experiment logs and proprietary artifacts stay under the ignored `work/`.

@@ -526,7 +526,7 @@ Next leads:
 
 ## Sweep history
 
-Moved from the [strategy](strategy.md#phase-3-agent-draft-and-climb-for-game-code)
+Moved from the [strategy](history/strategy_2026-11-10.md#phase-3-agent-draft-and-climb-for-game-code)
 "Automatic progress" paragraph, which now keeps only the method. The text below is as it
 stood on 2026-11-10; `python3 tools/kickoff.py` prints the current figures.
 

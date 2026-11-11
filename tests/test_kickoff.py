@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools import kickoff as ko
+from tools import plan
 
 sb, sf = ko.sb, ko.sf  # kickoff imports its siblings by bare name
 
@@ -172,6 +173,14 @@ class StartTests(unittest.TestCase):
                  for n, u in (("near1", "auto/u"), ("t1", "auto/u"), ("t2", "auto/u"), ("other", "auto/v"))]
         self.behind = 0
         self.owned = set()
+        self.claimed = []
+        self.plan_claims = {"items": {}, "stale": []}
+        fixture_plan = {"revision": 1, "stage": [
+            {"id": "s1", "item": [{"id": "first", "functions": ["t2", "t1"]}, {"id": "second", "units": ["auto/u"]}]},
+            {"id": "s2", "item": [{"id": "later", "units": ["auto/v"]}]}]}
+        fixture_report = {"measures": {}, "units": [
+            {"name": "main/auto/u", "functions": [{"name": n, "size": "64"} for n in ("near1", "t1", "t2")]},
+            {"name": "main/auto/v", "functions": [{"name": "other", "size": "64"}]}]}
         snap = {"functions": 1, "code": 2, "strict_only_functions": 0, "strict_only_bytes": 0,
                 "dol_sha1": "x", "head": "abc"}
         patches = [mock.patch.object(ko, "ROOT", root), mock.patch.object(ko, "BUILD", build),
@@ -181,6 +190,9 @@ class StartTests(unittest.TestCase):
                    mock.patch.object(ko.nt, "collect", return_value=(ready, 0)),
                    mock.patch.object(ko.nt, "owned_units", side_effect=lambda rows, remote=True: self.owned),
                    mock.patch.object(ko, "worktree_summary", return_value=None),
+                   mock.patch.object(ko, "plan_status", side_effect=lambda remote: plan.status(
+                       plan=fixture_plan, report=fixture_report, cl=self.plan_claims, records=[])),
+                   mock.patch.object(ko.plan, "claim", side_effect=lambda item: self.claimed.append(item) or item),
                    mock.patch.object(sb, "ROOT", root), mock.patch.object(sb, "EVENTS", root / "work" / "sprint_bench.jsonl"),
                    mock.patch.dict(os.environ, {"LSW1_CACHE": str(root / "cache")})]
         for p in patches:
@@ -197,7 +209,7 @@ class StartTests(unittest.TestCase):
         return [json.loads(l) for l in (self.root / "work" / "sprint_bench.jsonl").read_text().splitlines()]
 
     def test_start_is_idempotent(self):
-        code, out = self.run_main("--start", "src/auto/u.c")
+        code, out = self.run_main("--start", "src/auto/u.c", "--off-plan", "test")
         self.assertEqual(code, 0, out)
         base = json.loads(sf.BASELINE.read_text())
         self.assertEqual(base["queue"], ["near1", "t1", "t2"])
@@ -205,7 +217,7 @@ class StartTests(unittest.TestCase):
         self.assertEqual([e["kind"] for e in self.events()], ["start"])
         self.assertEqual((self.events()[0]["lane"], self.events()[0]["unit"]), ("unit", "auto/u"))
         self.assertTrue((self.root / "work" / "sprint_timing.json").exists())
-        code, out = self.run_main("--start", "auto/u", "t9")
+        code, out = self.run_main("--start", "auto/u", "t9", "--off-plan", "test")
         self.assertEqual(code, 0, out)
         self.assertIn("baseline: kept", out)
         self.assertIn("already open", out)
@@ -213,28 +225,72 @@ class StartTests(unittest.TestCase):
         self.assertEqual(len(self.events()), 1)
 
     def test_other_lane_needs_restart(self):
-        self.assertEqual(self.run_main("--start", "auto/u")[0], 0)
-        code, out = self.run_main("--start-lane", "near-misses")
+        self.assertEqual(self.run_main("--start", "auto/u", "--off-plan", "test")[0], 0)
+        code, out = self.run_main("--start-lane", "near-misses", "--off-plan", "test")
         self.assertEqual(code, 2)
         self.assertIn("--restart", out)
-        code, out = self.run_main("--start-lane", "near-misses", "--restart")
+        code, out = self.run_main("--start-lane", "near-misses", "--restart", "--off-plan", "test", "--all")
         self.assertEqual(code, 0, out)
         self.assertEqual(json.loads(sf.BASELINE.read_text())["queue"], ["near1", "other"])
         self.assertEqual(self.events()[0]["lane"], "near-misses")
 
     def test_refusals_behind_missing_build_and_owned(self):
+        off = ("--off-plan", "test")
         self.behind = 2
-        code, out = self.run_main("--start", "auto/u")
+        code, out = self.run_main("--start", "auto/u", *off)
         self.assertEqual(code, 2)
         self.assertIn("2 commits behind", out)
         self.behind = 0
         self.owned = {"auto/u"}
-        self.assertEqual(self.run_main("--start", "auto/u")[0], 2)
-        self.assertEqual(self.run_main("--start", "auto/u", "--force")[0], 0)
+        self.assertEqual(self.run_main("--start", "auto/u", *off)[0], 2)
+        self.assertEqual(self.run_main("--start", "auto/u", "--force", *off)[0], 0)
         (ko.BUILD / "report.json").unlink()
-        code, out = self.run_main("--start", "auto/u", "--restart")
+        code, out = self.run_main("--start", "auto/u", "--restart", *off)
         self.assertEqual(code, 2)
         self.assertIn("run bash build.sh", out)
+
+
+    def test_off_plan_starts_refuse_without_reason(self):
+        for argv in (("--start", "auto/u"), ("--start-lane", "near-misses"), ("--start-lane", "sweep"),
+                     ("--start", "--item", "later")):
+            code, out = self.run_main(*argv)
+            self.assertEqual(code, 2, argv)
+            self.assertIn("--off-plan", out)
+            self.assertIn("next item is first", out)
+        self.assertFalse(sf.BASELINE.exists())
+        self.assertEqual(self.claimed, [])
+        code, out = self.run_main("--start", "--item", "second")  # any item of the current stage
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.claimed, ["second"])
+        code, out = self.run_main("--start", "auto/u", "--off-plan", "runtime evidence", "--restart")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads(sf.BASELINE.read_text())["off_plan"], "runtime evidence")
+        self.assertEqual(self.events()[0]["off_plan"], "runtime evidence")
+
+    def test_item_start_claims_and_queues_the_item(self):
+        code, out = self.run_main("--start", "--item", "first")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.claimed, ["first"])
+        base = json.loads(sf.BASELINE.read_text())
+        self.assertEqual((base["lane"], base["item"], base["queue"]), ("plan", "first", ["t2", "t1"]))
+        self.assertNotIn("off_plan", base)
+        self.assertEqual((self.events()[0]["lane"], self.events()[0]["item"]), ("plan", "first"))
+        self.assertEqual(self.run_main("--start", "--item", "first")[0], 0)  # idempotent
+        self.assertIn("already open", self.run_main("--start", "--item", "first")[1])
+        self.plan_claims = {"items": {"first": {"by": "elsewhere", "mine": False}}, "stale": []}
+        code, out = self.run_main("--start", "--item", "first", "--restart")
+        self.assertEqual(code, 2)
+        self.assertIn("claimed by elsewhere", out)
+        code, out = self.run_main("--start", "--item", "second", "--restart")  # now the next item
+        self.assertEqual(code, 0, out)
+
+    def test_near_miss_lane_defaults_to_the_plan_scope(self):
+        rows = [row("t1", "auto/u", 0x10, 19, 20), row("near1", "auto/u", 0x80, 19, 20),
+                row("other", "auto/v", 0x400, 19, 20)]
+        (self.root / "work" / "sweep" / "results.json").write_text(json.dumps(rows))
+        code, out = self.run_main("--start-lane", "near-misses", "--off-plan", "permuter burst")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads(sf.BASELINE.read_text())["queue"], ["t1", "near1"])
 
 
 class FinishHelperTests(unittest.TestCase):

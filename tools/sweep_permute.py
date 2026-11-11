@@ -12,7 +12,9 @@ Reads `work/sweep/results.json` from `sweep.py`, takes MISMATCH rows at or above
 MATCH) and runs it with `--stop-on-zero` under a wall-clock limit. A score-0 output's
 function replaces the draft's definition and `score_fn.py --body` rescoring confirms it;
 `--apply` writes confirmed matches into the unit source; `--apply-saved` writes the last
-run's confirmed matches without permuting again. Run `bash build.sh` and
+run's confirmed matches without permuting again. By default only the plan target set's near
+misses (tools/plan.py: the claimed or next item), then the rest of its stage's, are taken;
+`--all` (or `--off-plan REASON`) takes the global order and marks the result rows off plan. Run `bash build.sh` and
 `verify_fn.py --strict-symbols` afterwards, as for the sweep. Results go to
 `work/sweep/permute_results.json`. No model or agent is involved.
 """
@@ -52,10 +54,15 @@ def definition(text: str, name: str) -> str:
     return fn.head + fn.body + "}"
 
 
-def queue(rows: list[dict], min_ratio: float, limit: int) -> list[dict]:
+def queue(rows: list[dict], min_ratio: float, limit: int, scope: dict | None = None) -> list[dict]:
+    """Near misses, largest size x ratio first. SCOPE (plan.plan_targets()) keeps only the plan
+    target set's, then the rest of its stage's; None is the global order."""
     near = [r for r in rows if r.get("verdict") == "MISMATCH" and r.get("target")
             and r["exact"] / r["target"] >= min_ratio]
     near.sort(key=lambda r: -r["size"] * r["exact"] / r["target"])
+    if scope is not None:
+        item, stage = set(scope["functions"]), set(scope["stage"])
+        near = [r for r in near if r["name"] in item] + [r for r in near if r["name"] in stage - item]
     return near[:limit]
 
 
@@ -160,6 +167,9 @@ def main(argv=None) -> int:
     ap.add_argument("--improved", action="store_true",
                     help="only the previous run's IMPROVED rows (a longer second pass)")
     ap.add_argument("--apply", action="store_true", help="write confirmed matches into unit sources")
+    ap.add_argument("--all", action="store_true",
+                    help="the global near-miss order instead of the plan target set and its stage (off plan)")
+    ap.add_argument("--off-plan", metavar="REASON", help="as --all, recording why in the results")
     ap.add_argument("--apply-saved", action="store_true",
                     help="write the MATCH rows of the last run's permute_results.json without permuting again")
     args = ap.parse_args(argv)
@@ -172,7 +182,19 @@ def main(argv=None) -> int:
         return 2
     if args.apply_saved:
         return apply_saved(json.loads(results.read_text()))
-    todo = queue(json.loads(results.read_text()), args.min_ratio, 10**6 if args.improved else args.limit)
+    scope = None
+    if not (args.all or args.off_plan):
+        import plan
+        scope = plan.plan_targets(remote=False)
+        if scope.get("error") or scope["item"] is None:
+            print(f"plan unavailable ({scope.get('error') or 'no recommendable item'}); global order",
+                  file=sys.stderr)
+            scope = None
+        else:
+            print(f"plan scope: item {scope['item']}, then the rest of stage {scope['stage_id']} "
+                  "(--all for the global order)", file=sys.stderr)
+    off_plan = args.off_plan or ("--all" if args.all else None)
+    todo = queue(json.loads(results.read_text()), args.min_ratio, 10**6 if args.improved else args.limit, scope)
     if args.improved:
         prev = sweep.OUT / "permute_results.json"
         moved = {r["name"] for r in json.loads(prev.read_text()) if r["verdict"] == "IMPROVED"} \
@@ -194,6 +216,11 @@ def main(argv=None) -> int:
             rows.append(r)
             print(f"  {r['name']:<28} {r['start']:>9} -> {r['verdict']}"
                   + (f" (score {r['best_score']})" if r.get("best_score") else ""), file=sys.stderr)
+    for r in rows:
+        if off_plan:
+            r["off_plan"] = off_plan
+        elif scope is not None:
+            r["plan_item"] = scope["item"] if r["name"] in scope["functions"] else f"stage {scope['stage_id']}"
     if args.apply:
         apply_matches(rows, todo)
     (sweep.OUT / "permute_results.json").write_text(json.dumps(rows, indent=1) + "\n")

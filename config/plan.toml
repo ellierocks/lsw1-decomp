@@ -1,0 +1,1540 @@
+# The matching plan, in order. docs/strategy.md explains it; tools/plan.py reads it.
+#
+# Stages run in file order; items within a stage run in file order. The current stage is the
+# first one that is not closed. Progress is never typed here: an item's remaining bytes and
+# functions come from build/GL5E4F/report.json (a function is done when its fuzzy match is
+# 100%), so this file only changes when the plan does.
+#
+# An item names `units` (every function of those report units) or `functions` (symbol names).
+# It is closed when each of its functions is matched in the report or listed in [[parked]].
+# A stage is closed when all its items are closed. A stage with `alongside = true` is not the
+# current stage; its open items are worked beside the current stage's and come first. `blocked` marks an item that has no known
+# route yet; tools never recommend it, and a stage left with only blocked items needs a plan
+# revision. The `data` item measures the report's data bytes instead of functions.
+#
+# Claims: an item is claimed by the worktree that ran `kickoff.py --start --item ID` (recorded
+# in the git common directory, so every local worktree sees it) or by an unmerged branch or open
+# PR named `t3/plan-ID`. A claim ends when its branch merges into origin/main.
+#
+# Revise this file (bump `revision`, say why in the PR, update docs/strategy.md) when a tool
+# reports that the plan needs revision, or when evidence changes the order. Parking a function
+# needs a reason that names its best score and the next hypothesis.
+
+revision = 3
+# The `# at revision N` comments record each item's size when the plan was written; they are
+# not read by tools.
+
+# [[parked]]
+# function = "fn_XXXXXXXX"
+# reason = "best 52/57; r27/r28 swap of ...; next: ..."
+
+[[stage]]
+id = "s0-sdk"
+title = "SDK residue (CodeWarrior)"
+alongside = true
+why = "The last CodeWarrior code: it uses neither ProDG nor Nu2 prototypes, so it does not wait on the call graph, and finishing it closes the SDK side. Each item has a donor or a parked candidate."
+
+[[stage.item]]
+id = "debugger"
+functions = ["fn_8018A10C", "fn_8018A110", "DBWrite", "DBRead", "DBQueryData", "DBInitInterrupts", "DBInitComm", "DBGHandler", "MWCallback", "DBGReadStatus", "DBGWrite", "DBGRead", "DBGReadMailbox", "DBGEXIImm"]
+note = "Ported from the CC0 MSSB DebuggerDriver.c and promoted in #120: docs/sdk_import.md#debugger-driver-range-8018a10c8018ab8c."
+# at revision 2: 14 functions, 2,688 bytes left
+
+[[stage.item]]
+id = "cw-runtime"
+units = ["auto_01_801503A0_text", "auto_01_801638A0_text"]
+note = "CodeWarrior runtime and MetroTRK: port MSSB's CC0 src/Dolphin/Runtime (runtime.c, __init_cpp_exceptions.cpp) and TRK_MINNOW_DOLPHIN. fn_801503A0 uses r31 unsaved, so TRK bodies are CodeWarrior asm functions as in the donor."
+# at revision 3: 37 functions, 5,144 bytes left
+
+[[stage.item]]
+id = "hvqm4"
+units = ["dolphin/hvqm4/hvqm4dec"]
+note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_import.md#hvqm4-decoder-parked."
+# at revision 1: 25 functions, 18,592 bytes left
+
+
+[[stage.item]]
+id = "sdk-leftovers"
+units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "auto_00_80003100_init", "auto_00_8000348C_init", "auto_01_8016BE88_text", "auto_01_8017C754_text"]
+note = "Functions the dolsdk2004 donors did not match, the .init stubs, __DVDLowTestAlarm (dvdlow.c) and the GXGetFifo* stubs."
+# at revision 3: 19 functions, 3,256 bytes left
+
+
+[[stage]]
+id = "s1-engine"
+title = "Engine core"
+why = "Nu2 core libraries and the most-called small functions: every later stage calls them, so their prototypes and types come first. Small units can complete and promote."
+
+[[stage.item]]
+id = "hubs"
+functions = [
+  "fn_8006DCD4",
+  "NuFsqrt",
+  "fn_8001384C",
+  "NewRumble",
+  "fn_8006DE5C",
+  "NuVecMtxTransform",
+  "PauseMenu_HandleEntry1",
+  "fn_80095630",
+  "AIMoveInstruction",
+  "AIParamToFloat",
+  "fn_800958F8",
+  "AnimDuration",
+  "fn_800B00B8",
+  "fn_8005A470",
+  "fn_80095558",
+  "FindForceObject",
+  "fn_800769B4",
+  "fn_8006F37C",
+  "fn_8006F28C",
+  "NuSplineFind",
+]
+note = "Small unmatched functions with 10 or more unmatched callers each; confirm each prototype in the unit header."
+# at revision 1: 20 functions, 3,500 bytes left
+
+[[stage.item]]
+id = "nufile"
+units = ["auto/nucore/nufile_1", "auto/nucore/nufile_2", "auto/nucore/nufile_3", "auto/nucore/nufilepak", "auto/nucore/ngc/nufile_ngc_1", "auto/nucore/ngc/nufile_ngc_2"]
+note = "OpenSaga leads for nufile_1."
+# at revision 1: 24 functions, 12,352 bytes left
+
+[[stage.item]]
+id = "nucore-misc"
+units = ["auto/nucore/nufpar", "auto/nucore/numem", "auto/nucore/nuheap", "auto/nucore/rnc", "auto/nucore/nustring"]
+note = "rnc and nuheap have no source file yet: scaffold them (workflow gap 8)."
+# at revision 1: 15 functions, 7,768 bytes left
+
+[[stage.item]]
+id = "numath"
+units = ["auto/numath/nutrig", "auto/numath/nugraph_1", "auto/numath/nugraph_2", "auto/numath/nugraph_3", "numath/nuvec", "numath/numtx", "numath/nu_asm"]
+note = "nugraph_2 has no source file yet."
+# at revision 1: 44 functions, 11,676 bytes left
+
+[[stage.item]]
+id = "rtl"
+units = ["auto/rtl/rtl"]
+# at revision 1: 21 functions, 10,748 bytes left
+
+[[stage.item]]
+id = "nusound3"
+units = ["auto/nusound3/ngc/nusound", "auto/nusound3/ngc/NGCStreaming", "auto/nusound3/ngc/NGCStreaming2", "auto/nusound3/ngc/NGCSound"]
+note = "NGCStreaming2 has no source file yet."
+# at revision 1: 36 functions, 19,308 bytes left
+
+[[stage.item]]
+id = "nungc-nufmv"
+units = ["auto/nungc/ngcapi", "auto/nungc/ps2dma", "auto/nufmv/ngc/nufmvmtl", "auto/nufmv/ngc/HVQM4PlayerEx", "auto/effects/objects/part", "auto/gamelib/glutils"]
+note = "HVQM4PlayerEx has no source file yet."
+# at revision 1: 31 functions, 15,772 bytes left
+
+[[stage.item]]
+id = "newlib"
+units = ["auto_01_801541B4_text", "auto_01_8015535C_text", "auto_01_801562B8_text", "auto_01_80159478_text", "auto_01_8015A2A8_text", "auto_01_8015A938_text"]
+note = "newlib 1.8.2 stdio/stdlib in unnamed pad blocks (sprintf at 801541B4, vfprintf, ...): name the functions inside the blocks without moving split ends, then import from newlib with the src/sn flags. Known failures: docs/sn_runtime.md#not-imported."
+# at revision 3: 7 functions (pad blocks), 13,036 bytes left
+
+[[stage.item]]
+id = "sn-tail"
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text", "_exit"]
+note = "SN libsn console/syscall stubs (ProDG C: normal prologues, call InitializeUART/WriteUARTN) and newlib libm (cosf, fabsf, copysignf; fdlibm sf_*). _exit is the crt word .long 0; blr: an assembly body is acceptable only where retail bytes show the original was assembly (non-ABI register use, data words); record that evidence per function."
+# at revision 3: 18 functions, 4,556 bytes left
+
+[[stage]]
+id = "s2-nu3d"
+title = "Nu3d engine"
+why = "Rendering, materials, display lists and animation: NuFsqrt and the vector and matrix helpers are the most-called code left."
+
+[[stage.item]]
+id = "nudlist"
+units = ["auto/nu3d/nudlist_2", "auto/nu3d/ngc/nudlistngc"]
+# at revision 1: 45 functions, 18,576 bytes left
+
+[[stage.item]]
+id = "ngc_mtl"
+units = ["auto/nu3d/ngc/ngc_mtl"]
+# at revision 1: 35 functions, 27,492 bytes left
+
+[[stage.item]]
+id = "nutexanm"
+units = ["auto/nu3d/nutexanm", "auto/nu3d/ngc/nutex"]
+# at revision 1: 32 functions, 10,740 bytes left
+
+[[stage.item]]
+id = "ngc_video"
+units = ["auto/nu3d/ngc/ngc_video"]
+# at revision 1: 33 functions, 14,684 bytes left
+
+[[stage.item]]
+id = "nuqfnt"
+units = ["auto/nu3d/nuqfnt", "auto/nu3d/ngc/nuqfnt_ngc", "auto/nu3d/ngc/nufont_ngc"]
+note = "nufont_ngc has no source file yet."
+# at revision 1: 29 functions, 13,592 bytes left
+
+[[stage.item]]
+id = "nucamera"
+units = ["auto/nu3d/ngc/nucamera"]
+# at revision 1: 20 functions, 11,616 bytes left
+
+[[stage.item]]
+id = "nuhgobj"
+units = ["auto/nu3d/NuHGobjEval", "auto/nu3d/ngc/nuhgobj"]
+note = "OpenSaga leads."
+# at revision 1: 12 functions, 12,580 bytes left
+
+[[stage.item]]
+id = "nuportal"
+units = ["auto/nu3d/nuportal_gen"]
+note = "No source file yet: scaffold it; OpenSaga leads."
+# at revision 1: 26 functions, 15,348 bytes left
+
+[[stage.item]]
+id = "nurndr-nugscn"
+units = ["auto/nu3d/ngc/nurndr", "auto/nu3d/ngc/nugscn", "auto/nu3d/ngc/nustream", "auto/nu3d/nuspecial"]
+# at revision 1: 32 functions, 18,980 bytes left
+
+[[stage.item]]
+id = "nuanim"
+units = ["nu3dx/nuanim"]
+# at revision 1: 8 functions, 8,492 bytes left
+
+[[stage]]
+id = "s3-objects-ai"
+title = "Objects, AI and camera"
+why = "The game-object, character and AI-packet types that every game unit reads; most OpenSaga leads are here."
+
+[[stage.item]]
+id = "apiobject"
+units = ["auto/characters/apiobject/apiobject"]
+note = "Extend include/game/apiobject.h from confirmed accesses."
+# at revision 1: 13 functions, 13,640 bytes left
+
+[[stage.item]]
+id = "aisys-1"
+functions = [
+  "AIScriptLoadScriptTxt",
+  "AIScriptResolveReferences",
+  "fn_8007E97C",
+  "fn_8007EBD0",
+  "AIScriptProcessorInit",
+  "fn_8007EFA0",
+  "fn_8007F130",
+  "AIScriptProcess",
+  "Action_Idle",
+  "Action_FollowOpponent",
+  "Action_MoveAwayFromOpponent",
+  "Action_FollowPlayer",
+  "Action_CirclePlayer",
+  "Action_CircleOpponent",
+  "Action_MoveAwayFromPlayer",
+  "Action_RetreatFromOpponent",
+  "Action_RetreatFromNearestOpponent",
+  "Action_FaceOpponent",
+  "Action_SetViewDistance",
+  "Action_SetMinViewHeight",
+  "Action_SetMaxViewHeight",
+  "Action_SetHearDistance",
+  "Action_GoToNode",
+  "Action_GoToNodeRandom",
+  "Action_GoToOrigin",
+  "Action_SetLocator",
+  "Action_GoToLocator",
+  "Action_MoveAwayFromNode",
+  "Action_OverrideAnimation",
+  "Action_BlockPath",
+  "Action_PathConnectionMaxLength",
+  "Action_SetInterrupt",
+]
+note = "OpenSaga leads; include/game/ai.h."
+# at revision 1: 32 functions, 21,384 bytes left
+
+[[stage.item]]
+id = "aisys-2"
+functions = [
+  "fn_80083754",
+  "AIParamToFloat",
+  "Condition_GotLocator",
+  "Condition_OnPath",
+  "Condition_TimeOffPath",
+  "Condition_GotTriggerArea",
+  "Condition_EitherPlayerInTriggerArea",
+  "Condition_GotOpponent",
+  "Condition_OpponentRange",
+  "Condition_NearestOpponentRange",
+  "Condition_YawToOpponent",
+  "Condition_PathBlocked",
+  "Condition_InterruptID",
+  "Condition_StuckTime",
+  "Action_SetState",
+  "Action_ResetTimer",
+  "Action_FacePlayer",
+  "Action_SetMoveRadius",
+  "Action_FollowPath",
+  "Action_ResetToOrigin",
+  "Action_SetIgnoreAntinodes",
+  "fn_80085A50",
+  "fn_800868B4",
+  "fn_80086A04",
+  "fn_800875F8",
+  "AISysProcessCharacter",
+  "fn_80087F98",
+  "fn_800881D4",
+  "fn_800885CC",
+  "fn_80088AAC",
+  "fn_80088CD8",
+  "fn_8008911C",
+  "AISysCharacterTestPathCnx",
+]
+note = "OpenSaga leads; include/game/ai.h."
+# at revision 1: 33 functions, 20,652 bytes left
+
+[[stage.item]]
+id = "aisys-3"
+functions = [
+  "AISysGetCharacterPathPos",
+  "fn_8008A370",
+  "fn_8008A6D4",
+  "AIPathNodeUpdatePos",
+  "fn_8008ACD8",
+  "AISysCharacterSetPathCnx",
+  "fn_8008B4D8",
+  "fn_8008B79C",
+  "fn_8008BA28",
+  "fn_8008BCC0",
+  "AIFormationFollow",
+  "fn_8008C13C",
+  "fn_8008C768",
+  "fn_8008CDE8",
+  "fn_8008CF0C",
+  "fn_8008DCE0",
+  "fn_8008E494",
+  "fn_8008E650",
+  "fn_8008EAC4",
+  "fn_8008EFD0",
+  "fn_8008F180",
+  "fn_8008F3D4",
+]
+note = "OpenSaga leads; include/game/ai.h."
+# at revision 1: 22 functions, 20,364 bytes left
+
+[[stage.item]]
+id = "aiscript"
+units = ["auto/ai/aisys/aiscript"]
+note = "No source file yet: scaffold it."
+# at revision 1: 20 functions, 14,272 bytes left
+
+[[stage.item]]
+id = "gameai"
+units = ["auto/game/gameai"]
+# at revision 1: 29 functions, 23,300 bytes left
+
+[[stage.item]]
+id = "gameaiscript-1"
+functions = [
+  "fn_8012D13C",
+  "GetNamedGameObject",
+  "Condition_EitherPlayerUsingForce",
+  "Condition_LocatedCollectable",
+  "Condition_MaulShouldRunAway",
+  "Action_GoToDoorTrigger",
+  "Action_SetSide",
+  "Action_PlaceAheadOfPlayer",
+  "Action_SetLocator_Level",
+  "Action_SnapToLocator",
+  "Action_BigJumpToLocator",
+  "Action_BigJump",
+  "Action_SnapToPosition",
+  "Action_SnapToSockPosition",
+  "Action_AttackOpponent",
+  "Action_EngageOpponent",
+  "Action_EngageObject",
+  "Action_FollowSpline",
+  "Action_PlaceOnSock",
+  "Action_FollowSock",
+  "Action_CreateCreatures",
+  "Action_CreateSockCreatures",
+]
+note = "OpenSaga leads."
+# at revision 1: 22 functions, 18,232 bytes left
+
+[[stage.item]]
+id = "gameaiscript-2"
+functions = [
+  "Action_CreateSplineCreatures",
+  "Action_SetRunSpeed",
+  "Action_SetMessage",
+  "Action_AddPart",
+  "Action_SetMaxMovementRange",
+  "Action_RaceOpponent",
+  "Action_ZamMovement",
+  "Action_MakeExplosion",
+  "Action_CycleCharacter",
+  "Action_CnxController",
+  "Action_ObjectController",
+  "Action_GoToLevelPath",
+  "Action_GoToOriginalPath",
+  "Action_UseForce",
+  "Action_Snipe",
+  "Action_PlaySfx",
+  "Action_CameraCut",
+  "Condition_ObstacleFinished",
+  "Condition_ObstacleChainPhase",
+  "Condition_UsingForce",
+  "Condition_Side",
+  "Condition_PlayerUsingForce",
+  "Condition_IsAlive",
+  "Condition_CollectedCount",
+  "Condition_SpawnCount",
+  "Condition_BehindCamera",
+  "Condition_HoverPhase",
+  "Condition_HitPoints",
+  "Condition_PlayerOnDoorTrigger",
+  "Condition_EitherPlayerOnDoorTrigger",
+  "Condition_Context",
+  "Condition_Player2Active",
+  "Condition_AngleFromPlayerToMe",
+  "Condition_AngleFromPlayer2ToMe",
+  "Condition_NumBaddies",
+  "Condition_NumForceObjects",
+  "Condition_BeenToLevel",
+  "Condition_RaceLap",
+  "Condition_SockXDistanceToPlayer",
+  "Condition_PlayerDistanceAlongSock",
+  "Condition_FurthestPlayerDistanceAlongSock",
+  "Condition_CurrentHintId",
+  "Condition_Freeplay",
+  "Condition_CameraYRot",
+  "Condition_UsingForceFreeze",
+  "Condition_InMiniCut",
+  "Action_SetRespawnLocator",
+  "Action_ForceFreeze",
+  "Action_SetCircleDirection",
+  "Action_SetNearestSpline",
+  "Action_SetRandomSpline",
+  "Action_UseCurrentSpeed",
+  "Action_SetDoorFinished",
+  "Action_SnapWeaponOut",
+  "Action_FaceCamera",
+]
+note = "OpenSaga leads."
+# at revision 1: 55 functions, 17,744 bytes left
+
+[[stage.item]]
+id = "socksys-1"
+functions = [
+  "AnimDuration",
+  "fn_80092F94",
+  "fn_80093428",
+  "fn_80093654",
+  "fn_80093D84",
+  "fn_80093F68",
+  "fn_800944CC",
+  "fn_80094FA0",
+  "fn_80095038",
+  "fn_800950D0",
+  "fn_80095128",
+  "fn_80095234",
+  "FindAnimIX",
+  "fn_8009536C",
+  "fn_800953D4",
+  "fn_80095510",
+  "fn_80095558",
+  "fn_80095630",
+  "fn_800956DC",
+  "fn_800958F8",
+  "fn_8009595C",
+  "fn_800959D4",
+  "fn_80095A44",
+  "fn_80095AF8",
+  "fn_80095BA0",
+  "fn_800962B4",
+  "fn_80096824",
+  "fn_8009758C",
+  "fn_80097948",
+]
+note = "JP PC pairs."
+# at revision 1: 29 functions, 20,500 bytes left
+
+[[stage.item]]
+id = "socksys-2"
+functions = [
+  "fn_80098190",
+  "MoveSockPosition",
+  "fn_80098858",
+  "fn_80098B70",
+  "fn_80098D48",
+  "SockSysCamera",
+  "fn_8009C2A4",
+  "fn_8009CAEC",
+  "fn_8009CC00",
+]
+note = "JP PC pairs."
+# at revision 1: 9 functions, 19,120 bytes left
+
+[[stage]]
+id = "s4-gamelib-gui"
+title = "Gamelib and GUI"
+why = "Audio, menus, cutscenes, terrain and debris: the remaining shared layer below the game units."
+
+[[stage.item]]
+id = "audio-1"
+functions = [
+  "fn_8006624C",
+  "fn_80066294",
+  "fn_80066328",
+  "fn_8006638C",
+  "fn_800663D8",
+  "fn_800663F0",
+  "fn_80066498",
+  "fn_80066524",
+  "fn_80067114",
+  "fn_80067294",
+  "edobjConvertPathToAnim",
+  "fn_80068CB8",
+  "fn_80068DE0",
+  "fn_80068F14",
+  "fn_80069810",
+  "fn_800698B8",
+  "fn_8006998C",
+  "fn_80069ACC",
+  "fn_80069C40",
+]
+# at revision 1: 19 functions, 17,344 bytes left
+
+[[stage.item]]
+id = "audio-2"
+functions = [
+  "fn_8006A6C8",
+  "fn_8006AD0C",
+  "fn_8006AE9C",
+  "fn_8006B03C",
+  "fn_8006B1E0",
+  "PauseMenu_HandleEntry1",
+  "fn_8006B328",
+  "fn_8006BA54",
+  "fnAudioSample",
+  "fn_8006C54C",
+  "fn_8006C65C",
+  "fn_8006C748",
+  "fn_8006C9E0",
+  "fn_8006CC1C",
+  "fn_8006CF50",
+  "fn_8006D1BC",
+  "fn_8006D4F0",
+  "fn_8006D69C",
+  "fn_8006DA58",
+  "fn_8006DAC8",
+  "fn_8006DCD4",
+  "fn_8006DD1C",
+  "fn_8006DD70",
+  "fn_8006DE5C",
+  "fn_8006DE88",
+  "fn_8006DEB8",
+  "fn_8006DF1C",
+  "fn_8006DF68",
+  "fn_8006E1EC",
+  "fn_8006E288",
+  "fn_8006E2CC",
+  "fn_8006E37C",
+  "fn_8006E394",
+  "fn_8006E3E0",
+]
+# at revision 1: 34 functions, 16,136 bytes left
+
+[[stage.item]]
+id = "apimenu-1"
+functions = [
+  "fn_80072028",
+  "fn_80072410",
+  "fn_80072D10",
+  "fn_8007373C",
+  "fn_80074374",
+  "fn_8007452C",
+  "fn_800746F8",
+  "fn_80074840",
+  "fn_80074880",
+  "fn_80074934",
+  "fn_80074A1C",
+  "fn_80074C00",
+  "fn_80074D14",
+  "fn_80074DDC",
+  "fn_80074F48",
+]
+# at revision 1: 15 functions, 13,944 bytes left
+
+[[stage.item]]
+id = "apimenu-2"
+functions = [
+  "fn_80075760",
+  "fn_80075B44",
+  "fn_80075C78",
+  "Menu_Open",
+  "Menu_CloseCurrent",
+  "fn_80076194",
+  "Menu_OpenFromRegistry",
+  "fn_800769B4",
+  "fn_80076B94",
+  "Menu_OpenSpecial",
+  "fn_80076DF0",
+  "fn_80077038",
+  "fn_80077148",
+  "fn_80077274",
+  "fn_80077340",
+  "fn_80077480",
+  "fn_800775B4",
+  "fn_80077770",
+  "fn_800778F0",
+  "fn_80077AD4",
+  "fn_80077C34",
+  "fn_80077D54",
+  "fn_80077E9C",
+  "fn_800780C0",
+  "fn_8007818C",
+  "fn_800783B8",
+  "fn_800787B4",
+  "fn_8007890C",
+  "fn_80078A44",
+  "fn_80078B5C",
+  "Menu_RegisterDescriptors",
+]
+# at revision 1: 31 functions, 13,660 bytes left
+
+[[stage.item]]
+id = "save"
+units = ["auto/gui/gamemenu/apisave", "auto/gamelib/ngc/saveload"]
+# at revision 1: 35 functions, 12,412 bytes left
+
+[[stage.item]]
+id = "gcutscn"
+units = ["auto/gamelib/gcutscn"]
+# at revision 1: 27 functions, 18,260 bytes left
+
+[[stage.item]]
+id = "terrain-1"
+functions = [
+  "fn_80049DC0",
+  "fn_80049F24",
+  "fn_8004A2AC",
+  "fn_8004A578",
+  "fn_8004A6A4",
+  "HVQM4PlayerExViRetrace",
+  "fn_8004ACF0",
+  "fn_8004ADE0",
+  "fn_8004AEB4",
+  "fn_8004AF88",
+  "HVQM4BufaSetFree",
+  "HVQM4BufaGetFree",
+  "HVQM4BufaGetSend",
+  "fn_8004B2B0",
+  "HVQM4BufvGetFree",
+  "HVQM4BufvGetDisp",
+  "fn_8004B66C",
+  "fn_8004B79C",
+  "fn_8004B8F0",
+  "fn_8004BAB4",
+  "fn_8004BC1C",
+  "fn_8004BD4C",
+  "fn_8004BE2C",
+  "ReadTerrain",
+  "TerrainInitEx",
+  "fn_8004D4D0",
+  "fn_8004D600",
+  "fn_8004DB9C",
+  "fn_8004DE90",
+  "fn_8004E434",
+  "SkinPlatform",
+  "fn_8004EFB4",
+  "fn_8004F164",
+  "fn_8004F240",
+  "fn_8004F6B8",
+]
+# at revision 1: 35 functions, 22,508 bytes left
+
+[[stage.item]]
+id = "terrain-2"
+functions = [
+  "NewScanRot",
+  "fn_80050C5C",
+  "fn_80051908",
+  "fn_80052224",
+  "fn_8005241C",
+  "fn_80052590",
+  "fn_80052CAC",
+  "fn_800533F8",
+  "fn_80053860",
+  "fn_80053D70",
+]
+# at revision 1: 10 functions, 23,980 bytes left
+
+[[stage.item]]
+id = "terrain-3"
+functions = [
+  "fn_8005592C",
+  "fn_800559FC",
+  "fn_80055C64",
+  "fn_80056A38",
+  "fn_80056B88",
+  "fn_80056E88",
+  "fn_800581A8",
+  "fn_80058BE0",
+  "fn_80058F04",
+  "fn_80058FD8",
+  "fn_80059300",
+  "fn_80059C44",
+  "fn_80059EA4",
+  "fn_8005A160",
+  "fn_8005A338",
+]
+# at revision 1: 15 functions, 19,124 bytes left
+
+[[stage.item]]
+id = "debris-1"
+functions = [
+  "fn_8005A470",
+  "fn_8005A8E4",
+  "fn_8005ACFC",
+  "fn_8005B0BC",
+  "fn_8005B56C",
+  "fn_8005B9DC",
+  "fn_8005BE2C",
+  "fn_8005C29C",
+  "fn_8005C6C8",
+  "fn_8005CB34",
+  "fn_8005CDF4",
+  "fn_8005D6E4",
+  "fn_8005D8BC",
+  "fn_8005D9C0",
+  "fn_8005DA6C",
+  "fn_8005E2EC",
+  "fn_8005E80C",
+  "fn_8005EB80",
+  "fn_8005ECC8",
+  "fn_8005EF6C",
+  "fn_8005F114",
+  "fn_8005F254",
+  "fn_8005FF74",
+]
+# at revision 1: 23 functions, 22,828 bytes left
+
+[[stage.item]]
+id = "debris-2"
+functions = [
+  "fn_80060120",
+  "fn_800608E0",
+  "fn_80060BF8",
+  "fn_80060F58",
+  "fn_80061454",
+  "fn_800621C8",
+  "fn_800622F0",
+  "fn_80062B38",
+  "fn_80062DA0",
+  "fn_80062FF8",
+  "fn_800631DC",
+  "fn_800633A4",
+  "NuAnimCurveSetApplyToJointBasic",
+  "fn_80063834",
+  "fn_80063A58",
+  "fn_80063BCC",
+  "fn_80064088",
+  "fn_800641F8",
+  "fn_8006436C",
+  "fn_800644E4",
+  "fn_800645CC",
+  "fn_80064670",
+  "fn_80064730",
+  "GenDebMomAdjFromPosRevTree",
+  "fn_80064E6C",
+  "fn_80065820",
+  "fn_800659B8",
+  "fn_80065AE0",
+  "fn_80065C14",
+]
+# at revision 1: 29 functions, 22,504 bytes left
+
+[[stage]]
+id = "s5a-game-small"
+title = "Smaller game units"
+why = "Game units under 40 KB left; most have JP PC pairs."
+
+[[stage.item]]
+id = "main"
+units = ["auto/game/main"]
+# at revision 1: 15 functions, 14,912 bytes left
+
+[[stage.item]]
+id = "pickups-turret"
+units = ["auto/game/pickups", "auto/game/turret", "auto/game/rtlif"]
+# at revision 1: 17 functions, 10,860 bytes left
+
+[[stage.item]]
+id = "credits"
+units = ["auto/game/credits"]
+# at revision 1: 27 functions, 13,180 bytes left
+
+[[stage.item]]
+id = "cut"
+units = ["auto/game/cut"]
+# at revision 1: 38 functions, 13,264 bytes left
+
+[[stage.item]]
+id = "chris"
+units = ["auto/game/chris"]
+# at revision 1: 43 functions, 22,888 bytes left
+
+[[stage.item]]
+id = "creature-1"
+functions = [
+  "fn_800A2100",
+  "fn_800A2370",
+  "fn_800A2498",
+  "fn_800A2A9C",
+  "fn_800A2D48",
+  "ResetPlayerContexts",
+  "fn_800A30A8",
+  "fn_800A3224",
+  "CurrentStart",
+  "InitPlayerShadow",
+  "fn_800A3650",
+  "fn_800A39A8",
+  "fn_800A41D8",
+  "fn_800A45BC",
+  "fn_800A474C",
+  "fn_800A489C",
+  "fn_800A4C78",
+  "ResetAICreature",
+  "ResetAICreatures",
+  "fn_800A55D4",
+  "fn_800A5A3C",
+  "fn_800A5C64",
+  "fn_800A5DBC",
+  "fn_800A616C",
+  "fn_800A647C",
+  "MovePlayer",
+]
+# at revision 1: 26 functions, 21,932 bytes left
+
+[[stage.item]]
+id = "creature-2"
+functions = [
+  "fn_800A76AC",
+  "fn_800A8DAC",
+  "fn_800A8FF4",
+  "fn_800A9794",
+  "fn_800AA178",
+  "fn_800AA2F4",
+  "fn_800AA4A8",
+  "fn_800AAA2C",
+  "fn_800AAC04",
+  "fn_800AAF44",
+  "fn_800AB2B0",
+  "fn_800AB534",
+]
+# at revision 1: 12 functions, 15,540 bytes left
+
+[[stage.item]]
+id = "podrace-1"
+functions = [
+  "fn_80146194",
+  "CollideBoltStarFighter",
+  "fn_80146588",
+  "fn_80146B8C",
+  "fn_80146CA4",
+  "fn_80146D5C",
+  "fn_80146F20",
+  "Shop_InitShelfItemPositions",
+  "Shop_InitExtras",
+  "Shop_InitCodeChars",
+  "Shop_Init",
+  "BuyShopItem",
+  "SelectShopItem",
+  "MoveSubItemsRight",
+  "MoveSubItemsLeft",
+  "Shop_UpdateSubMenu",
+  "Shop_UpdateMainMenu",
+  "Shop_UpdateMenu",
+  "Shop_UpdateCodes",
+  "Shop_DrawCodeBuyFeedback",
+  "DrawTopShelf",
+  "Shop_DrawCodes",
+]
+# at revision 1: 22 functions, 18,536 bytes left
+
+[[stage.item]]
+id = "podrace-2"
+functions = [
+  "fn_8014ABAC",
+  "Shop_DrawSubMenuTitle",
+  "Shop_DrawSubMenu3D",
+  "fn_8014BBE0",
+  "fn_8014BEB0",
+  "fn_8014BFEC",
+  "fn_8014C20C",
+  "fn_8014C8B0",
+  "fn_8014CAE8",
+  "fn_8014D0A8",
+  "fn_8014D1F8",
+  "PodraceCreateMine",
+  "fn_8014D5A0",
+  "fn_8014D7C8",
+  "fn_8014DA40",
+  "fn_8014DB7C",
+  "fn_8014DDEC",
+  "PodraceUpdateStartLights",
+  "fn_8014E9B8",
+  "fn_8014EBBC",
+  "fn_8014ECEC",
+  "fn_8014F058",
+  "PodraceLoadSplineSettings",
+  "PodraceUpdateMine",
+  "fn_8014FDC8",
+]
+# at revision 1: 25 functions, 18,180 bytes left
+
+[[stage]]
+id = "s5b-levels"
+title = "Levels"
+why = "auto/game/levels, in address-ordered slices of about 20 KB; 92 KB of it has JP PC pairs."
+
+[[stage.item]]
+id = "levels-1"
+functions = [
+  "fn_800AB8C8",
+  "fn_800AB9F4",
+  "fn_800ABB94",
+  "fn_800ABDAC",
+  "fn_800ABE30",
+  "fn_800ABEB0",
+  "NewRumble",
+  "fn_800AC058",
+  "NewRumbleAllPlayers",
+  "LoadCharacterScene",
+  "fn_800AC384",
+  "PauseMenu_HandleEntry2",
+  "fn_800AC534",
+  "fn_800AC698",
+  "fn_800AC7AC",
+  "fn_800AC85C",
+  "fn_800AC8C8",
+  "fn_800ACAF8",
+  "fn_800ACCC8",
+  "NuPs2CreateSkinNorm",
+  "fn_800AD4C4",
+  "fn_800AFDC0",
+  "fn_800AFF58",
+  "fn_800B00B8",
+  "fn_800B01C4",
+  "NuHGobjRndrMtxDwa",
+  "Menu_Unknown4_HandleSelection",
+  "Menu_Unknown4_BuildOptions",
+  "Menu_Unknown5_BuildOptions",
+  "Menu_Unknown1_HandleSelection",
+]
+# at revision 1: 30 functions, 20,512 bytes left
+
+[[stage.item]]
+id = "levels-2"
+functions = [
+  "Menu_Unknown1_BuildOptions",
+  "Menu_Unknown6_HandleSelection",
+  "DebugMenu_HandleSelection",
+  "DebugMenu_BuildOptions",
+  "Menu_Unknown9_HandleSelection",
+  "Menu_Unknown9_BuildOptions",
+  "fn_800B203C",
+  "PauseMenu_HandleSelection",
+  "PauseMenu_BuildOptions",
+  "Menu_Unknown3_BuildOptions",
+  "SceneSelect_BuildOptions",
+  "Menu_Unknown13_BuildOptions",
+  "Menu_Unknown16_HandleSelection",
+  "fn_800B2F10",
+  "Menu_Unknown4_Enter",
+  "Menu_Unknown9_Enter",
+  "Menu_Main_BuildOptions",
+  "Menu_Unknown11_BuildOptions",
+  "Menu_Unknown10_BuildOptions",
+  "Menu_Unknown12_BuildOptions",
+  "MakeTime",
+  "fn_800B3980",
+  "Menu_InitDefinitions",
+  "fn_800B43F0",
+  "Menu_NavigateForward",
+  "fn_800B4758",
+  "fn_800B4834",
+  "fn_800B4974",
+  "fn_800B4A88",
+  "DaveSetSoundFadeDist",
+  "CheckResetBits",
+  "fn_800B57DC",
+  "fn_800B594C",
+  "fn_800B5D00",
+  "BoltDebris",
+  "BoltHitPlat",
+  "BoltHitGameObjects",
+]
+# at revision 1: 37 functions, 21,376 bytes left
+
+[[stage.item]]
+id = "levels-3"
+functions = [
+  "fn_800B6BBC",
+  "AddBolt",
+  "UpdateBolts",
+  "fn_800B7F70",
+  "fn_800B836C",
+  "fn_800B87BC",
+  "fn_800B8BD4",
+  "DeflectPart",
+  "PartCollide",
+  "PartKill_ForceThrow",
+  "fn_800B9928",
+  "fn_800B9974",
+  "fn_800B99D0",
+  "fn_800B9B6C",
+  "fn_800B9D44",
+  "fn_800B9DC8",
+  "fn_800B9E4C",
+  "fn_800B9F38",
+  "fn_800BA014",
+  "fn_800BA1AC",
+  "fn_800BA2E8",
+  "fn_800BA390",
+  "fn_800BA480",
+  "fn_800BA584",
+  "fn_800BA6AC",
+  "fn_800BA74C",
+  "fn_800BA87C",
+  "fn_800BB20C",
+  "fn_800BB3FC",
+  "fn_800BB5A8",
+  "fn_800BB7CC",
+  "fn_800BBAE4",
+  "GunganAInit",
+  "fn_800BC1A8",
+]
+# at revision 1: 34 functions, 20,148 bytes left
+
+[[stage.item]]
+id = "levels-4"
+functions = [
+  "fn_800BC4FC",
+  "fn_800BCFAC",
+  "fn_800BD100",
+  "MaulFUpdate",
+  "fn_800BE8E8",
+  "fn_800BE9B0",
+  "fn_800BEC64",
+  "KaminoCInit",
+  "KaminoCReset",
+  "fn_800BF2CC",
+  "fn_800BFF08",
+  "KaminoEReset",
+  "fn_800C03BC",
+  "fn_800C04C4",
+  "fn_800C0EC0",
+  "FactoryGUpdate",
+  "fn_800C169C",
+  "JediBInitLocator",
+  "fn_800C1F54",
+  "JediBReset",
+  "fn_800C267C",
+  "JediB_StartPhase",
+  "fn_800C2D14",
+  "fn_800C2F20",
+  "fn_800C3054",
+]
+# at revision 1: 25 functions, 21,336 bytes left
+
+[[stage.item]]
+id = "levels-5"
+functions = [
+  "fn_800C38E8",
+  "fn_800C3A24",
+  "UpdatePulses",
+  "fn_800C42A0",
+  "CruiserCUpdate",
+  "fn_800C48A4",
+  "fn_800C4978",
+  "fn_800C4A8C",
+  "fn_800C4C4C",
+  "fn_800C5174",
+  "fn_800C525C",
+  "fn_800C5640",
+  "fn_800C582C",
+  "fn_800C5A10",
+  "Action_BoulderSection",
+  "fn_800C6094",
+  "VaderAStartCollapseStage",
+  "fn_800C6430",
+  "fn_800C67B8",
+  "fn_800C6900",
+  "NuHazeInit",
+  "InitMapAI",
+  "GetTableLocator",
+  "GetCounterLocator",
+  "CallDexter",
+  "UpdateMapAI",
+  "MapEGoneThroughDoor",
+  "fn_800C8014",
+  "fn_800C88E0",
+  "fn_800C8CE4",
+  "fn_800C8E38",
+  "fn_800C910C",
+  "fn_800C9238",
+]
+# at revision 1: 33 functions, 18,652 bytes left
+
+[[stage.item]]
+id = "levels-6"
+functions = [
+  "fn_800C9648",
+  "CheckDoors",
+  "fn_800C9E44",
+  "fn_800CA018",
+  "fn_800CA388",
+  "fn_800CA4AC",
+  "NuHGobjEvalAnim",
+  "LoadWorldInfo",
+  "fn_800CB8F0",
+  "fn_800CBD6C",
+  "fn_800CBF60",
+  "fn_800CC0F8",
+  "fn_800CC284",
+  "fn_800CC31C",
+  "fn_800CC450",
+  "fn_800CC558",
+  "fn_800CC628",
+  "fn_800CC6FC",
+  "fn_800CC764",
+  "fn_800CC830",
+  "fn_800CC8BC",
+  "fn_800CCA04",
+  "fn_800CCA80",
+  "fn_800CD608",
+  "fn_800CE080",
+  "fn_800CE9DC",
+  "VaderAInit",
+  "fn_800CF238",
+  "fn_800CF3D8",
+  "MoveSplinePosition",
+  "fn_800CF9D8",
+  "fn_800CFBFC",
+  "fn_800CFD80",
+  "fn_800CFE08",
+  "fn_800CFEE8",
+  "SeekRot",
+  "fn_800D0030",
+  "InitSplinePosition",
+  "fn_800D01C4",
+  "fn_800D02E4",
+  "fn_800D04BC",
+  "fn_800D05E0",
+  "fn_800D07B0",
+  "fn_800D0964",
+]
+# at revision 1: 44 functions, 21,088 bytes left
+
+[[stage.item]]
+id = "levels-7"
+functions = [
+  "fn_800D1174",
+  "NuCameraSet",
+  "Player_UpdateState",
+  "fn_800D197C",
+  "PodCollision",
+  "fn_800D2AF0",
+  "fn_800D2C5C",
+  "fn_800D3054",
+  "PlayerTakeHit",
+  "fn_800D3814",
+  "KillParts",
+  "ObjHitObj",
+  "ObjHitShield",
+  "fn_800D4A50",
+  "fn_800D4D64",
+  "fn_800D4DAC",
+  "fn_800D4F70",
+  "fn_800D50B8",
+  "fn_800D515C",
+  "fn_800D5264",
+  "fn_800D5378",
+  "fn_800D5420",
+  "CreatureCrate_Stop",
+  "fn_800D5580",
+  "fn_800D5680",
+  "fn_800D59F0",
+  "fn_800D5EC8",
+  "fn_800D6028",
+  "fn_800D6968",
+]
+# at revision 1: 29 functions, 20,052 bytes left
+
+[[stage.item]]
+id = "levels-8"
+functions = [
+  "fn_800D6C50",
+  "fn_800D6F58",
+  "NuRndrGrassGobj",
+  "fn_800D756C",
+  "fn_800D7B64",
+  "fn_800D7ED8",
+  "fn_800D8038",
+  "fn_800D8664",
+  "fn_800D875C",
+  "fn_800D88B8",
+  "fn_800D8B70",
+  "fn_800D9100",
+  "fn_800D9264",
+  "fn_800D93AC",
+  "fn_800D94D0",
+  "fn_800D963C",
+  "fn_800D98F0",
+  "fn_800D99C8",
+  "fn_800D9BB8",
+  "fn_800DA478",
+]
+# at revision 1: 20 functions, 20,012 bytes left
+
+[[stage]]
+id = "s5c-obstacle"
+title = "Obstacle"
+why = "auto/game/obstacle, in address-ordered slices of about 20 KB."
+
+[[stage.item]]
+id = "obstacle-1"
+functions = [
+  "fn_800DBDE0",
+  "fn_800DC454",
+  "fn_800DCB80",
+  "fn_800DCFC4",
+  "fn_800DD1C8",
+  "fn_800DF1AC",
+  "fn_800DF25C",
+  "fn_800DF2D4",
+  "fn_800DF360",
+  "fn_800DF6A0",
+  "fn_800DF8A8",
+  "fn_800DFAB0",
+  "fn_800DFC04",
+  "fn_800E0518",
+  "fn_800E0790",
+]
+# at revision 1: 15 functions, 21,564 bytes left
+
+[[stage.item]]
+id = "obstacle-2"
+functions = [
+  "Map_FixUpMiniKits",
+  "fn_800E1564",
+  "fn_800E1850",
+  "fn_800E1D0C",
+  "fn_800E1F88",
+  "fn_800E2220",
+  "fn_800E2398",
+  "fn_800E25A0",
+  "fn_800E2770",
+  "fn_800E283C",
+  "fn_800E2944",
+  "fn_800E2D08",
+  "fn_800E33CC",
+  "fn_800E346C",
+  "fn_800E3928",
+  "SetCharacterSfxBits",
+  "SetLevelSfxBits",
+  "fn_800E4DF4",
+  "fn_800E5454",
+  "fn_800E5714",
+  "fn_800E595C",
+  "fn_800E5C14",
+  "fn_800E6394",
+  "fn_800E652C",
+  "ApplyGravity",
+]
+# at revision 1: 25 functions, 20,280 bytes left
+
+[[stage.item]]
+id = "obstacle-3"
+functions = [
+  "ResetCode",
+  "ForceTowardsMid",
+  "CatchUpCode",
+  "NuHGobjEvalAnimBlend",
+  "fn_800E7684",
+  "MovePlayer_GUNSHIPIN",
+  "MovePlayer_IN",
+  "fn_800E82B8",
+  "fn_800E83E4",
+  "fn_800E8910",
+  "fn_800E8B1C",
+  "MovePlayer_PIVOT",
+  "MovePlayer_ROTATIONAL",
+  "MovePlayer_CIRCLE",
+  "fn_800EAD30",
+  "fn_800EB1F0",
+  "fn_800EB3B8",
+]
+# at revision 1: 17 functions, 19,808 bytes left
+
+[[stage.item]]
+id = "obstacle-4"
+functions = [
+  "ZipUpCode",
+  "fn_800EBD40",
+  "fn_800EBF2C",
+  "fn_800EC1C8",
+  "fn_800EC2F4",
+  "fn_800EC68C",
+  "fn_800ECC68",
+  "fn_800ECE68",
+  "fn_800ED214",
+  "fn_800ED648",
+  "fn_800EF000",
+  "NuMtxToQuat",
+  "BigJumpCode",
+  "fn_800EFE7C",
+  "fn_800F01C4",
+  "fn_800F0504",
+  "StartBlock",
+  "fn_800F08B0",
+  "NuShaderSetLightConstants",
+]
+# at revision 1: 19 functions, 20,648 bytes left
+
+[[stage.item]]
+id = "obstacle-5"
+functions = [
+  "fn_800F1220",
+  "fn_800F13BC",
+  "LightSabreLightCode",
+  "fn_800F22E4",
+  "SwipeCode",
+  "ForceCode",
+  "fn_800F4E8C",
+  "ForcePushCode",
+  "fn_800F5C34",
+]
+# at revision 1: 9 functions, 22,200 bytes left
+
+[[stage.item]]
+id = "obstacle-6"
+functions = [
+  "fn_800F68D8",
+  "fn_800F6C98",
+  "fn_800F7160",
+  "fn_800F72B8",
+  "ForcedBackCode",
+  "fn_800F78FC",
+  "fn_800F7B44",
+  "fn_800F8618",
+  "fn_800F87C4",
+  "JangoRocket_Move",
+  "fn_800F9374",
+  "fn_800F99D4",
+  "ZapCode",
+  "fn_800FA720",
+  "FindLock",
+  "InterfaceCode",
+  "fn_800FAE64",
+  "fn_800FB024",
+  "fn_800FB6B0",
+]
+# at revision 1: 19 functions, 19,432 bytes left
+
+[[stage.item]]
+id = "obstacle-7"
+functions = [
+  "fn_800FBB08",
+  "fn_800FBF98",
+  "fn_800FC1BC",
+  "fn_800FC39C",
+  "FallLandCode",
+  "fn_800FC72C",
+  "fn_800FC98C",
+  "Move_JEDI",
+  "fn_800FD538",
+  "Move_YODA",
+  "fn_800FDDF4",
+  "fn_800FE2A0",
+  "Move_ASTROMECH",
+  "fn_800FE878",
+  "fn_800FF014",
+  "Move_DROIDEKA",
+  "Move_JEDISTARFIGHTER",
+  "fn_800FF9FC",
+  "Move_PROTOCOL",
+  "fn_80100218",
+  "Move_POD",
+  "fn_80100910",
+  "Move_KAADU",
+  "fn_80100C38",
+  "fn_80100D5C",
+  "fn_80100E94",
+  "Move_REPUBLICGUNSHIP",
+  "fn_801013FC",
+  "fn_801016E8",
+  "fn_801018F4",
+  "Move_GEONOSIAN",
+]
+# at revision 1: 31 functions, 19,880 bytes left
+
+[[stage.item]]
+id = "obstacle-8"
+functions = [
+  "fn_80101F04",
+  "fn_80102258",
+  "fn_80102400",
+  "fn_801026C4",
+  "fn_8010286C",
+  "fn_80102BE0",
+  "fn_801031E0",
+  "SetHeadTarget",
+  "fn_80103794",
+  "fn_801038E8",
+  "fn_80103A78",
+  "fn_80103BC8",
+  "fn_80103D18",
+  "fn_80103ED8",
+  "fn_801041D0",
+  "fn_801042D4",
+  "fn_80104E24",
+  "fn_8010500C",
+  "fn_80105194",
+  "fn_801052F0",
+  "fn_80105500",
+  "fn_801056B0",
+  "InitObstacles",
+  "fn_80105A04",
+  "fn_80105C74",
+  "fn_80105DEC",
+  "fn_80106128",
+  "CheckObstacles",
+  "fn_8010682C",
+  "OpenDoorObstacle",
+  "CloseDoorObstacle",
+  "UpdateDoorObstacleAllPlayers",
+  "fn_801070BC",
+  "DebugMenu_HandleEntry2",
+  "fn_80107828",
+  "fn_80107A6C",
+  "fn_80107BFC",
+  "fn_80107DA4",
+  "fn_8010859C",
+  "fn_80108878",
+  "ObjectControllerCreate",
+]
+# at revision 1: 41 functions, 20,516 bytes left
+
+[[stage]]
+id = "s5d-config-force"
+title = "Config and force"
+why = "Neither unit has a source file: scaffold, then match; config is 21 large functions, nearly all JP PC paired."
+
+[[stage.item]]
+id = "force-1"
+functions = [
+  "SetupForceGlobalArray",
+  "fn_8011F8E4",
+  "fn_8011FB44",
+  "fn_8011FCCC",
+  "fn_801205AC",
+  "fn_8012073C",
+  "fn_801209A4",
+  "fn_80120AEC",
+  "fn_80120EF8",
+  "fn_80121724",
+  "fn_8012184C",
+  "fn_801220A8",
+  "fn_8012228C",
+]
+note = "No source file yet: the first slice scaffolds src/auto/game/force.c."
+# at revision 1: 13 functions, 17,708 bytes left
+
+[[stage.item]]
+id = "force-2"
+functions = [
+  "fn_801236A8",
+  "fn_801237E4",
+  "fn_80123B34",
+  "fn_80123E98",
+  "fn_80124438",
+  "fn_80124930",
+  "ProcessForceObject",
+  "fn_801258B4",
+  "fn_801259EC",
+  "SmashForce",
+  "fn_80125EA8",
+  "fn_801261FC",
+  "fn_8012647C",
+  "fn_80126584",
+  "fn_8012676C",
+  "fn_801268CC",
+  "fn_801269AC",
+  "fn_80126A54",
+  "fn_80126A84",
+  "fn_80126B44",
+  "fn_80126BF0",
+  "fn_80126C6C",
+  "RattleForce",
+  "fn_80126E74",
+  "fn_80126EC8",
+  "fn_80126F7C",
+  "fn_80126FDC",
+  "fn_8012708C",
+  "LoadForceFile",
+  "fn_801271A0",
+]
+note = "No source file yet: the first slice scaffolds src/auto/game/force.c."
+# at revision 1: 30 functions, 15,268 bytes left
+
+[[stage.item]]
+id = "config-1"
+functions = [
+  "fn_8010C570",
+  "fn_8010C8C8",
+  "fn_8010C920",
+  "fn_8010CA18",
+  "ConfigureLevelBeforeLoad",
+  "fn_8010CCA0",
+  "ConfigureLevelAfterLoad",
+]
+note = "No source file yet: the first slice scaffolds src/auto/game/config.c."
+# at revision 1: 7 functions, 28,024 bytes left
+
+[[stage.item]]
+id = "config-2"
+functions = [
+  "ExtractAnimEffectEntries",
+  "fn_80114874",
+  "fn_80114AE8",
+]
+note = "No source file yet: the first slice scaffolds src/auto/game/config.c."
+# at revision 1: 3 functions, 15,620 bytes left
+
+[[stage.item]]
+id = "config-3"
+functions = [
+  "ConfigureAllCharacters",
+  "ConfigureCutScene",
+  "ConfigureBlupUps",
+  "ConfigureDoorTriggers",
+  "ConfigureZipUps",
+  "ConfigureRippleEffects",
+  "ConfigureForceSfx",
+  "ConfigureTubes",
+  "ConfigureSfxRemove",
+  "fn_8011A83C",
+  "LoadLevelConfigFile",
+]
+note = "No source file yet: the first slice scaffolds src/auto/game/config.c."
+# at revision 1: 11 functions, 14,864 bytes left
+
+
+[[stage]]
+id = "s7-data"
+title = "Data"
+why = "Initialised data, .rodata and .bss ownership not already promoted with code units."
+
+[[stage.item]]
+id = "data"
+data = true
+note = "Most data comes with promoting units in stages 0-5; .rodata ownership also unblocks code-identical functions that fail --strict-symbols on string addresses."
+# at revision 1: 2,490,232 data bytes left
