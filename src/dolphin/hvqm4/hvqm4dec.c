@@ -528,20 +528,23 @@ s16 _readTree(HVQTree* tree, HVQBitBuffer* buf) {
 }
 
 s16 getByte(HVQBitBuffer* buf) {
-    s32 bit = buf->bit;
     u32 value;
+    s32 bit = buf->bit;
 
     if (bit >= 7) {
-        value = buf->value >> (bit - 7);
+        value = buf->value;
+        value >>= bit - 7;
         bit -= 8;
     } else {
-        value = buf->value << (7 - bit);
+        value = buf->value;
+        value <<= 7 - bit;
         buf->value = *buf->ptr++;
         value |= buf->value >> (bit + 25);
         bit += 24;
     }
     buf->bit = bit;
-    return (u8)value;
+    value &= 0xFF;
+    return (s16)value;
 }
 
 void Ipic_BasisNumDec(HVQState* state) {
@@ -682,7 +685,6 @@ void IpicDcvDec(HVQState* state) {
 s32 getBit(HVQBitBuffer* buf) {
     s32 bit = buf->bit;
     u32 value;
-    s32 ret;
 
     if (bit < 0) {
         value = *buf->ptr++;
@@ -691,9 +693,9 @@ s32 getBit(HVQBitBuffer* buf) {
     } else {
         value = buf->value;
     }
-    ret = (value >> bit) & 1;
+    value = (value >> bit) & 1;
     buf->bit = bit - 1;
-    return ret;
+    return value;
 }
 
 s32 decodeHuff(HVQBitTree* bt) {
@@ -1884,8 +1886,9 @@ void HVQM4DecodeIpic(HVQSeqObj* obj, HVQIpicHeader* hdr, s32 dst) {
     Ipic_BasisNumDec(state);
     IpicDcvDec(state);
     MakeNest(state, hdr->width, hdr->height);
+    i = 0;
     plane = state->planes;
-    for (i = 0; i < 3; i++) {
+    for (; i < 3; i++) {
         IpicPlaneDec(state, i, (u8*)dst);
         dst += plane->size;
         plane++;
