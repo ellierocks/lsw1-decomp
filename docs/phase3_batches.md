@@ -523,3 +523,67 @@ Next leads:
 - **Name collisions between sweep helpers.** Two branches each added a module-level
   `SWITCH` regex to `tools/sweep.py`; the later one silently shadowed the first, and
   only `test_switch_chain` caught it. Give new helper regexes specific names.
+
+## Sweep history
+
+Moved from the [strategy](strategy.md#phase-3-agent-draft-and-climb-for-game-code)
+"Automatic progress" paragraph, which now keeps only the method. The text below is as it
+stood on 2026-11-10; `python3 tools/kickoff.py` prints the current figures.
+
+`python3 tools/sweep.py --apply` collects mechanical matches.
+It drafts every ready
+target with m2c, strict-scores each draft and writes the matches into their units.
+m2c reads the preprocessed unit source as `--context`, so typed headers type the drafts;
+each target keeps the better of its typed and untyped drafts, and drafts at 80% exact or
+better also try the [store-in-arms and const `.rodata` rewrites](code_matching_workflow.md#measure-and-iterate).
+Each draft is also scored with its signature padded to the argument registers m2c
+numbered (`arg2` alone becomes `s32 pad0, s32 pad1, ... arg2`), keeping the better.
+Drafts are then repaired and rescored: m2c's guessed callee prototypes give way to the
+unit's or the repo's (call arguments trimmed or padded to match), a callee the target calls
+after `crclr`/`crset cr1eq` is declared variadic or unprototyped, and undeclared stack slots
+(`spC` beside `&sp8`) fold into an array. That cut failing drafts from 340 to 184. Each draft is also
+scored in a sized form (`M2C_SIZED_DEREFS=1`, `tools/patches/m2c-sized-derefs.patch`): a
+`*(a + b)` deref through integer arithmetic is cast to the loaded width, `*(u8 *)(a + b)`,
+which ProDG needs to pick `lbzx`/`lhzx`. Applied unconditionally it improved 186 drafts but
+worsened 49, so the sweep keeps whichever form scores better. Splicing a draft replaces the
+unit's `extern T name[];` placeholder with the function's prototype (`score_fn.py`
+`function_extern`), which cleared 20 "redeclared as different kind of symbol" errors. As of
+2026-11-08 a full sweep drafts 1,475 targets: 4 MATCH, 159 COMPILE-ERROR, 12 UNHANDLED. The
+largest remaining compile-error classes are undeclared `spXX` stack sub-fields (21), pointer
+conversions (16) and duplicate `case` values from m2c's nested switches (12). The pinned m2c carries
+`tools/patches/m2c-crfields.patch` (applied by `tools/fetch_m2c.sh`, idempotent): per-field
+`crN` bits, `cror`/`crand`/... folding, `mfcr` + `rlwinm` bit extraction, `rotlw`, and the
+GCC 2.95 carry idioms (`subfic/adde` = `x == 0`, `addic/subfe` = `-(y == 0)`, `subfic/subfe/neg`
+= `x >u K`). That took UNHANDLED targets from 359 functions (453 KB) to 38 (32 KB) and drafted
+about 257 KB of new code. The sweep also strips the varargs `stfd` prologue, declares
+unset-register and `saved_reg_*` reads as locals, adopts the unit's own prototype for the
+target and fixes callee arity from the unit's declarations. Where the repo has no prototype,
+the Mac LSW1 demo's mangled names supply parameter kinds (`tools/mac_protos.py`), kept only on a
+strictly better score. What stays UNHANDLED is recorded
+hand-work: paired-single code beyond the vector add/sub block (`ps_mul`/`madd`/`sum`/`merge`
+in `NuVecMagSqr`, `NuVecCross`, `NuVecMtxTransform`, `NuMtxMul`, `fn_8000EFE0`, and the
+`psq_l`/`psq_st` dumps in the runtime region past 0x801503A0), supervisor code (`mtmsr`,
+`mfspr HID`, BATs) and 64-bit carry pairs. The game's 8-instruction `psq_l`/`ps_add|ps_sub`/
+`psq_st` block (24 functions, mostly `chris`/`podrace`) is source-level inline asm:
+`src/numath/nuvec_ps.h` holds it as `NuVecAddPS`/`NuVecSubPS`, `fold_ps` turns each block into
+a call m2c can read and `fix_ps_calls` keeps the arguments to `(dst, a, b)`. That drafts all
+24 functions; `NuVecAdd`/`NuVecSub` match from it, and the rest still need typing. Many new drafts still fail to compile on `void *` member access, irregular
+switches and stack-address typing; those need the shared headers. The
+first sweep matched 183 functions (13,608 verified bytes) in under ten minutes of wall
+time, more than any agent sprint so far. Check its output with `bash build.sh` and
+`verify_fn.py --strict-symbols` on each applied function. Everything that did not match is
+ranked in `work/sweep/results.json` by size × exact-instruction ratio; that ranking is the
+candidate shortlist. Near-miss size and similarity can help prioritize search, but do
+not predict how difficult the remaining mismatch is. Rerun affected targets after
+header or tool changes. `sweep_permute.py --apply` searches the top near-misses
+(90% exact or better, largest first) with a per-function time limit and applies strict
+matches. These tools can be used whenever they help the task.
+
+**Full sweep of 2026-11-10 (#113).** Fresh task packs on current main: 1,486 ready targets,
+1,355 with a unit source: 2 MATCH (`fn_801272FC`, `fn_80044F28`, 356 bytes, both
+strict-verified), 1,162 MISMATCH, 179 COMPILE-ERROR, 12 UNHANDLED. Cold run, 10 min 39 s at
+`-j 14`. MISMATCH bands: >=90% exact 55 functions (14,432 bytes), 80-90% 110 (35,800),
+50-80% 540 (300,252), <50% 457 (377,872); COMPILE-ERROR 179 (258,376), UNHANDLED 12 (14,228).
+27 functions (39,408 bytes) that the previous results scored as MISMATCH became
+COMPILE-ERROR; for 20 of them a compiling draft still exists that the pipeline no longer
+reaches. 131 ready targets were skipped because their unit has no source file yet.
