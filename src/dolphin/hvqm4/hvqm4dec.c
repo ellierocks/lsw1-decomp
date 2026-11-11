@@ -3,7 +3,7 @@
  *
  * Provenance
  *  - Function bodies were matched against the retail GL5E4F code with Nintendo
- *    CodeWarrior GC/1.2.5n and the dolsdk2004 release flags (-O4,p -inline auto).
+ *    CodeWarrior GC/1.2.5 and the dolsdk2004 release flags (-O4,p -inline auto).
  *  - Starting points for several routines (setHVQPlaneDesc, HVQM4BuffSize,
  *    HVQM4SetBuffer, WeightImBlock, the half-pel motion helpers, IpicBlockDec,
  *    IpicLineDec and the plane/border bookkeeping) were adapted from the CC0
@@ -11,6 +11,11 @@
  *    PR #27), which targets the 1.3 library. LSW1 ships the 1.5 layout, so
  *    the structs differ (32-bit word bit reader, 0x1008-byte Huffman trees,
  *    0x6CD8-byte VideoState).
+ *  - Bodies, inline helpers and local types also adapt projectPiki/pikmin
+ *    (https://github.com/projectPiki/pikmin), commit
+ *    9a2163626a269ae7c699fc195cf91a5ca791044d, CC0-1.0,
+ *    src/hvqm4dec/hvqm4dec.c and include/hvqm4.h. GL5E4F accesses retain
+ *    the LSW1 types; donor Matching status is not LSW1 verification.
  *  - Algorithms and field meanings follow Tilka/hvqm4 (LGPLv2+,
  *    https://github.com/Tilka/hvqm4); no code from it is reproduced verbatim,
  *    only the documented bitstream and layout facts.
@@ -435,7 +440,7 @@ void _MotionComp_01(u8* dst, s32 dst_stride, u8* src, s32 src_stride);
 void _MotionComp_11(u8* dst, s32 dst_stride, u8* src, s32 src_stride);
 void decode_PB_cc(HVQState* state, HVQMCPlane* mc, s32 type, s32 base);
 void MCBlockDecBasis(HVQState* state, u8* dst, u8* src, u16 stride, u32 type, s32 base, u16 luma_stride, s32 plane_idx, s32 fx, s32 fy);
-s32 ReadBasisNibble(HVQState* state, u8* basis, s32* bits, s32 base, s32 nest_stride, s32 plane_idx);
+s32 ReadBasisNibble(HVQState* state, u8* basis, s32* bits, u8* base, s32 nest_stride, s32 plane_idx);
 void MCBlockDecMCNest(HVQState* state, HVQMCPlane* mc, s32 x, s32 y);
 void MCBlockDecDCNest(HVQState* state, HVQMCPlane* mc);
 void PpicPlaneDec(HVQSeqObj* obj, HVQMCPlane* mc);
@@ -456,8 +461,6 @@ void HVQM4DecodePcm16Ch1(u8* in, u8* out, u16 value, s32 samples, s32 frame);
 void HVQM4DecodePcm16Ch2(u8* in, u8* out, u16 value, s32 samples, s32 frame);
 void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 frame);
 
-
-
 /* .bss: 0x200-byte saturation table, then divTable[0x10] and mcdivTable[0x200] */
 static u8 satTable[0x200];
 static s32 divTable[0x10];
@@ -468,17 +471,32 @@ static const u8 hvqm4decTag[0x18] = {0, 0, 0, 0, 'h', 'v', 'q', 'm', '4', 'd', '
                                      ' ', '1', '.', '2', ' ', ' ', ' ', ' ', 0, 0, 0, 0};
 static const s32 mcbTypeNext[9] = {1, 2, 0, 2, 0, 1, 0, 0, 0};
 
-void HVQM4InitDecoder(void) {
-    s32 i;
-    s32 j;
-    for (i = 0, j = -0x80; i < 0x200; i++, j++) {
-        satTable[i] = j < 0 ? 0 : (j > 0xFF ? 0xFF : (u8)j);
+static inline u8 saturate(s32 x)
+{
+    if (x < 0) {
+        return 0;
+    } else if (x > 0xFF) {
+        return 0xFF;
+    } else {
+        return x;
     }
+}
+
+void HVQM4InitDecoder(void)
+{
+    int i;
+    int n;
+
+    for (i = 0, n = -0x80; i < 0x200; i++, n++) {
+        satTable[i] = saturate(n);
+    }
+
     divTable[0] = 0;
-    mcdivTable[0] = 0;
     for (i = 1; i < 0x10; i++) {
-        divTable[i] = (0x1000 / (i << 4)) << 4;
+        divTable[i] = 0x1000 / (i * 16) * 16;
     }
+
+    mcdivTable[0] = 0;
     for (i = 1; i < 0x200; i++) {
         mcdivTable[i] = 0x1000 / i;
     }
@@ -507,31 +525,28 @@ void setHVQPlaneDesc(HVQSeqObj* info, s32 plane_idx, u8 h_samp, u8 v_samp) {
     plane->pb_offset[2] = (plane->pb_offset[1] = plane->width * 4) + 4;
 }
 
-s16 _readTree(HVQTree* tree, HVQBitBuffer* buf) {
-    s16 sym;
+inline s32 getBit(HVQBitBuffer* buf)
+{
+    u32 value;
+    s32 bit;
 
-    if (getBit(buf)) {
-        s32 idx = tree->pos++;
-        tree->array[0][idx] = _readTree(tree, buf);
-        tree->array[1][idx] = _readTree(tree, buf);
-        return idx;
+    if ((bit = buf->bit) < 0) {
+        value = buf->value = *buf->ptr++;
+        bit               = 31;
+    } else {
+        value = buf->value;
     }
-    sym = getByte(buf);
-    {
-        s16 v = sym;
-        if (readTree_signed && sym > 0x7F) {
-            v -= 0x100;
-        }
-        tree->array[0][sym] = (s16)(v << readTree_scale);
-    }
-    return sym;
+
+    value      = value >> bit & 1;
+    buf->bit = bit - 1;
+    return value;
 }
 
-s16 getByte(HVQBitBuffer* buf) {
+inline s16 getByte(HVQBitBuffer* buf)
+{
     u32 value;
-    s32 bit = buf->bit;
-
-    if (bit >= 7) {
+    s32 bit;
+    if ((bit = buf->bit) >= 7) {
         value = buf->value;
         value >>= bit - 7;
         bit -= 8;
@@ -544,358 +559,441 @@ s16 getByte(HVQBitBuffer* buf) {
     }
     buf->bit = bit;
     value &= 0xFF;
-    return (s16)value;
-}
-
-void Ipic_BasisNumDec(HVQState* state) {
-    HVQBlock* blk;
-    HVQBlock* blk2;
-    s32 run;
-    u16 h;
-    u16 v;
-    s32 i;
-    s16 val;
-    HVQBitTree* num0;
-    HVQBitTree* run0;
-
-    num0 = &state->basis_num[0];
-    run0 = &state->basis_num_run[0];
-    run = 0;
-
-    blk = state->planes[0].payload;
-    h = state->planes[0].h_blocks;
-    v = state->planes[0].v_blocks;
-    while ((s32)v > 0) {
-        {
-            for (i = 0; i < h; i++) {
-                if (run == 0) {
-                    val = decodeHuff(num0);
-                    if (val == 0) {
-                        run = decodeHuff(run0);
-                    }
-                    blk->type = val;
-                    blk++;
-                } else {
-                    blk->type = 0;
-                    blk++;
-                    run--;
-                }
-            }
-        }
-        blk += 2;
-        v--;
-    }
-    num0 = &state->basis_num[1];
-    run0 = &state->basis_num_run[1];
-    blk = state->planes[1].payload;
-    blk2 = state->planes[2].payload;
-    h = state->planes[1].h_blocks;
-    v = state->planes[1].v_blocks;
-    run = 0;
-    while ((s32)v > 0) {
-        {
-            for (i = 0; i < h; i++) {
-                if (run == 0) {
-                    val = decodeHuff(num0);
-                    if (val == 0) {
-                        run = decodeHuff(run0);
-                    }
-                    blk->type = val & 0xF;
-                    blk++;
-                    blk2->type = ((u32)val >> 4) & 0xF;
-                    blk2++;
-                } else {
-                    blk->type = 0;
-                    run--;
-                    blk++;
-                    blk2->type = 0;
-                    blk2++;
-                }
-            }
-        }
-        blk += 2;
-        blk2 += 2;
-        v--;
-    }
-}
-
-void IpicDcvDec(HVQState* state) {
-    s32 i;
-    HVQPlane* plane;
-    HVQBitTree* dcv;
-    HVQBitTree* rle;
-
-    plane = &state->planes[0];
-    for (i = 0; i < 3; i++, plane++) {
-        u16 h = plane->h_blocks;
-        u8* dst = (u8*)plane->payload;
-        u16 v = plane->v_blocks;
-        s32 stride = plane->h_blocks_safe * 2;
-        s32 run = 0;
-
-        dcv = &state->dc_values[i];
-        rle = &state->dc_rle[i];
-        while ((s32)v > 0) {
-            u8* up = dst - stride;
-            u8 pred = *up;
-            u16 x = h;
-
-            while ((s32)x > 0) {
-                s32 diff;
-                u8 cur;
-
-                if (run == 0) {
-                    s32 max = state->dc_max;
-                    s32 d;
-                    s32 min = state->dc_min;
-
-                    diff = 0;
-                    do {
-                        do {
-                            d = decodeHuff(dcv);
-                            diff += d;
-                        } while (min >= d);
-                    } while (d >= max);
-                    if (diff == 0) {
-                        HVQTree* tree = rle->tree;
-                        s32 node = tree->root;
-
-                        while (node >= 0x100) {
-                            node = tree->array[getBit(&rle->buf)][node];
-                        }
-                        run = tree->array[0][node];
-                    }
-                } else {
-                    diff = 0;
-                    run--;
-                }
-                cur = pred + diff;
-                up += 2;
-                *dst = cur;
-                pred = (s32)(up[0] + (cur + 1)) >> 1;
-                x--;
-                dst += 2;
-            }
-            dst += 4;
-            v--;
-        }
-    }
-}
-
-s32 getBit(HVQBitBuffer* buf) {
-    s32 bit = buf->bit;
-    u32 value;
-
-    if (bit < 0) {
-        value = *buf->ptr++;
-        buf->value = value;
-        bit = 31;
-    } else {
-        value = buf->value;
-    }
-    value = (value >> bit) & 1;
-    buf->bit = bit - 1;
     return value;
 }
 
-s32 decodeHuff(HVQBitTree* bt) {
-    HVQTree* tree = bt->tree;
-    s32 node = tree->root;
+inline s32 decodeHuff(HVQBitTree* code)
+{
+    HVQTree* tree     = code->tree;
+    HVQBitBuffer* buf = &code->buf;
+    s32 point      = tree->root;
 
-    while (node >= 0x100) {
-        node = tree->array[getBit(&bt->buf)][node];
+    while (point >= 0x100) {
+        point = tree->array[getBit(buf)][point];
     }
-    return tree->array[0][node];
+
+    return tree->array[0][point];
 }
 
-void MakeNest(HVQState* state, s32 x, s32 y) {
-    u16 stride = state->planes[0].h_blocks_safe;
-    u16 hb = state->planes[0].h_blocks;
-    u16 nw = state->nest_stride;
-    u16 vb = state->planes[0].v_blocks;
-    HVQBlock* src = state->planes[0].payload + (x + y * stride);
-    s32 copy;
-    s32 mirror;
-    s32 zero;
-    s32 rcopy;
-    s32 rmirror;
-    s32 rzero;
-    u8* d;
-    u16 i;
-    u16 j;
-    u16 nh;
-    s32 r;
+static inline s32 decodeSOvfSym(HVQBitTree* buf, s32 range_min, s32 range_max)
+{
+    s32 ret = 0;
+    s32 num;
+    do {
+        num = decodeHuff(buf);
+        ret += num;
+    } while (!(range_min < num && num < range_max));
+    return ret;
+}
 
-    if ((s32)hb < (s32)nw) {
-        mirror = nw - hb;
-        copy = hb;
-        if (mirror > (s32)hb) {
-            mirror = hb;
-        }
-        zero = nw - (hb + mirror);
+static inline s32 decodeUOvfSym(HVQBitTree* code, s32 range_max)
+{
+    s32 ret = 0;
+    s32 num;
+
+    do {
+        num = decodeHuff(code);
+        ret += num;
+    } while (num >= range_max);
+
+    return ret;
+}
+
+static inline s32 getDeltaDC(HVQState* state, s32 c, s32* runln)
+{
+    s32 d;
+
+    if (*runln == 0) {
+        d = decodeSOvfSym(&state->dc_values[c], state->dc_min, state->dc_max);
+
+        if (d == 0)
+            *runln = decodeHuff(&state->dc_rle[c]);
+        return d;
     } else {
-        copy = nw;
-        zero = 0;
-        mirror = 0;
+        (*runln)--;
+        return 0;
     }
-    nh = state->nest_height;
-    if ((s32)vb < (s32)nh) {
-        rmirror = nh - vb;
-        rcopy = vb;
-        if (rmirror > (s32)vb) {
-            rmirror = vb;
-        }
-        rzero = nh - (vb + rmirror);
+}
+
+s16 _readTree(HVQTree* const dst, HVQBitBuffer* const buf)
+{
+    s32 node;
+    s16 no;
+    s16 val;
+    int unused[2];
+
+    if (getBit(buf)) {
+
+        node               = dst->pos++;
+        dst->array[0][node] = _readTree(dst, buf);
+        dst->array[1][node] = _readTree(dst, buf);
+        return node;
     } else {
-        rcopy = nh;
-        rzero = 0;
-        rmirror = 0;
+
+        no  = getByte(buf);
+        val = no;
+
+        if (readTree_signed && no > 0x7F) {
+            val -= 0x100;
+        }
+
+        val <<= readTree_scale;
+        dst->array[0][no] = val;
+        return no;
     }
-    d = state->nest_data;
-    r = rcopy;
-    while (r > 0) {
-        HVQBlock* s = src;
-        for (i = copy; (s32)i > 0; i--) {
-            *d++ = (s->value >> 4) & 0xF;
-            s++;
-        }
-        for (i = mirror; (s32)i > 0; i--) {
-            s--;
-            *d++ = (s->value >> 4) & 0xF;
-        }
-        for (i = zero; (s32)i > 0; i--) {
-            *d++ = 0;
-        }
-        src += stride;
-        r--;
-    }
-    {
-        u8* from = d - state->nest_stride;
-        r = rmirror;
-        while (r > 0) {
-            u8* p = from;
-            for (j = state->nest_stride; (s32)j > 0; j--) {
-                *d++ = *p++;
+}
+
+void Ipic_BasisNumDec(HVQState* state)
+{
+    s16 label;
+    s32 runln;
+    HVQBlock* ydat;
+    HVQBlock* udat;
+    HVQBlock* vdat;
+    s32 i, j;
+    s32 h_block, v_block;
+    HVQBitTree* symcode;
+    HVQBitTree* runcode;
+
+    runln   = 0;
+    ydat    = state->planes[0].payload;
+    symcode = &state->basis_num[0];
+    runcode = &state->basis_num_run[0];
+    h_block = state->planes[0].h_blocks;
+    v_block = state->planes[0].v_blocks;
+
+    for (j = v_block; j > 0; j--) {
+        for (i = h_block; i > 0; i--) {
+            if (runln == 0) {
+                label = decodeHuff(symcode);
+                if (label == 0)
+                    runln = decodeHuff(runcode);
+                ydat++->type = label & 0xFF;
+            } else {
+                ydat++->type = 0;
+                runln--;
             }
-            r--;
-            from -= state->nest_stride;
         }
+
+        ydat += 2;
     }
-    r = rzero;
-    while (r > 0) {
-        for (j = state->nest_stride; (s32)j > 0; j--) {
-            *d++ = 0;
+
+    runln   = 0;
+    udat    = state->planes[1].payload;
+    vdat    = state->planes[2].payload;
+    symcode = &state->basis_num[1];
+    runcode = &state->basis_num_run[1];
+    h_block = state->planes[1].h_blocks;
+    v_block = state->planes[1].v_blocks;
+    for (i = v_block; i > 0; i--) {
+        for (j = h_block; j > 0; j--) {
+            if (runln == 0) {
+                label = decodeHuff(symcode);
+                if (label == 0)
+                    runln = decodeHuff(runcode);
+                udat++->type = (label >> 0) & 0xF;
+                vdat++->type = (label >> 4) & 0xF;
+            } else {
+                udat++->type = 0;
+                vdat++->type = 0;
+                runln--;
+            }
         }
-        r--;
+
+        udat += 2;
+        vdat += 2;
     }
 }
 
-void WeightImBlock(u8* dst, s32 stride, u8 value, u8 top, u8 bottom, u8 left, u8 right) {
-    s32 v2 = value * 2;
-    s32 tmb = top - bottom;
-    s32 lmr = left - right;
-    s32 v8 = (value << 3) + 4;
-    u8* clip = satTable + 0x80;
-    s32 tpl = top + left - v2;
-    s32 tpr = top + right - v2;
-    s32 vph = tmb + lmr;
-    s32 vmh = tmb - lmr;
-    s32 bpr = bottom + right - v2;
-    s32 tml = top - left;
-    s32 tmr = top - right;
-    s32 bpl = left + bottom - v2;
-    s32 bml = bottom - left;
-    s32 bmr = bottom - right;
+void IpicDcvDec(HVQState* state)
+{
+    s32 c;
+    HVQBlock* curr;
+    HVQBlock* prev;
+    s32 run;
+    s32 pred;
+    s32 h_block, v_block;
+    s32 h_blocks_safe;
+    s32 i, j;
 
-    dst[0] = clip[(tpl + (v8 + vph)) >> 3];
-    dst[1] = clip[(tml + (v8 + vph)) >> 3];
-    dst[2] = clip[(tmr + (v8 + vmh)) >> 3];
-    dst[3] = clip[(tpr + (v8 + vmh)) >> 3];
-    dst += stride;
-    dst[0] = clip[((v8 + vph) - tml) >> 3];
-    dst[1] = clip[(v8 - bpr) >> 3];
-    dst[2] = clip[(v8 - bpl) >> 3];
-    dst[3] = clip[((v8 + vmh) - tmr) >> 3];
-    dst += stride;
-    dst[0] = clip[((v8 - vmh) - bml) >> 3];
-    dst[1] = clip[(v8 - tpr) >> 3];
-    dst[2] = clip[(v8 - tpl) >> 3];
-    dst[3] = clip[((v8 - vph) - bmr) >> 3];
-    dst += stride;
-    dst[0] = clip[(bpl + (v8 - vmh)) >> 3];
-    dst[1] = clip[(bml + (v8 - vmh)) >> 3];
-    dst[2] = clip[(bmr + (v8 - vph)) >> 3];
-    dst[3] = clip[(bpr + (v8 - vph)) >> 3];
+    for (c = 0; c < 3; c++) {
+        h_block    = state->planes[c].h_blocks;
+        v_block    = state->planes[c].v_blocks;
+        h_blocks_safe = state->planes[c].h_blocks_safe;
+        curr       = state->planes[c].payload;
+        run        = 0;
+        for (j = v_block; j > 0; j--) {
+
+            prev = curr - h_blocks_safe;
+            !prev;
+
+            pred = prev->value;
+            for (i = h_block; i > 0; i--) {
+                u8 curr_dcv;
+                u8 pb_dc;
+
+                curr_dcv = pred + getDeltaDC(state, c, &run);
+                prev++;
+                pb_dc    = prev->value;
+                curr++->value = curr_dcv;
+
+                pred = (pb_dc + curr_dcv + 1) >> 1;
+            }
+
+            curr += 2;
+        }
+    }
 }
 
-void BasisBlockDec(HVQState* state, u8* dst, s32 stride, u8 value, u8 type, s32 plane_idx) {
-    u8 basis[16];
-    s32 acc[16];
-    s32 bits;
-    s32 shift;
-    s32 mean;
-    s32 factor;
-    s32 sum;
-    s32 i;
-    s32 n;
-    u8* clip;
+void MakeNest(HVQState* state, s32 x, s32 y)
+{
+    int h_block, h_blocks_safe, v_block;
+    HVQBlock* src;
+    int h_dc_orderly, v_dc_orderly;
+    int h_dc_reverse, v_dc_reverse;
+    int h_nest_blank, v_nest_blank;
+    int i, j;
+    u8* nestP;
+    u8* backP;
+    HVQBlock* dP;
+    u8* nP;
 
-    if (type == 6) {
-        u32* s = state->fixvl[plane_idx].ptr;
-        *(u32*)dst = s[0];
-        *(u32*)(dst + stride) = s[1];
-        *(u32*)(dst + stride * 2) = s[2];
-        *(u32*)(dst + stride * 3) = s[3];
-        state->fixvl[plane_idx].ptr = s + 4;
-        return;
+    h_block    = state->planes[0].h_blocks;
+    h_blocks_safe = state->planes[0].h_blocks_safe;
+    v_block    = state->planes[0].v_blocks;
+    src        = state->planes[0].payload + (y * h_blocks_safe + x);
+
+    if (h_block < state->nest_stride) {
+
+        h_dc_orderly = h_block;
+        if ((h_dc_reverse = state->nest_stride - h_block) > h_block)
+            h_dc_reverse = h_block;
+        h_nest_blank = state->nest_stride - (h_dc_orderly + h_dc_reverse);
+    } else {
+        h_dc_orderly = state->nest_stride;
+        h_dc_reverse = h_nest_blank = 0;
     }
-    shift = state->unk_shift;
-    mean = value << shift;
-    bits = 0;
-    for (i = 0; i < 16; i++) {
-        acc[i] = 0;
+
+    if (v_block < state->nest_height) {
+
+        v_dc_orderly = v_block;
+        if ((v_dc_reverse = state->nest_height - v_block) > v_block)
+            v_dc_reverse = v_block;
+        v_nest_blank = state->nest_height - (v_dc_orderly + v_dc_reverse);
+    } else {
+        v_dc_orderly = state->nest_height;
+        v_dc_reverse = v_nest_blank = 0;
     }
-    n = type;
-    while (n--) {
-        factor = ReadBasisByte(state, basis, &bits, state->nest_data, state->nest_stride, plane_idx);
-        for (i = 0; i < 16; i++) {
-            acc[i] += factor * basis[i];
+
+    nP = state->nest_data;
+    for (j = v_dc_orderly; j > 0; j--) {
+        dP = src;
+        for (i = h_dc_orderly; i > 0; i--) {
+            *nP++ = (dP->value >> 4) & 0xF;
+            dP++;
+        }
+
+        for (i = h_dc_reverse; i > 0; i--) {
+            dP--;
+            *nP++ = (dP->value >> 4) & 0xF;
+        }
+
+        for (i = h_nest_blank; i > 0; i--)
+            *nP++ = 0;
+        src += h_blocks_safe;
+    }
+
+    nestP = nP - state->nest_stride;
+    for (j = v_dc_reverse; j > 0; j--) {
+        backP = nestP;
+        for (i = state->nest_stride; i > 0; i--) {
+            *nP++ = *backP++;
+        }
+        nestP -= state->nest_stride;
+    }
+
+    for (j = v_nest_blank; j > 0; j--) {
+        for (i = state->nest_stride; i > 0; i--) {
+            *nP++ = 0;
         }
     }
-    sum = 0;
-    for (i = 0; i < 16; i++) {
-        sum += acc[i];
-    }
-    mean -= sum >> 4;
-    clip = satTable + 0x80;
-    for (i = 0; i < 16; i++) {
-        dst[i & 3] = clip[(acc[i] + mean) >> shift];
-        if ((i & 3) == 3) {
-            dst += stride;
+}
+
+void WeightImBlock(u8* block, s32 blockWidth, u8 c, u8 u, u8 d, u8 l, u8 r)
+{
+
+    s32 u_d = u - d;
+    s32 l_r = l - r;
+
+    s32 v1 = u_d + l_r;
+    s32 v2 = u_d - l_r;
+
+    s32 c2 = c * 2;
+    s32 c3 = c * 8 + 4;
+
+    s32 t1 = u + l - c2;
+    s32 t2 = u + r - c2;
+    s32 t3 = d + r - c2;
+    s32 t4 = l + d - c2;
+
+    s32 t5 = u - l;
+    s32 t6 = u - r;
+    s32 t7 = d - r;
+    s32 t8 = d - l;
+
+    block[0] = satTable[(c3 + v1 + t1 >> 3) + 0x80];
+    block[1] = satTable[(c3 + v1 + t5 >> 3) + 0x80];
+    block[2] = satTable[(c3 + v2 + t6 >> 3) + 0x80];
+    block[3] = satTable[(c3 + v2 + t2 >> 3) + 0x80];
+    block += blockWidth;
+
+    block[0] = satTable[(c3 + v1 - t5 >> 3) + 0x80];
+    block[1] = satTable[(c3 - t3 >> 3) + 0x80];
+    block[2] = satTable[(c3 - t4 >> 3) + 0x80];
+    block[3] = satTable[(c3 + v2 - t6 >> 3) + 0x80];
+    block += blockWidth;
+
+    block[0] = satTable[(c3 - v2 - t8 >> 3) + 0x80];
+    block[1] = satTable[(c3 - t2 >> 3) + 0x80];
+    block[2] = satTable[(c3 - t1 >> 3) + 0x80];
+    block[3] = satTable[(c3 - v1 - t7 >> 3) + 0x80];
+    block += blockWidth;
+
+    block[0] = satTable[(c3 - v2 + t4 >> 3) + 0x80];
+    block[1] = satTable[(c3 - v2 + t8 >> 3) + 0x80];
+    block[2] = satTable[(c3 - v1 + t7 >> 3) + 0x80];
+    block[3] = satTable[(c3 - v1 + t3 >> 3) + 0x80];
+    block += blockWidth;
+}
+
+static inline void OrgBlock(HVQState* state, u8* block, s32 blockWidth, s32 p)
+{
+
+    HVQBitBuffer* buf;
+    u32* ptr;
+    u32 temp1;
+    u32 temp2;
+    u32 temp3;
+
+    buf                          = &state->fixvl[p];
+    ptr                          = (u32*)buf->ptr;
+    temp1                        = ptr[1];
+    temp2                        = ptr[2];
+    temp3                        = ptr[3];
+    *(u32*)(block)               = ptr[0];
+    *(u32*)(block += blockWidth) = temp1;
+    *(u32*)(block += blockWidth) = temp2;
+    *(u32*)(block += blockWidth) = temp3;
+    buf->ptr = ptr + 4;
+}
+
+static inline void MotionBlock(u8* cP, int width, u8* tP, int hx, int hy) {
+    if (hy) {
+        if (hx) _MotionComp_11(cP, width, tP, width);
+        else _MotionComp_01(cP, width, tP, width);
+    } else if (hx) _MotionComp_10(cP, width, tP, width);
+    else _MotionComp_00(cP, width, tP, width);
+}
+
+void BasisBlockDec(HVQState* state, u8* blk, s32 blkWidth, u8 value, u8 nbasis, s32 p) {
+    s32 v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15;
+    int mns;
+    s32 avr;
+    if (nbasis == 6) {
+        OrgBlock(state, blk, blkWidth, p);
+    } else {
+        mns = state->unk_shift;
+        avr = value << mns;
+        if (nbasis == 1) {
+            u8 bas[16];
+            s32 scale = 0;
+            s32 factor = ReadBasisByte(state, bas, &scale, state->nest_data, state->nest_stride, p);
+            v0 = factor * bas[0];
+            v1 = factor * bas[1];
+            v2 = factor * bas[2];
+            v3 = factor * bas[3];
+            v4 = factor * bas[4];
+            v5 = factor * bas[5];
+            v6 = factor * bas[6];
+            v7 = factor * bas[7];
+            v8 = factor * bas[8];
+            v9 = factor * bas[9];
+            v10 = factor * bas[10];
+            v11 = factor * bas[11];
+            v12 = factor * bas[12];
+            v13 = factor * bas[13];
+            v14 = factor * bas[14];
+            v15 = factor * bas[15];
+
+        } else {
+            u8 bas[16];
+            s32 scale = 0;
+            s32 factor;
+            int nestWidth = state->nest_stride;
+            v0 = 0;
+            v1 = 0;
+            v2 = 0;
+            v3 = 0;
+            v4 = 0;
+            v5 = 0;
+            v6 = 0;
+            v7 = 0;
+            v8 = 0;
+            v9 = 0;
+            v10 = 0;
+            v11 = 0;
+            v12 = 0;
+            v13 = 0;
+            v14 = 0;
+            v15 = 0;
+
+            while (nbasis--) {
+                factor = ReadBasisByte(state, bas, &scale, state->nest_data, nestWidth, p);
+                v0 += factor * bas[0];
+                v1 += factor * bas[1];
+                v2 += factor * bas[2];
+                v3 += factor * bas[3];
+                v4 += factor * bas[4];
+                v5 += factor * bas[5];
+                v6 += factor * bas[6];
+                v7 += factor * bas[7];
+                v8 += factor * bas[8];
+                v9 += factor * bas[9];
+                v10 += factor * bas[10];
+                v11 += factor * bas[11];
+                v12 += factor * bas[12];
+                v13 += factor * bas[13];
+                v14 += factor * bas[14];
+                v15 += factor * bas[15];
+
+            }
         }
+        avr -= (v0 + (v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 + v10 + v11 + v12 + v13 + v14 + v15)) >> 4;
+        blk[0] = satTable[((v0 + avr) >> mns) + 0x80];
+        blk[1] = satTable[((v1 + avr) >> mns) + 0x80];
+        blk[2] = satTable[((v2 + avr) >> mns) + 0x80];
+        blk[3] = satTable[((v3 + avr) >> mns) + 0x80];
+        blk += blkWidth;
+        blk[0] = satTable[((v4 + avr) >> mns) + 0x80];
+        blk[1] = satTable[((v5 + avr) >> mns) + 0x80];
+        blk[2] = satTable[((v6 + avr) >> mns) + 0x80];
+        blk[3] = satTable[((v7 + avr) >> mns) + 0x80];
+        blk += blkWidth;
+        blk[0] = satTable[((v8 + avr) >> mns) + 0x80];
+        blk[1] = satTable[((v9 + avr) >> mns) + 0x80];
+        blk[2] = satTable[((v10 + avr) >> mns) + 0x80];
+        blk[3] = satTable[((v11 + avr) >> mns) + 0x80];
+        blk += blkWidth;
+        blk[0] = satTable[((v12 + avr) >> mns) + 0x80];
+        blk[1] = satTable[((v13 + avr) >> mns) + 0x80];
+        blk[2] = satTable[((v14 + avr) >> mns) + 0x80];
+        blk[3] = satTable[((v15 + avr) >> mns) + 0x80];
+        blk += blkWidth;
+
     }
 }
 
 /* decodeHuff with the bit read expanded, for callers where retail inlines both */
-static inline s32 decodeHuffInl(HVQBitTree* bt) {
-    HVQTree* tree = bt->tree;
-    s32 node = tree->root;
-
-    while (node >= 0x100) {
-        s32 bit = bt->buf.bit;
-        u32 value;
-        if (bit < 0) {
-            value = *bt->buf.ptr++;
-            bt->buf.value = value;
-            bit = 31;
-        } else {
-            value = bt->buf.value;
-        }
-        bt->buf.bit = bit - 1;
-        node = tree->array[(value >> bit) & 1][node];
-    }
-    return tree->array[0][node];
-}
 
 #define BASIS_SAMPLE(i, expr)  \
     v = (expr);                \
@@ -905,67 +1003,192 @@ static inline s32 decodeHuffInl(HVQBitTree* bt) {
     } else if ((s32)v < (s32)lo) { \
         lo = v;                \
     }
-s32 ReadBasisByte(HVQState* state, u8* basis, s32* bits, u8* nest, s32 nest_stride, s32 plane_idx) {
-    HVQBitTree* bt;
+s32 ReadBasisByte(HVQState* state, u8* basisOut, s32* pscl, u8* nestTop, s32 nestWidth, s32 p)
+{
     u16 code;
-    u8* p;
-    u8* q;
-    u8* q2;
-    s32 col;
-    s32 row;
-    u8 hi;
-    u8 lo;
-    u8 v;
+    s32 step_x, step_y;
+    s32 min, max;
+    u8* nP;
+    u8 value;
 
-    q = (u8*)state->fixvl[plane_idx].ptr;
-    state->fixvl[plane_idx].ptr = (u32*)(q + 1);
-    q2 = (u8*)state->fixvl[plane_idx].ptr;
-    state->fixvl[plane_idx].ptr = (u32*)(q2 + 1);
-    code = (*q << 8) | *q2;
-    if (state->is_landscape != 0) {
-        p = nest + (code & 0x3F) + ((code >> 6) & 0x1F) * nest_stride;
-        col = 1 << ((code >> 11) & 1);
-        row = nest_stride << ((code >> 12) & 1);
+    code = *((u8*)state->fixvl[p].ptr)++ << 8;
+    code |= *((u8*)state->fixvl[p].ptr)++;
+
+    if (state->is_landscape) {
+        nestTop += ((code >> 6) & 0x1F) * nestWidth + (code & 0x3F);
+        step_x = 1 << ((code >> 11) & 1);
+        step_y = nestWidth << ((code >> 12) & 1);
     } else {
-        p = nest + ((code >> 6) & 0x1F) + (code & 0x3F) * nest_stride;
-        col = 1 << ((code >> 12) & 1);
-        row = nest_stride << ((code >> 11) & 1);
+        nestTop += (code & 0x3F) * nestWidth + ((code >> 6) & 0x1F);
+        step_x = 1 << ((code >> 12) & 1);
+        step_y = nestWidth << ((code >> 11) & 1);
     }
-    lo = *p;
-    hi = lo;
-    basis[0] = lo;
-    q = p + col;
-    BASIS_SAMPLE(1, *q);
-    q += col;
-    BASIS_SAMPLE(2, *q);
-    BASIS_SAMPLE(3, *(q + col));
-    p += row;
-    BASIS_SAMPLE(4, *p);
-    q = p + col;
-    BASIS_SAMPLE(5, *q);
-    q += col;
-    BASIS_SAMPLE(6, *q);
-    BASIS_SAMPLE(7, *(q + col));
-    p += row;
-    BASIS_SAMPLE(8, *p);
-    q = p + col;
-    BASIS_SAMPLE(9, *q);
-    q += col;
-    BASIS_SAMPLE(10, *q);
-    BASIS_SAMPLE(11, *(q + col));
-    p += row;
-    BASIS_SAMPLE(12, *p);
-    q = p + col;
-    BASIS_SAMPLE(13, *q);
-    q += col;
-    BASIS_SAMPLE(14, *q);
-    BASIS_SAMPLE(15, *(q + col));
-    bt = &state->bufTree0[plane_idx];
-    *bits += decodeHuffInl(bt);
+
+    nP = nestTop;
+
+    value       = *nP;
+    basisOut[0] = value;
+    min = max = value;
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[1] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[2] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[3] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nestTop += step_y;
+    nP = nestTop;
+
+    value       = *nP;
+    basisOut[4] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[5] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[6] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[7] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nestTop += step_y;
+    nP = nestTop;
+
+    value       = *nP;
+    basisOut[8] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value       = *nP;
+    basisOut[9] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value        = *nP;
+    basisOut[10] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value        = *nP;
+    basisOut[11] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nestTop += step_y;
+    nP = nestTop;
+
+    value        = *nP;
+    basisOut[12] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value        = *nP;
+    basisOut[13] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value        = *nP;
+    basisOut[14] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value        = *nP;
+    basisOut[15] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    *pscl += decodeHuff(&state->bufTree0[p]);
     if (code & 0x8000) {
-        return (*bits + ((code >> 13) & 3)) * -divTable[hi - lo];
+        return -divTable[max - min] * (*pscl + ((code >> 13) & 3));
+    } else {
+        return divTable[max - min] * (*pscl + ((code >> 13) & 3));
     }
-    return (*bits + ((code >> 13) & 3)) * divTable[hi - lo];
 }
 
 void IpicBlockDec(HVQState* state, u8* dst, s32 stride, HVQStack* stack) {
@@ -1072,34 +1295,42 @@ void initMCHandler(HVQPlane* plane, HVQMCPlane* mc, s32 a, s32 b, s32 c) {
     }
 }
 
-void MotionComp(HVQPlane* plane, HVQMCPlane* mc, s32 x, s32 y) {
-    s32 i;
-
-    for (i = 0; i < 3; i++) {
-        s32* offs = plane->pb_offset;
-        s32 j = 0;
-        s32 px = x >> plane->width_shift;
-        s32 py = y >> plane->height_shift;
-        s32 hx = px & 1;
-        s32 hy = py & 1;
-        u8 n = plane->blocks_per_mcb;
-        u8* src = mc->target + (py >> 1) * plane->width + (px >> 1);
-        for (; j < n; j++) {
-            s32 off = *offs++;
+void MotionComp(HVQPlane* planes_, HVQMCPlane* mc_, s32 x_, s32 y_) {
+    int c, i;
+    u8* t_top;
+    s32* iofsP;
+    int blocks;
+    u8* cP;
+    u8* tP;
+    int offset;
+    int hx, hy;
+    int px, py;
+    int width;
+    int x, y;
+    HVQPlane* plane;
+    HVQMCPlane* mc;
+    x = x_; y = y_; plane = planes_; mc = mc_;
+    for (c = 0; c < 3; c++) {
+        px = x >> plane->width_shift;
+        py = y >> plane->height_shift;
+        iofsP = plane->pb_offset;
+        i = 0;
+        hx = px & 1;
+        hy = py & 1;
+        blocks = plane->blocks_per_mcb;
+        t_top = mc->target + (py >> 1) * plane->width + (px >> 1);
+        for (; i < blocks; i++) {
+            offset = *iofsP++;
+            width = plane->width;
+            cP = mc->top + offset;
+            tP = t_top + offset;
             if (hy) {
-                if (hx) {
-                    _MotionComp_11(mc->top + off, plane->width, src + off, plane->width);
-                } else {
-                    _MotionComp_01(mc->top + off, plane->width, src + off, plane->width);
-                }
-            } else if (hx) {
-                _MotionComp_10(mc->top + off, plane->width, src + off, plane->width);
-            } else {
-                _MotionComp_00(mc->top + off, plane->width, src + off, plane->width);
-            }
+                if (hx) _MotionComp_11(cP, width, tP, width);
+                else _MotionComp_01(cP, width, tP, width);
+            } else if (hx) _MotionComp_10(cP, width, tP, width);
+            else _MotionComp_00(cP, width, tP, width);
         }
-        mc++;
-        plane++;
+        mc++; plane++;
     }
 }
 
@@ -1213,293 +1444,519 @@ void _MotionComp_11(u8* dst, s32 dst_stride, u8* src, s32 src_stride) {
     d[3] = (a[3] + a[4] + b[3] + b[4] + 2) >> 2;
 }
 
-void decode_PB_cc(HVQState* state, HVQMCPlane* mc, s32 type, s32 base) {
-    u8 ty = (base << 5) | (type * 0x10);
-    HVQBlock* b0;
-    HVQBlock* b1;
-    HVQBlock* b2;
-    u16* offs;
-    u8 n;
-    u16 off;
-    s16 v;
-    s32 i;
+void decode_PB_cc(HVQState* state, HVQMCPlane* mc, s32 proctype, s32 mcbtype)
+{
+    u8 cc;
+    HVQBlock* dataP;
+    HVQBlock* ydat;
+    HVQBlock* udat;
+    HVQBlock* vdat;
+    HVQPlane* sip;
+    u16* bofsP;
+    s32 p, i, j;
+    s32 blocks;
+    HVQBitTree* symcode;
+    HVQBitTree* runcode;
+    s16 sym;
 
-    if (type == 1) {
-        for (i = 0; i < 3; i++) {
-            HVQBlock* blk = mc[i].payload_cur_blk;
-            u8 count = state->planes[i].blocks_per_mcb;
-            s32 j;
-            for (j = 0; j < count; j++) {
-                blk[state->planes[i].mcb_offset[j]].type = ty;
+    cc = (mcbtype << 5) | (proctype << 4);
+    if (proctype == 1) {
+        for (p = 0; p < 3; p++) {
+            dataP  = mc[p].payload_cur_blk;
+            bofsP  = state->planes[p].mcb_offset;
+            blocks = state->planes[p].blocks_per_mcb;
+            for (i = 0; i < blocks; i++) {
+                dataP[*bofsP++].type = cc;
             }
         }
-        return;
-    }
-    n = state->planes[0].blocks_per_mcb;
-    b0 = mc[0].payload_cur_blk;
-    offs = state->planes[0].mcb_offset;
-    if ((s32)n > 0) {
-        do {
-            off = *offs++;
+    } else {
+
+        ydat    = mc[0].payload_cur_blk;
+        sip     = &state->planes[0];
+        symcode = &state->basis_num[0];
+        runcode = &state->basis_num_run[0];
+        bofsP   = sip->mcb_offset;
+        blocks  = sip->blocks_per_mcb;
+        for (i = 0; i < blocks; i++) {
+            j = *bofsP++;
             if (mc[0].rle == 0) {
-                v = decodeHuffInl(&state->basis_num[0]);
-                if (v == 0) {
-                    b0[off].type = ty;
-                    mc[0].rle = decodeHuffInl(&state->basis_num_run[0]);
+                sym = decodeHuff(symcode);
+                if (sym == 0) {
+                    ydat[j].type              = cc;
+                    mc[0].rle = decodeHuff(runcode);
                 } else {
-                    b0[off].type = ty | v;
+                    ydat[j].type = cc | sym;
                 }
             } else {
-                b0[off].type = ty;
+                ydat[j].type = cc;
                 mc[0].rle--;
             }
-        } while (--n != 0);
-    }
-    b1 = mc[1].payload_cur_blk;
-    b2 = mc[2].payload_cur_blk;
-    n = state->planes[1].blocks_per_mcb;
-    offs = state->planes[1].mcb_offset;
-    if ((s32)n > 0) {
-        do {
-            off = *offs++;
+        }
+
+        udat    = mc[1].payload_cur_blk;
+        vdat    = mc[2].payload_cur_blk;
+        sip     = &state->planes[1];
+        symcode = &state->basis_num[1];
+        runcode = &state->basis_num_run[1];
+        bofsP   = sip->mcb_offset;
+        blocks  = sip->blocks_per_mcb;
+        for (i = 0; i < blocks; i++) {
+            j = *bofsP++;
             if (mc[1].rle == 0) {
-                v = decodeHuffInl(&state->basis_num[1]);
-                if (v == 0) {
-                    b1[off].type = ty;
-                    b2[off].type = ty;
-                    mc[1].rle = decodeHuffInl(&state->basis_num_run[1]);
+                sym = decodeHuff(symcode);
+                if (sym == 0) {
+                    udat[j].type              = cc;
+                    vdat[j].type              = cc;
+                    mc[1].rle = decodeHuff(runcode);
                 } else {
-                    b1[off].type = ty | (v & 0xF);
-                    b2[off].type = ty | ((v >> 4) & 0xF);
+                    udat[j].type = cc | ((sym >> 0) & 0xF);
+                    vdat[j].type = cc | ((sym >> 4) & 0xF);
                 }
             } else {
-                b1[off].type = ty;
-                b2[off].type = ty;
+                udat[j].type = cc;
+                vdat[j].type = cc;
                 mc[1].rle--;
             }
-        } while (--n != 0);
+        }
     }
 }
 
-void MCBlockDecBasis(HVQState* state, u8* dst, u8* src, u16 stride, u32 type, s32 base, u16 luma_stride, s32 plane_idx, s32 fx, s32 fy) {
-    s32 acc[16];
-    s32 res[16];
-    u8 pred[16];
-    u8 basis[16];
-    s32 bits;
-    s32 n;
-    s32 i;
+static inline s32 GetMCAotSum(HVQState* state, s32 sum[16], u8 nbasis, u8* nestTop, s32 nestWidth, s32 p)
+{
+    s32 prev_scl;
+    s32 scl;
+    u8 bas[16];
+
+    sum[0] = sum[1] = sum[2] = sum[3] = sum[4] = sum[5] = sum[6] = sum[7] = sum[8] = sum[9] = sum[10] = sum[11] = sum[12] = sum[13]
+        = sum[14] = sum[15] = prev_scl = 0;
+
+    while (nbasis--) {
+        scl = ReadBasisNibble(state, bas, &prev_scl, nestTop, nestWidth, p);
+        sum[0] += scl * bas[0];
+        sum[1] += scl * bas[1];
+        sum[2] += scl * bas[2];
+        sum[3] += scl * bas[3];
+        sum[4] += scl * bas[4];
+        sum[5] += scl * bas[5];
+        sum[6] += scl * bas[6];
+        sum[7] += scl * bas[7];
+        sum[8] += scl * bas[8];
+        sum[9] += scl * bas[9];
+        sum[10] += scl * bas[10];
+        sum[11] += scl * bas[11];
+        sum[12] += scl * bas[12];
+        sum[13] += scl * bas[13];
+        sum[14] += scl * bas[14];
+        sum[15] += scl * bas[15];
+    }
+    return (sum[0] + sum[1] + sum[2] + sum[3] + sum[4] + sum[5] + sum[6] + sum[7] + sum[8] + sum[9] + sum[10] + sum[11] + sum[12] + sum[13]
+            + sum[14] + sum[15])
+        >> 4;
+}
+
+void MCBlockDecBasis(HVQState* state, u8* blk, u8* mblk, u16 blkWidth, u32 nbasis, s32 nestBase, u16 nestWidth, s32 p, s32 hx, s32 hy)
+{
+    u8* nestPtr = (u8*)nestBase;
+    s32 sum[16];
+    u8 mvc[16];
+    s32 mov[16];
+    s32 avr;
+    s32 scl;
+    s32 dcv;
+    s32 value;
     s32 mean;
-    s32 lo;
-    s32 hi;
-    s32 f;
-    s32 v;
-    s32 a;
-    s32 b;
-    s32 off;
-    u8 shift;
-    s32 dcmax;
-    s32 dcmin;
-    HVQBitTree* bt;
+    s32 max, min;
+    s32 i, j;
+    s32 mns;
 
-    n = (u8)(type - 1);
-    bits = 0;
-    for (i = 0; i < 16; i++) {
-        acc[i] = 0;
-    }
-    while (n-- != 0) {
-        f = ReadBasisNibble(state, basis, &bits, base, luma_stride, plane_idx);
-        for (i = 0; i < 16; i++) {
-            acc[i] += f * basis[i];
-        }
-    }
-    mean = 0;
-    for (i = 0; i < 16; i++) {
-        mean += acc[i];
-    }
-    mean >>= 4;
-
-    if (fy != 0) {
-        if (fx != 0) {
-            _MotionComp_11(pred, 4, src, stride);
-        } else {
-            _MotionComp_01(pred, 4, src, stride);
-        }
-    } else if (fx != 0) {
-        _MotionComp_10(pred, 4, src, stride);
+    if ((u8)(nbasis - 1) == 1) {
+        avr = GetMCAotSum(state, sum, 1, nestPtr, nestWidth, p);
     } else {
-        _MotionComp_00(pred, 4, src, stride);
+        avr = GetMCAotSum(state, sum, nbasis - 1, nestPtr, nestWidth, p);
+    }
+    if (hy) {
+        if (hx) _MotionComp_11(mvc, 4, mblk, blkWidth);
+        else _MotionComp_01(mvc, 4, mblk, blkWidth);
+    } else if (hx) _MotionComp_10(mvc, 4, mblk, blkWidth);
+    else _MotionComp_00(mvc, 4, mblk, blkWidth);
+
+    mean = (mvc[0] + mvc[1] + mvc[2] + mvc[3] + mvc[4] + mvc[5] + mvc[6] + mvc[7] + mvc[8] + mvc[9] + mvc[10] + mvc[11] + mvc[12] + mvc[13]
+            + mvc[14] + mvc[15] + 8)
+        >> 4;
+
+    max = min = mvc[0] - mean;
+    mov[0]    = min;
+
+    value  = mvc[1] - mean;
+    mov[1] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
     }
 
-    off = 8;
-    for (i = 0; i < 16; i++) {
-        off += pred[i];
-    }
-    off >>= 4;
-    lo = pred[0] - off;
-    hi = lo;
-    res[0] = lo;
-    for (i = 1; i < 16; i++) {
-        s32 r = pred[i] - off;
-        res[i] = r;
-        if (r < lo) {
-            lo = r;
-        } else if (r > hi) {
-            hi = r;
-        }
+    value  = mvc[2] - mean;
+    mov[2] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
     }
 
-    shift = state->unk_shift;
-    dcmax = state->dc_max;
-    dcmin = state->dc_min;
-    bt = &state->dc_values[plane_idx];
-    a = 0;
-    do {
-        do {
-            v = decodeHuff(bt);
-            a += v;
-        } while (v <= dcmin);
-    } while (v >= dcmax);
-    b = 0;
-    mean = ((a >> state->dc_shift) << shift) - mean;
-    do {
-        do {
-            v = decodeHuff(bt);
-            b += v;
-        } while (v <= state->dc_min);
-    } while (v >= state->dc_max);
-    f = mcdivTable[hi - lo] * (b >> state->dc_shift);
-    for (i = 0; i < 16; i++) {
-        acc[i] = mean + f * res[i] + acc[i];
+    value  = mvc[3] - mean;
+    mov[3] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
     }
-    for (i = 0; i < 16; i++) {
-        dst[(i >> 2) * stride + (i & 3)] = satTable[0x80 + pred[i] + (acc[i] >> shift)];
+
+    value  = mvc[4] - mean;
+    mov[4] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value  = mvc[5] - mean;
+    mov[5] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value  = mvc[6] - mean;
+    mov[6] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value  = mvc[7] - mean;
+    mov[7] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value  = mvc[8] - mean;
+    mov[8] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value  = mvc[9] - mean;
+    mov[9] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value   = mvc[10] - mean;
+    mov[10] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value   = mvc[11] - mean;
+    mov[11] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value   = mvc[12] - mean;
+    mov[12] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value   = mvc[13] - mean;
+    mov[13] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value   = mvc[14] - mean;
+    mov[14] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    value   = mvc[15] - mean;
+    mov[15] = value;
+    if (value < min) {
+        min = value;
+    } else if (value > max) {
+        max = value;
+    }
+
+    mns = state->unk_shift;
+    avr = (decodeSOvfSym(&state->dc_values[p], state->dc_min, state->dc_max) >> state->dc_shift << mns) - avr;
+    scl = (decodeSOvfSym(&state->dc_values[p], state->dc_min, state->dc_max) >> state->dc_shift) * mcdivTable[max - min];
+
+    for (i = 0; i < 16; i += 8) {
+        sum[i + 0] += avr + mov[i + 0] * scl;
+        sum[i + 1] += avr + mov[i + 1] * scl;
+        sum[i + 2] += avr + mov[i + 2] * scl;
+        sum[i + 3] += avr + mov[i + 3] * scl;
+        sum[i + 4] += avr + mov[i + 4] * scl;
+        sum[i + 5] += avr + mov[i + 5] * scl;
+        sum[i + 6] += avr + mov[i + 6] * scl;
+        sum[i + 7] += avr + mov[i + 7] * scl;
+    }
+
+    j = 0;
+    for (i = 0; i < 4; i++) {
+        blk[0] = satTable[mvc[j] + (sum[j] >> mns) + 0x80];
+        j++;
+        blk[1] = satTable[mvc[j] + (sum[j] >> mns) + 0x80];
+        j++;
+        blk[2] = satTable[mvc[j] + (sum[j] >> mns) + 0x80];
+        j++;
+        blk[3] = satTable[mvc[j] + (sum[j] >> mns) + 0x80];
+        j++;
+        blk += blkWidth;
     }
 }
 
 #define NIB(p) (((*(p)) >> 4) & 0xF)
-s32 ReadBasisNibble(HVQState* state, u8* basis, s32* bits, s32 base, s32 nest_stride, s32 plane_idx) {
-    HVQBitTree* bt;
+s32 ReadBasisNibble(HVQState* state, u8* basisOut, s32* pscl, u8* nestTop, s32 nestWidth, s32 p)
+{
     u16 code;
-    u8* p;
-    u8* q;
-    u8* q2;
-    s32 col;
-    s32 row;
-    u8 hi;
-    u8 lo;
-    u8 v;
+    s32 step_x, step_y;
+    s32 min, max;
+    u8* nP;
+    u8 value;
 
-    q = (u8*)state->fixvl[plane_idx].ptr;
-    state->fixvl[plane_idx].ptr = (u32*)(q + 1);
-    q2 = (u8*)state->fixvl[plane_idx].ptr;
-    state->fixvl[plane_idx].ptr = (u32*)(q2 + 1);
-    code = (*q << 8) | *q2;
-    if (state->is_landscape != 0) {
-        p = (u8*)base + (code & 0x3F) + ((code >> 6) & 0x1F) * nest_stride;
-        col = 1 << ((code >> 11) & 1);
-        row = nest_stride << ((code >> 12) & 1);
+    code = *((u8*)state->fixvl[p].ptr)++ << 8;
+    code |= *((u8*)state->fixvl[p].ptr)++;
+
+    if (state->is_landscape) {
+        nestTop += ((code >> 6) & 0x1F) * nestWidth + (code & 0x3F);
+        step_x = 1 << ((code >> 11) & 1);
+        step_y = nestWidth << ((code >> 12) & 1);
     } else {
-        p = (u8*)base + ((code >> 6) & 0x1F) + (code & 0x3F) * nest_stride;
-        col = 1 << ((code >> 12) & 1);
-        row = nest_stride << ((code >> 11) & 1);
+        nestTop += (code & 0x3F) * nestWidth + ((code >> 6) & 0x1F);
+        step_x = 1 << ((code >> 12) & 1);
+        step_y = nestWidth << ((code >> 11) & 1);
     }
-    lo = NIB(p);
-    hi = lo;
-    basis[0] = lo;
-    q = p + col;
-    BASIS_SAMPLE(1, NIB(q));
-    q += col;
-    BASIS_SAMPLE(2, NIB(q));
-    BASIS_SAMPLE(3, NIB(q + col));
-    p += row;
-    BASIS_SAMPLE(4, NIB(p));
-    q = p + col;
-    BASIS_SAMPLE(5, NIB(q));
-    q += col;
-    BASIS_SAMPLE(6, NIB(q));
-    BASIS_SAMPLE(7, NIB(q + col));
-    p += row;
-    BASIS_SAMPLE(8, NIB(p));
-    q = p + col;
-    BASIS_SAMPLE(9, NIB(q));
-    q += col;
-    BASIS_SAMPLE(10, NIB(q));
-    BASIS_SAMPLE(11, NIB(q + col));
-    p += row;
-    BASIS_SAMPLE(12, NIB(p));
-    q = p + col;
-    BASIS_SAMPLE(13, NIB(q));
-    q += col;
-    BASIS_SAMPLE(14, NIB(q));
-    BASIS_SAMPLE(15, NIB(q + col));
-    bt = &state->bufTree0[plane_idx];
-    *bits += decodeHuffInl(bt);
+
+    nP = nestTop;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[0] = value;
+    min = max = value;
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[1] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[2] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[3] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nestTop += step_y;
+    nP = nestTop;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[4] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[5] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[6] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[7] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nestTop += step_y;
+    nP = nestTop;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[8] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[9] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[10] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[11] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nestTop += step_y;
+    nP = nestTop;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[12] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[13] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[14] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    nP += step_x;
+
+    value = (*nP >> 4) & 0xF;
+    basisOut[15] = value;
+    if (value > max) {
+        max = value;
+    } else if (value < min) {
+        min = value;
+    }
+
+    *pscl += decodeHuff(&state->bufTree0[p]);
     if (code & 0x8000) {
-        return (*bits + ((code >> 13) & 3)) * -divTable[hi - lo];
+        return -divTable[max - min] * (*pscl + ((code >> 13) & 3));
+    } else {
+        return divTable[max - min] * (*pscl + ((code >> 13) & 3));
     }
-    return (*bits + ((code >> 13) & 3)) * divTable[hi - lo];
 }
 
-void MCBlockDecMCNest(HVQState* state, HVQMCPlane* mc, s32 x, s32 y) {
-    HVQState* st = state;
-    HVQPlane* plane = state->planes;
-    HVQMCPlane* m = mc;
-    HVQBitBuffer* fixvl = state->fixvl;
-    s32 i = 0;
-    s32 base;
+void MCBlockDecMCNest(HVQState* state, HVQMCPlane* mch, s32 tx, s32 ty)
+{
+    int c, i;
+    u8* nestP = mch[0].target + ((tx >> 1) - 32) + ((ty >> 1) - 16) * state->planes[0].width;
+    for (c = 0; c < 3; c++) {
+        HVQMCPlane* pmc      = &mch[c];
+        HVQPlane* sip = &state->planes[c];
+        int plane_dx      = (tx >> sip->width_shift + 1);
+        int plane_dy      = (ty >> sip->height_shift + 1);
+        u8* t_top         = pmc->target + (plane_dx + plane_dy * sip->width);
+        u16* bofsP        = sip->mcb_offset;
+        s32* iofsP        = sip->pb_offset;
+        int blocks        = sip->blocks_per_mcb;
+        for (i = 0; i < blocks; i++) {
+            int offset = *iofsP++;
+            int j      = *bofsP++;
+            u8 nbasis  = pmc->payload_cur_blk[j].type & 0xF;
 
-    base = ((x >> 1) + (s32)mc->target + (((y >> 1) - 0x10) * state->planes[0].width)) - 0x20;
-    do {
-        u16* boffs = plane->mcb_offset;
-        s32* poffs = plane->pb_offset;
-        s32 hx = x >> plane->width_shift;
-        s32 hy = y >> plane->height_shift;
-        s32 fx = hx & 1;
-        u8 n = plane->blocks_per_mcb;
-        s32 fy = hy & 1;
-        s32 pos = (hx >> 1) + (((hy >> 1) * plane->width) + (s32)m->target);
-        s32 j = 0;
-
-        while (j < (s32)n) {
-            u16 off = *boffs++;
-            s32 poff = *poffs++;
-            u8* dst = m->top + poff;
-            u8* src = (u8*)pos + poff;
-            u32 type = *((u8*)m->payload_cur_blk + off * 2 + 1) & 0xF;
-
-            if (type == 6) {
-                u32* src = (u32*)fixvl->ptr;
-                u16 stride = plane->width;
-                u8* d1 = dst + stride;
-                u8* d2 = d1 + stride;
-                *(u32*)dst = src[0];
-                *(u32*)d1 = src[1];
-                *(u32*)d2 = src[2];
-                *(u32*)(d2 + stride) = src[3];
-                fixvl->ptr = src + 4;
-            } else if (type == 0) {
-                if (fy != 0) {
-                    if (fx != 0) {
-                        _MotionComp_11(dst, plane->width, src, plane->width);
-                    } else {
-                        _MotionComp_01(dst, plane->width, src, plane->width);
-                    }
-                } else if (fx != 0) {
-                    _MotionComp_10(dst, plane->width, src, plane->width);
-                } else {
-                    _MotionComp_00(dst, plane->width, src, plane->width);
-                }
+            u8* cP = pmc->top + offset;
+            !nbasis;
+            if (nbasis == 6) {
+                OrgBlock(state, cP, sip->width, c);
             } else {
-                MCBlockDecBasis(state, dst, src, plane->width, type, base, state->planes[0].width, i, fx, fy);
+                u8* tP = t_top + offset;
+                if (nbasis == 0) {
+                    MotionBlock(cP, sip->width, tP, tx & 1, ty & 1);
+                } else {
+                    MCBlockDecBasis(state, cP, tP, sip->width, nbasis, (s32)nestP, state->planes[0].width, c, tx & 1, ty & 1);
+                }
             }
-            j++;
         }
-        i++;
-        m++;
-        plane++;
-        fixvl++;
-    } while (i < 3);
+    }
 }
 
 /* Retail colors the parameters after the loop locals and reserves one unused stack slot,
@@ -1561,96 +2018,135 @@ void MCBlockDecDCNest(HVQState* state_, HVQMCPlane* mc_) {
     }
 }
 
-void PpicPlaneDec(HVQSeqObj* obj, HVQMCPlane* mc) {
-    HVQState* state = obj->state;
-    s32 y;
-    s32 x;
-    s32 proc_flag;
-    s32 type_val;
-    s32 proc_run = 0;
-    s32 type_run = 0;
-    s32 v;
+typedef struct RLDecoder { int status; int runlng; } RLDecoder;
+
+static inline void decode_PB_dc(HVQState* state, HVQMCPlane* mch)
+{
+    int c, i, j;
+    int blocks;
+    HVQMCPlane* pmc;
+    u16* bofsP;
+
+    for (c = 0; c < 3; c++) {
+        pmc    = &mch[c];
+        bofsP  = state->planes[c].mcb_offset;
+        blocks = state->planes[c].blocks_per_mcb;
+        for (i = 0; i < blocks; i++) {
+            j                = *bofsP++;
+            pmc->payload_cur_blk[j].value = pmc->pb_dc = pmc->pb_dc + decodeSOvfSym(&state->dc_values[c], state->dc_min, state->dc_max);
+        }
+    }
+}
+
+static inline void reset_PB_dc(HVQState* state, HVQMCPlane* mch)
+{
+    int i;
+    HVQMCPlane* pmc;
+
+    for (i = 0; i < 3; i++) {
+        pmc           = &mch[i];
+        pmc->pb_dc = 0x7F;
+    }
+}
+
+static inline void initMCBproc(HVQBitTree* code, RLDecoder* flag)
+{
+    if (code->buf.ptr) {
+        flag->status = getBit(&code->buf);
+        flag->runlng = decodeUOvfSym(code, 0xFF);
+    }
+}
+
+static inline s32 getMCBproc(HVQBitTree* code, RLDecoder* flag)
+{
+    if (flag->runlng == 0) {
+        flag->status ^= 1;
+        flag->runlng = decodeUOvfSym(code, 0xFF);
+    }
+    flag->runlng--;
+    return flag->status;
+}
+
+static inline void initMCBtype(HVQBitTree* code, RLDecoder* flag)
+{
+    int value;
+    if (code->buf.ptr) {
+        flag->status = getBit(&code->buf) << 1;
+        flag->status |= getBit(&code->buf);
+        flag->runlng = decodeUOvfSym(code, 0xFF);
+    }
+}
+
+static inline s32 getMCBtype(HVQBitTree* code, RLDecoder* flag)
+{
+
+    if (flag->runlng == 0) {
+
+        flag->status = ((const u32 (*)[3])mcbTypeNext)[getBit(&code->buf)][flag->status];
+        flag->runlng = decodeUOvfSym(code, 0xFF);
+    }
+    flag->runlng--;
+    return flag->status;
+}
+
+static inline void setMCTop(HVQMCPlane* mch)
+{
     s32 i;
+    HVQMCPlane* pmc;
 
-    if (state->mcb_proc.buf.ptr != NULL) {
-        proc_flag = getBit(&state->mcb_proc.buf);
-        proc_run = 0;
-        do {
-            v = decodeHuff(&state->mcb_proc);
-            proc_run += v;
-        } while (v >= 0xFF);
+    for (i = 0; i < 3; i++) {
+        pmc          = &mch[i];
+        pmc->top = (u8*)pmc->present;
     }
-    if (state->mcb_type.buf.ptr != NULL) {
-        type_val = getBit(&state->mcb_type.buf) << 1;
-        type_val |= getBit(&state->mcb_type.buf);
-        type_run = 0;
-        do {
-            v = decodeHuff(&state->mcb_type);
-            type_run += v;
-        } while (v >= 0xFF);
+}
+
+static inline void setMCNextBlk(HVQMCPlane* mch)
+{
+    s32 i;
+    HVQMCPlane* pmc;
+
+    for (i = 0; i < 3; i++) {
+        pmc = &mch[i];
+        pmc->top += pmc->h_mcb_stride;
+        pmc->payload_cur_blk += pmc->pb_per_mcb_x;
     }
-    for (y = 0; y < obj->height; y += 8) {
-        mc[0].top = (u8*)mc[0].present;
-        mc[1].top = (u8*)mc[1].present;
-        mc[2].top = (u8*)mc[2].present;
-        for (x = 0; x < obj->width; x += 8) {
-            if (type_run == 0) {
-                type_val = mcbTypeNext[getBit(&state->mcb_type.buf) * 3 + type_val];
-                type_run = 0;
-                do {
-                    v = decodeHuff(&state->mcb_type);
-                    type_run += v;
-                } while (v >= 0xFF);
-            }
-            type_run--;
-            if (type_val == 0) {
-                for (i = 0; i < 3; i++) {
-                    u8 n = state->planes[i].blocks_per_mcb;
-                    u16* boffs = state->planes[i].mcb_offset;
-                    s32 j;
+}
 
-                    for (j = 0; j < n; j++) {
-                        u16 off = *boffs++;
-                        s32 sum = 0;
-                        s32 dcmax = state->dc_max;
-                        s32 dcmin = state->dc_min;
+static inline void setMCDownBlk(HVQMCPlane* mch)
+{
+    s32 i;
+    HVQMCPlane* pmc;
 
-                        do {
-                            do {
-                                v = decodeHuff(&state->dc_values[i]);
-                                sum += v;
-                            } while (v <= dcmin);
-                        } while (v >= dcmax);
-                        mc[i].pb_dc += sum;
-                        mc[i].payload_cur_blk[off].value = mc[i].pb_dc;
-                    }
-                }
-                decode_PB_cc(state, mc, 0, type_val);
+    for (i = 0; i < 3; i++) {
+        pmc = &mch[i];
+        pmc->present += pmc->v_mcb_stride;
+        pmc->payload_cur_blk = pmc->payload_cur_row = pmc->payload_cur_row + pmc->stride;
+    }
+}
+
+void PpicPlaneDec(HVQSeqObj* obj, HVQMCPlane* mch)
+{
+    HVQState* state = (HVQState*)obj->state;
+    RLDecoder proc;
+    RLDecoder type;
+    int i, j;
+
+    initMCBproc(&state->mcb_proc, &proc);
+    initMCBtype(&state->mcb_type, &type);
+    for (j = 0; j < obj->height; j += 8) {
+        setMCTop(mch);
+        for (i = 0; i < obj->width; i += 8) {
+            getMCBtype(&state->mcb_type, &type);
+            if (type.status == 0) {
+                decode_PB_dc(state, mch);
+                decode_PB_cc(state, mch, 0, type.status);
             } else {
-                mc[0].pb_dc = 0x7F;
-                mc[1].pb_dc = 0x7F;
-                mc[2].pb_dc = 0x7F;
-                if (proc_run == 0) {
-                    proc_run = 0;
-                    proc_flag ^= 1;
-                    do {
-                        v = decodeHuff(&state->mcb_proc);
-                        proc_run += v;
-                    } while (v >= 0xFF);
-                }
-                proc_run--;
-                decode_PB_cc(state, mc, proc_flag, type_val);
+                reset_PB_dc(state, mch);
+                decode_PB_cc(state, mch, getMCBproc(&state->mcb_proc, &proc), type.status);
             }
-            for (i = 0; i < 3; i++) {
-                mc[i].top += mc[i].h_mcb_stride;
-                mc[i].payload_cur_blk += mc[i].pb_per_mcb_x * 2;
-            }
+            setMCNextBlk(mch);
         }
-        for (i = 0; i < 3; i++) {
-            mc[i].present += mc[i].v_mcb_stride;
-            mc[i].payload_cur_row += mc[i].stride * 2;
-            mc[i].payload_cur_blk = mc[i].payload_cur_row;
-        }
+        setMCDownBlk(mch);
     }
 }
 
@@ -1670,91 +2166,99 @@ static s32 readMVDelta(HVQBitTree* bt, s32 bits) {
     return v;
 }
 
-void BpicPlaneDec(HVQSeqObj* obj, s32 present, s32 past, s32 future) {
-    HVQState* state = obj->state;
-    HVQMCPlane mc[3];
-    s32 y;
-    s32 x;
-    s32 by;
-    s32 bx;
-    s32 dir = -1;
-    s32 mvx = 0;
-    s32 mvy = 0;
+static inline void resetMCHandler(HVQState* state, HVQMCPlane* mch, u8* present)
+{
     s32 i;
-    s32 p;
+    HVQMCPlane* pmc;
 
-    initMCHandler(state->planes, mc, present, past, future);
-    PpicPlaneDec(obj, mc);
-
-    p = present;
     for (i = 0; i < 3; i++) {
-        mc[i].present = p;
-        mc[i].payload_cur_blk = mc[i].payload_cur_row = state->planes[i].payload;
-        p += state->planes[i].size;
+        pmc           = &mch[i];
+        pmc->present  = (s32)present;
+        pmc->payload_cur_row = pmc->payload_cur_blk = state->planes[i].payload;
+        present += state->planes[i].size;
     }
-    by = 0;
-    y = 0;
-    while (by < obj->height) {
-        for (i = 0; i < 3; i++) {
-            mc[i].top = (u8*)mc[i].present;
-        }
-        bx = 0;
-        x = 0;
-        while (bx < obj->width) {
-            u8 t = mc[0].payload_cur_blk->type;
-            s32 mode = (t >> 5) & 3;
+}
 
-            if (mode == 0) {
-                MCBlockDecDCNest(state, mc);
+static inline void setMCTarget(HVQMCPlane* mch, s32 direct)
+{
+    if (direct == 0) {
+        mch[0].target = (u8*)mch[0].past;
+        mch[1].target = (u8*)mch[1].past;
+        mch[2].target = (u8*)mch[2].past;
+    } else {
+        mch[0].target = (u8*)mch[0].future;
+        mch[1].target = (u8*)mch[1].future;
+        mch[2].target = (u8*)mch[2].future;
+    }
+}
+
+static inline void getMVector(s32* vec, HVQBitTree* code, s32 fcode)
+{
+    s32 range;
+    s32 v;
+    s32 i;
+
+    range = 1 << (fcode + 5);
+
+    v = decodeHuff(code) << fcode;
+
+    for (i = fcode - 1; i >= 0; i--) {
+        v += getBit(&code->buf) << i;
+    }
+    *vec += v;
+
+    if (*vec >= range) {
+        *vec -= range << 1;
+    } else if (*vec < -range) {
+        *vec += range << 1;
+    }
+}
+
+void BpicPlaneDec(HVQSeqObj* seqObj, s32 present, s32 past, s32 future)
+{
+    HVQState* state;
+    HVQMCPlane mch[3];
+    s32 vx, vy;
+    s32 dir;
+    s32 i, j;
+    u8 cc;
+    u8 mtype;
+    int d;
+
+    state = (HVQState*)seqObj->state;
+    initMCHandler(state->planes, mch, present, past, future);
+    PpicPlaneDec(seqObj, mch);
+    resetMCHandler(state, mch, (u8*)present);
+    dir = -1;
+
+    for (j = 0; j < seqObj->height; j += 8) {
+        setMCTop(mch);
+        for (i = 0; i < seqObj->width; i += 8) {
+            cc = mch[0].payload_cur_blk->type;
+
+            d = (cc >> 5) & 3;
+            if (d == 0) {
+
+                MCBlockDecDCNest(state, mch);
             } else {
-                if (mode - 1 != dir) {
-                    dir = mode - 1;
-                    for (i = 0; i < 3; i++) {
-                        mc[i].target = (u8*)(dir == 0 ? mc[i].past : mc[i].future);
-                    }
-                    mvy = 0;
-                    mvx = 0;
+
+                if (--d != dir) {
+                    dir = d;
+                    setMCTarget(mch, dir);
+                    vx = vy = 0;
                 }
-                {
-                    s32 bits = state->mc_bits_h[dir];
-                    s32 lim = 1 << (bits + 5);
-                    mvx += readMVDelta(&state->mv_h, bits);
-                    if (mvx >= lim) {
-                        mvx -= lim * 2;
-                    } else if (mvx < -lim) {
-                        mvx += lim * 2;
-                    }
-                }
-                {
-                    s32 bits = state->mc_bits_v[dir];
-                    s32 lim = 1 << (bits + 5);
-                    mvy += readMVDelta(&state->mv_v, bits);
-                    if (mvy >= lim) {
-                        mvy -= lim * 2;
-                    } else if (mvy < -lim) {
-                        mvy += lim * 2;
-                    }
-                }
-                if (!((t >> 4) & 1)) {
-                    MCBlockDecMCNest(state, mc, x + mvx, y + mvy);
-                } else {
-                    MotionComp(state->planes, mc, x + mvx, y + mvy);
-                }
+                getMVector(&vx, &state->mv_h, state->mc_bits_h[dir]);
+                getMVector(&vy, &state->mv_v, state->mc_bits_v[dir]);
+
+                mtype = (cc >> 4) & 1;
+                if (mtype == 0)
+                    MCBlockDecMCNest(state, mch, (i << 1) + vx, (j << 1) + vy);
+                else
+                    MotionComp(state->planes, mch, (i << 1) + vx, (j << 1) + vy);
             }
-            x += 0x10;
-            bx += 8;
-            for (i = 0; i < 3; i++) {
-                mc[i].top += mc[i].h_mcb_stride;
-                mc[i].payload_cur_blk += mc[i].pb_per_mcb_x * 2;
-            }
+            setMCNextBlk(mch);
         }
-        y += 0x10;
-        by += 8;
-        for (i = 0; i < 3; i++) {
-            mc[i].present += mc[i].v_mcb_stride;
-            mc[i].payload_cur_row += mc[i].stride * 2;
-            mc[i].payload_cur_blk = mc[i].payload_cur_row;
-        }
+        setMCDownBlk(mch);
     }
 }
 

@@ -1,5 +1,13 @@
 # Dolphin SDK sources
 
+The HVQM4 candidate also adapts `src/hvqm4dec/hvqm4dec.c` and `include/hvqm4.h`
+from [projectPiki/pikmin](https://github.com/projectPiki/pikmin), commit
+`9a2163626a269ae7c699fc195cf91a5ca791044d`, licensed **CC0-1.0**
+([license](https://github.com/projectPiki/pikmin/blob/9a2163626a269ae7c699fc195cf91a5ca791044d/LICENSE.MD)).
+Its bodies, inline helpers and types are checked against GL5E4F independently;
+Pikmin's Matching status does not establish an LSW1 match. See the
+[HVQM4 evidence](../../docs/sdk_import.md#hvqm4-decoder-parked).
+
 The C sources and private headers here, and the public headers in
 `include/dolphin/` and `include/dolphin.h`, are vendored from
 [doldecomp/dolsdk2004](https://github.com/doldecomp/dolsdk2004), commit
