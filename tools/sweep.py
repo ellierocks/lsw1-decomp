@@ -470,15 +470,18 @@ def final_repairs(name: str, source: str, res: dict, body: str,
     """
     base = body
     for rewrite in sweep_repairs.stage("final"):
-        alt = rewrite(base, name, asm, unit)
-        if alt == base:
-            continue
-        candidate, alt = score_draft(name, source, alt)
-        candidate, alt = try_variants(name, source, candidate, alt)
-        if better(candidate, res):
-            candidate[rewrite.__name__] = True
-            candidate["context"] = res.get("context")
-            res, body = candidate, alt
+        alternatives = rewrite(base, name, asm, unit)
+        if isinstance(alternatives, str):
+            alternatives = [alternatives]
+        for alt in alternatives:
+            if alt == base:
+                continue
+            candidate, alt = score_draft(name, source, alt)
+            candidate, alt = try_variants(name, source, candidate, alt)
+            if better(candidate, res):
+                candidate[rewrite.__name__] = True
+                candidate["context"] = res.get("context")
+                res, body = candidate, alt
     return res, body
 
 

@@ -174,6 +174,9 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   into the address instead (`fn_800B2ED4`, `fn_80108DA8`).
 - When retail reloads a global after calls, naming the global at each use can avoid
   keeping m2c's cached temporary in a callee-saved register (`fn_800D4DAC`).
+- Swapping the operands of a complete local-plus-global addition can change ProDG
+  allocation and instruction order (`fn_800B3980`, 89 to 147 exact instructions).
+  Try bounded alternatives even below 80%; do not swap substrings of larger expressions.
 - A global accessed directly, not through a local pointer, gives CSE'd base+offset
   address constants (`fn_8010439C`). An indexed `p[0xD8 + i*0x34]` instead of a walking
   pointer fixes the induction setup (`fn_80106128`).
