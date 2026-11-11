@@ -11,6 +11,12 @@ f32 NuVecMtxTransformH(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* 
     return w;
 }
 
+// Retail .rodata keeps the constant pools of functions the linker dead-stripped
+// from this file. Nothing in the DOL references these words; they are carried
+// at their definition points so the unit's .rodata layout matches (see
+// docs/build_config.md, "Stripped constant pools").
+static const f32 unk_8018EF30[1] __attribute__((section(".rodata"))) = { 1.0f };
+
 void NuVecMtxRotate(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* b)
 {
     f32 ax = a->x, ay = a->y, az = a->z;
@@ -81,6 +87,8 @@ void NuVecRotateAxis(struct nuvec_s* dest, s32 angle, f32 scale)
     dest->y = 0.0f;
     dest->z = scale * c;
 }
+
+static const f32 unk_8018EF38[3] = { 0.0f, 0.0f, 1.0f };
 
 void NuVecScale(struct nuvec_s* dest, struct nuvec_s* v, f32 scale)
 {
