@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 4
+revision = 5
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -55,8 +55,8 @@ note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_im
 
 [[stage.item]]
 id = "sdk-leftovers"
-units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "auto_00_80003100_init", "auto_00_8000348C_init", "auto_01_8016BE88_text", "auto_01_8017C754_text"]
-note = "Functions the dolsdk2004 donors did not match, the .init stubs, __DVDLowTestAlarm (dvdlow.c) and the GXGetFifo* stubs."
+units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "dolphin/Runtime/__start", "dolphin/Runtime/__init_fpu", "auto_00_80003328_init", "auto_00_8000348C_init", "dolphin/dvd/dvdlow_test", "dolphin/amcstubs/AmcExi2Stubs"]
+note = "All executable functions match. Exact leftover ranges promoted as Runtime/__start, Runtime/__init_fpu, dvd/dvdlow_test and amcstubs/AmcExi2Stubs; Pad/dvdfs data granularity corrected. The two synthetic pad functions are non-executable constants/alignment, parked below. See docs/sdk_import.md#sdk-leftovers."
 # at revision 3: 19 functions, 3,256 bytes left
 
 
@@ -1538,3 +1538,11 @@ id = "data"
 data = true
 note = "Most data comes with promoting units in stages 0-5; .rodata ownership also unblocks code-identical functions that fail --strict-symbols on string addresses."
 # at revision 1: 2,490,232 data bytes left
+
+[[parked]]
+function = "pad_00_80003328_init"
+reason = "Score N/A (0 executable instructions): 12 zero bytes are the overlapping zero constants read by __init_fpu at 80003328/8000332C, not a function. Next: distinguish code-section constants from functions in DTK reports; keep retail fallback rather than claim code progress."
+
+[[parked]]
+function = "pad_00_8000348C_init"
+reason = "Score N/A (0 executable instructions): 20 zero alignment bytes after __init_hardware, with no entry or branch target. Next: distinguish section alignment from functions in DTK reports; keep retail fallback rather than synthesize an assembly function."

@@ -107,3 +107,18 @@ from LSW1, and `Runtime/cvt_fp2unsigned.c` is an independent, unpromoted
 ProDG C candidate. These four files are separate from the dolsdk2004 imports.
 MSSB's runtime and MetroTRK were reviewed but do not supply these SN bodies.
 See [runtime evidence](../../docs/sn_runtime.md#codewarrior-runtime-and-debugger-follow-up).
+
+`amcstubs/AmcExi2Stubs.c` is an unchanged dolsdk2004 donor. Its seven retained
+functions form the mode-2 SN debugger transport table; `AMC_IsStub` is dead-stripped.
+This corrects the historical `GXGetFifoBase`/`GXGetFifoSize` labels on two stubs.
+`dvd/dvdlow_test.c` retains the unchanged dolsdk2004 `__DVDLowTestAlarm` body in
+an exact separate range; its alarm objects remain owned by `dvd/dvdlow.c`.
+
+`Runtime/__start.c` and `Runtime/__init_fpu.c` reconstruct SN's original
+startup assembly from GL5E4F, with the reset-button C helper adapted from
+`os/__start.c` in dolsdk2004. MSSB's CC0 `src/Dolphin/os/__start.c`,
+`src/Dolphin/gx/GXFifo.c` and `src/Dolphin/amcstubs/AmcExi2Stubs.c` at
+commit `407dbcbe70f8be5d167d0b1f0a229f38e0359019` were reviewed for the differing
+startup/stub bodies; no MSSB text was copied for this batch. Its licence is
+[COPYING.MSSB](COPYING.MSSB). Per-function assembly evidence and the startup
+scheduling override are recorded in [SDK leftovers](../../docs/sdk_import.md#sdk-leftovers).
