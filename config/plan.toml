@@ -1578,3 +1578,16 @@ reason = "Best 235/358; one instruction missing; retail saves r19 and retains a 
 [[parked]]
 function = "__cvt_fp2unsigned"
 reason = "Best 16/18 exact instructions (94.11% objdiff), strict MISMATCH: ProDG folds the constant low half into lfd, while retail uses lis/addi then lfd 0(r9). Explicit bound and volatile-load/pointer forms did not improve it. Next: recover the SN tealeaf conversion source/addressing convention or test its original compiler revision in a score-only experiment; current evidence does not establish an assembly origin."
+
+# Parked by the hubs item (2026-11-11); best drafts stay local under work/try/.
+[[parked]]
+function = "NewRumble"
+reason = "best 13/21 (fn_80044F28(pad, (s32)(strength * k), c, c, strength)); retail has an extra fmr f12,f0 before fctiwz and takes r11 for the first lis; tried s32/f32/f64 locals, inline ftoi, clamp, early return, 180 s permuter (best 300 hoists a double); next: an unprototyped or K&R fn_80044F28 call (float promotion) or the GamePad inline from the donor"
+
+[[parked]]
+function = "fn_800769B4"
+reason = "best 113/120 (menu line draw, u32 alpha clamp, fn_8007BE44 with floats-first prototype from the JP PC push order, s = sx copy in both call blocks); left: the anchor fmadds register pair (x leg uses f13/f0 swapped) and li r0,0 scheduled before the lbl_8019B10C load; next: a nuvec anchor offset helper or the PC body's x/y temporaries, then a permuter burst focused on the tail"
+
+[[parked]]
+function = "fn_8005A470"
+reason = "best 51/60 (debris scan reset; extra leading f32 parameter, size in f2); retail keeps &v as addi r3,r1,8 at each use and loads v's words before the lbl_8040AE5C/lbl_8040A5BC stores, which needs a word-wise copy (struct assignment keeps &v in a register); left: lfs-store order of lbl_8038E590/lbl_80348078 and mr r29,r4 placement; next: type the argument as the real scan struct (not nuvec_s) or find the inlined reset helper the store groups suggest"

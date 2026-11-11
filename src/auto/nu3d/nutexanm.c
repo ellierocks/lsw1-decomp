@@ -1,4 +1,5 @@
 #include "types.h"
+#include "game/levels.h"
 
 extern u8* lbl_8040A2F8;
 extern s32 NuFParGetInt(void);
@@ -93,4 +94,35 @@ void fn_80015C88(s32 *arg0, s32 arg1, s32 arg2, s32 arg3) {
         }
         (*(s32 *)((s8 *)(var_r3) + (0xE8))) = var_r0;
     }
+}
+
+/* Instance animation behind a special handle (levels.h: nuinstanim_s). Through the
+ * special: special+0x40 -> +0x48. Through the display special: +0xC4, where -1 and 0 mean
+ * none. */
+struct nuinstanim_s *fn_8001384C(struct nuhspecial_s *sph) {
+    if (sph->special != NULL) {
+        return *(struct nuinstanim_s **)(*(s8 **)((s8 *)sph->special + 0x40) + 0x48);
+    }
+    if (sph->display != NULL && *(s32 *)((s8 *)sph->display + 0xC4) != -1
+        && *(struct nuinstanim_s **)((s8 *)sph->display + 0xC4) != NULL) {
+        return *(struct nuinstanim_s **)((s8 *)sph->display + 0xC4);
+    }
+    return NULL;
+}
+
+extern s32 NuStrICmp(const char *a, const char *b);
+
+struct nugspline_s *NuSplineFind(struct nugscn_s *scene, const char *name) {
+    struct nugspline_s *spline;
+    s32 i;
+
+    if (scene != NULL) {
+        spline = scene->splines;
+        for (i = 0; i < scene->numsplines; i++, spline++) {
+            if (NuStrICmp(name, spline->name) == 0) {
+                return spline;
+            }
+        }
+    }
+    return NULL;
 }

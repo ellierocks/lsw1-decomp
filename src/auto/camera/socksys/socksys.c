@@ -1,7 +1,27 @@
 #include "types.h"
 
+/* 0x10 bytes and up of a character animation record (OpenSaga CHARACTERANIM_s). */
+struct socksys_anim_rec_s {
+    u8 pad0[0x10];
+    f32 blend_out_time;
+    f32 playback_rate;
+};
+
+/* 0x54-byte character model (OpenSaga CHARACTERMODEL_s): per-animation tables. */
+struct socksys_model_s {
+    u8 pad0[0x8];
+    struct socksys_anim_rec_s** anims;
+    void** anim_data;
+    u8 pad10[0x54 - 0x10];
+};
+
+/* Character system behind lbl_80408DF0 (OpenSaga apicharsys). */
 struct socksys_a_s {
-    u8 pad0[0x1c];
+    s32 character_count;
+    u8 pad4[4];
+    s32 anim_capacity;
+    u8 padC[0x18 - 0xC];
+    struct socksys_model_s* models;
     s16* ids;
 };
 
@@ -17,12 +37,40 @@ struct socksys_list_s {
     s32* present;
 };
 
+/* Sock (camera rail) node state; fn_80095558 initialises it and fn_80095630 picks the
+ * sub-record whose id matches. */
 struct socksys_b_s {
-    u8 pad0[0x3d];
+    f32 f0;
+    f32 f4;
+    u8 pad8[0x10 - 0x8];
+    f32 f10;
+    f32 f14;
+    u8 pad18[0x3c - 0x18];
+    u8 b3c;
     u8 flag;
-    u8 pad3e[2];
+    s16 s3e;
     s16 s40;
     s16 s42;
+    s16 s44;
+    s16 s46;
+    u8 pad48[0x4c - 0x48];
+    u8 b4c;
+    u8 b4d;
+    u8 b4e;
+    u8 pad4f[0x52 - 0x4f];
+    s16 s52;
+};
+
+/* 0x14-byte effect records (lbl_80409410->unk1B8): fn_800958F8 spawns record idx. */
+struct socksys_fx_item_s {
+    s32 id;
+    u8 pad4[0x14 - 0x4];
+};
+
+struct socksys_fx_s {
+    u8 pad0[4];
+    s32 count;
+    struct socksys_fx_item_s *items;
 };
 
 extern struct socksys_a_s* lbl_80408DF0;
@@ -243,4 +291,94 @@ s32 fn_80093D84(void *, void *, void *, void *, void *, f32, s32);
 
 void fn_80095B7C(void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, f32 farg0) {
     fn_80093D84(arg0, arg1, arg2, arg3, arg4, farg0, 1);
+}
+
+struct socksys_b_s *fn_80095630(struct socksys_b_s *o, s32 id, s32 a, s32 b) {
+    if (o->flag != 0) {
+        if (a != 0 && o->s40 == id) {
+            return (struct socksys_b_s *)&o->f14;
+        }
+        if (b != 0 && o->s3e == id) {
+            return (struct socksys_b_s *)&o->f10;
+        }
+    } else if (o->s42 == id) {
+        return o;
+    }
+    return NULL;
+}
+
+extern void fn_80063E14(s32 *, s32, void *, s32);
+
+s32 fn_800958F8(struct socksys_fx_s *l, s32 idx, void *pos) {
+    s32 sp8;
+
+    if (idx >= 0 && idx < l->count && l->items[idx].id != -1) {
+        sp8 = -1;
+        fn_80063E14(&sp8, l->items[idx].id, pos, 1);
+        return 1;
+    }
+    return 0;
+}
+
+extern f32 lbl_8019DFB0[];
+
+void fn_80095558(struct socksys_b_s *o, s32 id) {
+    f32 z;
+    if (o != NULL) {
+        z = lbl_8019DFB0[0];
+        o->s46 = id;
+        o->s44 = id;
+        o->s42 = id;
+        o->f4 = z;
+        o->f14 = z;
+        o->f0 = z;
+        o->b3c = 4;
+        o->s52 = -1;
+        o->flag = 0;
+        o->b4e = 0;
+        o->b4c = 0;
+        o->b4d = 0;
+    }
+}
+
+extern f32 lbl_8019DF68[];
+extern f32 lbl_8019DF6C[];
+extern f32 lbl_8019DF70[];
+extern f32 lbl_8019DF74[];
+extern f32 lbl_8040AF3C;
+
+f32 AnimDuration(s32 character, s32 anim, f32 start, f32 end, s32 subtract_blend) {
+    f32 duration;
+    struct socksys_model_s *model;
+
+    if (character < 0 || character >= lbl_80408DF0->character_count)
+        return lbl_8019DF68[0];
+    if (anim < 0 || anim >= lbl_80408DF0->anim_capacity)
+        return lbl_8019DF68[0];
+    if (lbl_80408DF0->ids[character] == -1)
+        return lbl_8019DF68[0];
+
+    model = &lbl_80408DF0->models[lbl_80408DF0->ids[character]];
+    if (model->anim_data[anim] == NULL)
+        return lbl_8019DF68[0];
+
+    duration = fn_800215F0(model->anim_data[anim]);
+    if (start >= lbl_8019DF6C[0] && start < duration) {
+        if (end >= lbl_8019DF6C[0] && end < duration && end > start) {
+            duration = end - start;
+        } else {
+            duration -= start;
+        }
+    } else if (end >= lbl_8019DF6C[0] && end < duration && end > start) {
+        duration = end - lbl_8019DF6C[0];
+    } else {
+        duration -= lbl_8019DF6C[0];
+    }
+
+    duration *= (lbl_8019DF6C[0] / (model->anims[anim]->playback_rate / lbl_8019DF70[0])) * lbl_8019DF74[0];
+    lbl_8040AF3C = model->anims[anim]->blend_out_time;
+    if (subtract_blend != 0) {
+        duration -= lbl_8040AF3C;
+    }
+    return duration;
 }

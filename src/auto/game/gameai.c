@@ -187,3 +187,27 @@ void *fn_801272FC(void *arg0, void *arg1, s32 arg2, s32 arg3) {
     }
     return var_r27;
 }
+
+struct forceobj_s {
+    char *name;
+    u8 id[0xF0];
+};
+
+extern s32 NuStrICmp(const char *a, const char *b);
+extern s32 fn_80013890(void *a, void *b);
+
+struct forceobj_s *FindForceObject(void *world, char *name, void *id) {
+    struct forceobj_s *obj = *(struct forceobj_s **)((s8 *)world + 0x58C);
+    s32 i;
+
+    if (*(s32 *)((s8 *)world + 0x57C) == 0) {
+        for (i = 0; i < *(s32 *)((s8 *)world + 0x590); i++, obj++) {
+            if (id != NULL) {
+                if (fn_80013890(obj->id, id) != 0) return obj;
+            } else if (NuStrICmp(obj->name, name) == 0) {
+                return obj;
+            }
+        }
+    }
+    return NULL;
+}
