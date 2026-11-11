@@ -807,6 +807,10 @@ dolphin/hvqm4/hvqm4dec.c:
 	.bss        start:0x8030F168 end:0x8030FBA8
 	.sbss       start:0x8040ACB0 end:0x8040ACD0
 
+dolphin/OdemuExi2/DebuggerDriver.c:
+	.text       start:0x8018A10C end:0x8018AB8C
+	.sdata      start:0x8040A1C0 end:0x8040A1C4
+
 sn/libc/stdio/vprintf.c:
 	.text       start:0x8018BD4C end:0x8018BD80
 
