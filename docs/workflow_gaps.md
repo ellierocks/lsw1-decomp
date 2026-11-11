@@ -13,7 +13,7 @@ delete the row when nothing remains to say.
 | 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | fixed, #109, #114 |
 | 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | fixed, #113, #116 |
 | 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | partly fixed |
-| 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | open |
+| 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | partly fixed, #119 |
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | open |
 
 ## 1. Stale task packs change scores
@@ -122,12 +122,24 @@ commits touching its inputs since it ran.
 
 ## 7. Sweep runtime and cache invalidation
 
-The full 1,355-row sweep takes roughly 11 minutes warm and 15 minutes cold.
-Score keys include the entire unit source, so applying one match invalidates the
-scores of its neighbours. Missing task packs each launch `ls1_task_pack.py` even
-though the unattended sweep needs only assembly. Measure cold and warm runs and
-require identical result rows before changing either path. Retain visible
-declarations and every input that can affect strict scoring in cache keys.
+Measured on 2026-11-11 over the 1,353-row sweep, one run at a time with a private
+`LSW1_SWEEP_CACHE`: the #117 tools took 1,616 s cold and 837 s warm; #119 takes about
+1,000 s cold and 238 s warm, with the same verdict, exact count and target on every row.
+
+- The warm run was Python under the GIL, not compiling: the globals repair's
+  declaration pattern backtracks across long indentation on every failed line, 7 s for
+  one 80 KB draft. A linear precheck now picks the lines it runs on (identical matches
+  over 9,900 drafts and cached m2c outputs).
+- Score keys dropped `configure.py` and `config.yml`, which `score_fn.py` never reads and
+  which changed in 53 of 238 main commits, and now cover every module `score_fn.py`
+  imports (a test checks the closure) and the retail split object `verify_fn.py` compares.
+- A missing pack is written as `asm.s` in process instead of by `ls1_task_pack.py`.
+- Compile errors drop the temporary directory before the 1,500-character cut and start at
+  a whole line, so error text no longer differs between runs or begins mid-name.
+
+Still open: the key covers the whole unit source, so applying one match rescores its
+neighbours, and a cold run is now mostly ProDG compiles. A narrower key needs every
+declaration the body can see; measure a resweep after an applied match before changing it.
 
 ## 8. Functions without a source unit are not swept
 

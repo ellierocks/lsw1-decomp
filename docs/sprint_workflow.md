@@ -20,7 +20,10 @@ orchestration and continuation. [Strategy](strategy.md) describes current opport
   current build before drafting (`tools/pack_asm.py`). Automatic scoring uses `--no-queue`;
   interactive scoring adds targets to an existing queue unless given that flag.
   m2c drafts and score verdicts are cached in `~/.cache/lsw1/sweep`, shared by every
-  checkout, so a rerun after a tool fix rescores only the drafts that changed. Without
+  checkout, so a rerun after a tool fix rescores only the drafts that changed. A score is
+  keyed on the scoring tools (`SCORE_TOOLS`), the unit source, its preprocessed context, the
+  target's split object and assembly, and the body; set `LSW1_SWEEP_CACHE` to a private
+  directory to time a cold run. Without
   `--apply`, `sweep_permute.py` can run in the background while you draft;
   `--apply-saved` then writes its confirmed matches.
 - `next_target.py --by-unit` ranks units; `--unit UNIT --limit N` lists targets.
