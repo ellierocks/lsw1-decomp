@@ -373,6 +373,54 @@ class WideReturnTests(unittest.TestCase):
         self.assertEqual(sweep.wide_return(body.replace("-1U", "0")), body.replace("-1U", "0"))
 
 
+class RepairDraftTest(unittest.TestCase):
+    ASM = ("/* 0 0  94 21 FF B8 */\tstwu r1, -0x48(r1)\n/* 4 4  7C 08 02 A6 */\tmflr r0\n"
+           "/* 8 8  93 E1 00 40 */\tstw r31, 0x40(r1)\n")
+    BODY = "void f(void) {\n    f32 sp8;\n\n    g(&sp8);\n    sp8 = 1.0f;\n}\n"
+
+    def repair(self, compiles):
+        from unittest import mock
+        scored = []
+
+        def fake_score(name, source, body, apply=False):
+            scored.append(body)
+            if compiles(body):
+                return {"verdict": "MISMATCH", "exact": 5, "target": 9}
+            return {"verdict": "COMPILE-ERROR", "error": "u.c:3: incompatible types"}
+
+        stages = {"frame": (sweep.frame_buffer,), "scored": ()}
+        with mock.patch.object(sweep, "score", side_effect=fake_score), \
+                mock.patch.object(sweep.sweep_repairs, "stage", side_effect=stages.__getitem__), \
+                mock.patch.object(sweep, "fix_prototypes",
+                                  side_effect=lambda b, *a: b if a[-1] is True else "void g(f32 *);\n" + b), \
+                mock.patch.object(sweep, "pad_signature", side_effect=lambda b, n: b), \
+                mock.patch.object(sweep, "adopt_own_prototype", side_effect=lambda b, *a: b), \
+                mock.patch.object(sweep.mac_protos, "pad_params", side_effect=lambda b, n: b):
+            return sweep.repair_draft("f", "u.c", self.BODY, self.ASM, ""), scored
+
+    def test_failing_repair_does_not_hide_a_later_fix(self):
+        # frame_buffer turns `f32 sp8` into `char sp8[0x38]` on a draft that fails anyway; the
+        # prototype fix alone would compile the original, but not with `*(s32 *)sp8 = 1.0f`.
+        (res, body), _ = self.repair(lambda b: "void g(" in b and "char sp8" not in b)
+        self.assertEqual(res["verdict"], "MISMATCH")
+        self.assertTrue(res["prototypes"])
+        self.assertNotIn("frame_buffer", res)
+        self.assertEqual(body, "void g(f32 *);\n" + self.BODY)
+
+    def test_accumulated_repairs_still_win(self):
+        # Both repairs are needed: the accumulating path finds it, with no retry.
+        (res, body), scored = self.repair(lambda b: "void g(" in b and "char sp8" in b)
+        self.assertEqual(res["verdict"], "MISMATCH")
+        self.assertTrue(res["frame_buffer"] and res["prototypes"])
+        self.assertIn("char sp8[0x38];", body)
+        self.assertEqual(len(scored), 3)
+
+    def test_strip_tmp(self):
+        res = sweep.strip_tmp({"verdict": "COMPILE-ERROR",
+                               "error": "Z:/tmp/score_fn_w1otsbmy/levels.c:5363: parse error before `*'"})
+        self.assertEqual(res["error"], "levels.c:5363: parse error before `*'")
+
+
 class SweepCacheTest(unittest.TestCase):
     def test_score_reuses_disk_cache_across_runs(self):
         import tempfile

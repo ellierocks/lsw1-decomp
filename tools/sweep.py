@@ -290,7 +290,7 @@ def score(name: str, source: str, body: str, apply: bool = False) -> dict:
             _SCORES[key] = _score(name, source, body)
             if path and _SCORES[key].get("verdict") in CACHED_VERDICTS:
                 write_atomic(path, json.dumps(_SCORES[key]))
-    return dict(_SCORES[key])
+    return strip_tmp(dict(_SCORES[key]))  # verdicts cached before strip_tmp keep the name
 
 
 def write_atomic(path: Path, text: str) -> None:
@@ -318,12 +318,23 @@ def _score(name: str, source: str, body: str, apply: bool = False) -> dict:
     if apply:
         return {"verdict": "MATCH" if r.returncode == 0 else "NOT-APPLIED", "log": r.stdout[-300:]}
     if r.returncode == 2 and not r.stdout.strip().startswith("{"):
-        return {"verdict": "COMPILE-ERROR", "error": r.stderr}
+        return strip_tmp({"verdict": "COMPILE-ERROR", "error": r.stderr})
     try:
         rep = json.loads(r.stdout)
     except ValueError:
-        return {"verdict": "ERROR", "error": (r.stdout + r.stderr)[-400:]}
+        return strip_tmp({"verdict": "ERROR", "error": (r.stdout + r.stderr)[-400:]})
     return {"verdict": rep.get("verdict"), "exact": rep.get("exact_insns"), "target": rep.get("target_insns")}
+
+
+TMP_DIR = re.compile(r"(?:\b[A-Za-z]:)?[^\s:'\"`]*?score_fn_[A-Za-z0-9_]+[/\\]")
+
+
+def strip_tmp(res: dict) -> dict:
+    """RES with score_fn.py's random temporary directory dropped from its error text, so a
+    COMPILE-ERROR row reads the same in every run (`Z:/tmp/score_fn_x1y2/u.c:5: ...` -> `u.c:5: ...`)."""
+    if isinstance(res.get("error"), str):
+        res["error"] = TMP_DIR.sub("", res["error"])
+    return res
 
 
 RANK = {"MATCH": 3, "MISMATCH": 2}
@@ -336,8 +347,77 @@ def better(a: dict, b: dict) -> bool:
 
 def improves(new: dict, old: dict) -> bool:
     """Whether a repaired draft's score replaces OLD. Repairs accumulate, so a draft that
-    still fails to compile is kept in its further-repaired form (its error is the live one)."""
+    still fails to compile is kept in its further-repaired form (its error is the live one);
+    repair_draft retries the forms such a blind acceptance replaced."""
     return better(new, old) or new["verdict"] == old["verdict"] == "COMPILE-ERROR"
+
+
+SCORE_FIELDS = ("verdict", "exact", "target", "error")
+
+
+def repair_steps(name: str, asm_text: str, unit_text: str) -> list[tuple[str, object]]:
+    """The repairs repair_draft applies after stack_arrays, in order, as
+    (row flag, rewrite(body, res) -> body)."""
+    steps = [(f.__name__, lambda b, r, f=f: f(b, asm_text)) for f in sweep_repairs.stage("frame")]
+    steps += [(f.__name__, lambda b, r, f=f: f(b)) for f in sweep_repairs.stage("scored")]
+    steps += [("padded", lambda b, r: pad_signature(b, name)),
+              ("prototypes", lambda b, r: fix_prototypes(b, name, asm_text, unit_text)),
+              ("own_prototype", lambda b, r: adopt_own_prototype(b, name, unit_text)
+               if r["verdict"] == "COMPILE-ERROR" else b)]
+    return steps
+
+
+def run_steps(name: str, source: str, steps, start: int, res: dict | None, body: str,
+              unit_text: str, asm_text: str, checkpoints: list | None) -> tuple[dict, str]:
+    """Apply STEPS[START:] to BODY (scored RES), then the Mac demo's
+    prototypes. With CHECKPOINTS, a failing draft keeps a failing repair (`improves`) and
+    each form it replaced is recorded as (next step, res, body); without, a repair is kept
+    only when it scores better."""
+    keep = improves if checkpoints is not None else better
+    pre = body
+    for i in range(start, len(steps)):
+        flag, rewrite = steps[i]
+        if flag == "prototypes":
+            pre = body
+        alt = rewrite(body, res)
+        if alt == body:
+            continue
+        alt_res, alt = score_draft(name, source, alt)
+        if keep(alt_res, res):
+            if checkpoints is not None and not better(alt_res, res):
+                checkpoints.append((i + 1, res, body))
+            flags = {k: v for k, v in res.items() if k not in SCORE_FIELDS}
+            res, body = {**alt_res, **flags, flag: True}, alt
+    for mac_body in (fix_prototypes(pre, name, asm_text, unit_text, True),
+                     mac_protos.pad_params(body, name)):  # the Mac demo's types: strictly better only
+        if mac_body not in (pre, body):
+            mac_res, mac_body = score_draft(name, source, mac_body)
+            if better(mac_res, res):
+                flags = {k: v for k, v in res.items() if k not in SCORE_FIELDS}
+                res, body = {**mac_res, **flags, "mac": True}, mac_body
+    return res, body
+
+
+def repair_draft(name: str, source: str, body: str, asm_text: str, unit_text: str) -> tuple[dict, str]:
+    """(score, body) of m2c draft BODY after the sweep's repairs (repair_steps). Repairs
+    accumulate on a draft that fails to compile; if it still fails at the end, each form a
+    failing repair replaced (and the draft before stack_arrays) is repaired again keeping
+    only improvements, and the best result wins: a repair accepted blind can then never
+    hide a draft that a later repair alone would have made compile."""
+    steps = repair_steps(name, asm_text, unit_text)
+    stacked = stack_arrays(body)
+    checkpoints: list = [(0, None, body)] if stacked != body else []
+    res, out = score_draft(name, source, stacked)
+    res, out = run_steps(name, source, steps, 0, res, out, unit_text, asm_text, checkpoints)
+    if res["verdict"] != "COMPILE-ERROR":
+        return res, out
+    for start, cp_res, cp_body in checkpoints:
+        if cp_res is None:
+            cp_res, cp_body = score_draft(name, source, cp_body)
+        alt_res, alt = run_steps(name, source, steps, start, cp_res, cp_body, unit_text, asm_text, None)
+        if better(alt_res, res):
+            res, out = alt_res, alt
+    return res, out
 
 
 def sweep_one(t: dict) -> dict:
@@ -357,43 +437,7 @@ def sweep_one(t: dict) -> dict:
         if status != "ok":
             res = {"verdict": status.upper()}
         else:
-            res, body = score_draft(name, source, stack_arrays(body))
-            asm_text = (OUT / name / "asm.s").read_text()
-            for framer in sweep_repairs.stage("frame"):  # target frame size: kept only when better
-                framed = framer(body, asm_text)
-                if framed != body:
-                    framed_res, framed = score_draft(name, source, framed)
-                    if improves(framed_res, res):
-                        res, body = {**framed_res, framer.__name__: True}, framed
-            for repair in sweep_repairs.stage("scored"):  # scored repairs: kept only when better
-                alt = repair(body)
-                if alt != body:
-                    alt_res, alt = score_draft(name, source, alt)
-                    if improves(alt_res, res):
-                        res, body = {**alt_res, repair.__name__: True}, alt
-            padded = pad_signature(body, name)
-            if padded != body:
-                pad_res, padded = score_draft(name, source, padded)
-                if improves(pad_res, res):
-                    res, body = {**pad_res, "padded": True}, padded
-            pre = body
-            protos = fix_prototypes(body, name, (OUT / name / "asm.s").read_text(), unit_text)
-            if protos != body:
-                proto_res, protos = score_draft(name, source, protos)
-                if improves(proto_res, res):
-                    res, body = {**proto_res, "padded": res.get("padded", False), "prototypes": True}, protos
-            if res["verdict"] == "COMPILE-ERROR":
-                own = adopt_own_prototype(body, name, unit_text)
-                if own != body:
-                    own_res, own = score_draft(name, source, own)
-                    if improves(own_res, res):
-                        res, body = {**own_res, "padded": res.get("padded", False), "own_prototype": True}, own
-            for mac_body in (fix_prototypes(pre, name, (OUT / name / "asm.s").read_text(), unit_text, True),
-                             mac_protos.pad_params(body, name)):  # the Mac demo's types: strictly better only
-                if mac_body not in (pre, body):
-                    mac_res, mac_body = score_draft(name, source, mac_body)
-                    if better(mac_res, res):
-                        res, body = {**mac_res, "padded": res.get("padded", False), "mac": True}, mac_body
+            res, body = repair_draft(name, source, body, (OUT / name / "asm.s").read_text(), unit_text)
             res["context"] = context is not None
             res, body = try_variants(name, source, res, body)
         if best is None or better(res, best[0]):
