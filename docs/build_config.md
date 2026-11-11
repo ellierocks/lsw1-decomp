@@ -119,16 +119,17 @@ another TU, so it needs the `.sdata`/`.bss` boundaries reviewed and a relinked D
 
 - `camera/socksys`: **confirmed `0x80095BA0`.** `fn_80095B58` and `fn_80095B7C`
   are `0x24` wrappers whose only references are pointers stored by `0x80094C88`
-  inside the apiobject run. The apiobject `.rodata` ends with its `VuMath.h`
-  copy at `0x8019DFD8`; socksys `.rodata` starts at `0x8019E024` with the
-  `sock_*` strings, and `fn_80095BA0` is the first user of the
-  `socksys.c` path at `0x8019E0A0`.
+  inside the apiobject run. The apiobject `.rodata` ends before the `VuMath.h`
+  copy at `0x8019DFD8`, which starts socksys `.rodata` (a copy opens each
+  including TU; see [stripped constant pools](#stripped-constant-pools-and-tu-starts)).
+  The `sock_*` strings follow at `0x8019E024`, and `fn_80095BA0` is the first
+  user of the `socksys.c` path at `0x8019E0A0`.
 - `game/levels`: **confirmed that creature.c runs to `0x800AC8C8`.** The
-  creature.c `.rodata` (path at `0x8019FA38`) ends with a `VuMath.h` copy at
-  `0x8019FF20`. `fn_800AC7AC` is its last user, and `fn_800AC85C`, which has
-  no literals, is referenced only as a pointer from creature code
-  (`0x800AB774`). `fn_800AC8C8` starts the next literal block, which ends with
-  the `VuMath.h` copy at `0x801A0070`. The 0x800AB85C..0x800AC8C8 functions in
+  creature.c `.rodata` (path at `0x8019FA38`) ends before the `VuMath.h` copy at
+  `0x8019FF20`, which opens the next TU. `fn_800AC7AC` is creature.c's last user,
+  and `fn_800AC85C`, which has no literals, is referenced only as a pointer from
+  creature code (`0x800AB774`). `fn_800AC8C8` starts the next literal block, which
+  runs to the `VuMath.h` copy at `0x801A0070` that opens the TU after it. The 0x800AB85C..0x800AC8C8 functions in
   `src/auto/game/levels.c` (33, 17 of them at 100%) would have to move with the boundary.
   The TU from `0x800AC8C8` has no path string, so it is an anonymous TU
   absorbed into `game/levels`, not necessarily `levels.c`, whose x86 pairs
@@ -198,9 +199,10 @@ range is a single original literal, or identify original input sections.
 
 dtk warns that 34 provisional spans begin at a 4-aligned address but contain an
 8-aligned double. A **reference span is not proof of one original input section**.
-For example, `nustring` begins at `0x8018D88C`, immediately after `numem`'s
-`VuMath.h` strings; its double at `0x8018D8F0` is absolutely 8-aligned but is at
-span offset `0x64`. Rounding the span start or reducing symbol alignment would
+For example, `nustring` begins at `0x8018D88C`, immediately after the
+`VuMath.h` copy at `0x8018D840` that opens nustring.c's own `.rodata` (the copy
+sits in `numem`'s span); its double at `0x8018D8F0` is absolutely 8-aligned but
+is at span offset `0x64`, and at offset `0xB0` from that copy. Rounding the span start or reducing symbol alignment would
 change the evidence rather than explain it. Keep these spans provisional.
 
 Pinned ProDG 3.9.3 (`cc1` SN BUILD v1.76), with the wrapper's `-O2`, gives these
@@ -269,6 +271,58 @@ compiler output before interpreting a trial. `-fno-common` concerns tentative
 definitions and section placement; it cannot be inferred from setters of
 extern objects. Likewise, unknown-size extern arrays affect SDA selection.
 See [the acceptance procedure](code_matching_workflow.md#per-tu-flag-investigations).
+
+### Stripped constant pools and TU starts
+
+`python3 tools/rodata_layout.py diff UNIT` compares a unit's built `.rodata` with its
+retail range, item by item, and classifies each difference (`survey` runs it on every
+unit with strict-only functions; `gap` lists those functions). On the 2026-11-11 survey
+every affected unit has **stripped** bytes: the SN linker dead-strips unreferenced
+functions but keeps their TU's whole `.rodata`, so retail ranges hold constant pools,
+`__FILE__` paths and messages that no relocation in the DOL reaches. A build that emits
+only the surviving functions' pools puts every later literal at the wrong offset.
+
+ProDG 3.9.3 rules, from compiler probes and reproduced byte for byte in four units:
+
+- Each function's constant pool is emitted with the function, in definition order, so
+  definition order must be the retail `.text` order.
+- A file-scope `static const` object is emitted where it is defined, between the pools
+  around it, whether or not it is used. Arrays over 8 bytes go to `.rodata`; smaller
+  objects go to `.sdata2` unless declared `__attribute__((section(".rodata")))`. Words and
+  char arrays are 4-aligned (a string's NUL padding is reproduced), 8-byte values
+  8-aligned.
+- A static inline function's string constants are emitted where it is defined, even if
+  it is never called. `VuMath.h` defines an unreachable `VuMtxInitRot` stub, so every
+  TU that includes it **starts** its `.rodata` with the stub's two strings (`0x49`
+  bytes, 8-aligned by the zero padding that ends the previous TU). A copy marks the
+  start of a TU, not the end of the one before it.
+
+The mechanism, in the order the matching rules prefer:
+
+1. Reorder definitions to retail `.text` order.
+2. `#include "numath/VuMath.h"` (`src/numath/VuMath.h`) where a unit's first TU start
+   falls, after the last function of the previous TU. A file can define the stub once,
+   so any further copies in a unit that spans several TUs are carried as placeholders.
+3. Carry each unreferenced run verbatim as `static const` `unk_<ADDR>` placeholders at
+   its definition point, generated with
+   `python3 tools/rodata_layout.py placeholders UNIT START END` (unit-relative hex
+   offsets). This follows the `nurand` `.sdata` precedent
+   ([C matching](code_matching_workflow.md)). Use it only for bytes the tool classifies
+   `stripped`, `padding` or `extra TU`, and keep a comment that nothing references them.
+
+No range, pin, flag or split boundary changes. `nutrig`, `nugraph_1`, `nugraph_3` and
+`nuvec` were promoted this way. `nutrig` spans four TUs (nutrig.c's tail, two anonymous
+ones and nuplane.c's start), and `nugraph_1` spans five. Units that are not code-complete
+still gain from steps 1 and 3, because objdiff scores a strict-only function at 100%
+once its literals reach their retail offsets.
+
+Limits: the stripped functions' code is not recoverable, so their pools stay
+placeholders. Strings referenced through `extern lbl_` names (as in `numem` and
+`nustring`) have to become real literals first (PR #132 rejected the reverse).
+`nustring` shows a further open question: its `__FILE__` path and the
+`NuHexStringToI` message come before the pool of `fn_800077E8`, which is defined
+earlier. The `numem`/`nustring` boundary is one `VuMath.h` copy (`0x4C`) late: the
+copy at `0x8018D840` opens nustring.c. That needs a recorded range correction.
 
 ### Podrace investigation (Phase 3)
 

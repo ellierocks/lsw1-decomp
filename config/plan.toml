@@ -107,7 +107,7 @@ note = "rnc and nuheap now have typed NonMatching scaffolds; remaining code plat
 [[stage.item]]
 id = "numath"
 units = ["auto/numath/nutrig", "auto/numath/nugraph_1", "auto/numath/nugraph_2", "auto/numath/nugraph_3", "numath/nuvec", "numath/numtx", "numath/nu_asm"]
-note = "All 43 functions strict-match; nugraph_2, numtx and nu_asm promoted by the numath item run. The 40 strict-only functions in nutrig, nugraph_1, nugraph_3 and nuvec are parked for stage-7 rodata ownership."
+note = "All 43 functions strict-match; nugraph_2, numtx and nu_asm promoted by the numath item run; nutrig, nugraph_1, nugraph_3 and nuvec promoted by the rodata-layout run (retail-order definitions, VuMath.h, stripped-pool placeholders: docs/build_config.md#stripped-constant-pools-and-tu-starts)."
 # at revision 1: 44 functions, 11,676 bytes left
 
 [[stage.item]]
@@ -1536,7 +1536,7 @@ why = "Initialised data, .rodata and .bss ownership not already promoted with co
 [[stage.item]]
 id = "data"
 data = true
-note = "Most data comes with promoting units in stages 0-5; .rodata ownership also unblocks code-identical functions that fail --strict-symbols on string addresses."
+note = "Most data comes with promoting units in stages 0-5; .rodata ownership also unblocks code-identical functions that fail --strict-symbols on string addresses. Strict-only functions in units that are not code-complete (gameaiscript, obstacle, apimenu, gcutscn, nurndr, nuanim, apisave, nustream, podrace, ps2dma, audio, main, nudlist_2; levels, aisys and nugscn have no .rodata range) need the stripped-pool mechanism of docs/build_config.md#stripped-constant-pools-and-tu-starts once their strings are literals; rodata_layout.py survey lists the classes per unit (docs/workflow_gaps.md#9-strict-only-functions-wait-on-rodata-layout)."
 # at revision 1: 2,490,232 data bytes left
 
 [[parked]]
@@ -1594,166 +1594,6 @@ reason = "best 51/60 (debris scan reset; extra leading f32 parameter, size in f2
 
 # Parked by the numath item (2026-11-11): code strict-matches; only literal placement is left (stage 7).
 [[parked]]
-function = "fn_8000A9F0"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000ABDC"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000AE18"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000AEC4"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "NuAtan2"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "NuAngDiff"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "NuASin"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000B234"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000B264"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "NuFmod"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "NuMtxMulR"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000B518"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000B5F4"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000B8CC"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000BAFC"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000BCB0"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nutrig .rodata 8018E628..8018E998 interleaves literals of several TUs with VuMath.h/nutrig.c assert strings, so the pool cannot sit at retail offsets without stage-7 rodata ownership; extern lbl_ rewrites rejected because they stop the unit emitting the literals it needs for promotion. Next: split the rodata range by owning TU (stage 7), then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000BDD0"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_1 .rodata 8018E998..8018EF24 (0x58C) mixes other TUs' literals and assert strings; verify_unit reports 46 relocation differences. extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000BF0C"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_1 .rodata 8018E998..8018EF24 (0x58C) mixes other TUs' literals and assert strings; verify_unit reports 46 relocation differences. extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000BF70"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_1 .rodata 8018E998..8018EF24 (0x58C) mixes other TUs' literals and assert strings; verify_unit reports 46 relocation differences. extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000BFD4"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_1 .rodata 8018E998..8018EF24 (0x58C) mixes other TUs' literals and assert strings; verify_unit reports 46 relocation differences. extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then emit literals in retail order"
-
-[[parked]]
-function = "fn_8000C038"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_1 .rodata 8018E998..8018EF24 (0x58C) mixes other TUs' literals and assert strings; verify_unit reports 46 relocation differences. extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then emit literals in retail order"
-
-[[parked]]
-function = "NuRandIntSeeded"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_1 .rodata 8018E998..8018EF24 (0x58C) mixes other TUs' literals and assert strings; verify_unit reports 46 relocation differences. extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then emit literals in retail order"
-
-[[parked]]
-function = "NuVecRotateAxis"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff 99.6 because its 0.0f literal lands at .rodata+4 instead of lbl_8018EF34. Retail nuvec .rodata 8018EF2C..8018EF44 is {1.0, 1.0, 0.0, 0.0, 0.0, 1.0} but every nuvec function is matched and only 1.0 (NuVecMtxTransformH) and 0.0 (here) are referenced: the extra 1.0 at 8018EF30 and {0,0,1.0} at 8018EF38 belong to unreferenced or stripped code or another TU. Next: stage-7 ownership of 8018EF30/8018EF38, then promote nuvec"
-
-[[parked]]
-function = "NuVecNorm"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000CBF4"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "NuVecXZDist"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000CDFC"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000CE8C"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "NuMtlGet3dBuffer"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000D010"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000D134"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000D364"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000D4DC"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000D874"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "NuMtxAlignZ"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000DC80"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000DCE0"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000DD40"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "fn_8000DDD0"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
-function = "NuMtxTranslateNeg"
-reason = "strict MATCH (verify_fn --strict-symbols); objdiff below 100 only from anonymous .rodata+N literal relocations. Retail nugraph_3 .rodata 8018EF44..8018F030 does not follow this unit's pool order (verify_unit: 227 relocation differences). extern lbl_ rewrites rejected (would stop literal emission needed for promotion). Next: stage-7 rodata ownership split, then reorder or emit literals in retail order"
-
-[[parked]]
 function = "fn_8000606C"
 reason = "87/91 exact: typed inline refill, signed/unsigned and return variants, plus a 180 s focused permuter leave only r0/r3 operands in the two refill sums. Next: recover the refill helper return/local lifetime that keeps the read result live."
 
@@ -1787,4 +1627,4 @@ reason = "18/300 exact (284 emitted): raw m2c, a typed 0x84-byte scratch object 
 
 [[parked]]
 function = "fn_800077E8"
-reason = "70/70 strict VERIFIED before and after this run; no new matching progress. Objdiff still reports it below 100%; nustring full-unit proof fails 78 relocation differences. Next: resolve nustring section-symbol/literal ownership and complete-unit relocation proof for promotion; preserve the unchanged C decimal parser."
+reason = "70/70 strict VERIFIED before and after this run; no new matching progress. Objdiff still reports it below 100%; nustring full-unit proof fails 78 relocation differences. Next: resolve nustring section-symbol/literal ownership and complete-unit relocation proof for promotion; preserve the unchanged C decimal parser. rodata_layout.py diff auto/nucore/nustring (2026-11-11): the unit emits only this function's pool because its strings are extern lbl_ references; the VuMath.h copy at 8018D840, inside numem's range, opens nustring.c; the __FILE__ path and NuHexStringToI message precede this function's pool although it is defined earlier. Make the strings literals, then correct the numem/nustring .rodata boundary with that evidence."
