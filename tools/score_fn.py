@@ -80,6 +80,37 @@ def missing_toolchain(compiler: str) -> list[Path]:
     return [p for p in needed if not p.exists()]
 
 
+def unit_mw_settings(source: Path, ninja: Path | None = None) -> tuple[str, list[str]] | None:
+    """(GC version, cflags) of SOURCE's mwcc build edge in build.ninja, or None.
+
+    A unit can pin its own compiler (configure.py's per-object `mw_version`, e.g. HVQM4 on
+    GC/1.2.5), and its cflags carry the include dirs and `-lang=c`, so scoring an SDK unit
+    source with these settings reproduces the build instead of the generic SDK defaults.
+    """
+    import shlex
+    ninja = ninja or ROOT / "build.ninja"
+    try:
+        rel = source.resolve().relative_to(ROOT).as_posix()
+        lines = ninja.read_text().replace("$\n", "").splitlines()
+    except (OSError, ValueError):
+        return None
+    for i, line in enumerate(lines):
+        if not (line.startswith("build ") and ": mwcc " in line and f" {rel} " in line + " "):
+            continue
+        version = flags = None
+        for var in lines[i + 1:]:
+            if not var.startswith("  "):
+                break
+            key, _, value = var.strip().partition(" = ")
+            if key == "mw_version":
+                version = value.strip().removeprefix("GC/")
+            elif key == "cflags":
+                flags = shlex.split(value)
+        if version and flags:
+            return version, flags
+    return None
+
+
 def run(cmd: list[str]) -> str:
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
     if r.returncode == 0:
@@ -124,7 +155,7 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
     for f in extra:
         inc.append("-i" if f == "-I" else f.replace("-I", "-i", 1) if f.startswith("-I") else f)
     err = run([str(BUILD / "tools" / "wibo"), str(BUILD / "compilers" / "GC" / MW_VERSION / "mwcceppc.exe"),
-               *MW_FLAGS, "-I-", *inc, "-c", str(source), "-o", str(raw)])
+               *MW_FLAGS, *([] if "-I-" in MW_FLAGS else ["-I-"]), *inc, "-c", str(source), "-o", str(raw)])
     return err or run([str(BUILD / "tools" / "dtk_patched"), "elf", "fixup", str(raw), str(out)])
 
 
@@ -238,10 +269,12 @@ def main(argv=None) -> int:
     ap.add_argument("--compiler", choices=("prodg", "sdk"), default="prodg")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="extra include dir")
     ap.add_argument("-D", dest="defines", action="append", default=[], help="extra define")
-    ap.add_argument("--mw-version", default="1.2.5n", metavar="VER",
-                    help="with --compiler sdk: directory under build/compilers/GC (default 1.2.5n)")
+    ap.add_argument("--mw-version", metavar="VER",
+                    help="with --compiler sdk: directory under build/compilers/GC (default: the unit's "
+                         "build.ninja mw_version, else 1.2.5n)")
     ap.add_argument("--mw-flags", metavar="FLAGS",
-                    help="with --compiler sdk: replace the dolsdk2004 release flags (shell-quoted string)")
+                    help="with --compiler sdk: replace the flags (default: the unit's build.ninja cflags, "
+                         "else the dolsdk2004 release flags; shell-quoted string)")
     ap.add_argument("--compile-only", action="store_true", help="only compile (needs -o)")
     ap.add_argument("-o", type=Path, help="keep the object here")
     ap.add_argument("--json", action="store_true")
@@ -260,9 +293,10 @@ def main(argv=None) -> int:
                          "a diagnostics build its allocation trace lands in compiler.log")
     args = ap.parse_args(argv)
     global MW_VERSION, MW_FLAGS
-    MW_VERSION = args.mw_version
     import shlex
-    MW_FLAGS = shlex.split(args.mw_flags) if args.mw_flags else SDK_FLAGS
+    unit = unit_mw_settings(args.source) if args.compiler == "sdk" else None
+    MW_VERSION = args.mw_version or (unit[0] if unit else "1.2.5n")
+    MW_FLAGS = shlex.split(args.mw_flags) if args.mw_flags else (unit[1] if unit else SDK_FLAGS)
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]
     if args.compile_only and not args.o:
         ap.error("--compile-only needs -o")

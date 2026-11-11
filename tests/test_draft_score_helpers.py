@@ -138,3 +138,23 @@ class SweepRepairTest(unittest.TestCase):
         out = self.sweep.fix_ps_calls(body)
         self.assertIn("    NuVecSubPS(&sp8, a, 0);\n    temp_r31 = &sp8;", out)
         self.assertIn("NuVecAddPS(x, y, z);", out)
+
+
+class UnitMwSettingsTest(unittest.TestCase):
+    def test_reads_the_units_pinned_compiler_and_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ninja = Path(tmp) / "build.ninja"
+            ninja.write_text(
+                "build build/GL5E4F/src/dolphin/x/a.o: mwcc $\n"
+                "    src/dolphin/x/a.c | build/compilers $\n    build/tools/wibo\n"
+                "  mw_version = GC/1.2.5\n"
+                "  cflags = -O4,p -pragma \"cats off\" $\n      -I- -i include -lang=c\n"
+                "  basedir = build\n"
+                "build build/GL5E4F/src/dolphin/x/b.o: mwcc src/dolphin/x/b.c\n"
+                "  mw_version = GC/1.2.5n\n  cflags = -O4,p\n")
+            got = score_fn.unit_mw_settings(score_fn.ROOT / "src/dolphin/x/a.c", ninja)
+            self.assertEqual(got, ("1.2.5", ["-O4,p", "-pragma", "cats off", "-I-", "-i", "include",
+                                             "-lang=c"]))
+            self.assertEqual(score_fn.unit_mw_settings(score_fn.ROOT / "src/dolphin/x/b.c", ninja)[0],
+                             "1.2.5n")
+            self.assertIsNone(score_fn.unit_mw_settings(score_fn.ROOT / "src/dolphin/x/c.c", ninja))
