@@ -71,18 +71,16 @@ row is the function's name.
 
 ## Kickoff
 
-Before choosing targets, run `python3 tools/worktree_cleanup.py --audit` and `--index-only`,
-and check `work/archive/worktrees/INDEX.md` in the main checkout for work a sibling already parked.
-
-For the queue-based sprint helper:
-
-1. Take the unit's near-misses from `work/sweep/results.json`, then fill with
-   `python3 tools/next_target.py --unit UNIT --limit 40`.
-2. Run `bash build.sh` if `build/` is stale, then
-   `python3 tools/sprint_finish.py --baseline --queue FN1 FN2 ...` to record the objdiff
-   figures, the strict-only count and the DOL hash. It refuses to run when the checkout is
-   behind `origin/main`; update first (merge, or rebase while nothing is pushed). If it
-   cannot fetch, it warns and checks against the last fetched `origin/main`.
+`python3 tools/kickoff.py` reports the checkout, sweep, lanes, sibling worktrees and
+measured yield, and recommends a lane. `python3 tools/kickoff.py --start UNIT [FN ...]` (or
+`--start-lane sweep|near-misses`) prints ownership conflicts, queues the given names or the
+unit's near misses plus `next_target.py --unit UNIT --limit 40`, records the baseline
+(objdiff figures, strict-only count, DOL hash) and opens the bench run; rerunning it only
+adds names. It refuses when the checkout is behind `origin/main` (update first: merge, or
+rebase while nothing is pushed; with no fetch it checks the last fetched `origin/main`) or
+has no build. It does not rebuild: run `bash build.sh` when `build/` is missing or stale. For
+work a sibling already parked, run `python3 tools/worktree_cleanup.py --index-only` and check
+`work/archive/worktrees/INDEX.md` in the main checkout.
 
 Reuse the checkout's toolchain and build. Bootstrap only if prerequisites are missing;
 for matching setup use `LSW1_NO_GHIDRA=1 bash tools/bootstrap.sh` and request Ghidra
@@ -248,6 +246,6 @@ the lane order changes.
 ## Kickoff prompt
 
 ```text
-Sprint: UNIT. Queue: next_target.py --unit UNIT --limit 40 (or: fn_A, fn_B, ...).
-Follow docs/sprint_workflow.md. Branch t3/sprint-<unit-leaf>.
+Sprint: UNIT (optionally: fn_A, fn_B, ...). Branch t3/sprint-<unit-leaf>.
+Run python3 tools/kickoff.py --start UNIT [fn_A ...] --model MODEL.
 ```

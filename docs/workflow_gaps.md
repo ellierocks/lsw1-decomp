@@ -11,7 +11,7 @@ delete the row when nothing remains to say.
 | 2 | [Unfinished and parked work is invisible across worktrees](#2-unfinished-and-parked-work-is-invisible-across-worktrees) | fixed, #110 |
 | 3 | [Transient download failures turn main red](#3-transient-download-failures-turn-main-red) | fixed, #109 |
 | 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | fixed, #109, #114 |
-| 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | open |
+| 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | fixed, #113, #116 |
 | 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | partly fixed |
 
 ## 1. Stale task packs change scores
@@ -89,14 +89,16 @@ dated 2026-11-08. The first next lead of the 2026-11-08 handoff, rerunning the f
 above 0x100 with all merged repairs, had not been run two days and seven PRs later; the
 credits sprint stopped on a rate limit with `fn_8010BA24` at 52/57.
 
-Open: rerun the full sweep on fresh packs (gap 1 changes its input), then move the dated
-figures to batch history and leave strategy with the method.
+Fixed: #113 reran the full sweep on fresh packs. #116 moved the dated figures to the
+[sweep history](phase3_batches.md#sweep-history), left strategy with the method, and added
+`tools/kickoff.py`, which prints the current figures and flags a stale sweep from the
+commits touching its inputs since it ran.
 
 ## 6. Smaller recurring friction
 
 - `sprint_finish.py --matched-from-diff` counted a `static inline` helper (`ForceObjsReady`,
   #98). That case was already fixed; #109 fixed `inline static` and attribute-prefixed
-  helpers. A return type on the line above the name is still not recognised.
+  helpers, and #116 a return type on the line above the name.
 - `Text file busy` on the shared `wibo` appeared in six sessions between 2026-10-31 and
   2026-11-04. Downloads have replaced the binary atomically since; no later session hit it.
 - Rate limits stopped about ten sessions mid-task. This is outside the repository; short
