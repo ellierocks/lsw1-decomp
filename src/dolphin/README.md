@@ -1,12 +1,12 @@
 # Dolphin SDK sources
 
-The HVQM4 candidate also adapts `src/hvqm4dec/hvqm4dec.c` and `include/hvqm4.h`
-from [projectPiki/pikmin](https://github.com/projectPiki/pikmin), commit
-`9a2163626a269ae7c699fc195cf91a5ca791044d`, licensed **CC0-1.0**
-([license](https://github.com/projectPiki/pikmin/blob/9a2163626a269ae7c699fc195cf91a5ca791044d/LICENSE.MD)).
-Its bodies, inline helpers and types are checked against GL5E4F independently;
-Pikmin's Matching status does not establish an LSW1 match. See the
-[HVQM4 evidence](../../docs/sdk_import.md#hvqm4-decoder-parked).
+The HVQM4 units adapt `src/hvqm4dec/` and `include/` from
+[ShulkMaster/mk-da](https://github.com/ShulkMaster/mk-da), commit
+`3d6f17751309eb5e7cb5b6162c21360cbb5a35bf`, licensed **CC0-1.0**. Earlier
+candidates used projectPiki/pikmin (`9a2163626a269ae7c699fc195cf91a5ca791044d`,
+CC0-1.0), which carries an older HVQM4 build. The donor's Matching status does not
+establish an LSW1 match; every unit is verified against GL5E4F. See the
+[HVQM4 evidence](../../docs/sdk_import.md#hvqm4-sound-tus).
 
 The C sources and private headers here, and the public headers in
 `include/dolphin/` and `include/dolphin.h`, are vendored from
@@ -102,9 +102,11 @@ static `OnReset` is `PADOnReset`, because OSMemory already has a local `OnReset`
 static `Type` is `PADType`, because SIBios has a local `Type`. Each owns
 its initialized data; BSS stays in fallback storage.
 
-`hvqm4/hvqm4dec.c` is a NonMatching reconstruction, separate from the
-dolsdk2004 imports. Its provenance is recorded in the source and the
-[HVQM4 handoff](../../docs/sdk_import.md#hvqm4-decoder-parked).
+`hvqm4/` holds the five Matching HVQM4 units (`hvqm4dec.c`, `HVQM4DecSnd.c`,
+`HVQM4Adpcm.c`, `HVQM4Pcm16.c`, `HVQM4Adp8x.c`) and their headers, adapted from the
+CC0 ShulkMaster/mk-da decomp (commit `3d6f17751309eb5e7cb5b6162c21360cbb5a35bf`),
+separate from the dolsdk2004 imports. See the
+[HVQM4 handoff](../../docs/sdk_import.md#hvqm4-sound-tus).
 
 `Runtime/__init_cpp.c` adapts the constructor loop from MSSB's CC0
 `src/Dolphin/os/__ppc_eabi_init.cpp`, commit

@@ -822,11 +822,27 @@ dolphin/gx/GXPerf.c:
 	.data       start:0x801FB4F8 end:0x801FB640
 
 dolphin/hvqm4/hvqm4dec.c:
-	.text       start:0x8018432C end:0x8018A10C
+	.text       start:0x8018432C end:0x80189750
 	.rodata     start:0x801B0604 end:0x801B0640
-	.data       start:0x801FB640 end:0x801FD048
+	.data       start:0x801FB640 end:0x801FB650
 	.bss        start:0x8030F168 end:0x8030FBA8
-	.sbss       start:0x8040ACB0 end:0x8040ACD0
+	.sbss       start:0x8040ACB0 end:0x8040ACC0
+
+dolphin/hvqm4/HVQM4DecSnd.c:
+	.text       start:0x80189750 end:0x80189934
+
+dolphin/hvqm4/HVQM4Adpcm.c:
+	.text       start:0x80189934 end:0x80189D74
+	.data       start:0x801FB650 end:0x801FC438
+	.sbss       start:0x8040ACC0 end:0x8040ACC8
+
+dolphin/hvqm4/HVQM4Pcm16.c:
+	.text       start:0x80189D74 end:0x80189FFC
+
+dolphin/hvqm4/HVQM4Adp8x.c:
+	.text       start:0x80189FFC end:0x8018A10C
+	.data       start:0x801FC438 end:0x801FD048
+	.sbss       start:0x8040ACC8 end:0x8040ACD0
 
 dolphin/OdemuExi2/DebuggerDriver.c:
 	.text       start:0x8018A10C end:0x8018AB8C

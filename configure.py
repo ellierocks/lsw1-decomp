@@ -585,8 +585,14 @@ config.libs = [
     ]),
     DolphinLib("hvqm4", [
         # Hudson's middleware was built with GC/1.2.5, not the SDK's 1.2.5n:
-        # see docs/sdk_import.md#hvqm4-decoder-parked (epilogue mtlr placement).
-        SDKObject("hvqm4/hvqm4dec", NonMatching, external_bss=True, mw_version="GC/1.2.5"),
+        # see docs/sdk_import.md#per-unit-compiler-override-gc125 (epilogue mtlr placement).
+        SDKObject("hvqm4/hvqm4dec", Matching, mw_version="GC/1.2.5"),
+        # Retail ships the sound decoders as a second archive (hvqm4decsnd.a)
+        # of four TUs: see docs/sdk_import.md#hvqm4-sound-tus.
+        SDKObject("hvqm4/HVQM4DecSnd", Matching, mw_version="GC/1.2.5"),
+        SDKObject("hvqm4/HVQM4Adpcm", Matching, mw_version="GC/1.2.5"),
+        SDKObject("hvqm4/HVQM4Pcm16", Matching, mw_version="GC/1.2.5"),
+        SDKObject("hvqm4/HVQM4Adp8x", Matching, mw_version="GC/1.2.5"),
     ]),
     DolphinLib("OdemuExi2", [
         SDKObject("OdemuExi2/DebuggerDriver", Matching, external_bss=True),

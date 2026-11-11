@@ -1941,23 +1941,23 @@ OSMemory still passes six of six. The whole DOL remains byte-identical to retail
 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
 Portable workflow checks and 178 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (one skipped).
 
-## HVQM4 decoder (parked)
+## HVQM4 decoder
 
-The decoder now has a split and a source candidate at
-[`src/dolphin/hvqm4/hvqm4dec.c`](../src/dolphin/hvqm4/hvqm4dec.c), registered
-**NonMatching**. Its 43 functions cover `8018432C..8018A10C` (24,032 bytes).
-Thirty-three functions (16,296 bytes) strictly verify; **zero code or data bytes are
-promoted**. The normal build retains assembly fallback for the complete unit.
-The debugger range beginning at `8018A10C` is unchanged.
+The decoder is **promoted**: five Matching units under
+[`src/dolphin/hvqm4/`](../src/dolphin/hvqm4/) cover `8018432C..8018A10C` (24,032
+bytes, 43 functions), and every unit passes `verify_unit.py --build --functions`
+([sound TUs and promotion](#hvqm4-sound-tus)). The debugger range beginning at
+`8018A10C` is unchanged.
 
-The source adapts CC0 MSSB reconstruction code at commit
-`407dbcbe70f8be5d167d0b1f0a229f38e0359019`
-([upstream PR #27](https://github.com/nlopez99/mssb-decomp/pull/27)), with
-LSW1-specific control flow, structures and sound routines. Tilka/hvqm4 supplied
-algorithm/layout evidence, not copied implementation. See the source provenance
-comment. No Hudson SDK archive was needed. The unit builds with the dolsdk2004
-release flags (`-O4,p -inline auto`) but **GC/1.2.5**, not the SDK library's
-GC/1.2.5n; the initial MSSB `-inline noauto` lead is not the accepted configuration.
+The current source is adapted from ShulkMaster/mk-da (CC0), which carries the same
+HVQM4 1.5 build as LSW1, sound decoders included. The earlier candidate adapted CC0
+MSSB reconstruction code at commit `407dbcbe70f8be5d167d0b1f0a229f38e0359019`
+([upstream PR #27](https://github.com/nlopez99/mssb-decomp/pull/27)) and Pikmin;
+those older HVQM4 builds stalled at 35/43 (the sections below). Tilka/hvqm4 supplied
+algorithm/layout evidence, not copied implementation. The units build with the
+dolsdk2004 release flags (`-O4,p -inline auto`) but **GC/1.2.5**, not the SDK
+library's GC/1.2.5n; the initial MSSB `-inline noauto` lead is not the accepted
+configuration.
 
 ### Per-unit compiler override (GC/1.2.5)
 
@@ -2273,6 +2273,83 @@ new transfer. The unit gate still refuses the externalized section set (`['.data
 `dol_compare.py --linked-units` reports zero differing bytes, SHA-1
 `95cca08a19224775d1a8d6cc64601fb7d0080981`. objdiff already credited both
 functions as fuzzy matches (`PpicPlaneDec` shows 99.96%), so report totals do not move.
+
+### HVQM4 sound TUs
+
+After `6c58864`, all 43 functions strictly verify and the five units are promoted.
+
+**Donor.** [ShulkMaster/mk-da](https://github.com/ShulkMaster/mk-da) (CC0-1.0),
+commit `3d6f17751309eb5e7cb5b6162c21360cbb5a35bf`, `src/hvqm4dec/` and `include/`,
+builds `hvqm4dec.c`, `HVQM4DecSnd.c`, `HVQM4Adpcm.c`, `HVQM4Pcm16.c` and
+`HVQM4Adp8x.c` as Matching objects with GC/1.2.5. Its function order equals
+LSW1's across all 43 functions. Pikmin, Luigi's Mansion and SA2B carry an
+older HVQM4 build, which is why the eight remaining bodies would
+not transfer from them. Renames to the LSW1 `symbols.txt` names:
+`init_global_constants` → `HVQM4InitDecoder`, `HVQM4InitDecoder` → `fn_80188758`,
+`IntraAotBlock` → `BasisBlockDec`, `GetAotBasis` → `ReadBasisByte`,
+`PrediAotBlock` → `MCBlockDecBasis`, `GetMCAotBasis` → `ReadBasisNibble`,
+`spread_PB_descMap` → `PpicPlaneDec`, `HVQM4DecodeAdpcmCh1/Ch2` →
+`fn_80189934`/`fn_80189B30`, `HVQM4DecodeAdp8xCh2` → `fn_80189FFC`; and for data,
+`HVQM4_FILEVERSION` → `HVQM4Version`, `clipTable` → `satTable`,
+`stepDiffTable`/`nextIndxTable` → `adpcmTable`/`adpcmIndexTable`,
+`adp8x_dec_table_N` → `adpcmTable4_N`, `_dect` → `adpcm4Table`, `play_track` →
+`adpcmStride1/2/4`. The Naruto GNT4 (`G4NJDA`) linker map independently confirms the
+donor function names and lists two archives: `hvqm4dec.a` (`hvqm4dec.c`) and
+`hvqm4decsnd.a` (`HVQM4Adpcm.c`, `HVQM4Pcm16.c`, `HVQM4Adp8x.c`, `HVQM4DecSnd.c`).
+
+**Split.** The old single range `dolphin/hvqm4/hvqm4dec.c` is now five units in
+retail order. All 43 functions compile exactly when the donor files are combined in one
+TU, except the ADPCM pair (`fn_80189934` 35/127, `fn_80189B30` 47/145). With its
+tables at offset 0 of its own `.data`, MWCC addresses `stepDiffTable` directly; in a
+merged TU it needs the `...data.0` anchor plus an offset, which adds four instructions
+and shifts registers. Retail uses the direct form, so it compiled the ADPCM code as a
+separate TU. Separately each file is exact. The split follows the existing
+section ranges; outer boundaries are unchanged.
+
+| Unit | `.text` | `.data` | `.sbss` |
+|---|---|---|---|
+| `hvqm4dec` | `8018432C..80189750` | `801FB640..801FB650` | `8040ACB0..8040ACC0` |
+| `HVQM4DecSnd` | `80189750..80189934` | – | – |
+| `HVQM4Adpcm` | `80189934..80189D74` | `801FB650..801FC438` | `8040ACC0..8040ACC8` |
+| `HVQM4Pcm16` | `80189D74..80189FFC` | – | – |
+| `HVQM4Adp8x` | `80189FFC..8018A10C` | `801FC438..801FD048` | `8040ACC8..8040ACD0` |
+
+`hvqm4dec` keeps `.rodata 801B0604..801B0640` and `.bss 8030F168..8030FBA8`. The
+units own their BSS (no `external_bss`), per the [BSS layout
+policy](build_config.md#bss-layout-policy).
+
+**`symbols.txt` corrections**, all from compiled object sizes against retail bytes:
+
+- `adpcmTable` (`0xDE8`) was two objects: `adpcmTable` `0xB20` and `adpcmIndexTable`
+  at `801FC170`, `0x2C8`.
+- `adpcm4Table` is `0xC`; the last word of the old `0x10` is zero padding before the
+  8-aligned next object.
+- `lbl_801B0604` (`0x18`) is `lbl_801B0608` (`0x14`), the unreferenced
+  `"hvqm4dec 1.2    "` tag: MWCC `.rodata` is 8-aligned, so the word at `801B0604`
+  is padding after the previous TU (dtk warns "expected 8, but starts at
+  0x801B0604", as for about 30 other units). The range start is unchanged.
+- `lbl_801B061C` (`0x24`) is `mcbtypetrans` (`0x18`), followed by section padding.
+  `mcbtypetrans` is file-scope instead of the donor's function-local static; codegen is
+  identical, and objdiff then pairs the relocation by name (`PpicPlaneDec` 99.96% →
+  100%).
+
+**Placeholders.** Retail `.sbss` has three words nothing references: `sbssUnused_ACB8`
+and `sbssUnused_ACBC` after `readTree_scale`, and `sbssUnused_ACC8` before
+`adpcmStride4`. The last is required: Adp8x's 8-aligned `.sbss` puts `adpcmStride4`
+at offset 4. MWCC keeps unreferenced file-scope statics, so they are declared in
+place. The `.rodata` tag above is a `static const char` placeholder that keeps the
+target's name, because `strip_unused.py` drops symbols the split target does not
+define.
+
+**Tooling.** `verify_unit.py` assumed a compiled section starts at its range start.
+It now places a data section at its own alignment, as the linker does, and requires
+the skipped bytes to be zero in the target and retail. `check_linked_bss` skips local
+MWCC `...bss.N` anchors, which only the unit's own (already proved) relocations use.
+
+Proofs: `verify_unit.py dolphin/hvqm4/UNIT --build --functions` passes for all five
+units (35 + 3 + 2 + 2 + 1 functions); `dol_compare.py --linked-units` reports zero
+differing bytes, SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`. objdiff shows
+`hvqm4dec` `.rodata` at 95.65% only because of the four leading padding bytes.
 
 ## SDK leftovers
 
