@@ -1946,7 +1946,7 @@ Portable workflow checks and 178 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (o
 The decoder now has a split and a source candidate at
 [`src/dolphin/hvqm4/hvqm4dec.c`](../src/dolphin/hvqm4/hvqm4dec.c), registered
 **NonMatching**. Its 43 functions cover `8018432C..8018A10C` (24,032 bytes).
-Eighteen functions (5,440 bytes) strictly verify; **zero code or data bytes are
+Twenty-one functions (5,716 bytes) strictly verify; **zero code or data bytes are
 promoted**. The normal build retains assembly fallback for the complete unit.
 The debugger range beginning at `8018A10C` is unchanged.
 
@@ -1966,6 +1966,9 @@ Strict results, checked against the retail DOL and symbol destinations:
 | Verified function | Bytes |
 |---|---:|
 | `setHVQPlaneDesc` | 284 |
+| `getByte` | 100 |
+| `getBit` | 64 |
+| `decodeHuff` | 112 |
 | `IpicBlockDec` | 324 |
 | `IpicLineDec` | 212 |
 | `initMCHandler` | 140 |
@@ -1984,14 +1987,68 @@ Strict results, checked against the retail DOL and symbol destinations:
 | `HVQM4DecodePcm16Ch1` | 288 |
 | `HVQM4DecodePcm16Ch2` | 360 |
 
-The remaining 25 functions mismatch. Closest are `HVQM4SetBuffer` (280/281
-instructions exact; stack-pop versus `mtlr` scheduling) and `HVQM4DecodeIpic`
-(322/324; plane-pointer initialization and epilogue scheduling). Targeted macro
-changes made `HVQM4DecodeBpic` exact; bounded `variant_search.py` passes on the
-two remaining near-matches did not improve them. Larger gaps remain in Huffman,
-basis/nest, inter-picture and ADPCM decoding; those bodies are candidates, not
-verified implementations. Resume with the two scheduling differences, then the
-small bit readers before their inlined callers.
+The follow-up from main `7db800a` adds **three strict matches / 276 bytes**:
+`getByte`, `getBit` and its inlined caller `decodeHuff`. Splitting the byte-reader
+loads from their shifts, declaring its accumulator before the bit index, and
+masking before the signed return reproduces retail's registers and final `extsh`.
+Keeping the bit result in the unsigned accumulator reproduces the standalone
+reader and the Huffman caller's shift/store schedule. All 18 earlier strict
+matches remain intact.
+
+`HVQM4DecodeIpic` improves from 322/324 to **323/324** by initializing the loop
+index before the plane pointer. Its only remaining difference is the epilogue's
+`mtlr` placement. `HVQM4SetBuffer` remains 280/281. Local declaration/sign variants,
+explicit return and loop-shape experiments did not solve their epilogues; these
+are parked. No compiler flags, pins, verification rules or split boundaries changed.
+
+The report moves from **354,044 code bytes / 2,375 functions** to **354,320 /
+2,378** before rebasing; matched data remains 127,502 bytes. After rebasing onto
+main `8f5823e` (including the debugger driver and CW runtime), the final report is
+**362,148 code bytes / 2,434 functions** and 127,506 matched data bytes. The HVQM4
+change itself remains **276 bytes / three functions**, with no matched-data delta.
+This credits candidate function matches; the unit still promotes **zero bytes**
+and links its complete assembly fallback. The remaining **22 functions / 18,316
+bytes** are unverified.
+
+Search covered the readers first, then Huffman, basis/nest, inter-picture and
+ADPCM routines. Sequential `variant_search.py` runs tried at most 180 variants per
+pass (the scheduling passes exhausted 19 and 99 variants). No permuter or
+concurrent sweep ran. Ghidra output and the CC0 MSSB donor were checked for control
+flow and layout; no Tilka implementation was copied. Searches plateaued without
+another strict match, so unverified rewrites remain local rather than expanding
+the committed source diff.
+
+Best attempted scores for every remaining function follow. Scores show exact /
+target instructions, an informational measure, **not verification**. Best uses
+`score_fn.py`'s ordering (difference count before instruction-count delta and exact
+count), so a better score can have fewer exact instructions. Except for the two
+scheduling near-misses and unchanged baselines, these may describe local
+experiments rather than the committed candidate.
+
+| Remaining function | Best exact / target | Next hypothesis |
+|---|---:|---|
+| `HVQM4InitDecoder` | 207/216 | Preserve retail's unrolled reciprocal loops while scheduling each zero entry with its own table; countdown/do-loop rewrites lost unrolling. |
+| `_readTree` | 143/179 | Earlier reader definitions inline the outer bit/byte reads; nested recursive copies still call `getBit`. Recover that inline structure and the 0x38 frame. |
+| `Ipic_BasisNumDec` | 127/177 | Two levels of Huffman/bit inlining recover the 177-instruction leaf body. Signed row counts, separate luma/chroma lifetimes and the 0x48 frame remain. |
+| `IpicDcvDec` | 27/79 | Use signed row/column counts and a full-width predictor; retain `state + i * 0x14` instead of incrementing a second pointer. |
+| `MakeNest` | 15/233 | Retail copies eight pixels per unrolled iteration; replace narrowing `u16` counters with the target's full-width counts before tuning register order. |
+| `WeightImBlock` | 55/102 | Direct `satTable + 0x80` indexing improves allocation; align the order and lifetimes of the shared horizontal/vertical sums. |
+| `BasisBlockDec` | 16/334 | Retail has a separate one-basis path before the general accumulation path; recover its scalar accumulators and stack buffers. |
+| `ReadBasisByte` | 63/252 | Keep the progressive sample pointer and retail's unsigned min/max chain; declaration order alone does not recover the scalar sample schedule. |
+| `IpicPlaneDec` | 48/60 | Retain `&plane->payload` across the first line call and cache the initial block pointer; finish the stride/height register and stack-store order. |
+| `MotionComp` | 10/59 | Hoisting destination, source and stride before helper selection reduces the size gap from 15 to three instructions; align parameter-copy and offset-expression order. |
+| `decode_PB_cc` | 75/263 | Reconstruct the nested inline Huffman decodes and signed full-width run/type temporaries before register tuning. |
+| `MCBlockDecBasis` | 78/651 | Recover the target's separate type-specific basis paths, scalar accumulation and original stack-buffer lifetimes. |
+| `ReadBasisNibble` | 73/268 | Check full-width sample/min/max temporaries and the byte-reader pointer updates before inlined Huffman-factor decoding. |
+| `MCBlockDecMCNest` | 38/114 | Preserve the luma target/stride across plane iteration; align per-plane motion offsets and block/type local lifetimes. |
+| `MCBlockDecDCNest` | 74/108 | Instruction count and control flow already agree; reorder the plane loop's live block, offset, stride and index locals to match saved registers. |
+| `PpicPlaneDec` | 66/268 | Keep the saved initial baseline; recover nested Huffman inlining and motion-vector temporary lifetimes. The reader change alters this unverified caller's allocation. |
+| `BpicPlaneDec` | 64/271 | Recover the motion-vector delta inline structure, then branch-local references and run state. |
+| `HVQM4SetBuffer` | 280/281 | Only `mtlr` versus stack-pop order remains; declaration, return and loop-shape approaches plateaued. |
+| `HVQM4DecodeIpic` | 323/324 | Only `mtlr` placement among saved-register restores remains; plane-pointer initialization is fixed. |
+| `fn_80189934` | 37/127 | Align the stream/header pointer lifetimes and high/low-nibble predictor updates; strict acceptance also needs ADPCM table contents/relocations proved. |
+| `fn_80189B30` | 54/145 | Align the paired-channel header reads, predictors and table/index update ordering; table proof remains mandatory. |
+| `fn_80189FFC` | 49/68 | Use a CTR-friendly sample countdown and separate stream/predictor registers; the address-taken `adpcm4Table` still lacks complete section proof. |
 
 Owned data ranges are `.rodata` `801B0604..801B0640`, `.data`
 `801FB640..801FD048`, `.bss` `8030F168..8030FBA8`, and `.sbss`
@@ -2013,9 +2070,13 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 ```
 
 The full-unit command is expected to fail until the above blockers are resolved;
-run `verify_fn.py --strict-symbols` individually for the table entries. At parking,
-`bash build.sh` and the linked-image comparison pass with **zero differing bytes**
-across the whole image. After integrating the SN runtime and BSS policy changes
-from main, all 18 strict checks still pass, as do 366 portable tests (two skipped),
-configuration, map generation and shell syntax checks. Local experimental variants and detailed logs remain in
-ignored `work/hvqm4/`; the source and this handoff retain the reviewable result.
+run `verify_fn.py --strict-symbols` individually for the table entries. At this follow-up's parking,
+`bash build.sh`, all 21 individual strict checks and the linked-image comparison
+pass with **zero differing bytes** across the whole image; none of the 18 baseline
+strict matches regresses. The full-unit command still refuses the externalized
+BSS section set, so initialized data/relocations and BSS layout are not proved.
+The earlier parking also passed 366 portable tests (two skipped), configuration,
+map generation and shell syntax checks; this C-only follow-up reruns the retail
+build and strict checks. Local baselines, Ghidra output, experimental source
+snapshots, per-function scores and detailed logs remain in ignored
+`work/hvqm4/`; the source and this handoff retain the reviewable result.
