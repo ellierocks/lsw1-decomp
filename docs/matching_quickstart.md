@@ -74,6 +74,8 @@ python3 tools/ls1_task_pack.py NAME --out-dir work
 ```
 
 This writes `work/NAME/asm.s`, `context.md` and `donor_evidence.md` (ignored by git).
+`asm.s` comes from the units the current build lists, and `draft_fn.py` and `sweep.py`
+rewrite it (logging `refreshed ...`) whenever a rebuild changes it; other pack files stay.
 Read the donor evidence, inspect listed source and relevant callees/keywords
 against GC, and record what transfers or the no-hit/unavailable limit. Check
 `symbol_donors/rejected_renames.tsv` before using a name.

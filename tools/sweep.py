@@ -26,7 +26,8 @@ against the updated file with `score_fn.py --apply`; run `bash build.sh` and
 `sprint_finish.py` afterwards for the build-level strict verification. Everything else is
 ranked in `work/sweep/results.json` (and printed) by unmatched bytes closest to a match:
 that ranking is the agent queue, biggest progress first. Task packs go to
-`work/sweep/NAME/`, which does not claim the target for `next_target.py`.
+`work/sweep/NAME/`, which does not claim the target for `next_target.py`; their asm.s is
+refreshed from the current build first (tools/pack_asm.py).
 
 m2c output and score verdicts are cached in `~/.cache/lsw1/sweep` (`LSW1_SWEEP_CACHE`),
 shared by every checkout. A verdict's key covers the scoring tools, the unit source, its
@@ -53,6 +54,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import draft_fn  # noqa: E402
 import mac_protos  # noqa: E402
+import pack_asm  # noqa: E402
 from m2c_helpers import ASM_COMMENT as ASM_COMMENT_RE  # noqa: E402
 from m2c_helpers import (split_args, expand_macros, fold_cror, fold_ps, fix_ps_calls,
                          moves_to_args, type_derefs, strip_vararg_saves, declare_unset,
@@ -159,10 +161,7 @@ def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[
     SIZED sets M2C_SIZED_DEREFS (tools/patches/m2c-sized-derefs.patch): `*(a + b)` derefs
     keep their load width as `*(u8 *)(a + b)`, which the C types may otherwise lose."""
     task = OUT / name
-    asm = task / "asm.s"
-    if not asm.is_file():
-        subprocess.run([sys.executable, str(ROOT / "tools" / "ls1_task_pack.py"), name,
-                        "--out-dir", str(OUT)], cwd=ROOT, capture_output=True)
+    asm = pack_asm.ensure_asm(name, OUT)  # created when missing, refreshed from the build when stale
     if not asm.is_file() or not asm.read_text().strip():
         return "no-asm", ""
     m2c = draft_fn.m2c_dir()
@@ -1326,7 +1325,7 @@ def score_key(name: str, source: str, body: str) -> str | None:
         for flags in SCORE_CONFIG:  # per-unit compiler and flags
             h.update((Path(__file__).resolve().parent.parent / flags).read_bytes())
         _TOOLS_DIGEST.append(h.hexdigest())
-    asm = OUT / name / "asm.s"
+    asm = pack_asm.ensure_asm(name, OUT, make=False)  # keyed on the current target asm
     ctx = unit_context(source) if asm.is_file() else None
     if ctx is None:
         return None
