@@ -2019,7 +2019,7 @@ matches remain intact.
 index before the plane pointer. Its only remaining difference is the epilogue's
 `mtlr` placement. `HVQM4SetBuffer` remains 280/281. Local declaration/sign variants,
 explicit return and loop-shape experiments did not solve their epilogues under
-GC/1.2.5n; the [GC/1.2.5 override](#per-unit-compiler-override-gc125) later solved both. No compiler flags, pins, verification rules or split boundaries changed.
+GC/1.2.5n; the [GC/1.2.5 override](#per-unit-compiler-override-gc125) later solved both. That override is the only pin change; flags, verification rules and split boundaries are unchanged.
 
 The GC/1.2.5 follow-up (rebased on main `0ca0aff`) adds **two strict matches /
 2,420 bytes**: `HVQM4SetBuffer` and `HVQM4DecodeIpic`. The report reads

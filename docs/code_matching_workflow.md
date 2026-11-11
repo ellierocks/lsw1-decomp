@@ -621,6 +621,11 @@ GitHub retail CI job).
 
 A strict function match proves only that function and the checked references.
 Do not weaken the verifier, toolchain pins or split boundaries to improve a score.
+A unit's compiler version is identified, not tuned: a per-unit `mw_version` override
+needs codegen that no source form reproduces under the default, keeps every existing
+strict match in the unit, fits how the library shipped (separate middleware, for example),
+and records the versions tried, as the
+[HVQM4 override](sdk_import.md#per-unit-compiler-override-gc125) does.
 The whole DOL remains the final goal; an existing link difference does not excuse
 new differences in a promoted range.
 
