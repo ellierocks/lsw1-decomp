@@ -47,7 +47,7 @@ class ToolNamespaceTests(unittest.TestCase):
         self.assertEqual(duplicate_bindings(source), [('SWITCH', 2, 9), ('f', 3, 10)])
 
     def test_tools_bind_each_module_level_name_once(self):
-        paths = sorted(TOOLS.glob('*.py'))
+        paths = sorted([*TOOLS.glob('*.py'), *TOOLS.glob('sweep_repairs/*.py')])
         self.assertTrue(paths)
         problems = [f'{path.relative_to(TOOLS.parent)}: {name!r} bound at line {old} and again at line {new}'
                     for path in paths

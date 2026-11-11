@@ -1,7 +1,12 @@
 """The unattended m2c sweep's text rewrites: macro expansion, cror folding, derefs, decls."""
+import sys
 import unittest
 
 from tools import sweep
+
+# Module state the tests patch lives in the repair module that sweep.py re-exports from.
+stores = sys.modules[sweep.const_rodata.__module__]
+prototypes = sys.modules[sweep.fix_prototypes.__module__]
 
 
 class SweepRewriteTest(unittest.TestCase):
@@ -63,12 +68,12 @@ class SweepRewriteTest(unittest.TestCase):
                           body.replace("    s32 spC;", "    volatile s32 spC;")])
 
     def test_const_rodata(self):
-        sweep._RODATA = {"lbl_801A4C2C"}
+        stores._RODATA = {"lbl_801A4C2C"}
         try:
             out = sweep.const_rodata("extern f32 lbl_801A4C2C[];\nextern f32 lbl_8040A6BC[];\n"
                                      "extern const f32 lbl_801A4C2C[];\n")
         finally:
-            sweep._RODATA = None
+            stores._RODATA = None
         self.assertEqual(out, "extern const f32 lbl_801A4C2C[];\nextern f32 lbl_8040A6BC[];\n"
                               "extern const f32 lbl_801A4C2C[];\n")
 
@@ -111,13 +116,13 @@ class SweepRewriteTest(unittest.TestCase):
     def test_fix_prototypes(self):
         body = ("s32 g(s32, s32);\ns32 sprintf(s32 *, s32);\nextern f32 lbl_K[];\n\n"
                 "void f(void) {\n    g(1, 2);\n    g(3);\n    sprintf(0, 1);\n    k(lbl_K);\n}\n")
-        old = sweep._PROTOS
-        sweep._PROTOS = {"g": ("s32", ["s32"]), "k": ("void", ["f32"])}
+        old = prototypes._PROTOS
+        prototypes._PROTOS = {"g": ("s32", ["s32"]), "k": ("void", ["f32"])}
         try:
             out = sweep.fix_prototypes(body.replace("extern f32", "void k(f32);\nextern f32"), "f",
                                        "\tcrclr cr1eq\n\tbl sprintf\n", "")
         finally:
-            sweep._PROTOS = old
+            prototypes._PROTOS = old
         self.assertIn("s32 g(s32);\n", out)
         self.assertIn("s32 sprintf();\n", out)
         self.assertIn("    g(1);\n    g(3);\n", out)
@@ -129,13 +134,13 @@ class SweepRewriteTest(unittest.TestCase):
         body = ("s32 g(s32 *, s32, s32, s32, s32, s32, s32, s32, f32, f32);\n\n"
                 "void f(void) {\n    s32 sp8;\n\n    sp8 = lbl_A;\n"
                 "    g(&b, 1, 2, 3, 4, 5, 6, 7, x, y);\n}\n")
-        old = sweep._PROTOS
-        sweep._PROTOS = {"g": ("void", ["void *", "f32", "s32", "s32", "s32", "s32", "f32",
+        old = prototypes._PROTOS
+        prototypes._PROTOS = {"g": ("void", ["void *", "f32", "s32", "s32", "s32", "s32", "f32",
                                         "s32", "s32", "s32", "s32"])}
         try:
             out = sweep.fix_prototypes(body, "f", "\tbl g\n", "")
         finally:
-            sweep._PROTOS = old
+            prototypes._PROTOS = old
         self.assertIn("    g(&b, x, 1, 2, 3, 4, y, 5, 6, 7, lbl_A);\n", out)
         self.assertNotIn("sp8 = lbl_A", out)
 
