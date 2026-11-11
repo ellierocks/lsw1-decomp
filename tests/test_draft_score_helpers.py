@@ -48,6 +48,15 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class ErrorTailTest(unittest.TestCase):
+    def test_temporary_directory_is_dropped_before_the_cut(self):
+        line = "Z:/tmp/score_fn_5uq_brh/obstacle.c:4848: incompatible type"
+        out = score_fn.error_tail("x" * 1490 + "\n" + line)
+        self.assertEqual(out, "obstacle.c:4848: incompatible type")
+        self.assertNotIn("5uq_brh", out)
+        self.assertEqual(score_fn.error_tail("a.c:1: x\n" * 400).splitlines()[0], "a.c:1: x")
+
+
 class DropRedeclaredTest(unittest.TestCase):
     def test_function_pointer_extern_names_the_pointer(self):
         context = "extern void (*cb)(void);\nextern s32 n;\n"

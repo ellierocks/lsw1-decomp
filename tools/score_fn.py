@@ -87,10 +87,20 @@ def run(cmd: list[str]) -> str:
     return error_tail((r.stdout + r.stderr).strip())
 
 
+# The random temporary directory in compiler paths (`Z:/tmp/score_fn_x1y2/u.c:5:`).
+TMP_DIR = re.compile(r"(?:\b[A-Za-z]:)?[^\s:'\"`]*?score_fn_[A-Za-z0-9_]+[/\\]")
+
+
 def error_tail(out: str) -> str:
     # A unit's warnings can bury the error past the tail kept here; report errors first.
+    # The temporary directory goes before the cut, which could otherwise split its name.
+    out = TMP_DIR.sub("", out)
     errors = [ln for ln in out.splitlines() if ": warning:" not in ln and "In function" not in ln]
-    return ("\n".join(errors) or out)[-1500:] or "failed"
+    text = "\n".join(errors) or out
+    tail = text[-1500:]
+    if len(text) > 1500 and "\n" in tail:  # whole lines only: no `cn.c:374` fragments
+        tail = tail[tail.index("\n") + 1:]
+    return tail or "failed"
 
 
 def compile_source(source: Path, out: Path, compiler: str, extra: list[str],

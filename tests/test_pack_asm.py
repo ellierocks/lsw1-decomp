@@ -69,6 +69,15 @@ class PackAsmTest(unittest.TestCase):
         self.assertEqual(err, "")
         self.assertTrue(pack_asm.stamp_current(asm.parent))
 
+    def test_asm_only_pack_is_written_in_process(self):
+        with mock.patch.object(pack_asm, "create", side_effect=AssertionError("subprocess")):
+            asm = pack_asm.ensure_asm("Foo", self.out, asm_only=True)
+            missing = pack_asm.ensure_asm("Nope", self.out, asm_only=True)
+        self.assertEqual(asm.read_text(), tp.locate_asm(0x80000000, 8, "Foo")[0])
+        self.assertEqual(sorted(p.name for p in asm.parent.iterdir()), ["asm.s", pack_asm.STAMP])
+        self.assertTrue(pack_asm.stamp_current(asm.parent))
+        self.assertFalse(missing.parent.exists())
+
     def test_unchanged_pack_is_not_reextracted(self):
         task = self.pack()
         self.ensure()  # first sight of a stampless pack: validated once

@@ -16,6 +16,35 @@ CALL = re.compile(r"\b\w+\s*\(")
 KEYWORDS = {"if", "while", "for", "switch", "return", "sizeof", "do"}
 
 
+# What LOCAL_DECL needs up to its `;`, checked in linear time: the word before the `;` is
+# the temp, and everything before it is indentation then [\w\s*] (type, spaces, stars).
+DECL_NAME = re.compile(r"(?<!\w)(?:temp|var)_\w+\Z")
+DECL_HEAD = re.compile(r"[ \t][\w\s*]+")
+
+
+def _decls(body: str):
+    """LOCAL_DECL.finditer(BODY) without its cost: the pattern's overlapping whitespace runs
+    make every failed attempt on a deeply indented line very slow, so it runs only at line
+    starts that pass the necessary DECL_NAME/DECL_HEAD check. A match holds no `;` before
+    the one ending it, so that `;` is the first after the line start."""
+    start = 0
+    while start < len(body):
+        semi = body.find(";", start)
+        if semi < 0:
+            return
+        seg = body[start:semi]
+        name = DECL_NAME.search(seg)
+        if name and DECL_HEAD.fullmatch(seg, 0, name.start()):
+            m = LOCAL_DECL.match(body, start)
+            if m:
+                yield m
+                start = m.end()  # mid-line: resume at the next line start
+        nl = body.find("\n", start)
+        if nl < 0:
+            return
+        start = nl + 1
+
+
 def _locals(body: str) -> set[str]:
     names = {m.group(1) for m in ANY_DECL.finditer(body)}
     for m in PARAMS.finditer(body):
@@ -23,23 +52,34 @@ def _locals(body: str) -> set[str]:
     return names
 
 
+TEMP = r"(?:temp|var)_\w+"
+# One scan each for every temp's assignments from a bare global and its writes, instead of
+# two whole-body scans per declared temp (quadratic on large drafts).
+SET = re.compile(rf"^[ \t]+(?P<v>{TEMP}) = (?P<rhs>(?:\([\w ]+\**\) ?)?(?P<g>[A-Za-z_]\w*));[ \t]*\n", re.M)
+WRITE = re.compile(rf"(?<![\w.>])&(?P<a>{TEMP})\b|\b(?P<b>{TEMP})\s*(?:[-+*/%&|^]|<<|>>)?=(?!=)|"
+                   rf"\+\+(?P<c>{TEMP})\b|--(?P<d>{TEMP})\b|\b(?P<e>{TEMP})\s*(?:\+\+|--)")
+
+
 def _cached(body: str) -> list[tuple[re.Match, str, re.Match]]:
     """(declaration, value, assignment) for each temp assigned exactly once from a bare
     global, optionally cast, and never written or address-taken otherwise."""
     local = _locals(body)
+    sets: dict[str, list[re.Match]] = {}
+    for m in SET.finditer(body):
+        sets.setdefault(m["v"], []).append(m)
+    writes: dict[str, int] = {}
+    for m in WRITE.finditer(body):
+        v = m["a"] or m["b"] or m["c"] or m["d"] or m["e"]
+        writes[v] = writes.get(v, 0) + 1
     out = []
-    for decl in LOCAL_DECL.finditer(body):
-        v = re.escape(decl["v"])
-        sets = list(re.finditer(rf"^[ \t]+{v} = (?P<rhs>(?:\([\w ]+\**\) ?)?(?P<g>[A-Za-z_]\w*));[ \t]*\n",
-                                body, re.M))
-        writes = re.findall(rf"(?<![\w.>])&{v}\b|\b{v}\s*(?:[-+*/%&|^]|<<|>>)?=(?!=)|\+\+{v}\b|--{v}\b|"
-                            rf"\b{v}\s*(?:\+\+|--)", body)
-        if len(sets) != 1 or len(writes) != 1 or sets[0]["g"] in local or sets[0]["g"] in KEYWORDS:
+    for decl in _decls(body):
+        found = sets.get(decl["v"], [])
+        if len(found) != 1 or writes.get(decl["v"], 0) != 1 or found[0]["g"] in local or found[0]["g"] in KEYWORDS:
             continue
-        g = sets[0]["g"]
+        g = found[0]["g"]
         if re.search(rf"\b{re.escape(g)}\s*\(", body):  # a function, not data
             continue
-        out.append((decl, f"(({decl['type'].strip()}) {sets[0]['rhs']})", sets[0]))
+        out.append((decl, f"(({decl['type'].strip()}) {found[0]['rhs']})", found[0]))
     return out
 
 

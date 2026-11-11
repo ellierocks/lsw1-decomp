@@ -117,14 +117,25 @@ def create(name: str, out_root: Path) -> None:
                     "--out-dir", str(out_root)], cwd=ROOT, capture_output=True)
 
 
-def ensure_asm(name: str, out_root: Path, make: bool = True) -> Path:
-    """OUT_ROOT/NAME/asm.s, created (MAKE) when missing and refreshed when stale."""
+def ensure_asm(name: str, out_root: Path, make: bool = True, *, asm_only: bool = False) -> Path:
+    """OUT_ROOT/NAME/asm.s, created (MAKE) when missing and refreshed when stale.
+
+    ASM_ONLY writes just asm.s, in process, instead of running ls1_task_pack.py (about
+    2.8 s each) for the donor and context files the sweep never reads."""
     task = Path(out_root) / name
     asm = task / "asm.s"
     if not asm.is_file():
         if not make:
             return asm
-        create(name, Path(out_root))
+        if asm_only:
+            sym = _symbol(name)
+            text = _task_pack().locate_asm(sym[0], sym[1], name)[0] if sym else None
+            if text is None:
+                return asm
+            task.mkdir(parents=True, exist_ok=True)
+            _write(asm, text)
+        else:
+            create(name, Path(out_root))
         if not asm.is_file():
             return asm
     if not stamp_current(task):

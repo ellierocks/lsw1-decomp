@@ -13,6 +13,8 @@ def unprototyped_calls(body: str, name: str, asm: str, unit: str) -> str:
                         "crclr cr1eq", asm)
     normalized = re.sub(r"\b(crclr|crset) 6\b", r"\1 cr1eq", normalized)
     callees = set(re.findall(r"\bcr(?:clr|set) cr1eq\s*\n(?:.*\n){0,2}?.*\tbl (\w+)", normalized))
+    if not callees:
+        return body
     aliases = {m['fn']: m for line in body.splitlines() if (m := FN_ALIAS.match(line))}
     returns = {m[2]: m[1].strip() for text in (unit, body) for m in PROTO.finditer(text)}
     for fn in sorted(callees):

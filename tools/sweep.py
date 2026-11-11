@@ -180,7 +180,7 @@ def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[
     SIZED sets M2C_SIZED_DEREFS (tools/patches/m2c-sized-derefs.patch): `*(a + b)` derefs
     keep their load width as `*(u8 *)(a + b)`, which the C types may otherwise lose."""
     task = OUT / name
-    asm = pack_asm.ensure_asm(name, OUT)  # created when missing, refreshed from the build when stale
+    asm = pack_asm.ensure_asm(name, OUT, asm_only=True)  # created when missing, refreshed from the build when stale
     if not asm.is_file() or not asm.read_text().strip():
         return "no-asm", ""
     m2c = draft_fn.m2c_dir()
@@ -248,16 +248,27 @@ def alias_decl(body: str, sym: str, name: str) -> str | None:
 _SCORES: dict[tuple[str, str, str], dict] = {}
 # Verdicts and m2c output shared by every checkout and sweep run, keyed by their inputs.
 CACHE_ROOT = Path(os.environ.get("LSW1_SWEEP_CACHE") or Path.home() / ".cache/lsw1/sweep")
-SCORE_TOOLS = ("score_fn.py", "prodg_cc.py", "verify_fn.py", "hillclimb.py")
-SCORE_CONFIG = ("configure.py", "config/GL5E4F/config.yml")
+# score_fn.py and every tools/ module it imports (tests.test_sweep checks the closure).
+# score_fn.py hardcodes its compiler flags, so configure.py and config.yml are not inputs:
+# keying on them dropped the whole cache on most merges.
+SCORE_TOOLS = ("score_fn.py", "prodg_cc.py", "verify_fn.py", "verify_unit.py", "hillclimb.py",
+               "variant_search.py", "order_search.py", "sprint_bench.py", "sprint_metrics.py", "opensaga.py")
+SCORE_CONFIG: tuple[str, ...] = ()
 CACHED_VERDICTS = {"MATCH", "MISMATCH", "COMPILE-ERROR"}
 USE_CACHE = True
 _TOOLS_DIGEST: list[str] = []
 
 
+def target_object(source: str) -> Path:
+    """The split retail object verify_fn.py compares SOURCE's functions with."""
+    rel = Path(source)
+    return ROOT / "build/GL5E4F/obj" / (rel.relative_to("src") if rel.is_relative_to("src") else rel).with_suffix(".o")
+
+
 def score_key(name: str, source: str, body: str) -> str | None:
-    """Digest of a score's inputs: the tools and build config, the unit source and its preprocessed headers
-    (unit_context), the function's target asm and the candidate body; None without them."""
+    """Digest of a score's inputs: the scoring tools, the unit source and its preprocessed headers
+    (unit_context), the unit's target object, the function's target asm and the candidate body;
+    None without them."""
     if not _TOOLS_DIGEST:
         h = hashlib.sha256()
         for tool in SCORE_TOOLS:
@@ -267,10 +278,11 @@ def score_key(name: str, source: str, body: str) -> str | None:
         _TOOLS_DIGEST.append(h.hexdigest())
     asm = pack_asm.ensure_asm(name, OUT, make=False)  # keyed on the current target asm
     ctx = unit_context(source) if asm.is_file() else None
-    if ctx is None:
+    obj = target_object(source)
+    if ctx is None or not obj.is_file():
         return None
     h = hashlib.sha256(_TOOLS_DIGEST[0].encode())
-    for part in (name, file_digest(ROOT / source), file_digest(ctx), file_digest(asm), body):
+    for part in (name, file_digest(ROOT / source), file_digest(ctx), file_digest(obj), file_digest(asm), body):
         h.update(len(part).to_bytes(8, "little") + part.encode())
     return h.hexdigest()
 
