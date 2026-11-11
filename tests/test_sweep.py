@@ -487,15 +487,27 @@ class SweepCacheTest(unittest.TestCase):
 
     def test_score_tools_cover_score_fn_imports(self):
         """Every tools/ module score_fn.py imports is a cache-key input."""
-        import modulefinder
-        import os
+        import ast
         from pathlib import Path
         tools = Path(sweep.__file__).resolve().parent
-        finder = modulefinder.ModuleFinder(path=[str(tools)] + sys.path)
-        finder.run_script(str(tools / "score_fn.py"))
-        local = {Path(m.__file__).name for m in finder.modules.values()
-                 if m.__file__ and Path(os.path.abspath(m.__file__)).parent == tools}
-        self.assertEqual(local - {"__init__.py"}, set(sweep.SCORE_TOOLS))
+        seen, todo = set(), ["score_fn.py"]
+        while todo:
+            name = todo.pop()
+            if name in seen:
+                continue
+            seen.add(name)
+            for node in ast.walk(ast.parse((tools / name).read_text())):
+                if isinstance(node, ast.Import):
+                    mods = [a.name for a in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    mods = [node.module] if node.module else [a.name for a in node.names]
+                    if not node.module or node.level:
+                        mods += [a.name for a in node.names]
+                else:
+                    continue
+                todo += [f"{m.split('.')[-1]}.py" for m in mods
+                         if m and (tools / f"{m.split('.')[-1]}.py").is_file()]
+        self.assertEqual(seen, set(sweep.SCORE_TOOLS))
 
     def test_m2c_output_cached_by_asm_and_context_text(self):
         import subprocess
