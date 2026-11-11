@@ -2233,6 +2233,47 @@ comparison both report **zero differing bytes**, SHA-1
 **621 tests (two skipped)**, compileall, configuration, map generation, shell
 syntax, documentation links and `git diff --check`.
 
+### HVQM4 strict-table follow-up
+
+On `e74325f`, two functions whose instructions already agreed now pass
+`verify_fn.py NAME --unit dolphin/hvqm4/hvqm4dec --build --strict-symbols`
+(RESULT: MATCH) through the per-object table check added to `verify_fn.py`
+(see [C matching](code_matching_workflow.md)); no source change was needed:
+
+| Function | Bytes | Reference proof |
+|---|---:|---|
+| `PpicPlaneDec` | 1,072 | `mcbTypeNext`: whole 36-byte object identical to retail, no relocations |
+| `fn_80189FFC` | 272 | `adpcm4Table`: whole 16-byte object identical to retail, 3 pointers and their pointees verified |
+
+The unit now strictly verifies **35/43 functions, 17,640 bytes**. `MotionComp`
+moves from 16/59 to 42/59 by sharing one load for both strides
+(`width = twidth = plane->width`), which reproduces retail's `addi` copy, and by
+computing the target base before the block loop. The rest is register colouring
+(`hx`/`hy` against `x`/`y`) and retail computing `hx` before `px >> 1`.
+
+Retained scores (exact / target instructions, not verification): `MCBlockDecDCNest`
+107/108, `IpicPlaneDec` 50/60, `MotionComp` 42/59, `MCBlockDecBasis` 458/651,
+`fn_80189B30` 54/145, `MCBlockDecMCNest` 45/114, `BasisBlockDec` 43/334 and
+`fn_80189934` 37/127. More `MCBlockDecDCNest` trials did not reach 108/108: no parameter copies,
+array indexing, `&planes[0]`, initialization in declarations, chained assignment,
+loop initialization and an inline wrapper (21–26/108). An `IpicPlaneDec` temporary
+stride gave the right copy shape at 48/60 but the wrong plane register. The
+eight-statement order search (40,320 variants) timed out without a result.
+
+Tooling fixes: `score_fn.py` (and so `sweep.py`) picked ProDG for this MWCC unit,
+so every draft failed in `types.h`. It now selects the SDK compiler when the source
+has an `mwcc` edge in `build.ninja`. `order_search.py`/`variant_search.py` lost that
+detection on temporary candidate paths (720/720 compile errors); `compiler_args`
+now resolves it from the original source. The sweep's m2c drafts still fail under
+MWCC on `void *` arithmetic, and its error extraction does not parse MWCC messages.
+
+The Pikmin CC0 donor (`9a21636`) was rechecked for the eight remaining bodies; no
+new transfer. The unit gate still refuses the externalized section set (`['.data',
+'.rodata', '.text']` against split ranges with `.bss`/`.sbss`), so the unit is not promoted.
+`dol_compare.py --linked-units` reports zero differing bytes, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. objdiff already credited both
+functions as fuzzy matches (`PpicPlaneDec` shows 99.96%), so report totals do not move.
+
 ## SDK leftovers
 
 From `4970a42`, all executable functions of plan item `sdk-leftovers` pass the

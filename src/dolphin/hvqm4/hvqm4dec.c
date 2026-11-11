@@ -1295,21 +1295,23 @@ void initMCHandler(HVQPlane* plane, HVQMCPlane* mc, s32 a, s32 b, s32 c) {
     }
 }
 
-void MotionComp(HVQPlane* planes_, HVQMCPlane* mc_, s32 x_, s32 y_) {
-    int c, i;
-    u8* t_top;
+void MotionComp(HVQPlane* planes_, HVQMCPlane* mc_, s32 x, s32 y) {
+    HVQMCPlane* mc;
+    HVQPlane* plane;
+    int c;
+    int i;
     s32* iofsP;
     int blocks;
+    int hx;
+    int hy;
+    u8* t_top;
+    int px, py;
+    int offset;
     u8* cP;
     u8* tP;
-    int offset;
-    int hx, hy;
-    int px, py;
     int width;
-    int x, y;
-    HVQPlane* plane;
-    HVQMCPlane* mc;
-    x = x_; y = y_; plane = planes_; mc = mc_;
+    int twidth;
+    mc = mc_; plane = planes_;
     for (c = 0; c < 3; c++) {
         px = x >> plane->width_shift;
         py = y >> plane->height_shift;
@@ -1318,17 +1320,17 @@ void MotionComp(HVQPlane* planes_, HVQMCPlane* mc_, s32 x_, s32 y_) {
         hx = px & 1;
         hy = py & 1;
         blocks = plane->blocks_per_mcb;
-        t_top = mc->target + (py >> 1) * plane->width + (px >> 1);
+        t_top = (px >> 1) + ((py >> 1) * plane->width + mc->target);
         for (; i < blocks; i++) {
             offset = *iofsP++;
-            width = plane->width;
+            width = twidth = plane->width;
             cP = mc->top + offset;
             tP = t_top + offset;
             if (hy) {
-                if (hx) _MotionComp_11(cP, width, tP, width);
-                else _MotionComp_01(cP, width, tP, width);
-            } else if (hx) _MotionComp_10(cP, width, tP, width);
-            else _MotionComp_00(cP, width, tP, width);
+                if (hx) _MotionComp_11(cP, width, tP, twidth);
+                else _MotionComp_01(cP, width, tP, twidth);
+            } else if (hx) _MotionComp_10(cP, width, tP, twidth);
+            else _MotionComp_00(cP, width, tP, twidth);
         }
         mc++; plane++;
     }
