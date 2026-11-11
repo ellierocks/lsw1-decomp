@@ -252,16 +252,20 @@ def count(template: Template, const_locals: bool) -> int:
 
 
 def compiler_args(compiler: str | None, source: Path) -> list[str]:
-    """Carry the original unit's SDK settings across temporary candidate paths."""
+    """Carry the original unit's SDK settings across temporary candidate paths.
+
+    Without COMPILER, an SDK/middleware SOURCE (an mwcc edge in build.ninja) still selects
+    sdk: score_fn.py's own detection cannot see the unit from a temporary path."""
+    try:
+        from .score_fn import unit_mw_settings
+    except ImportError:
+        from score_fn import unit_mw_settings
+    settings = unit_mw_settings(source) if compiler in (None, "sdk") else None
+    compiler = compiler or ("sdk" if settings else None)
     if not compiler:
         return []
     args = ["--compiler", compiler]
     if compiler == "sdk":
-        try:
-            from .score_fn import unit_mw_settings
-        except ImportError:
-            from score_fn import unit_mw_settings
-        settings = unit_mw_settings(source)
         if settings:
             version, flags = settings
             args += ["--mw-version", version, "--mw-flags", shlex.join(flags)]
