@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ghidra_decompile  # noqa: E402
 import m2c_helpers as repairs
+import pack_asm  # noqa: E402
 import pc_gc_body  # noqa: E402
 TARGET = "ppc-gcc-c"
 
@@ -140,10 +141,7 @@ def write_jp_references(name: str, task: Path, args) -> None:
 
 def draft_one(name: str, args) -> int:
     task = args.out_dir / name
-    asm = task / "asm.s"
-    if not asm.is_file():
-        subprocess.run([sys.executable, str(ROOT / "tools" / "ls1_task_pack.py"), name,
-                        "--out-dir", str(args.out_dir)], cwd=ROOT, capture_output=True)
+    asm = pack_asm.ensure_asm(name, args.out_dir)
     if not asm.is_file() or not asm.read_text().strip():
         print(f"error: no assembly for {name}; run bash build.sh, then tools/ls1_task_pack.py", file=sys.stderr)
         return 2

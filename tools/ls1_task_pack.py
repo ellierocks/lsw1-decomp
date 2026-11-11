@@ -6,7 +6,8 @@ Output (work/<FunctionName>/ by default; ignored by git):
   context.md         — Struct definitions, signatures, types
   donor_evidence.md  — Pinned OpenSaga leads, the Japanese PC x86 pair, limits and review instructions
   jp_x86.s           — Annotated Japanese PC x86 body of the paired function (only when paired)
-  asm.s              — Extracted assembly for the function
+  asm.s              — Extracted assembly for the function (current build units only)
+  asm.stamp          — Written by tools/pack_asm.py, which refreshes asm.s after a rebuild
   related_symbols.md — Callers, callees, Mac hints, data refs
   verify.sh          — Strict rebuild and verification command
   status.md          — Status: TODO / IN_PROGRESS / VERIFIED / PROMOTED / PARKED / BLOCKED
@@ -26,8 +27,10 @@ Usage:
 """
 import argparse
 import csv
+import json
 import re
 import sys
+import threading
 from collections import defaultdict
 from pathlib import Path
 
@@ -119,29 +122,93 @@ def resolve_target(raw: str):
     return None
 
 
-def extract_asm(addr, size, known_name=None):
-    """Extract assembly for the function at addr from the monolithic ASM file."""
+_UNIT_ASM: dict[tuple, list[Path]] = {}
+
+
+def build_asm_files():
+    """The .s files of the current build, in search order.
+
+    dtk leaves the asm of earlier splits behind (the old monolithic ASM_FILE among them), and
+    those copies predate later relocation and symbol fixes. When build/GL5E4F/config.json
+    exists, only the asm of the units it lists is searched; otherwise every .s under the asm
+    directory, ASM_FILE first."""
+    asm_dir = ASM_FILE.parent
+    config = asm_dir.parent / "config.json"
+    try:
+        st = config.stat()
+        key = (config, st.st_mtime_ns, st.st_size)
+        if key not in _UNIT_ASM:
+            data = json.loads(config.read_text())
+            units = [u for c in [data, *data.get("modules", [])] for u in c.get("units", [])]
+            _UNIT_ASM.clear()
+            _UNIT_ASM[key] = sorted({asm_dir / Path(u["object"].split("/obj/", 1)[1]).with_suffix(".s")
+                                     for u in units if "/obj/" in u.get("object", "")})
+        current = [p for p in _UNIT_ASM[key] if p.is_file()]
+        if current:
+            return current
+    except (OSError, ValueError, AttributeError, TypeError):
+        pass
+    paths = [ASM_FILE] + sorted(asm_dir.rglob("*.s")) if asm_dir.is_dir() else [ASM_FILE]
+    return [p for p in dict.fromkeys(paths) if p.is_file()]
+
+
+FN_LINE = re.compile(r"^[ \t]*\.fn[ \t]+([^\s,]+)", re.M)
+_ASM_INDEX: dict[tuple, dict[str, Path]] = {}
+_ASM_INDEX_LOCK = threading.Lock()
+
+
+def asm_index():
+    """{function name: first build asm file defining it}, rebuilt when any of the files change."""
+    paths = build_asm_files()
+    key = tuple((p, st.st_mtime_ns, st.st_size) for p in paths for st in [p.stat()])
+    with _ASM_INDEX_LOCK:
+        if key not in _ASM_INDEX:
+            index: dict[str, Path] = {}
+            for path in paths:
+                for name in FN_LINE.findall(path.read_text()):
+                    index.setdefault(name, path)
+            _ASM_INDEX.clear()
+            _ASM_INDEX[key] = index
+        return _ASM_INDEX[key]
+
+
+def _line_start(text, pattern, pos=0):
+    """Offset of the first line from POS whose first non-blank text matches PATTERN, or -1."""
+    for m in re.finditer(pattern, text[pos:] if pos else text):
+        begin = text.rfind("\n", 0, pos + m.start()) + 1
+        if not text[begin:pos + m.start()].strip(" \t"):
+            return begin
+    return -1
+
+
+def fn_block(text, name):
+    """The `.fn NAME` ... `.endfn NAME` lines of TEXT, or None."""
+    start = _line_start(text, r"\.fn\s+" + re.escape(name) + r"(?:,|\s|$)")
+    end = _line_start(text, r"\.endfn\s+" + re.escape(name) + r"(?:\s|$)", start) if start >= 0 else -1
+    if end < 0:
+        return None
+    eol = text.find("\n", end)
+    return "\n".join(text[start:eol if eol >= 0 else len(text)].splitlines()) + "\n"
+
+
+def locate_asm(addr, size, known_name=None):
+    """(assembly, build asm file) for the function at ADDR, or (None, None)."""
     candidates = [f"fn_{addr:08X}"]
     if known_name:
         candidates.insert(0, known_name)
-    paths = [ASM_FILE] + sorted(ASM_FILE.parent.rglob("*.s"))
-    seen = set()
-    for path in paths:
-        if path in seen or not path.is_file():
-            continue
-        seen.add(path)
-        lines = path.read_text().splitlines()
-        for candidate in candidates:
-            out = []
-            capture = False
-            for line in lines:
-                if re.match(r"\s*\.fn\s+" + re.escape(candidate) + r"(?:,|\s|$)", line):
-                    capture = True
-                if capture:
-                    out.append(line)
-                if capture and re.match(r"\s*\.endfn\s+" + re.escape(candidate) + r"(?:\s|$)", line):
-                    return "\n".join(out) + "\n"
-    return None
+    index = asm_index()
+    for candidate in candidates:
+        path = index.get(candidate)
+        if path is not None:
+            text = fn_block(path.read_text(), candidate)
+            if text is not None:
+                return text, path
+    return None, None
+
+
+def extract_asm(addr, size, known_name=None):
+    """Extract assembly for the function at addr from the current build asm."""
+    return locate_asm(addr, size, known_name)[0]
 
 
 def callers_of(addr):

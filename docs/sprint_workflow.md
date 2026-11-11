@@ -16,7 +16,8 @@ orchestration and continuation. [Strategy](strategy.md) describes current opport
 - **Automatic matches.** `sweep.py --apply` drafts and strict-scores ready targets;
   `sweep_permute.py --apply` searches near-misses. Use fresh results or rerun affected
   targets when sources or tools change. `work/sweep/results.json` ranks opportunities;
-  `work/sweep/NAME/sweep_draft.c` holds drafts. Automatic scoring uses `--no-queue`;
+  `work/sweep/NAME/sweep_draft.c` holds drafts. Each pack's `asm.s` is refreshed from the
+  current build before drafting (`tools/pack_asm.py`). Automatic scoring uses `--no-queue`;
   interactive scoring adds targets to an existing queue unless given that flag.
   m2c drafts and score verdicts are cached in `~/.cache/lsw1/sweep`, shared by every
   checkout, so a rerun after a tool fix rescores only the drafts that changed. Without
