@@ -138,7 +138,12 @@ def rebase_refusal(commits: list[str]) -> str | None:
             "rewrites pushed history. Use --merge to bring in origin/main instead")
 
 
-_DEF = re.compile(r"^(?![ \t#/*}])[A-Za-z_][^;{}()\n=]*?\b(\w+)\s*\([^;{}]*?\)\s*\{", re.M)
+# A file-scope definition: specifiers (and GCC attributes) on the name's line, then
+# the parameter list and the opening brace. A return type on the previous line is
+# not recognised; only vendored newlib/libgcc sources use that style.
+_ATTR = r"__attribute__\s*\(\([^;{}\n]*?\)\)"
+_DEF = re.compile(rf"^(?![ \t#/*}}])(?:{_ATTR}\s*)*[A-Za-z_](?:{_ATTR}|[^;{{}}()\n=])*?"
+                  r"\b(?!__attribute__\b)(\w+)\s*\([^;{}]*?\)\s*\{", re.M)
 
 
 def defined_functions(text: str) -> list[str]:
@@ -152,8 +157,9 @@ def merge_base() -> str:
 
 def global_functions(text: str) -> list[str]:
     """Like defined_functions, but without `static` helpers, which have no retail symbol."""
+    # `static` may follow other specifiers (`inline static`, `const static`).
     return list(dict.fromkeys(m.group(1) for m in _DEF.finditer(text)
-                              if not re.match(r"\s*static\b", m.group(0))))
+                              if not re.search(r"\bstatic\b", text[m.start():m.start(1)])))
 
 
 def matched_from_diff(unit: str, base: str | None = None) -> list[str]:

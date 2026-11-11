@@ -84,6 +84,23 @@ class DiffAndWorkflowTests(unittest.TestCase):
                 'static int b(void)\n{\n}\nvoid c(void) {\n    Helper(0);\n}\n')
         self.assertEqual(sprint_finish.global_functions(text), ['c'])
 
+    def test_global_functions_skip_static_after_other_specifiers(self):
+        # PR 98: --matched-from-diff counted a static helper (ForceObjsReady) as matched.
+        helpers = ['static inline s32 ForceObjsReady(s32 count)\n{\n}\n',
+                   'inline static void a(void) {\n}\n',
+                   '__inline static void b(void) {\n}\n',
+                   'const static int *c(void) {\n}\n',
+                   'asm static void d(OSTime time) {\n}\n',
+                   'static __attribute__((unused)) void e(void) {\n}\n',
+                   '__attribute__((noinline)) static void f(void) {\n}\n']
+        globals_ = ['void staticUser(void) {\n    ForceObjsReady(0);\n}\n',
+                    '__attribute__((noinline)) void G(int a) {\n}\n',
+                    'inline void H(void) {\n}\n']
+        text = ''.join(helpers + globals_)
+        self.assertEqual(sprint_finish.global_functions(text), ['staticUser', 'G', 'H'])
+        self.assertEqual(sprint_finish.defined_functions(text),
+                         ['ForceObjsReady', 'a', 'b', 'c', 'd', 'e', 'f', 'staticUser', 'G', 'H'])
+
     def test_tool_commits_keep_only_tooling_subjects(self):
         log = 'feat(match): x\nfix(tools): sweep repair\ndocs: y\nfeat(tools): new search\n'
         done = subprocess.CompletedProcess([], 0, log, '')

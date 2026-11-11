@@ -11,12 +11,16 @@
 ###
 
 import argparse
+import http.client
 import io
 import os
 import platform
 import shutil
 import stat
+import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 from typing import Callable, Dict
@@ -127,6 +131,50 @@ def download(url, response, output) -> None:
                 temporary.unlink(missing_ok=True)
 
 
+# Transient failures (gateway timeouts, rate limits, dropped connections) are
+# retried with capped exponential backoff; anything else fails immediately.
+ATTEMPTS = 4
+RETRY_BASE_DELAY = 2.0
+RETRY_MAX_DELAY = 15.0
+TIMEOUT = 60
+TRANSIENT_HTTP_CODES = {408, 429}
+
+
+def is_transient(error: BaseException) -> bool:
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code in TRANSIENT_HTTP_CODES or 500 <= error.code < 600
+    if isinstance(error, urllib.error.URLError):
+        # Certificate and DNS-configuration errors are not fixed by waiting.
+        return isinstance(error.reason, (TimeoutError, ConnectionError))
+    # Raised while reading the body: the connection dropped mid-download.
+    return isinstance(error, (http.client.IncompleteRead, TimeoutError, ConnectionError))
+
+
+def retry_delay(attempt: int) -> float:
+    return min(RETRY_BASE_DELAY * 2 ** (attempt - 1), RETRY_MAX_DELAY)
+
+
+def fetch(url, output, *, context=None, attempts=ATTEMPTS, sleep=time.sleep) -> None:
+    """Download url into output, retrying transient failures.
+
+    download() replaces files atomically, so a failed attempt leaves any
+    installed tool intact.
+    """
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT, context=context) as response:
+                download(url, response, output)
+            return
+        except Exception as e:
+            if attempt == attempts or not is_transient(e):
+                raise
+            delay = retry_delay(attempt)
+            print(f"Download attempt {attempt}/{attempts} of {url} failed: {e!r}; "
+                  f"retrying in {delay:g}s", file=sys.stderr)
+            sleep(delay)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("tool", help="Tool name")
@@ -138,10 +186,8 @@ def main() -> None:
     output = Path(args.output)
 
     print(f"Downloading {url} to {output}")
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
-        with urllib.request.urlopen(req) as response:
-            download(url, response, output)
+        fetch(url, output)
     except urllib.error.URLError as e:
         if str(e).find("CERTIFICATE_VERIFY_FAILED") == -1:
             raise e
@@ -154,10 +200,7 @@ def main() -> None:
             )
             return
 
-        with urllib.request.urlopen(
-            req, context=ssl.create_default_context(cafile=certifi.where())
-        ) as response:
-            download(url, response, output)
+        fetch(url, output, context=ssl.create_default_context(cafile=certifi.where()))
 
 
 if __name__ == "__main__":
