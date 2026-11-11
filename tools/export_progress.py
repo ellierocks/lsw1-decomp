@@ -31,6 +31,20 @@ def measures(raw: dict) -> dict:
     return result
 
 
+def address(item: dict) -> int | None:
+    """Objdiff records a function's load address in metadata.virtual_address."""
+    value = (item.get('metadata') or {}).get('virtual_address')
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def by_address(entries: list) -> list:
+    """Sort (address, original index, value) entries; unknown addresses keep report order at the end."""
+    return [value for _, _, value in sorted(entries, key=lambda e: (e[0] is None, e[0] or 0, e[1]))]
+
+
 def export(report: dict, *, report_at: str, revision: str | None = None,
            history: list | None = None, sweep: list | None = None,
            sweep_at: str | None = None, build_url: str | None = None) -> dict:
@@ -40,23 +54,29 @@ def export(report: dict, *, report_at: str, revision: str | None = None,
         raise ValueError('build_url must be a GitHub Actions run URL')
     units = []
     matched_names = set()
-    for unit in report.get('units', []):
+    for unit_index, unit in enumerate(report.get('units', [])):
         name = str(unit['name']).removeprefix('main/')
         m = measures(unit.get('measures', {}))
         metadata = unit.get('metadata', {})
         functions = []
-        for fn in unit.get('functions', []):
-            score = float(fn.get('fuzzy_match_percent', 0))
-            size = int(fn['size'])
+        for index, fn in enumerate(unit.get('functions', [])):
+            try:
+                score = float(fn.get('fuzzy_match_percent', 0))
+                size = int(fn['size'])
+            except (TypeError, ValueError):
+                raise ValueError('Invalid function size or similarity') from None
             if not math.isfinite(score) or not 0 <= score <= 100 or size < 0:
                 raise ValueError('Invalid function size or similarity')
-            functions.append(dict(name=str(fn['name']), size=size, similarity=score))
+            functions.append((address(fn), index, dict(name=str(fn['name']), size=size, similarity=score)))
             if score == 100:
                 matched_names.add(fn['name'])
         if m['total_code'] or metadata.get('source_path'):
             category = (metadata.get('progress_categories') or ['other'])[0]
-            units.append(dict(name=name, category=category, complete=bool(metadata.get('complete')),
-                              measures=m, functions=functions))
+            # The report lists .init units after .text; the site draws its code map in this order.
+            start = min((a for a, _, _ in functions if a is not None), default=None)
+            units.append((start, unit_index, dict(name=name, category=category, complete=bool(metadata.get('complete')),
+                                                  measures=m, functions=by_address(functions))))
+    units = by_address(units)
     candidates = None
     if sweep is not None:
         counts = {}
@@ -66,10 +86,13 @@ def export(report: dict, *, report_at: str, revision: str | None = None,
             counts[verdict] = counts.get(verdict, 0) + 1
             if verdict != 'MISMATCH' or row.get('applied') or row['name'] in matched_names:
                 continue
-            ratio = float(row.get('closeness', 0))
+            try:
+                ratio = float(row.get('closeness', 0))
+                size = int(row['size'])
+            except (TypeError, ValueError):
+                raise ValueError('Invalid sweep size or similarity') from None
             if not math.isfinite(ratio) or not 0 <= ratio <= 1:
                 raise ValueError('Invalid sweep similarity')
-            size = int(row['size'])
             if size < 0:
                 raise ValueError('Invalid sweep size')
             pending.append(dict(name=str(row['name']), unit=str(row['unit']), size=size, similarity=100*ratio))

@@ -31,6 +31,10 @@ The exporter reads the existing report; it does not build or sweep. Pass
 source SHA and the Actions run URL. A local export without that evidence has a null
 revision, and `publish_progress.py` refuses to publish it.
 
+Units and their functions are listed in load-address order, taken from objdiff's
+`virtual_address` metadata, so `.init` code comes before `.text`. Addresses are used for
+ordering only and are not exported. Entries without an address keep report order at the end.
+
 Exported fields are allowlisted: aggregate counts, unit names and categories, function
 names, sizes and objdiff similarities. Optional sweep statistics include names, units,
 sizes, verdict counts and exact-instruction similarity. Section data, instructions, object
