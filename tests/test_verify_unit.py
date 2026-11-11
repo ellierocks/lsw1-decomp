@@ -28,11 +28,12 @@ class Symbols:
 
 
 class Retail:
-    def __init__(self, data):
+    def __init__(self, data, base=0x1000):
         self.data = data
+        self.base = base
 
     def read(self, address, size):
-        return self.data if address == 0x1000 and size == len(self.data) else None
+        return self.data if address == self.base and size == len(self.data) else None
 
 
 class VerifyUnitTests(unittest.TestCase):
@@ -57,6 +58,30 @@ class VerifyUnitTests(unittest.TestCase):
         self.assertEqual(self.proof(), {'.data': 0x1000})
         self.mine.relocs[1] = [NS(offset=0, rtype=1, sym=0, addend=0x28)]
         self.assertIsNone(self.proof())
+
+    def test_aligned_section_after_short_range_start_is_proved_with_leading_padding(self):
+        # The range starts 4 bytes before the compiled section's 8-byte alignment.
+        self.ranges = {'.data': (0x1004, 0x1010)}
+        self.retail = Retail(bytes(4) + (0x1024).to_bytes(4, 'big') + b'ABCD', base=0x1004)
+        self.target = FakeElf(bytes(4) + self.data, [NS(offset=4, rtype=1, sym=0, addend=4)], [self.sym])
+        self.mine = FakeElf(self.data, [self.rel], [self.sym])
+        self.mine.sections[1].align = 8
+        self.assertEqual(self.proof(), {'.data': 0x1008})
+        # A local symbol in the compiled section resolves at the aligned base too.
+        self.mine.symbols = [NS(shndx=1, name='.data', value=0)]
+        self.target.symbols = [NS(shndx=1, name='.data', value=0)]
+        self.mine.relocs[1] = [NS(offset=0, rtype=1, sym=0, addend=4)]
+        self.target.relocs[1] = [NS(offset=4, rtype=1, sym=0, addend=8)]
+        self.retail = Retail(bytes(4) + (0x100C).to_bytes(4, 'big') + b'ABCD', base=0x1004)
+        self.assertEqual(self.proof(), {'.data': 0x1008})
+        # Without the alignment the same layout does not prove.
+        self.mine.sections[1].align = 4
+        self.assertIsNone(self.proof())
+        self.mine.sections[1].align = 8
+        self.retail = Retail(b'\x01' + bytes(3) + (0x100C).to_bytes(4, 'big') + b'ABCD', base=0x1004)
+        self.target.data = b'\x01' + self.target.data[1:]
+        self.assertIsNone(self.proof())
+        self.assertIn('padding', verify_unit.LAST_REFUSAL)
 
     def test_changed_bytes_and_relocation_are_rejected(self):
         self.mine.data = bytes(4) + b'ABCE'
@@ -268,6 +293,14 @@ class VerifyUnitTests(unittest.TestCase):
         self.assertIn('b is not linked at retail 0x00002008',
                       verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}, 'b': {0x2010}}))
         self.assertIn('nowhere', verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}}))
+
+    def test_local_mwcc_section_anchor_need_not_be_linked(self):
+        mine = self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x20, 'b')])
+        mine.symbols.append(NS(index=2, name='...bss.0', value=0, size=0, sym_type=0, bind=0, shndx=1))
+        ranges = {'.bss': (0x2000, 0x2028)}
+        self.assertIsNone(verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}, 'b': {0x2008}}))
+        mine.symbols[-1].bind = 1
+        self.assertIn('...bss.0', verify_unit.check_linked_bss(ranges, mine, {'a': {0x2000}, 'b': {0x2008}}))
 
     def test_split_parser_requires_unambiguous_ranges(self):
         text = 'unit.c:\n  .text start:0x1000 end:0x1004\n  .data start:0x2000 end:0x2008\nother.c:\n  .text start:0x3000 end:0x3004\n'

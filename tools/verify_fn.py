@@ -98,6 +98,7 @@ class Section:
     flags: int
     offset: int
     size: int
+    align: int = 1
 
     @property
     def is_code(self) -> bool:
@@ -144,8 +145,8 @@ class Elf:
             raise ToolError(f"{path}: truncated section header table")
         strtab = raw[shstrndx]
         self.sections: list[Section] = []
-        for i, (name, typ, flags, _addr, off, size, *_rest) in enumerate(raw):
-            self.sections.append(Section(i, self._cstr(strtab[4] + name), typ, flags, off, size))
+        for i, (name, typ, flags, _addr, off, size, _link, _info, align, _entsize) in enumerate(raw):
+            self.sections.append(Section(i, self._cstr(strtab[4] + name), typ, flags, off, size, align))
         self.symbols: list[Symbol] = []
         self._function_symbols: Optional[list[Symbol]] = None
         self.relocs: dict[int, list[RawReloc]] = {}
