@@ -1,6 +1,7 @@
 # Confirmed GC function <-> pc_jp_retail (Japanese 1.0 PC exe, sha256 e224197c...0921b) pairs.
 # Seeds tools/pc_gc_anchors.py; keyed by GC address so renames do not break it.
 # Add a row only after reading both bodies (same call order, same globals/constants).
+# pc_jp_addr `none` vetoes a GC function whose inferred pair was read and found wrong.
 gc_addr	pc_jp_addr	evidence
 0x8009F0B8	0x00456850	PadOutPause (Mac demo name): same gate order over 13 globals (pc_jp_globals.tsv), calls PauseGame (JP 0x456210)
 0x8011EAA8	0x0041CD00	called by PadOutPause with the current cutscene; PC body always returns 0, so PC never allows pausing cutscenes
@@ -11,3 +12,8 @@ gc_addr	pc_jp_addr	evidence
 0x800F10B4	0x00468340	callee of LightSabreLightCode; same logic, but PC struct offsets shifted (+0x287/+0xed8/+0x1060 against GC +0x290/+0xeec/+0x1074)
 0x800BB5A8	0x00445720	inferred (layout); Ghidra has no function at the x86 address (reached only through a pointer), objdump body matches
 0x80040284	0x004AE380	NuGCutCharAnimProcess: same loop over +0x58->+0x18 entries, +0x5c&2 test and two callbacks; PC lacks the GC lbl_8040810C test
+0x80007DA4	0x004CDEB0	NuStrICmp: same null returns (-1 / 1) and byte compare loop; x86 inlines NuToUpper (0x61..0x7a, 0xe0..0xff), so the audit reads it weak
+0x80064088	0x004CB8D0	replaces the callee-step pair 0x4CB9C0, a forwarder that pushes its args plus 0 to 0x4CB8D0; 0x4CB8D0 calls fn_8000E540 then fn_8000E3C0 like GC, its callee 0x4CB770 holds the 50000/40000/20000/30000 switch constants
+0x800B4C28	0x00426030	DaveSetSoundFadeDist: same float constants (10, 50, 100, 150, 250, 2, 15) in the same order, calls fn_8006DF68 at the same position
+0x8012F090	0x0043B190	Action_SnapToPosition: 14 of 17 call sites agree in order (NuStrIStr / AIParamToFloat parameter parsing, InitPlayerShadow, SetPlayerOnSurface); same player1/player2 globals
+0x8011EA74	none	__fini_cpp_exceptions: the shape-layout pick 0x41CBE0 loops 8 times over +0x650 entries; GC tests one global for -1 and calls fn_8011E308

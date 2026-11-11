@@ -13,15 +13,23 @@ GC side: lis+addi/ori/load string materialisations (tools/string_xrefs.py)
 mapped to configured functions. x86 side: 32-bit immediates in .text equal to
 a string's VA, attributed to the nearest preceding function start (call
 targets and code after int3/nop padding). Only strings that occur once in
-each binary are used.
+each binary are used. docs/symbol_donors/pc_jp_pairs.tsv seeds every run; a row whose
+x86 address is `none` keeps that GC function unpaired (a vetoed inferred pair).
 
 Outputs (build/pc_analysis/, local):
-  gc_pc_anchors.tsv     GC function -> x86 function, shared string count, sample
+  gc_pc_anchors.tsv     GC function -> x86 function, shared string count, sample, audit
+                        (independent check: shared integer constants, floats and
+                        paired callees; see `--audit` for its calibration)
+  gc_pc_globals.tsv     GC data symbol -> x86 address used by the same pairs
+  pc_functions.tsv      every x86 function start, its extent, caller count and pair
+                        (tools/pc_gc_body.py reads it instead of redoing this pass)
   pc_source_files.tsv   x86 source-path string -> referencing x86 functions and
                         their anchored GC functions (split evidence)
 
 Usage:
     python3 tools/pc_gc_anchors.py [--exe PATH] [--min-len N]
+    python3 tools/pc_gc_anchors.py --evaluate     # precision on held-out string pairs
+    python3 tools/pc_gc_anchors.py --audit        # audit calibration and the weak pairs
 """
 
 from __future__ import annotations
@@ -35,13 +43,16 @@ import re
 import struct
 import subprocess
 import sys
+import textwrap
 from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from pc_gc_features import gc_features, pc_features, x86_disassembly, x86_listing  # noqa: E402
+from pc_gc_features import (  # noqa: E402
+    gc_features, gc_immediates, nice_float, pc_features, pc_immediates, pc_tail_calls, x86_disassembly,
+    x86_listing)
 from string_xrefs import (  # noqa: E402
     DOL,
     SYMBOLS,
@@ -310,7 +321,11 @@ class Pairer:
         self.gc_addrs, self.gc_sizes = gc_addrs, gc_sizes
         self.notes: dict[tuple[str, int], str] = {}
         self.hidden: frozenset = frozenset()  # held-out GC functions (see run)
+        self.vetoed: frozenset = frozenset()  # GC functions read to have no x86 pair (pairs table `none`)
         self.gc_feat, self.pc_feat = gc_feat, pc_feat
+        self.gc_imms: dict[str, set[int]] = {}   # audit only (build_pairer fills them)
+        self.pc_imms: dict[int, set[int]] = {}
+        self.pc_tails: dict[int, set[int]] = {}  # x86 tail calls (jmp to a function start)
         self.pc_starts = sorted(pc_calls)
         self.pc_sizes = {s: (self.pc_starts[i + 1] - s if i + 1 < len(self.pc_starts) else 0)
                          for i, s in enumerate(self.pc_starts)}
@@ -396,7 +411,7 @@ class Pairer:
                 by_pc[p].add(g)
         added = 0
         for g, counter in votes.items():
-            if g in pairs:
+            if g in pairs or g in self.vetoed:
                 continue
             (p, _), *rest = counter.most_common()
             if rest or p in taken or len(by_pc[p]) != 1:
@@ -541,7 +556,7 @@ class Pairer:
         owner = {p: g for g, (p, _) in pairs.items()}
         split_rows = []
         for g, counter in sorted(self.string_votes.items(), key=lambda kv: -sum(kv[1].values())):
-            if g in pairs or g in holdout:
+            if g in pairs or g in holdout or g in self.vetoed:
                 continue
             (p, count), *rest = counter.most_common()
             sample = self.string_samples[(g, p)][0][:60]
@@ -574,6 +589,59 @@ class Pairer:
                 else:
                     tally[("unpaired", None)] += 1
         return tally
+
+
+AUDIT_SETS = ("string pairs", "neighbour mispairs", "random mispairs")
+
+
+def audit(pairer: Pairer, g: str, p: int, pairs: dict) -> str:
+    """Independent check of one pair: no strings, votes or layout, only what both bodies
+    contain. Shared distinctive integer constants and float constants (x86 loads and float-like
+    immediates) support it; paired
+    GC callees that x86 does (not) call support (contradict) it. LTCG inlines small callees,
+    so a contradiction is a reason to look, not proof (4% of string pairs read weak).
+
+    supported  two or more agreeing signs and nothing contradicting, or three with
+               agreeing callees outnumbering contradicting ones two to one
+    partial    some support, not enough for the above
+    weak       contradicted (more callees differ than agree), or both sides have
+               constants or paired callees and nothing agrees
+    unchecked  neither side has anything to compare (typically small leaves)
+    """
+    a, b = pairer.gc_imms.get(g, set()), pairer.pc_imms.get(p, set())
+    fa = pairer.floats(pairer.gc_feat, g)
+    fb = (pairer.floats(pairer.pc_feat, p) | {f32(v) for v in map(nice_float, b) if v is not None}) - COMMON_FLOATS
+    ints, floats = len(a & b), len(fa & fb)
+    called = set(pairer.pc_calls.get(p, [])) | pairer.pc_tails.get(p, set())
+    agree = sum(1 for c in pairer.gc_calls.get(g, []) if c in pairs and pairs[c][0] in called)
+    bad = sum(1 for c in pairer.gc_calls.get(g, []) if c in pairs and pairs[c][0] not in called)
+    support = ints + floats + agree
+    if bad > agree or (support == 0 and ((len(a) >= 2 and len(b) >= 2) or bad)):
+        verdict = "weak"
+    elif (bad == 0 and support >= 2) or (support >= 3 and agree > 2 * bad):
+        verdict = "supported"
+    elif support:
+        verdict = "partial"
+    else:
+        verdict = "unchecked"
+    return f"{verdict}: {ints} constants, {floats} floats, callees {agree} agree {bad} differ"
+
+
+def audit_calibration(pairer: Pairer, pairs: dict, seed: int = 1) -> dict[str, Counter]:
+    """Audit verdicts on string pairs (taken as true) and on deliberate mispairs of the same
+    GC functions with an adjacent or a random x86 function."""
+    truth = sorted((g, p) for g, (p, e) in pairs.items() if method(e) == "strings")
+    starts = pairer.pc_starts
+    index = {s: i for i, s in enumerate(starts)}
+    rng = random.Random(seed)
+    sets = {
+        AUDIT_SETS[0]: truth,
+        AUDIT_SETS[1]: [(g, starts[index[p] + rng.choice((-1, 1))]) for g, p in truth
+                        if 0 < index.get(p, 0) < len(starts) - 1],
+        AUDIT_SETS[2]: [(g, rng.choice(starts)) for g, _ in truth],
+    }
+    return {name: Counter(audit(pairer, g, p, pairs).split(":")[0] for g, p in rows)
+            for name, rows in sets.items()}
 
 
 def method(evidence: str) -> str:
@@ -627,10 +695,12 @@ def load_anchors(path: Path | None = None) -> dict[int, tuple[int, str]] | None:
     return out
 
 
-def donor_markdown(addr: int) -> str:
+def donor_markdown(addr: int, body: tuple[Path | None, str] | None = None) -> str:
     """Return the pc_jp_retail section for a task pack's donor_evidence.md.
 
-    Generates build/pc_analysis/gc_pc_anchors.tsv on first use (about 20 s).
+    Generates build/pc_analysis/gc_pc_anchors.tsv on first use (about 25 s). `body` is
+    what pc_gc_body.write_task_body returned for this task (the jp_x86.s path, or None,
+    and a one-line status).
     """
     exe = find_exe()
     anchors = OUT_DIR / "gc_pc_anchors.tsv"
@@ -653,16 +723,30 @@ def donor_markdown(addr: int) -> str:
         lines.append("No pair for this function (no shared string, aligned call, table slot, global"
                      " or layout gap; see `build/pc_analysis/gc_pc_anchors.tsv` for its callers).")
         return "\n".join(lines) + "\n"
+    kind = method(row[3])
+    lines.append(f"Paired with x86 `{row[2]}` ({row[3]}).")
+    if kind not in {"confirmed", "strings"}:
+        audit = row[4] if len(row) > 4 and row[4] else ""
+        lines.append(f"This pair is inferred ({kind}), not confirmed"
+                     + (f"; independent check: {audit}" if audit else "")
+                     + ". Check it against GC assembly before relying on it.")
+    if body and body[0] is not None:
+        lines += [
+            f"`{body[0].name}` holds the annotated x86 body: calls aligned with the GC call order,",
+            "globals with their GC labels, strings, floats, switch tables, then the listing. Read it for",
+            "branch structure, switches, call order, globals and constants; skip it when only register",
+            "allocation or offsets are in question. MSVC codegen and PC struct offsets never transfer.",
+        ]
+    elif body:
+        lines.append(f"No `jp_x86.s`: {body[1]}.")
     lines += [
-        f"Paired with x86 `{row[2]}` ({row[3]}).",
-        f"Read it with REA: `open_binary` on `{exe}`,",
-        f"then `procedure_pseudo_code` at `{row[2]}`. MSVC output does not transfer; use it for call",
-        "order, globals, constants, field offsets and branch structure, confirmed against GC assembly.",
+        "`python3 tools/ghidra_decompile.py decompile-pc NAME` writes a Ghidra decompile of the x86 body",
+        "(`jp_ghidra.c`) once `setup-pc` has run. For x86 callers and xrefs, open the exe in REA",
+        f"(`open_binary` on `{exe}`).",
         "Known global pairs: `docs/symbol_donors/pc_jp_globals.tsv`. After confirming the pair, add it to",
-        "`docs/symbol_donors/pc_jp_pairs.tsv` so later runs propagate from it.",
+        "`docs/symbol_donors/pc_jp_pairs.tsv` so later runs propagate from it. In `--donor-note`, record",
+        "the x86 address, the pairing method, what you confirmed against GC assembly and what differed.",
     ]
-    if method(row[3]) not in {"confirmed", "strings"}:
-        lines.append("This pair is inferred, not confirmed: check it before relying on it.")
     return "\n".join(lines) + "\n"
 
 
@@ -688,13 +772,51 @@ def build_pairer(exe: Path, min_len: int = 6) -> Pairer:
               " are weakened and starts come from a byte scan", file=sys.stderr)
     pairer = Pairer(gc_refs, pc_refs, gc_calls, pc_calls, gc_addrs, gc_sizes, gc_features(), pc_feat)
     pairer.pc_refs = pc_refs
+    pairer.gc_imms = gc_immediates()
+    pairer.pc_imms = pc_immediates(text, pairer.pc_starts) if text else {}
+    pairer.pc_tails = pc_tail_calls(text, pairer.pc_starts) if text else {}
     return pairer
+
+
+def functions_tsv(pairer: Pairer, pairs: dict) -> str:
+    """Every x86 function start with its extent (to the next start), direct caller count and pair."""
+    pc_to_gc = {p: (g, method(e)) for g, (p, e) in pairs.items()}
+    lines = [
+        "# Generated by tools/pc_gc_anchors.py: x86 function starts (call targets and code after padding)."
+        " size runs to the next start, so it can include jump tables and pointer-only functions.",
+        "pc_addr\tsize\tcallers\tgc_function\tmethod",
+    ]
+    for start in pairer.pc_starts:
+        g, kind = pc_to_gc.get(start, ("", ""))
+        lines.append(f"0x{start:08X}\t0x{pairer.pc_sizes.get(start, 0):X}\t{pairer.pc_callers.get(start, 0)}\t{g}\t{kind}")
+    return "\n".join(lines) + "\n"
+
+
+def print_audit(pairer: Pairer, pairs: dict, audits: dict[str, str]) -> None:
+    verdicts = ("supported", "partial", "unchecked", "weak")
+    print("Audit calibration (string pairs taken as true; mispairs reuse their GC functions):")
+    for name, tally in audit_calibration(pairer, pairs).items():
+        total = sum(tally.values()) or 1
+        print(f"  {name:<20}" + "  ".join(f"{v} {tally[v]} ({tally[v] / total:.0%})" for v in verdicts))
+    print("Pairs by method and verdict:")
+    table: dict[str, Counter] = defaultdict(Counter)
+    for g, (_, e) in pairs.items():
+        table[method(e)][audits[g].split(":")[0]] += 1
+    for kind, tally in sorted(table.items(), key=lambda kv: -sum(kv[1].values())):
+        print(f"  {kind:<14}" + "  ".join(f"{v} {tally[v]}" for v in verdicts))
+    print("Weak pairs (check before relying on them):")
+    for g, (p, e) in sorted(pairs.items(), key=lambda kv: pairer.gc_addrs.get(kv[0], 0)):
+        if audits[g].startswith("weak"):
+            print(f"  0x{pairer.gc_addrs.get(g, 0):08X} {g:<32} 0x{p:08X} {method(e):<13} {audits[g]}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--exe", type=Path, help="PC exe (default: pc_jp_retail)")
     parser.add_argument("--min-len", type=int, default=6, help="minimum string length (default 6)")
+    parser.add_argument("--audit", action="store_true",
+                        help="calibrate the independent pair audit on string pairs against neighbour and"
+                             " random mispairs, then list inferred pairs by verdict; writes nothing")
     parser.add_argument("--evaluate", type=int, nargs="?", const=20, metavar="SEEDS",
                         help="measure precision: hold out 20%% of string pairs per seed (default 20 seeds)"
                              " and report how each step re-derives them; writes nothing")
@@ -709,6 +831,7 @@ def main() -> None:
 
     # Confirmed pairs seed every run; they are only valid for this exact exe.
     confirmed: dict[str, tuple[int, str]] = {}
+    vetoed: set[str] = set()
     by_addr = {addr: name for name, addr in gc_addrs.items()}
     if CONFIRMED.exists() and hashlib.sha256(exe.read_bytes()).hexdigest() == PC_JP_SHA256:
         for line in CONFIRMED.read_text().splitlines():
@@ -716,8 +839,11 @@ def main() -> None:
                 continue
             gc_addr, pc_addr, note = line.split("\t", 2)
             name = by_addr.get(int(gc_addr, 16))
-            if name:
-                confirmed[name] = (int(pc_addr, 16), f"confirmed: {note[:60]}")
+            if name and pc_addr == "none":
+                vetoed.add(name)
+            elif name:
+                confirmed[name] = (int(pc_addr, 16), "confirmed: " + textwrap.shorten(note, 80, placeholder="..."))
+    pairer.vetoed = frozenset(vetoed)
 
     if args.evaluate:
         tally = pairer.evaluate(confirmed, seeds=args.evaluate)
@@ -731,6 +857,11 @@ def main() -> None:
 
     pairs, split_rows = pairer.run(confirmed)
     by_method = Counter(method(e) for _, e in pairs.values())
+    audits = {g: audit(pairer, g, p, pairs) for g, (p, _) in pairs.items()}
+
+    if args.audit:
+        print_audit(pairer, pairs, audits)
+        return
 
     pc_to_gc: dict[int, list[str]] = defaultdict(list)
     rows = []
@@ -745,10 +876,11 @@ def main() -> None:
     lines = [
         f"# Generated by tools/pc_gc_anchors.py from {exe.relative_to(ROOT) if exe.is_relative_to(ROOT) else exe.name}",
         "# Evidence only: confirm against GC assembly before renaming. Renames are not matching progress.",
-        "gc_addr\tgc_function\tpc_function\tevidence",
+        "gc_addr\tgc_function\tpc_function\tevidence\taudit",
     ]
     for addr, name, pc_fn, evidence in rows:
-        lines.append(f"0x{addr:08X}\t{name}\t0x{pc_fn:08X}\t{evidence}")
+        check = audits[name] if pairs.get(name, (None,))[0] == pc_fn else ""
+        lines.append(f"0x{addr:08X}\t{name}\t0x{pc_fn:08X}\t{evidence.replace(chr(9), ' ')}\t{check}")
     write_atomic(OUT_DIR / "gc_pc_anchors.tsv", "\n".join(lines) + "\n")
 
     src_lines = [
@@ -774,15 +906,19 @@ def main() -> None:
     for x, y in sorted(pairer.global_pairs(pairs).items()):
         global_lines.append(f"0x{x:08X}\t{labels.get(x, '')}\t0x{y:08X}\t{users[x]}")
     write_atomic(OUT_DIR / "gc_pc_globals.tsv", "\n".join(global_lines) + "\n")
+    write_atomic(OUT_DIR / "pc_functions.tsv", functions_tsv(pairer, pairs))
 
+    verdicts = Counter(a.split(":")[0] for a in audits.values())
     print(f"GC functions paired: {len(pairs)} ("
           + ", ".join(f"{n} {name}" for name, n in by_method.most_common())
           + f"); {len(split_rows)} ambiguous string votes listed")
+    print("Audit: " + ", ".join(f"{n} {v}" for v, n in verdicts.most_common()) + " (--audit for details)")
     print(f"Global pairs: {len(global_lines) - 3}")
     print(f"PC source paths with code refs: {len(src_lines) - 2}")
     print(f"Wrote {(OUT_DIR / 'gc_pc_anchors.tsv').relative_to(ROOT)}")
     print(f"Wrote {(OUT_DIR / 'pc_source_files.tsv').relative_to(ROOT)}")
     print(f"Wrote {(OUT_DIR / 'gc_pc_globals.tsv').relative_to(ROOT)}")
+    print(f"Wrote {(OUT_DIR / 'pc_functions.tsv').relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 // Exports Ghidra decompiler output for several functions in one headless run.
-// Args: <timeout-seconds> <target>=<out-file> ...  (target: symbol name or 0x address)
+// Args: [--create] <timeout-seconds> <target>=<out-file> ...  (target: symbol name or 0x address)
+// --create: for a 0x address with no function starting there, create one (in memory only
+// under -readOnly) instead of decompiling the function that contains it.
 // @category LSW1
 
 import ghidra.app.decompiler.DecompInterface;
@@ -14,10 +16,16 @@ import java.io.FileWriter;
 import java.util.List;
 
 public class ExportFunctionDecomp extends GhidraScript {
+    private boolean create = false;
+
     private Function findFunction(String target) {
         if (target.startsWith("0x") || target.startsWith("0X")) {
             Address address = toAddr(Long.decode(target));
             Function function = getFunctionAt(address);
+            if (function == null && create) {
+                disassemble(address);
+                function = createFunction(address, null);
+            }
             return function != null ? function : getFunctionContaining(address);
         }
         List<Function> matches = getGlobalFunctions(target);
@@ -27,6 +35,10 @@ public class ExportFunctionDecomp extends GhidraScript {
     @Override
     protected void run() throws Exception {
         String[] args = getScriptArgs();
+        if (args.length > 0 && args[0].equals("--create")) {
+            create = true;
+            args = java.util.Arrays.copyOfRange(args, 1, args.length);
+        }
         if (args.length < 2) {
             printerr("Usage: ExportFunctionDecomp.java <timeout> <target>=<out-file> ...");
             return;
