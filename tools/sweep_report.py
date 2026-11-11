@@ -463,8 +463,9 @@ def by_bytes(t: dict[str, Tally], classes) -> list[str]:
 
 
 def ranked(t: dict[str, Tally]) -> list[str]:
-    keys = [c for c in t if c.startswith(("error:", "frame:", "reloc:", "draft:")) and c not in NEUTRAL
-            and t[c].fns]
+    # `draft:` text features are traits of most m2c drafts, not causes; they keep their own table.
+    keys = [c for c in t if (c.startswith(("error:", "frame:", "reloc:")) or c == "unswept:no-source")
+            and c not in NEUTRAL and t[c].fns]
     return by_bytes(t, keys)
 
 
@@ -546,10 +547,10 @@ def markdown(data: dict) -> str:
         out += table(["unit", "functions", "bytes"], [[f"`{u}`", _num(n), _num(b)] for u, (n, b) in top])
 
     out += ["", "## Ranked by bytes", "",
-            "COMPILE-ERROR classes and cross-cutting causes together, top 20.", ""]
+            "COMPILE-ERROR classes, frame and relocation causes and unswept targets together, top 20.", ""]
     out += table(["class", "functions", "bytes", "bytes >=80%", "example"],
                  [[f"`{c}`" if not c.startswith("error:") else f"error: `{label(c)}`", _num(t[c].fns),
-                   _num(t[c].bytes), "-" if c.startswith("error:") else _num(t[c].near), t[c].example()]
+                   _num(t[c].bytes), "-" if c.startswith(("error:", "unswept:")) else _num(t[c].near), t[c].example()]
                   for c in ranked(t)[:20]])
     out += ["", "Classes overlap, so each row's bytes are an upper bound on what fixing that cause "
             "can unlock, not an additive share."]

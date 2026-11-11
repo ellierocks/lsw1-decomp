@@ -144,17 +144,13 @@ Largest units without a source file:
 
 ## Ranked by bytes
 
-COMPILE-ERROR classes and cross-cutting causes together, top 20.
+COMPILE-ERROR classes, frame and relocation causes and unswept targets together, top 20.
 
 | class | functions | bytes | bytes >=80% | example |
 | --- | ---: | ---: | ---: | --- |
-| `draft:casted-deref` | 1,037 | 700,864 | 42,708 | ForceCode |
-| `draft:goto` | 533 | 479,188 | 20,212 | ForceCode |
-| `draft:sp-local` | 454 | 433,868 | 8,068 | ForceCode |
-| `draft:void-param` | 568 | 392,368 | 21,824 | ForceCode |
 | `frame:smaller-same-gprs` | 189 | 200,888 | 1,148 | ForceCode |
 | `reloc:symbol+offset` | 178 | 137,924 | 5,912 | ForceCode |
-| `draft:switch` | 121 | 134,196 | 4,692 | fn_800316D4 |
+| `unswept:no-source` | 131 | 131,080 | - | ConfigureLevelAfterLoad |
 | `frame:bigger-same-gprs` | 76 | 82,492 | 0 | edobjConvertPathToAnim |
 | `reloc:only-mine` | 67 | 70,996 | 1,664 | fn_80128D58 |
 | `frame:fewer-gprs` | 91 | 63,420 | 0 | fn_800A39A8 |
@@ -168,5 +164,9 @@ COMPILE-ERROR classes and cross-cutting causes together, top 20.
 | error: `pointer value used where a floating point value was expected` | 7 | 14,400 | - | fn_800F22E4 |
 | error: `duplicate case value` | 12 | 12,388 | - | fn_800F13BC |
 | error: `invalid type argument of X` | 11 | 12,152 | - | TerrainInitEx |
+| error: `incompatible types in assignment` | 9 | 11,224 | - | fn_80026710 |
+| error: `invalid operands to binary +` | 9 | 11,200 | - | NuGHGReadEx |
+| error: `conflicting types for X` | 10 | 10,352 | - | fn_800DA478 |
+| error: `parse error before X` | 8 | 9,592 | - | fn_8005F254 |
 
 Classes overlap, so each row's bytes are an upper bound on what fixing that cause can unlock, not an additive share.
