@@ -1,0 +1,37 @@
+name: Workflow lint
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/**']
+  pull_request:
+    paths: ['.github/workflows/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          tmp=$(mktemp -d)
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          base="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
+          curl --fail --silent --show-error --location "$base/$archive" -o "$tmp/$archive"
+          curl --fail --silent --show-error --location "$base/actionlint_${ACTIONLINT_VERSION}_checksums.txt" -o "$tmp/checksums.txt"
+          (cd "$tmp" && sha256sum --check --ignore-missing checksums.txt)
+          tar -xzf "$tmp/$archive" -C "$tmp" actionlint
+          install -m 755 "$tmp/actionlint" "$RUNNER_TEMP/actionlint"
+      - name: Check workflows
+        run: '"$RUNNER_TEMP/actionlint" -color'
