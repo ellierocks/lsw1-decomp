@@ -49,6 +49,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+REPORT = ROOT / "build/GL5E4F/report.json"
 SYMBOLS = ROOT / "config/GL5E4F/symbols.txt"
 DUMPS_DIR = ROOT / "dumps"
 GAME_ID = b"GL5E4F"
@@ -75,6 +76,7 @@ SCALARS = {
     "u8": (">B", 1), "s8": (">b", 1), "u16": (">H", 2), "s16": (">h", 2),
     "u32": (">I", 4), "s32": (">i", 4), "f32": (">f", 4), "ptr": (">I", 4),
 }
+STR_MAX = 256                 # read --type str: bytes scanned for the NUL
 
 
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) \
@@ -520,9 +522,23 @@ def fmt(kind, v):
     return str(v)
 
 
+def c_string(raw):
+    """Decode a NUL-terminated byte string; the bool is False when it was cut off."""
+    end = raw.find(b"\0")
+    text = raw if end < 0 else raw[:end]
+    return text.decode("latin-1"), end >= 0
+
+
 def cmd_read(args, syms):
     mem = attach_or_exit(args)
     addr = resolve_addr(args.target, syms, mem)
+    if args.type == "str":
+        for i in range(args.count):
+            text, ended = c_string(mem.read(addr, STR_MAX))
+            more = "" if ended else " ..."
+            print(f"0x{addr:08X} {syms.name(addr):<32} {text!r}{more}")
+            addr += len(text.encode("latin-1")) + 1
+        return
     width = SCALARS[args.type][1]
     for i in range(args.count):
         a = addr + i * width
@@ -838,7 +854,29 @@ LEVEL_CALLBACKS = (0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C)
 LEVEL_CALLBACK_NOTES = {0x18: "init", 0x1C: "reset", 0x20: "update", 0x24: "exit"}
 
 
+def report_functions(path=None):
+    """{name: (fuzzy percent, size)} from the objdiff report, or None without one."""
+    try:
+        report = json.loads(Path(path or REPORT).read_text())
+    except (OSError, ValueError):
+        return None
+    return {fn["name"]: (fn.get("fuzzy_match_percent", 0.0), int(fn.get("size", 0)))
+            for unit in report.get("units", []) for fn in unit.get("functions", [])}
+
+
+def callback_label(tag, name, status):
+    if status is None:
+        return f"{tag}={name}"
+    pct, size = status
+    return f"{tag}={name} [{pct:.1f}% {size} B]"
+
+
 def cmd_levels(args, syms):
+    if args.unmatched:
+        args.callbacks = True
+    status = report_functions() if args.callbacks else None
+    if args.unmatched and status is None:
+        raise SystemExit(f"--unmatched needs {REPORT} (run bash build.sh)")
     read = dol_reader() if args.callbacks else None
     if args.callbacks and read is None:
         read = attach_or_exit(args).read
@@ -853,8 +891,12 @@ def cmd_levels(args, syms):
                 ptr = struct.unpack(">I", entry[off:off + 4])[0]
                 if ptr:
                     tag = LEVEL_CALLBACK_NOTES.get(off, f"+0x{off:X}")
-                    fns.append(f"{tag}={syms.name(ptr)}")
-            if not fns and not args.filter:
+                    name = syms.name(ptr)
+                    st = status.get(name) if status else None
+                    if args.unmatched and (st is None or st[0] >= 100.0):
+                        continue
+                    fns.append(callback_label(tag, name, st))
+            if not fns and (args.unmatched or not args.filter):
                 continue
             line += "\n        " + ("  ".join(fns) or "(no callbacks)")
         print(line)
@@ -1067,8 +1109,10 @@ def main(argv=None):
     p = sub.add_parser("read", help="read live values")
     p.add_argument("target", help="address or symbols.txt name, then +OFF "
                    "or ->OFF steps (gPlayer1Pointer->0x600)")
-    p.add_argument("--type", default="u32", choices=SCALARS)
-    p.add_argument("--count", type=int, default=1)
+    p.add_argument("--type", default="u32", choices=[*SCALARS, "str"],
+                   help="str: NUL-terminated string (up to %d bytes)" % STR_MAX)
+    p.add_argument("--count", type=int, default=1,
+                   help="values to read; for str, consecutive strings")
     p.set_defaults(func=cmd_read)
 
     p = sub.add_parser("wait", help="block until a value is reached")
@@ -1097,6 +1141,9 @@ def main(argv=None):
     p.add_argument("--callbacks", action="store_true",
                    help="also show each entry's code pointers (+0x24 = exit "
                    "router) by symbol; omits levels without any")
+    p.add_argument("--unmatched", action="store_true",
+                   help="with report.json: show only callbacks below 100%%, "
+                   "with match percent and size (implies --callbacks)")
     p.set_defaults(func=cmd_levels)
 
     p = sub.add_parser("level", help="show the live current/pending level")

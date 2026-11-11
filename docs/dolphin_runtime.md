@@ -143,6 +143,8 @@ as above, and carry on with the static evidence.
 python3 tools/dolphin.py read retraceCount
 python3 tools/dolphin.py read 0x803DCF70 --type ptr --count 8
 python3 tools/dolphin.py read 'gPlayer1Pointer->0x600+1' --type s8  # pointer chain
+python3 tools/dolphin.py read 'lbl_80409410->0x1AC->0->0' --type s16 --count 7  # episode level ids
+python3 tools/dolphin.py read 'lbl_801D68E0+0xC->0' --type str  # level 0's name string
 python3 tools/dolphin.py wait lbl_80409410 --type ptr          # any change
 python3 tools/dolphin.py wait 0x80407B40 --equals 0 --timeout 120
 python3 tools/dolphin.py watch 0x8040AA14 lbl_80407B40 --seconds 5
@@ -156,7 +158,12 @@ python3 tools/ramdump.py diff dooku_stage2 live --section sbss
   steps: `+OFF` and `-OFF` add an offset, and `->OFF` loads the u32 pointer at
   the current address and adds `OFF` to it. `read`, `wait` and `watch` accept
   them, so a field of a heap object needs no script. A chain through a null or
-  non-MEM1 pointer stops with an error that names the step.
+  non-MEM1 pointer stops with an error that names the step. Each `->` is one
+  load of the pointer at the current address, so reaching the array that a
+  field points to takes one `->` per pointer: `lbl_80409410->0x1AC->0->0` loads
+  the object, then the episode at `+0x1AC`, then its `levels` pointer.
+- **`--type str`** prints the NUL-terminated string at the target (up to 256
+  bytes, ` ...` when cut off); `--count N` reads N consecutive strings.
 - **`watch`** prints a line each time a value changes, with the frame from
   `retraceCount`. Values that change many times within a frame alias, so trace
   them instead.
@@ -180,6 +187,7 @@ confirms the new state.
 python3 tools/dolphin.py levels                 # index, name and path
 python3 tools/dolphin.py levels dooku
 python3 tools/dolphin.py levels --callbacks Cruiser  # code pointers per level
+python3 tools/dolphin.py levels --unmatched          # unmatched callbacks, % and size
 python3 tools/dolphin.py level                  # live current and pending level
 python3 tools/dolphin.py warp Dooku_B           # dry run
 python3 tools/dolphin.py warp Dooku_B --write   # load it and wait
@@ -198,7 +206,10 @@ many requests it took. A cold boot to `Temple_C` took two requests and 21 s.
 callers: `+0x18` init, `+0x1C` reset, `+0x20` update, `+0x24` exit; `+0x28`
 and `+0x2C` print as offsets. With no filter it lists only levels that have
 callbacks. Use it to find the level a function belongs to before warping
-there to observe it.
+there to observe it. With `build/GL5E4F/report.json` present each callback also
+shows its report match percent and size; `--unmatched` keeps only callbacks
+below 100% (strict matches the report rounds to 99.9% still show), which makes it
+the sprint queue for level callbacks.
 
 `debug-menu --write` sets `gLegoOptionsMenuEnabled` (`0x804090F0`) to 1. The game
 only reads that word, so "LEGO Options" stays in the pause menu until reboot.
@@ -307,6 +318,17 @@ callbacks, 2026-11-08):
   that tries several bodies and keeps the first strict match was faster than
   editing by hand; see the [ProDG idioms](code_matching_workflow.md#prodg-source-idioms) it found.
 
+From the second sprint (Retake_D/E exit callbacks, Maul_F and Maul_A updates,
+2026-11-08):
+
+- **Warp instead of guessing.** Reading `lbl_803EAEC4` and `lbl_80409410->0x1AC`
+  in Maul_F settled the special-handle and episode layouts in a few reads, after
+  static guessing had stalled.
+- **A missing relocation is not a C problem.** When the target has
+  `lis rN, sym@ha` without a relocation and only the `@l` uses differ, extend
+  `missed_ha_relocs.py` and add the entries ([build configuration](build_config.md));
+  no source variant fixes it.
+
 ## Recorded runtime evidence
 
 These come from live sessions and are leads to confirm against assembly before
@@ -336,6 +358,14 @@ they are used as names or types.
   in-range count and chosen entry. The chosen object is
   `found[NuRandInt() % count]` (`0x80134684`).
 
+- **Episode.** `lbl_80409410->0x1AC` points to the current episode, an entry of
+  `lbl_801DC088` (`episode_s`): `+0` a `s16` array of chapter level ids, `+0x3A`
+  a u8 count. In Maul_F it read 44, 45, 46, 47… with count 7.
+- **Level force objects and specials.** Level inits store force objects in
+  `lbl_803EAEC4[i]`; each entry holds a 12-byte special handle (`nuhspecial_s`:
+  scene, special, display) at `+4`. In Maul_F the three entries were non-null
+  with `special` NULL; the special handles at `lbl_803EAD48`/`54`/`60` had
+  display pointers. `nuinstanim_s.flags` is negative while the animation plays.
 - **Level exit callbacks** (table `+0x24`, for example `fn_800CE658` for
   Cruiser_E). Each one runs as the level ends, gets the players' sock position
   and stores the next level in `lbl_804093B8` (OpenSaga `other_level_override`).

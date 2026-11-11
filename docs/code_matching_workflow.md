@@ -360,6 +360,27 @@ Confirmed in `auto/game/levels` (the level exit callbacks, 2026-11-08):
   fields directly (`tmp.x`), not through the pointer that the helper also keeps, or
   GCC loads through the pointer.
 
+Confirmed in `auto/game/levels` (Retake, Maul_F and Maul_A callbacks, 2026-11-08):
+
+- **Re-`lis` placement from a duplicated else.** A nested
+  `if (a) { if (b) {...} else g = K; } else g = K;` kept the target's re-`lis` of
+  callee-saved bases on one path. The combined `a && b`, `goto` forms and the
+  inverted condition each moved or merged it.
+- **Two-state locals** (`s32 state` set to 1/0 from a test) match as
+  `if (...) a = 1; else a = 0;`. Initialising `a = 0` and setting it in the branch
+  gives `srwi` sign-bit code instead.
+- **Block-scoped pointer locals** (`{ s32 *sp = lbl_X; ... }`) reproduce
+  `addi r31,r9,lbl_X@l; mr r3,r31` for a special handle used several times in one
+  block.
+- **A dead pointer assignment can be load-bearing.** In Maul_A the target computes
+  `lbl_803EAEC4`'s address early and copies it (`addi r30; mr r29,r30`); only an
+  otherwise unused `fo = lbl_803EAEC4;` at the start of the case reproduced it (329/329;
+  without it 289). The permuter found this in a 180 s burst by rewriting the other
+  `fo[i]` uses to `lbl_803EAEC4[i]`.
+- **Index loops over a short global array** (`for (i = 0; i < n; i++) if (arr[i])`)
+  give the target's `lwzx` with a byte offset and a `subic.` countdown. Indexing
+  `area->levels[i]` matched where a walking pointer did not.
+
 Targets in `auto/game/main` still open after the 2026-11 sprint, with the next
 hypothesis to try for each:
 

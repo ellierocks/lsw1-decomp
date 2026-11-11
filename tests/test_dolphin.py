@@ -234,6 +234,44 @@ CHILD = textwrap.dedent(r"""
 """)
 
 
+class StringAndReportTests(unittest.TestCase):
+    def test_c_string(self):
+        self.assertEqual(dolphin.c_string(b"Maul_F\0junk"), ("Maul_F", True))
+        self.assertEqual(dolphin.c_string(b"no end"), ("no end", False))
+
+    def test_read_str_walks_consecutive_strings(self):
+        blob = b"Maul_A\0Maul_F\0" + b"x" * dolphin.STR_MAX
+
+        class Mem:
+            def read(self, addr, n):
+                off = addr - 0x80001000
+                return blob[off:off + n]
+
+        out = io.StringIO()
+        with mock.patch.object(dolphin, "attach_or_exit", return_value=Mem()), \
+                contextlib.redirect_stdout(out):
+            dolphin.main(["read", "0x80001000", "--type", "str", "--count", "3"])
+        lines = out.getvalue().splitlines()
+        self.assertTrue(lines[0].startswith("0x80001000"))
+        self.assertTrue(lines[0].endswith("'Maul_A'"))
+        self.assertTrue(lines[1].startswith("0x80001007"))
+        self.assertTrue(lines[1].endswith("'Maul_F'"))
+        self.assertTrue(lines[2].endswith(" ..."))
+
+    def test_report_functions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.json"
+            self.assertIsNone(dolphin.report_functions(path))
+            path.write_text('{"units": [{"name": "u", "functions": ['
+                            '{"name": "f", "size": "12", "fuzzy_match_percent": 50.0},'
+                            '{"name": "g", "size": "8"}]}]}')
+            self.assertEqual(dolphin.report_functions(path),
+                             {"f": (50.0, 12), "g": (0.0, 8)})
+        self.assertEqual(dolphin.callback_label("exit", "f", (50.0, 12)),
+                         "exit=f [50.0% 12 B]")
+        self.assertEqual(dolphin.callback_label("exit", "f", None), "exit=f")
+
+
 @unittest.skipUnless(sys.platform.startswith("linux"), "needs /proc")
 class FakeDolphinTests(unittest.TestCase):
     """A child maps a shared file named like Dolphin's MEM1."""
@@ -323,10 +361,30 @@ class FakeDolphinTests(unittest.TestCase):
     def test_levels_callbacks(self):
         out = io.StringIO()
         with mock.patch.object(dolphin, "find_dol", return_value=None), \
+                mock.patch.object(dolphin, "REPORT", Path(self.tmp.name) / "none"), \
                 contextlib.redirect_stdout(out):
             dolphin.main(["--pid", str(self.child.pid), "levels", "--callbacks"])
         self.assertEqual(out.getvalue().split("\n")[1].split(),
                          ["exit=fn_800CE658"])
+
+    def test_levels_unmatched(self):
+        for pct, want in ((10.0, ["exit=fn_800CE658", "[10.0%", "200", "B]"]),
+                          (100.0, None)):
+            with tempfile.TemporaryDirectory() as tmp:
+                report = Path(tmp) / "report.json"
+                report.write_text(
+                    '{"units": [{"name": "u", "functions": [{"name": "fn_800CE658", '
+                    f'"size": "200", "fuzzy_match_percent": {pct}}}]}}]}}')
+                out = io.StringIO()
+                with mock.patch.object(dolphin, "find_dol", return_value=None), \
+                        mock.patch.object(dolphin, "REPORT", report), \
+                        contextlib.redirect_stdout(out):
+                    dolphin.main(["--pid", str(self.child.pid), "levels", "--unmatched"])
+            lines = out.getvalue().split("\n")
+            if want is None:
+                self.assertNotIn("fn_800CE658", out.getvalue())
+            else:
+                self.assertEqual(lines[1].split(), want)
 
     def test_debug_menu_write(self):
         out = io.StringIO()
