@@ -27,7 +27,9 @@ against the updated file with `score_fn.py --apply`; run `bash build.sh` and
 ranked in `work/sweep/results.json` (and printed) by unmatched bytes closest to a match:
 that ranking is the agent queue, biggest progress first. Task packs go to
 `work/sweep/NAME/`, which does not claim the target for `next_target.py`; their asm.s is
-refreshed from the current build first (tools/pack_asm.py).
+refreshed from the current build first (tools/pack_asm.py). A full sweep (no `--unit` or
+`--retry`) also writes `work/sweep/meta.json`: the swept HEAD, time and verdict counts, which
+`kickoff.py` reads to tell whether the results are stale.
 
 m2c output and score verdicts are cached in `~/.cache/lsw1/sweep` (`LSW1_SWEEP_CACHE`),
 shared by every checkout. A verdict's key covers the scoring tools, the unit source, its
@@ -46,6 +48,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -546,6 +549,10 @@ def main(argv=None) -> int:
     for r in sorted(near, key=lambda r: -r["size"] * r["closeness"])[:args.top]:
         print(f"  {r['name']:<28} {r['unit']:<28} 0x{r['size']:<5x} {r['exact']}/{r['target']}")
     print(f"results: {(OUT / 'results.json').relative_to(ROOT)}")
+    if not args.unit and not args.retry:  # a full sweep: record what it swept for kickoff.py
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        (OUT / "meta.json").write_text(json.dumps({"head": head, "time": int(time.time()), "max_size": args.max_size,
+                                                   "verdicts": counts}, indent=1) + "\n")
     if counts.get("NO-ASM"):
         print("error: incomplete sweep (NO-ASM); run bash build.sh, then rerun the affected units",
               file=sys.stderr)

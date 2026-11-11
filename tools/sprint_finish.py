@@ -16,7 +16,9 @@ one `bash build.sh`, `verify_fn.py --strict-symbols` on each named function agai
 the PR body needs only the Donor and Headers lines added. It never edits sources or pushes.
 
 `--matched-from-diff` adds every function newly defined in `--unit` (a source path) since the
-merge base with origin/main, so a long run does not have to list its matches by hand. The
+merge base with origin/main, so a long run does not have to list its matches by hand. When
+`sprint_bench.py start` (or `kickoff.py --start`) opened a bench run, finish closes it with the
+verified count and bytes and the active time. The
 record's Workflow line lists this branch's `fix(tools)`/`feat(tools)` commits; add what each
 one unlocked.
 """
@@ -139,16 +141,25 @@ def rebase_refusal(commits: list[str]) -> str | None:
 
 
 # A file-scope definition: specifiers (and GCC attributes) on the name's line, then
-# the parameter list and the opening brace. A return type on the previous line is
-# not recognised; only vendored newlib/libgcc sources use that style.
+# the parameter list and the opening brace. _DEF_SPLIT covers the return type on the
+# line above a name that starts its own line (`static s32\nfn_X(void) {`).
 _ATTR = r"__attribute__\s*\(\([^;{}\n]*?\)\)"
-_DEF = re.compile(rf"^(?![ \t#/*}}])(?:{_ATTR}\s*)*[A-Za-z_](?:{_ATTR}|[^;{{}}()\n=])*?"
-                  r"\b(?!__attribute__\b)(\w+)\s*\([^;{}]*?\)\s*\{", re.M)
+_SPECS = rf"(?![ \t#/*}}])(?:{_ATTR}\s*)*[A-Za-z_](?:{_ATTR}|[^;{{}}()\n=])*?"
+_PARAMS = r"\s*\([^;{}]*?\)\s*\{"
+_DEF = re.compile(rf"^{_SPECS}\b(?!__attribute__\b)(\w+){_PARAMS}", re.M)
+_DEF_SPLIT = re.compile(rf"^({_SPECS})[ \t]*\n(?!__attribute__\b|_DEFUN(?:_VOID)?\b)([A-Za-z_]\w*){_PARAMS}", re.M)
+
+
+def _definitions(text: str) -> list[tuple[str, str]]:
+    """(name, specifiers before it) for each file-scope definition, in source order."""
+    found = [(m.start(1), m.group(1), text[m.start():m.start(1)]) for m in _DEF.finditer(text)]
+    found += [(m.start(2), m.group(2), m.group(1)) for m in _DEF_SPLIT.finditer(text)]
+    return [(name, specs) for _, name, specs in sorted(found)]
 
 
 def defined_functions(text: str) -> list[str]:
     """Names of functions defined at file scope in C `text`, in order."""
-    return list(dict.fromkeys(m.group(1) for m in _DEF.finditer(text)))
+    return list(dict.fromkeys(name for name, _ in _definitions(text)))
 
 
 def merge_base() -> str:
@@ -158,8 +169,8 @@ def merge_base() -> str:
 def global_functions(text: str) -> list[str]:
     """Like defined_functions, but without `static` helpers, which have no retail symbol."""
     # `static` may follow other specifiers (`inline static`, `const static`).
-    return list(dict.fromkeys(m.group(1) for m in _DEF.finditer(text)
-                              if not re.search(r"\bstatic\b", text[m.start():m.start(1)])))
+    return list(dict.fromkeys(name for name, specs in _definitions(text)
+                              if not re.search(r"\bstatic\b", specs)))
 
 
 def matched_from_diff(unit: str, base: str | None = None) -> list[str]:
@@ -188,6 +199,57 @@ def merge_main() -> tuple[bool, str]:
         run(["git", "merge", "--abort"])
         return False, "merge of origin/main failed (conflict or dirty tree) and was aborted; resolve it by hand, then rerun"
     return True, ""
+
+
+def behind_origin(do_fetch: bool = True) -> int:
+    """Commits HEAD lacks from origin/main, fetching first (a failed fetch warns and uses the
+    last fetched origin/main)."""
+    if do_fetch and not fetch():
+        print(f"warning: git fetch failed or exceeded {FETCH_TIMEOUT}s; checking freshness "
+              "against the last fetched origin/main", file=sys.stderr)
+    behind = run(["git", "rev-list", "--count", "HEAD..origin/main"]).stdout.strip()
+    return int(behind) if behind.isdigit() else 0
+
+
+BEHIND_ERROR = ("error: HEAD is {} commits behind origin/main, so the workflow docs and tools may be "
+                "stale; rebase onto origin/main (or pass --allow-behind)")
+
+
+def record_baseline(queue: list[str], allow_behind: bool = False, idle_cap: float | None = None,
+                    extra: dict | None = None) -> int:
+    """Save the kickoff baseline (objdiff figures, strict-only count, DOL hash, queue). Refuses
+    with 2 when HEAD is behind origin/main unless allow_behind. EXTRA keys (kickoff's unit and
+    lane) are stored beside the figures."""
+    timing = ROOT / "work" / "sprint_timing.json"
+    if not allow_behind:
+        behind = behind_origin()
+        if behind:
+            print(BEHIND_ERROR.format(behind), file=sys.stderr)
+            return 2
+    snap = snapshot()
+    snap["queue"] = metrics.dedupe(queue)
+    snap.update(extra or {})
+    BASELINE.parent.mkdir(exist_ok=True)
+    BASELINE.write_text(json.dumps(snap, indent=2))
+    print(f"baseline: {snap['functions']:,} functions, {snap['code']:,} bytes, "
+          f"{snap['strict_only_functions']} strict-only; saved to {BASELINE.relative_to(ROOT)}")
+    # The baseline closes kickoff: a timer still in setup moves to matching here, so a
+    # run that never switches by hand does not book all its matching as setup (#74).
+    if timing.exists() and json.loads(timing.read_text()).get("active") == "setup":
+        phase(timing, "matching", cap=idle_cap)
+        print("timer: setup -> matching")
+    return 0
+
+
+def symbol_sizes(names) -> dict[str, int]:
+    """`.text` sizes from symbols.txt for NAMES (absent names are left out)."""
+    want, sizes = set(names), {}
+    path = ROOT / "config" / "GL5E4F" / "symbols.txt"
+    for line in path.read_text().splitlines() if path.is_file() else []:
+        m = re.match(r"^(\S+) = \.text:0x[0-9A-Fa-f]+; // type:function size:0x([0-9A-Fa-f]+)", line)
+        if m and m.group(1) in want:
+            sizes[m.group(1)] = int(m.group(2), 16)
+    return sizes
 
 
 def main(argv=None) -> int:
@@ -247,27 +309,7 @@ def main(argv=None) -> int:
         return 0
 
     if args.baseline:
-        if not args.allow_behind:
-            if not fetch():
-                print(f"warning: git fetch failed or exceeded {FETCH_TIMEOUT}s; checking freshness "
-                      "against the last fetched origin/main", file=sys.stderr)
-            behind = run(["git", "rev-list", "--count", "HEAD..origin/main"]).stdout.strip()
-            if behind not in ("", "0"):
-                print(f"error: HEAD is {behind} commits behind origin/main, so the workflow docs and "
-                      "tools may be stale; rebase onto origin/main (or pass --allow-behind)", file=sys.stderr)
-                return 2
-        snap = snapshot()
-        snap["queue"] = metrics.dedupe(args.queue or [])
-        BASELINE.parent.mkdir(exist_ok=True)
-        BASELINE.write_text(json.dumps(snap, indent=2))
-        print(f"baseline: {snap['functions']:,} functions, {snap['code']:,} bytes, "
-              f"{snap['strict_only_functions']} strict-only; saved to {BASELINE.relative_to(ROOT)}")
-        # The baseline closes kickoff: a timer still in setup moves to matching here, so a
-        # run that never switches by hand does not book all its matching as setup (#74).
-        if timing.exists() and json.loads(timing.read_text()).get("active") == "setup":
-            phase(timing, "matching", cap=args.idle_cap)
-            print("timer: setup -> matching")
-        return 0
+        return record_baseline(args.queue or [], args.allow_behind, args.idle_cap)
     if args.matched_from_diff:
         if not args.unit or not (Path(args.unit).is_file() or (ROOT / args.unit).is_file()):
             ap.error("--matched-from-diff needs --unit as the unit's source path")
@@ -365,7 +407,9 @@ def main(argv=None) -> int:
         print("- Timing JSON: " + json.dumps(report))
     print("- Provider usage: " + json.dumps(metrics.usage_report(
         json.loads(usage_path.read_text()) if usage_path.exists() else {})))
-    record = {"unit": args.unit, "verified": sum(results.values()), "parked": len(parked),
+    verified_names = [fn for fn, ok in results.items() if ok]
+    record = {"unit": args.unit, "verified": len(verified_names),
+              "verified_bytes": sum(symbol_sizes(verified_names).values()), "parked": len(parked),
               "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures}
     if base:
         record["code_bytes_delta"] = snap["code"] - base["code"]
