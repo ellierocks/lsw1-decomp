@@ -368,6 +368,63 @@ class WideReturnTests(unittest.TestCase):
         self.assertEqual(sweep.wide_return(body.replace("-1U", "0")), body.replace("-1U", "0"))
 
 
+class SweepCacheTest(unittest.TestCase):
+    def test_score_reuses_disk_cache_across_runs(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "u.c").write_text("void f(void) {}\n")
+            (root / "f").mkdir()
+            (root / "f" / "asm.s").write_text("blr\n")
+            ctx = root / "u.i"
+            ctx.write_text("typedef int s32;\n")
+            calls = []
+
+            def fake(name, source, body, apply=False):
+                calls.append(body)
+                return {"verdict": "MISMATCH", "exact": 1, "target": 2}
+
+            with mock.patch.object(sweep, "ROOT", root), mock.patch.object(sweep, "OUT", root), \
+                    mock.patch.object(sweep, "CACHE_ROOT", root / "cache"), \
+                    mock.patch.object(sweep, "unit_context", return_value=ctx), \
+                    mock.patch.object(sweep, "_score", side_effect=fake), \
+                    mock.patch.dict(sweep._SCORES, clear=True):
+                first = sweep.score("f", "u.c", "body")
+                sweep._SCORES.clear()  # a later run, or another checkout
+                self.assertEqual(sweep.score("f", "u.c", "body"), first)
+                self.assertEqual(calls, ["body"])
+                ctx.write_text("typedef long s32;\n")  # a header change invalidates the verdict
+                sweep._SCORES.clear()
+                sweep.score("f", "u.c", "body")
+                self.assertEqual(calls, ["body", "body"])
+
+    def test_m2c_output_cached_by_asm_and_context_text(self):
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            asm, ctx = root / "a.s", root / "c.i"
+            asm.write_text("blr\n")
+            ctx.write_text("int x;\n")
+            done = subprocess.CompletedProcess([], 0, "void f(void) {}\n", "")
+            with mock.patch.object(sweep, "CACHE_ROOT", root / "cache"), \
+                    mock.patch.object(sweep, "m2c_version", return_value="v1"), \
+                    mock.patch.object(sweep.subprocess, "run", return_value=done) as run:
+                cmd = ["py", "m2c.py", "-t", "ppc", "--context", str(ctx)]
+                self.assertEqual(sweep.m2c_output(cmd, asm, ctx), done.stdout)
+                moved = root / "moved.i"  # same text at another checkout's path
+                moved.write_text(ctx.read_text())
+                self.assertEqual(sweep.m2c_output(cmd[:-1] + [str(moved)], asm, moved), done.stdout)
+                self.assertEqual(run.call_count, 1)
+                asm.write_text("nop\nblr\n")
+                sweep.m2c_output(cmd, asm, ctx)
+                self.assertEqual(run.call_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
 

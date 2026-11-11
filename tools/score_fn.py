@@ -52,6 +52,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import prodg_cc  # noqa: E402
 import verify_fn as vf  # noqa: E402
 from hillclimb import score  # noqa: E402
 
@@ -83,7 +84,10 @@ def run(cmd: list[str]) -> str:
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
     if r.returncode == 0:
         return ""
-    out = (r.stdout + r.stderr).strip()
+    return error_tail((r.stdout + r.stderr).strip())
+
+
+def error_tail(out: str) -> str:
     # A unit's warnings can bury the error past the tail kept here; report errors first.
     errors = [ln for ln in out.splitlines() if ": warning:" not in ln and "In function" not in ln]
     return ("\n".join(errors) or out)[-1500:] or "failed"
@@ -95,12 +99,16 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
         diagnostic_args = ["--diagnostics-dir", str(diagnostics)] if diagnostics else []
         if cc1_native:
             diagnostic_args += ["--cc1-native", str(cc1_native)]
-        return run([sys.executable, "tools/prodg_cc.py",
-                    "--compiler", str(BUILD / "compilers" / PRODG_VERSION),
-                    "--as-bin", str(BUILD / "binutils" / "powerpc-eabi-as"),
-                    "--dtk", str(BUILD / "tools" / "dtk_patched"),
-                    "--wibo", str(BUILD / "tools" / "wibo"),
-                    *diagnostic_args, *PRODG_FLAGS, *extra, "-c", str(source), "-o", str(out)])
+        try:  # in-process: one interpreter start less per score (prodg_cc is thread-safe)
+            prodg_cc.compile_c([
+                "--compiler", str(BUILD / "compilers" / PRODG_VERSION),
+                "--as-bin", str(BUILD / "binutils" / "powerpc-eabi-as"),
+                "--dtk", str(BUILD / "tools" / "dtk_patched"),
+                "--wibo", str(BUILD / "tools" / "wibo"),
+                *diagnostic_args, *PRODG_FLAGS, *extra, "-c", str(source), "-o", str(out)], cwd=ROOT)
+        except prodg_cc.CompileError as e:
+            return error_tail(str(e).strip())
+        return ""
     raw = out.with_suffix(".raw.o")
     inc = []
     for f in extra:

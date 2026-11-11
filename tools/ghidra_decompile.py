@@ -15,7 +15,9 @@ uses those to resolve small-data accesses. REA opens the same file (see docs/res
     python3 tools/ghidra_decompile.py decompile-pc FN ...   # x86 pair of each GC function -> work/FN/jp_ghidra.c
 
 State lives per checkout in `<primary checkout>/build/ghidra/<checkout>-<hash>/` (`status`
-prints it; `LSW1_GHIDRA_DIR` overrides it but must have no '.'-prefixed path element). `analyzeHeadless` comes from PATH, `GHIDRA_INSTALL_DIR` or /opt/ghidra.
+prints it; `LSW1_GHIDRA_DIR` overrides it but must have no '.'-prefixed path element). A fresh
+checkout copies the analysed project from the sibling `seed/` directory, which the first full
+import publishes, and re-applies its own names. `analyzeHeadless` comes from PATH, `GHIDRA_INSTALL_DIR` or /opt/ghidra.
 Ghidra output is a control-flow reference only, never matching source.
 """
 from __future__ import annotations
@@ -66,6 +68,9 @@ PC_SUFFIX = "_jpinferred"  # marks names from inferred (not confirmed/strings) p
 PC_HEADER = ("/* Ghidra decompile of the Japanese PC 1.0 (MSVC x86) pair; reference only, never matching source.\n"
              " * PC struct offsets, argument passing and frame layout do not transfer to GC. Names ending in\n"
              f" * {PC_SUFFIX} come from inferred pairs; check them against GC assembly. Keep local. */\n")
+# An analysed project shared by fresh checkouts: setup copies it and re-applies this
+# checkout's names (`sync`) instead of re-importing and re-analysing main.elf (~40 s).
+SEED_ROOT = GHIDRA_DIR.parent / "seed"
 
 SYMBOL_LINE = re.compile(
     r"^(?P<name>[^\s=]+)\s*=\s*(?P<sec>\.[A-Za-z0-9_]+):0x(?P<addr>[0-9A-Fa-f]+);\s*//(?P<attrs>.*)$")
@@ -276,6 +281,46 @@ def check_location() -> None:
                          "set LSW1_GHIDRA_DIR to a path without them")
 
 
+def seed_dir() -> Path:
+    """Seed location keyed by everything an import's analysis depends on except the names."""
+    h = hashlib.sha1(DOL.read_bytes())
+    for f in sorted(SCRIPTS_DIR.glob("*.java")) + [Path(__file__)]:
+        h.update(f.name.encode() + f.read_bytes())
+    return SEED_ROOT / h.hexdigest()[:12]
+
+
+def _copy_project(src: Path, dest: Path) -> None:
+    shutil.copytree(src, dest, ignore=shutil.ignore_patterns("*.lock", "*.lock~"))
+
+
+def seed_from_shared() -> bool:
+    """Copy the shared analysed project into this checkout, if one matches."""
+    seed = seed_dir() / "project"
+    if not (seed / f"{PROJECT_NAME}.gpr").exists():
+        return False
+    if PROJECT_DIR.exists():
+        shutil.rmtree(PROJECT_DIR)
+    PROJECT_DIR.parent.mkdir(parents=True, exist_ok=True)
+    _copy_project(seed, PROJECT_DIR)
+    return project_ready()
+
+
+def publish_seed() -> None:
+    """Share this checkout's freshly analysed project (atomic rename; first writer wins)."""
+    final = seed_dir()
+    if (final / "project" / f"{PROJECT_NAME}.gpr").exists():
+        return
+    tmp = final.with_name(f"{final.name}.tmp{os.getpid()}")
+    try:
+        _copy_project(PROJECT_DIR, tmp / "project")
+        final.parent.mkdir(parents=True, exist_ok=True)
+        tmp.rename(final)
+    except OSError:
+        pass
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def cmd_setup(args) -> int:
     if args.if_missing:  # bootstrap: never fail the toolchain setup over an optional reference
         if project_ready():
@@ -290,6 +335,11 @@ def cmd_setup(args) -> int:
     if project_ready() and not args.force:
         print(f"project exists at {display(PROJECT_DIR)}; running sync (use --force to re-import)")
         return cmd_sync(args)
+    if not args.force and seed_from_shared():
+        print(f"copied the analysed project from {display(seed_dir())}; applying this checkout's names")
+        cmd_sync(args)
+        print(f"ready: {display(PROJECT_DIR)}")
+        return 0
     if PROJECT_DIR.exists():
         shutil.rmtree(PROJECT_DIR)
     PROJECT_DIR.mkdir(parents=True)
@@ -298,6 +348,7 @@ def cmd_setup(args) -> int:
               "-preScript", "SetSdaRegisters.java", "-analysisTimeoutPerFile", str(args.analysis_timeout),
               "-max-cpu", str(args.max_cpu), "-postScript", "ApplySymbolsTxt.java", str(SYMBOLS)], quiet=False)
     STAMP.write_text(symbols_digest())
+    publish_seed()
     print(f"ready: {display(PROJECT_DIR)}")
     return 0
 

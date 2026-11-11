@@ -27,10 +27,17 @@ against the updated file with `score_fn.py --apply`; run `bash build.sh` and
 ranked in `work/sweep/results.json` (and printed) by unmatched bytes closest to a match:
 that ranking is the agent queue, biggest progress first. Task packs go to
 `work/sweep/NAME/`, which does not claim the target for `next_target.py`.
+
+m2c output and score verdicts are cached in `~/.cache/lsw1/sweep` (`LSW1_SWEEP_CACHE`),
+shared by every checkout. A verdict's key covers the scoring tools, the unit source, its
+preprocessed headers, the target assembly and the body; an m2c key covers the m2c commit,
+flags, assembly and context text. sweep.py's own rewrites always rerun, so a sweep.py
+change needs no invalidation. `--no-cache` bypasses both.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import itertools
 import json
 import os
@@ -75,10 +82,75 @@ def unit_context(source: str) -> Path | None:
                 r = None
             if r is not None and r.returncode == 0:
                 out.write_text(r.stdout)
+                warm_m2c_cache(out)
                 _CONTEXTS[source] = out
             else:
                 _CONTEXTS[source] = None
         return _CONTEXTS[source]
+
+
+def warm_m2c_cache(context: Path) -> None:
+    """Build m2c's typemap cache (CONTEXT.m2c) once, so parallel drafts load it instead of
+    each re-parsing the context (0.67 s -> 0.14 s per draft). m2c validates it by a hash of
+    the context text, so a stale cache is rebuilt rather than used."""
+    warm = context.with_suffix(".warm.s")
+    warm.write_text("glabel warm\nblr\n")
+    subprocess.run([sys.executable, str(draft_fn.m2c_dir() / "m2c.py"), "-t", draft_fn.TARGET,
+                    "--context", str(context), str(warm)], capture_output=True)
+
+
+def m2c_output(cmd: list[str], asm: Path, context: Path | None, sized: bool = False) -> str:
+    """m2c's C for ASM ('' on failure), cached in CACHE_ROOT/m2c by m2c commit, flags
+    (SIZED included), asm and context text: sweep.py's own post-processing still reruns."""
+    h = hashlib.sha256(m2c_version().encode())
+    for part in (" ".join(cmd[2:-1] if context else cmd[2:]) + (" sized" if sized else ""), asm.read_text(),
+                 file_digest(context) if context else ""):
+        h.update(len(part).to_bytes(8, "little") + part.encode())
+    digest = h.hexdigest()
+    path = CACHE_ROOT / "m2c" / digest[:2] / f"{digest}.c"
+    if USE_CACHE:
+        try:
+            return path.read_text()
+        except OSError:
+            pass
+    env = {**os.environ, "M2C_SIZED_DEREFS": "1"} if sized else None
+    r = subprocess.run(cmd + [str(asm.resolve())], capture_output=True, text=True, env=env)
+    out = "" if r.returncode or not r.stdout.strip() else r.stdout
+    if USE_CACHE and out:
+        write_atomic(path, out)
+    return out
+
+
+_M2C_VERSION: list[str] = []
+
+
+def m2c_version() -> str:
+    """m2c's checked-out commit (fetch_m2c.sh pins it), or a digest of its sources."""
+    if not _M2C_VERSION:
+        m2c = draft_fn.m2c_dir()
+        r = subprocess.run(["git", "-C", str(m2c), "rev-parse", "HEAD"], capture_output=True, text=True)
+        dirty = subprocess.run(["git", "-C", str(m2c), "status", "--porcelain", "--untracked-files=no"],
+                               capture_output=True, text=True)
+        if r.returncode == 0 and dirty.returncode == 0 and not dirty.stdout.strip():
+            _M2C_VERSION.append(r.stdout.strip())
+        else:
+            h = hashlib.sha256()
+            for f in sorted(m2c.rglob("*.py")):
+                h.update(str(f.relative_to(m2c)).encode() + f.read_bytes())
+            _M2C_VERSION.append(h.hexdigest())
+    return _M2C_VERSION[0]
+
+
+_DIGESTS: dict[tuple[Path, int, int], str] = {}
+
+
+def file_digest(path: Path) -> str:
+    """sha256 of PATH's bytes, memoised per (path, mtime, size) for cache keys."""
+    st = path.stat()
+    key = (path, st.st_mtime_ns, st.st_size)
+    if key not in _DIGESTS:
+        _DIGESTS[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return _DIGESTS[key]
 
 
 def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[str, str]:
@@ -98,12 +170,11 @@ def draft(name: str, context: Path | None = None, sized: bool = False) -> tuple[
     m2c_in.write_text(prepare_asm(asm.read_text()))
     cmd = [sys.executable, str(m2c / "m2c.py"), "-t", draft_fn.TARGET, "--valid-syntax"]
     if context is not None:
-        cmd += ["--no-cache", "--context", str(context)]
-    env = {**os.environ, "M2C_SIZED_DEREFS": "1"} if sized else None
-    r = subprocess.run(cmd + [str(m2c_in.resolve())], capture_output=True, text=True, env=env)
-    if r.returncode or not r.stdout.strip():
+        cmd += ["--context", str(context)]
+    raw = m2c_output(cmd, m2c_in, context, sized)
+    if not raw:
         return "m2c-failed", ""
-    out = declare_unset(r.stdout, name)
+    out = declare_unset(raw, name)
     if UNHANDLED.search(out):
         return "unhandled", ""
     try:
@@ -1235,7 +1306,68 @@ def adopt_own_prototype(body: str, name: str, unit_text: str) -> str:
     return body[:head.start()] + new + body[head.end():]
 
 
+_SCORES: dict[tuple[str, str, str], dict] = {}
+# Verdicts and m2c output shared by every checkout and sweep run, keyed by their inputs.
+CACHE_ROOT = Path(os.environ.get("LSW1_SWEEP_CACHE") or Path.home() / ".cache/lsw1/sweep")
+SCORE_TOOLS = ("score_fn.py", "prodg_cc.py", "verify_fn.py", "hillclimb.py")
+SCORE_CONFIG = ("configure.py", "config/GL5E4F/config.yml")
+CACHED_VERDICTS = {"MATCH", "MISMATCH", "COMPILE-ERROR"}
+USE_CACHE = True
+_TOOLS_DIGEST: list[str] = []
+
+
+def score_key(name: str, source: str, body: str) -> str | None:
+    """Digest of a score's inputs: the tools and build config, the unit source and its preprocessed headers
+    (unit_context), the function's target asm and the candidate body; None without them."""
+    if not _TOOLS_DIGEST:
+        h = hashlib.sha256()
+        for tool in SCORE_TOOLS:
+            h.update((Path(__file__).resolve().parent / tool).read_bytes())
+        for flags in SCORE_CONFIG:  # per-unit compiler and flags
+            h.update((Path(__file__).resolve().parent.parent / flags).read_bytes())
+        _TOOLS_DIGEST.append(h.hexdigest())
+    asm = OUT / name / "asm.s"
+    ctx = unit_context(source) if asm.is_file() else None
+    if ctx is None:
+        return None
+    h = hashlib.sha256(_TOOLS_DIGEST[0].encode())
+    for part in (name, file_digest(ROOT / source), file_digest(ctx), file_digest(asm), body):
+        h.update(len(part).to_bytes(8, "little") + part.encode())
+    return h.hexdigest()
+
+
 def score(name: str, source: str, body: str, apply: bool = False) -> dict:
+    """score_fn.py's verdict for BODY. Repeat checks reuse the first result: in-run
+    (repairs and variants often converge on the same text) and across runs and checkouts
+    through CACHE_ROOT/scores (a rerun after a sweep.py change rescores only changed drafts)."""
+    if apply:
+        return _score(name, source, body, True)
+    key = (name, source, body)
+    if key not in _SCORES:
+        digest = score_key(name, source, body) if USE_CACHE else None
+        path = CACHE_ROOT / "scores" / digest[:2] / f"{digest}.json" if digest else None
+        try:
+            _SCORES[key] = json.loads(path.read_text()) if path else None
+        except (OSError, ValueError):
+            _SCORES[key] = None
+        if _SCORES[key] is None:
+            _SCORES[key] = _score(name, source, body)
+            if path and _SCORES[key].get("verdict") in CACHED_VERDICTS:
+                write_atomic(path, json.dumps(_SCORES[key]))
+    return dict(_SCORES[key])
+
+
+def write_atomic(path: Path, text: str) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}")
+        tmp.write_text(text)
+        tmp.replace(path)
+    except OSError:
+        pass
+
+
+def _score(name: str, source: str, body: str, apply: bool = False) -> dict:
     with tempfile.NamedTemporaryFile("w", suffix=".c", delete=False) as f:
         f.write(body)
         path = f.name
@@ -1540,10 +1672,14 @@ def main(argv=None) -> int:
     ap.add_argument("-j", type=int, default=16, help="parallel jobs")
     ap.add_argument("--apply", action="store_true", help="write strict MATCHes into their unit sources")
     ap.add_argument("--top", type=int, default=30, help="near-misses to print")
+    ap.add_argument("--no-cache", action="store_true",
+                    help="rerun m2c and rescore every body instead of reusing ~/.cache/lsw1/sweep")
     ap.add_argument("--retry", metavar="VERDICT", action="append",
                     help="resweep only the targets the last results.json gave VERDICT, or the named "
                          "target (repeatable, e.g. COMPILE-ERROR), and merge the new rows into it")
     args = ap.parse_args(argv)
+    global USE_CACHE
+    USE_CACHE = not args.no_cache
     if not (draft_fn.m2c_dir() / "m2c.py").is_file():
         print("error: m2c not fetched; run bash tools/fetch_m2c.sh", file=sys.stderr)
         return 2
