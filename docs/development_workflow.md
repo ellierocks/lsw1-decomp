@@ -165,8 +165,10 @@ applied to the parent README.
 The flow uses no pull requests. `tools/update_readme.py` reads the branch head and
 dispatches the workflow through the GitHub API; all ref updates go through git.
 `tests/test_update_readme.py` runs the whole cycle against a real git origin. Older
-main runs skip publication after main advances. Failed checks leave the progress
-branch unmerged. Git failures print their captured remote diagnostics before
+main runs skip publication after main advances. A dispatched run whose source SHA
+is no longer `main` can never fast-forward, so it deletes its own progress branch
+(tolerating one already gone) and leaves publication to the newer run; it never
+touches other branches. Failed checks leave the progress branch unmerged. Git failures print their captured remote diagnostics before
 raising, so Actions logs retain the actual rejection reason.
 
 To refresh locally after `bash build.sh`, run `python3 tools/update_readme.py`.

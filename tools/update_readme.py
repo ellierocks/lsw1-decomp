@@ -80,6 +80,25 @@ def git_file(revision):
     return subprocess.run(['git', 'show', revision + ':README.md'], check=True, capture_output=True, text=True).stdout
 
 
+def delete_superseded(branch):
+    """Delete this run's own progress branch once main has moved past its source.
+
+    Its source SHA can never be main's head again, so the branch can never be
+    fast-forwarded. A concurrent run may already have deleted it.
+    """
+    if not branch.startswith(BRANCH_PREFIX):
+        raise ValueError('Refusing to delete non-progress branch ' + branch)
+    ref = 'refs/heads/' + branch
+    result = subprocess.run(['git', 'push', 'origin', '--delete', ref], capture_output=True, text=True)
+    if result.returncode == 0:
+        print('Main advanced since this progress branch; deleted superseded', branch)
+    elif git('ls-remote', '--heads', 'origin', ref):
+        print(result.stderr or result.stdout, file=sys.stderr, end='')
+        result.check_returncode()
+    else:
+        print('Main advanced since this progress branch;', branch, 'was already deleted')
+
+
 def publish(text):
     """Push generated README figures to a check branch; fast-forward main once it passes."""
     api = GitHub()
@@ -90,7 +109,7 @@ def publish(text):
         if git('rev-parse', 'HEAD') != sha or git('rev-parse', 'HEAD^') != source:
             raise ValueError('Progress branch must be one commit on its source SHA')
         if api.request('GET', '/branches/main')['commit']['sha'] != source:
-            print('Main advanced since this progress branch; leaving it for the newer run')
+            delete_superseded(branch)
             return
         if git('diff', '--name-only', source, sha).splitlines() != ['README.md']:
             raise ValueError('Progress branch must change only README.md')

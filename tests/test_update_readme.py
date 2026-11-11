@@ -148,16 +148,51 @@ class PublishFlowTests(unittest.TestCase):
             self.run_job(work, 'workflow_dispatch', 'refs/heads/' + self.branch, other)
         self.assertEqual(git(self.origin, 'rev-parse', 'main'), self.source)
 
-    def test_dispatch_skips_when_main_advanced(self):
-        work = self.publish_branch()
+    def advance_main(self):
         other = self.checkout('other', 'main')
         (other / 'x').write_text('x')
         git(other, 'add', 'x')
         git(other, 'commit', '-q', '-m', 'advance')
         git(other, 'push', '-q', 'origin', 'HEAD:main')
-        advanced = git(other, 'rev-parse', 'HEAD')
+        return git(other, 'rev-parse', 'HEAD')
+
+    def dispatch(self, work):
         self.run_job(work, 'workflow_dispatch', 'refs/heads/' + self.branch, self.FRESH)
+
+    def test_dispatch_deletes_branch_when_main_advanced(self):
+        work = self.publish_branch()
+        advanced = self.advance_main()
+        self.dispatch(work)
         self.assertEqual(git(self.origin, 'rev-parse', 'main'), advanced)
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')
+
+    def test_superseded_branch_already_deleted_is_tolerated(self):
+        work = self.publish_branch()
+        advanced = self.advance_main()
+        git(self.origin, 'branch', '-D', self.branch)
+        self.dispatch(work)
+        self.assertEqual(git(self.origin, 'rev-parse', 'main'), advanced)
+
+    def test_superseded_cleanup_leaves_other_progress_branches(self):
+        other = readme.BRANCH_PREFIX + '0' * 40
+        git(self.origin, 'branch', other, 'main')
+        work = self.publish_branch()
+        self.advance_main()
+        self.dispatch(work)
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), '')
+        self.assertEqual(git(self.origin, 'branch', '--list', other), other)
+
+    def test_superseded_deletion_failure_is_reported(self):
+        work = self.publish_branch()
+        self.advance_main()
+        hook = self.origin / 'hooks/pre-receive'
+        hook.write_text('#!/bin/sh\necho "fixture: deletion rejected" >&2\nexit 1\n')
+        hook.chmod(0o755)
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.dispatch(work)
+        self.assertIn('fixture: deletion rejected', errors.getvalue())
+        self.assertEqual(git(self.origin, 'branch', '--list', self.branch), self.branch)
 
     def test_stale_push_run_does_not_publish(self):
         work = self.checkout('main-run', 'main')
