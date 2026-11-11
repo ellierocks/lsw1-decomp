@@ -386,7 +386,7 @@ def main(argv: list[str] | None = None) -> int:
                     git("push", "--quiet", "origin", "--delete", branch, cwd=main_checkout)
 
     if args.apply and archive.exists():
-        total, open_ = build_index(archive, report, [("main checkout", main_checkout / "work")])
+        total, open_ = build_index(archive, report, live_works(trees, main_checkout))
         print(f"index: {archive / 'INDEX.md'}: {total} parked rows, {open_} unmatched on main")
     elif not args.apply:
         print("dry run; pass --apply to act")
