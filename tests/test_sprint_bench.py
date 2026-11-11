@@ -55,6 +55,20 @@ class BenchTests(unittest.TestCase):
         rows = sb.compare(out.parent)
         self.assertEqual(rows[0]["model"], "model-x")
 
+    def test_lane_bytes_and_open_run(self):
+        self.assertIsNone(sb.current_start())
+        sb.start("m", "run3", launched_at=None, now=1000, lane="near-misses", unit="u")
+        self.assertEqual(sb.current_start()["lane"], "near-misses")
+        out = sb.finish({"verified": 2, "verified_bytes": 400, "active_seconds": 1800})
+        self.assertIsNone(sb.current_start())
+        row = sb.compare(out.parent)[0]
+        self.assertEqual((row["lane"], row["unit"], row["verified_bytes_per_active_hour"]), ("near-misses", "u", 800))
+        (out.parent / "old.json").write_text(json.dumps({"run_id": "old", "unit": "v", "started_at": 1}))
+        (out.parent / "bad.json").write_text("{")
+        rows = sb.compare(out.parent)
+        self.assertEqual([r["run_id"] for r in rows], ["old", "run3"])
+        self.assertIsNone(rows[0]["lane"])
+
 
 if __name__ == "__main__":
     unittest.main()

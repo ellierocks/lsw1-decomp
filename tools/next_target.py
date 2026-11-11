@@ -161,8 +161,9 @@ def in_units(unit: str, prefixes: list[str]) -> bool:
     return not prefixes or any(unit.startswith(p) for p in prefixes)
 
 
-def print_by_unit(rows, args, owned=frozenset()) -> int:
-    """One line per unit: ready targets, bytes, size range and how many functions the unit has left."""
+def rank_units(rows, owned=frozenset(), limit=None):
+    """(ranked [(unit, rows)], skipped owned units): unclaimed ready rows grouped per unit, by
+    bytes in the first wave."""
     units = {}
     for r in rows:
         if r["claimed"]:
@@ -178,7 +179,12 @@ def print_by_unit(rows, args, owned=frozenset()) -> int:
         return (-sum(r["size"] for r in rs[:WAVE_SIZE]),
                 rs[0]["unit_left"], u)
 
-    order = sorted(units.items(), key=key)[:args.limit]
+    return sorted(units.items(), key=key)[:limit], skipped
+
+
+def print_by_unit(rows, args, owned=frozenset()) -> int:
+    """One line per unit: ready targets, bytes, size range and how many functions the unit has left."""
+    order, skipped = rank_units(rows, owned, args.limit)
     if args.json:
         print(json.dumps([{"unit": u, "ready": len(rs), "left": rs[0]["unit_left"],
                            "finishable": rs[0]["unit_left"] <= FINISHABLE,
@@ -204,32 +210,20 @@ def print_by_unit(rows, args, owned=frozenset()) -> int:
     return 0
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--max-size", type=lambda s: int(s, 0), default=0x200, help="largest size in bytes (default 0x200)")
-    ap.add_argument("--min-size", type=lambda s: int(s, 0), default=0, help="smallest size in bytes (default 0)")
-    ap.add_argument("--unit", action="append", default=[], metavar="PREFIX",
-                    help="only units starting with PREFIX, e.g. auto/game/ (repeatable)")
-    ap.add_argument("--limit", type=int, default=15)
-    ap.add_argument("--json", action="store_true")
-    ap.add_argument("--by-unit", action="store_true",
-                    help="summarize ready targets per unit to scope a sprint (first-wave bytes descending; units owned by an open t3/sprint-* PR are skipped)")
-    ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
-    ap.add_argument("--jp-paired", action="store_true",
-                    help="only targets paired with a Japanese PC 1.0 x86 function (gc_pc_anchors.tsv)")
-    args = ap.parse_args(argv)
+class TargetError(Exception):
+    """A required input (retail DOL, JP anchor table) is missing."""
 
+
+def collect(max_size: int = 0x200, min_size: int = 0, prefixes=(), jp_paired: bool = False):
+    """(ranked ready rows, count of in-range unmatched functions outside any split unit)."""
     dol = vf.load_dol(vf.DOL_PATH, [])
     if dol is None:
-        print(f"error: retail DOL missing at {vf.DOL_PATH.relative_to(ROOT)}; see README.md", file=sys.stderr)
-        return vf.EXIT_ERROR
+        raise TargetError(f"retail DOL missing at {vf.DOL_PATH.relative_to(ROOT)}; see README.md")
     donor_state = opensaga.snapshot()
     jp_pairs = pc_gc_anchors.load_anchors()
     if jp_pairs is None:
-        if args.jp_paired:
-            print("error: build/pc_analysis/gc_pc_anchors.tsv missing; run python3 tools/pc_gc_anchors.py",
-                  file=sys.stderr)
-            return vf.EXIT_ERROR
+        if jp_paired:
+            raise TargetError("build/pc_analysis/gc_pc_anchors.tsv missing; run python3 tools/pc_gc_anchors.py")
         jp_pairs = {}
     symbols = read_symbols()
     done = defined_in_src()
@@ -248,16 +242,16 @@ def main(argv=None) -> int:
 
     rows, skipped_unit = [], 0
     for name, addr, size in symbols:
-        if not size or size > args.max_size or size < args.min_size or name in done or name in verified:
+        if not size or size > max_size or size < min_size or name in done or name in verified:
             continue
         unit = unit_of[name]
         if unit is None:
             skipped_unit += 1
             continue
-        if not in_units(unit, args.unit):
+        if not in_units(unit, list(prefixes)):
             continue
         jp = jp_pairs.get(addr)
-        if args.jp_paired and jp is None:
+        if jp_paired and jp is None:
             continue
         code = dol.read(addr, size)
         if code is None:
@@ -276,12 +270,39 @@ def main(argv=None) -> int:
         })
     rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["jp"] is None,
                              r["address"]))
+    return rows, skipped_unit
+
+
+def owned_units(rows, remote: bool = True) -> set[str]:
+    """Units of ROWS owned by another active sprint branch (see sprint_branches)."""
+    branches = sprint_branches(remote=remote)
+    units = frozenset(r["unit"] for r in rows)
+    return {r["unit"] for r in rows if owned_by_sprint(r["unit"], branches, units)}
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--max-size", type=lambda s: int(s, 0), default=0x200, help="largest size in bytes (default 0x200)")
+    ap.add_argument("--min-size", type=lambda s: int(s, 0), default=0, help="smallest size in bytes (default 0)")
+    ap.add_argument("--unit", action="append", default=[], metavar="PREFIX",
+                    help="only units starting with PREFIX, e.g. auto/game/ (repeatable)")
+    ap.add_argument("--limit", type=int, default=15)
+    ap.add_argument("--json", action="store_true")
+    ap.add_argument("--by-unit", action="store_true",
+                    help="summarize ready targets per unit to scope a sprint (first-wave bytes descending; units owned by an open t3/sprint-* PR are skipped)")
+    ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
+    ap.add_argument("--jp-paired", action="store_true",
+                    help="only targets paired with a Japanese PC 1.0 x86 function (gc_pc_anchors.tsv)")
+    args = ap.parse_args(argv)
+
+    try:
+        rows, skipped_unit = collect(args.max_size, args.min_size, args.unit, args.jp_paired)
+    except TargetError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return vf.EXIT_ERROR
     rows_all = rows
     if args.by_unit:
-        branches = sprint_branches(remote=not args.no_remote)
-        units = frozenset(r["unit"] for r in rows_all)
-        owned = {r["unit"] for r in rows_all if owned_by_sprint(r["unit"], branches, units)}
-        return print_by_unit(rows_all, args, owned)
+        return print_by_unit(rows_all, args, owned_units(rows_all, remote=not args.no_remote))
     rows = rows[:args.limit]
 
     if args.json:

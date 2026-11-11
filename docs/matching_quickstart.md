@@ -30,18 +30,17 @@ rather than a game function, skip to `tools/sdk_import_unit.py` in
 
 ## 2. Pick a target
 
-Follow the yield priorities in [strategy](strategy.md#choosing-a-task): match
-existing game/Nu2 units first, and resolve splits or data when they unblock a
-promising unit. The SDK donor queue is exhausted. The [sprint reference](sprint_workflow.md) explains ownership detection and queue
-helpers. `python3 tools/sweep.py --apply` can collect automatic matches: it m2c-drafts
-and strict-scores every ready target unattended, applies the matches, and ranks the rest by
-near-miss bytes in `work/sweep/results.json`. `python3 tools/next_target.py --by-unit` ranks units by
-bytes in the first ten ready targets, with ownership filtering. Inspect related
-code shapes before choosing; the ranking does not estimate matching time. Naming and donor mining serve that target.
+`python3 tools/kickoff.py` prints the shortlist: sweep state, near misses, the top
+`next_target.py --by-unit` units with ownership filtering, and a recommended lane;
+`--start UNIT` records the queue and baseline. Its yield priorities come from
+[strategy](strategy.md#choosing-a-task); the [sprint reference](sprint_workflow.md#scope)
+describes the sweep and ownership detection. Inspect related code shapes before choosing;
+the ranking does not estimate matching time. Naming and donor mining serve that target.
 For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
 `python3 tools/sdk_import_unit.py UNIT --apply` imports and proves a unit.
 
 ```sh
+python3 tools/kickoff.py                # state, lanes, recommendation
 python3 tools/sweep.py --apply          # then bash build.sh and verify_fn.py on each match
 python3 tools/sweep_permute.py          # permuter on the biggest near-misses (background it)
 python3 tools/sweep_permute.py --apply-saved  # later: write its confirmed matches
@@ -50,7 +49,7 @@ python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ 
 python3 tools/next_target.py --jp-paired --max-size 0x400   # readable JP PC x86 body
 ```
 
-It lists undone functions inside split units, sorted by direct callee count and
+`next_target.py` lists undone functions inside split units, sorted by direct callee count and
 then size, with their unit, source, OpenSaga lookup state and Japanese PC pair
 (`jp`, see [PC builds](research.md#pc-builds)). Donor name leads, then PC pairs,
 break otherwise equal ranking ties. Choose a `ready` row that is not `claimed`. An empty list does not mean the work is finished:

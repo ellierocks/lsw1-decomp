@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Benchmark a sprint run: startup latency, setup steps, attempt and match throughput, per model.
 
-    python3 tools/sprint_bench.py start --model claude-sonnet-5-5 --launched-at 1762300000
+    python3 tools/sprint_bench.py start --model claude-sonnet-5-5 --launched-at 1762300000 [--lane unit --unit U]
     python3 tools/sprint_bench.py time bootstrap -- bash tools/bootstrap.sh   # timed setup step
     python3 tools/sprint_bench.py mark first-draft                            # free-form milestone
     python3 tools/sprint_bench.py report                                      # this run
@@ -16,7 +16,9 @@ outlives the worktree, so `compare` can rank runs and models side by side.
 `--launched-at` is the epoch second the thread was launched (the launcher passes it in the
 kickoff prompt). With the worktree's `.git` file time it splits startup into worktree creation
 and agent boot. Times are wall-clock; model names are whatever the launcher states, never
-inferred. Nothing here reads transcripts, credentials or quotas.
+inferred. `lane` and `unit` name what the run worked on (`tools/kickoff.py --start` sets them);
+records written before the field existed read as lane None. Nothing here reads transcripts,
+credentials or quotas.
 """
 from __future__ import annotations
 
@@ -70,7 +72,8 @@ def summarize(events: list[dict]) -> dict:
     finish = next((e for e in reversed(events) if e["kind"] == "finish"), None)
     end = (finish or events[-1])["t"]
     out = {
-        "run_id": start.get("run_id"), "model": start.get("model"), "unit": (finish or {}).get("unit"),
+        "run_id": start.get("run_id"), "model": start.get("model"), "lane": start.get("lane"),
+        "unit": (finish or {}).get("unit") or start.get("unit"),
         "started_at": t0, "wall_seconds": round(end - t0, 1),
         "startup": {k: start[k] for k in ("worktree_seconds", "agent_boot_seconds", "launch_to_start_seconds")
                     if start.get(k) is not None},
@@ -85,19 +88,23 @@ def summarize(events: list[dict]) -> dict:
         "attempts_per_match": round(len(scores) / len(matched_names), 1) if matched_names else None,
     }
     if finish:
-        out.update({k: finish[k] for k in ("verified", "parked", "deferred", "code_bytes_delta",
+        out.update({k: finish[k] for k in ("verified", "verified_bytes", "parked", "deferred", "code_bytes_delta",
                                            "active_seconds", "phases", "tool_commits") if k in finish})
         active = finish.get("active_seconds") or out["wall_seconds"]
         if active:
             out["verified_per_active_hour"] = round(finish.get("verified", 0) * 3600 / active, 1)
+            if "verified_bytes" in finish:
+                out["verified_bytes_per_active_hour"] = round(finish["verified_bytes"] * 3600 / active)
     return out
 
 
-def start(model: str, run_id: str | None, launched_at: float | None, now: float | None = None) -> dict:
+def start(model: str, run_id: str | None, launched_at: float | None, now: float | None = None,
+          lane: str | None = None, unit: str | None = None) -> dict:
     now = time.time() if now is None else now
     if EVENTS.exists():
         EVENTS.rename(EVENTS.with_name(f"sprint_bench.{int(EVENTS.stat().st_mtime)}.jsonl"))
     data = {"model": model, "run_id": run_id or f"{ROOT.name}-{int(now)}"}
+    data.update({k: v for k, v in (("lane", lane), ("unit", unit)) if v})
     git_file = ROOT / ".git"
     if launched_at:
         data["launch_to_start_seconds"] = round(now - launched_at, 1)
@@ -119,14 +126,31 @@ def finish(record: dict) -> Path | None:
     return out
 
 
+COMPARE_KEYS = ("run_id", "model", "lane", "unit", "started_at", "verified", "verified_bytes",
+                "code_bytes_delta", "parked", "active_seconds", "verified_per_active_hour",
+                "verified_bytes_per_active_hour", "attempts_per_match", "first_match_seconds",
+                "startup", "steps_seconds")
+
+
 def compare(directory: Path | None = None) -> list[dict]:
+    """Finished runs from the shared bench cache, oldest first; absent fields read as None."""
     rows = []
     for path in sorted((directory or cache_dir()).glob("*.json")):
-        s = json.loads(path.read_text())
-        rows.append({k: s.get(k) for k in ("run_id", "model", "unit", "verified", "parked",
-                                           "verified_per_active_hour", "attempts_per_match",
-                                           "first_match_seconds", "startup", "steps_seconds")})
-    return rows
+        try:
+            s = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        rows.append({k: s.get(k) for k in COMPARE_KEYS})
+    return sorted(rows, key=lambda r: r.get("started_at") or 0)
+
+
+def current_start(path: Path | None = None) -> dict | None:
+    """This checkout's open run: its start event, or None when none was started or it finished."""
+    events = load(path)
+    start_event = next((e for e in events if e["kind"] == "start"), None)
+    if start_event is None or any(e["kind"] == "finish" for e in events):
+        return None
+    return start_event
 
 
 def main(argv=None) -> int:
@@ -136,6 +160,8 @@ def main(argv=None) -> int:
     s.add_argument("--model", required=True, help="exact model id the launcher selected")
     s.add_argument("--run-id")
     s.add_argument("--launched-at", type=float, help="epoch seconds when the thread was launched")
+    s.add_argument("--lane", help="what the run works on: sweep, near-misses, unit, workflow")
+    s.add_argument("--unit", help="the unit a unit sprint works on")
     t = sub.add_parser("time", help="run a command and record its duration")
     t.add_argument("label")
     t.add_argument("command", nargs=argparse.REMAINDER)
@@ -145,7 +171,8 @@ def main(argv=None) -> int:
     sub.add_parser("compare", help="list finished runs from the shared bench cache")
     args = ap.parse_args(argv)
     if args.cmd == "start":
-        print(json.dumps(start(args.model, args.run_id, args.launched_at), indent=2))
+        print(json.dumps(start(args.model, args.run_id, args.launched_at, lane=args.lane, unit=args.unit),
+                         indent=2))
     elif args.cmd == "time":
         cmd = args.command[1:] if args.command[:1] == ["--"] else args.command
         if not cmd:

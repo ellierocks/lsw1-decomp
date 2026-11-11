@@ -7,7 +7,9 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 
 ## Task routing
 
-- Start with [strategy](docs/strategy.md) for the current phase; update it when the plan changes.
+- Run `python3 tools/kickoff.py` first: it reports checkout, sweep and sibling-worktree state
+  (`worktree_cleanup.py --audit` has the detail) and recommends a lane; `--start` records the baseline.
+  [Strategy](docs/strategy.md) holds the current phase; update it when the plan changes.
   [Workflow gaps](docs/workflow_gaps.md) ranks the known tooling and process gaps.
 - **Improve the workflow as you go.** Fix drafting, m2c, sweep and search tools when
   that unlocks matches more effectively than hand-editing each function. Preserve
@@ -16,7 +18,6 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 - [Sprint tools](docs/sprint_workflow.md) cover target selection, ownership detection,
   queue accounting and verification. Choose scope and search effort for the task;
   T3 owns orchestration and continuation.
-- Before choosing targets, check sibling worktrees with `python3 tools/worktree_cleanup.py --audit`.
 - Matching: follow the [quickstart](docs/matching_quickstart.md) for bootstrap,
   target selection, scoring and handoff, and [C matching](docs/code_matching_workflow.md)
   for strict verification and promotion. SDK work uses [SDK import](docs/sdk_import.md#importing-a-unit-quickly).
