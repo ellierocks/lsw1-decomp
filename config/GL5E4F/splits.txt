@@ -344,8 +344,17 @@ sn/libc/ctype/tolower.c:
 sn/libc/ctype/toupper.c:
 	.text       start:0x80154198 end:0x801541B4
 
+sn/libc/stdio/sscanf.c:
+	.text       start:0x8015428C end:0x80154384
+
+sn/libc/stdlib/atof.c:
+	.text       start:0x801552B8 end:0x801552DC
+
 sn/libc/stdlib/exit.c:
 	.text       start:0x801552DC end:0x8015535C
+
+sn/libc/stdlib/rand.c:
+	.text       start:0x80155678 end:0x801556A8
 
 sn/libc/stdlib/strtoul.c:
 	.text       start:0x80155A50 end:0x80155C20
@@ -389,8 +398,23 @@ sn/libc/stdlib/strtol.c:
 sn/libc/ctype/isspace.c:
 	.text       start:0x80159464 end:0x80159478
 
+sn/libc/errno/errno.c:
+	.text       start:0x80159478 end:0x80159480
+
+sn/libc/stdio/refill.c:
+	.text       start:0x80159ED0 end:0x8015A064
+
 sn/libc/string/memchr.c:
 	.text       start:0x8015A1E8 end:0x8015A2A8
+
+sn/libc/stdio/fflush.c:
+	.text       start:0x8015A2A8 end:0x8015A39C
+
+sn/libc/stdio/fwalk.c:
+	.text       start:0x8015A4D0 end:0x8015A550
+
+sn/libc/stdio/stdio.c:
+	.text       start:0x8015A628 end:0x8015A788
 
 sn/libc/reent/closer.c:
 	.text       start:0x8015A788 end:0x8015A7D8

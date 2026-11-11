@@ -36,6 +36,8 @@ the full verifier report with the score added. Exit codes follow verify_fn.py:
 
 Compilers:
     prodg  ProDG 3.9.3 with configure.py's cflags_prodg (game code, default)
+    sn     ProDG 3.9.3 with configure.py's cflags_sn_libc (SN runtime, src/sn; the default
+           for sources under src/sn/)
     sdk    MWCC GC/1.2.5n with dolsdk2004 release flags (Dolphin SDK units)
 """
 
@@ -66,6 +68,21 @@ SDK_FLAGS = ["-nodefaults", "-proc", "gekko", "-fp", "hard", "-Cpp_exceptions", 
              "-pragma", "cats off", "-O4,p", "-inline", "auto", "-D__GEKKO__",
              "-DSDK_REVISION=1", "-DRELEASE"]
 
+# configure.py's cflags_sn_libc (newlib/libgcc under src/sn): -fno-common, -G 1024 and the
+# ngccc target defines change code generation, and the game include dirs would shadow
+# newlib's headers. tests/test_score_fn_sn.py keeps this in step with configure.py.
+SN_FLAGS = ["-O2", "-mfast-cast", "-fno-common", "-G", "8", "-I", "src/sn/include", "-DNDEBUG=1", "-DMB_CAPABLE",
+            "-D__GNUC__=2", "-D__GNUC_MINOR__=95", "-DPPC", "-D__PPC__", "-D__PPC",
+            "-D__CHAR_UNSIGNED__", "-D_BIG_ENDIAN", "-D__BIG_ENDIAN__", "-D__PTRDIFF_TYPE__=int",
+            "-D__SIZE_TYPE__=unsigned", "-D_CALL_SYSV", "-D__SN__", "-DSN_TARGET_NGC",
+            "-D__NOASMPP__", "-D_LANGUAGE_C", "-D__LANGUAGE_C", "-DLANGUAGE_C"]
+SN_SOURCE_DIR = ROOT / "src" / "sn"
+
+
+def default_compiler(source: Path) -> str:
+    """`sn` for a source under src/sn/, else `prodg`."""
+    return "sn" if source.resolve().is_relative_to(SN_SOURCE_DIR) else "prodg"
+
 
 MW_VERSION = "1.2.5n"
 MW_FLAGS = SDK_FLAGS
@@ -73,7 +90,7 @@ MW_FLAGS = SDK_FLAGS
 
 def missing_toolchain(compiler: str) -> list[Path]:
     needed = [BUILD / "tools" / "wibo", BUILD / "tools" / "dtk_patched"]
-    if compiler == "prodg":
+    if compiler in ("prodg", "sn"):
         needed += [BUILD / "compilers" / PRODG_VERSION / "cc1.exe", BUILD / "binutils" / "powerpc-eabi-as"]
     else:
         needed += [BUILD / "compilers" / "GC" / MW_VERSION / "mwcceppc.exe"]
@@ -136,7 +153,7 @@ def error_tail(out: str) -> str:
 
 def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
                    diagnostics: Path | None = None, cc1_native: Path | None = None) -> str:
-    if compiler == "prodg":
+    if compiler in ("prodg", "sn"):
         diagnostic_args = ["--diagnostics-dir", str(diagnostics)] if diagnostics else []
         if cc1_native:
             diagnostic_args += ["--cc1-native", str(cc1_native)]
@@ -146,7 +163,7 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
                 "--as-bin", str(BUILD / "binutils" / "powerpc-eabi-as"),
                 "--dtk", str(BUILD / "tools" / "dtk_patched"),
                 "--wibo", str(BUILD / "tools" / "wibo"),
-                *diagnostic_args, *PRODG_FLAGS, *extra, "-c", str(source), "-o", str(out)], cwd=ROOT)
+                *diagnostic_args, *(SN_FLAGS if compiler == "sn" else PRODG_FLAGS), *extra, "-c", str(source), "-o", str(out)], cwd=ROOT)
         except prodg_cc.CompileError as e:
             return error_tail(str(e).strip())
         return ""
@@ -266,9 +283,9 @@ def main(argv=None) -> int:
     ap.add_argument("name", help="retail function name in symbols.txt")
     ap.add_argument("source", type=Path, help="C file to compile")
     ap.add_argument("--compiled-symbol", help="symbol emitted by the source if it differs")
-    ap.add_argument("--compiler", choices=("prodg", "sdk"),
+    ap.add_argument("--compiler", choices=("prodg", "sn", "sdk"),
                     help="default: sdk when SOURCE has an mwcc edge in build.ninja (an SDK or "
-                         "middleware unit, e.g. HVQM4), else prodg")
+                         "middleware unit, e.g. HVQM4), sn for a source under src/sn/, else prodg")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="extra include dir")
     ap.add_argument("-D", dest="defines", action="append", default=[], help="extra define")
     ap.add_argument("--mw-version", metavar="VER",
@@ -298,14 +315,14 @@ def main(argv=None) -> int:
     import shlex
     unit = unit_mw_settings(args.source) if args.compiler in (None, "sdk") else None
     if args.compiler is None:  # sweep.py and other callers pass no --compiler for SDK units
-        args.compiler = "sdk" if unit else "prodg"
+        args.compiler = "sdk" if unit else default_compiler(args.source)
     MW_VERSION = args.mw_version or (unit[0] if unit else "1.2.5n")
     MW_FLAGS = shlex.split(args.mw_flags) if args.mw_flags else (unit[1] if unit else SDK_FLAGS)
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]
     if args.compile_only and not args.o:
         ap.error("--compile-only needs -o")
-    if (args.diagnostics_dir or args.cc1_native) and args.compiler != "prodg":
-        ap.error("--diagnostics-dir and --cc1-native require --compiler prodg")
+    if (args.diagnostics_dir or args.cc1_native) and args.compiler == "sdk":
+        ap.error("--diagnostics-dir and --cc1-native require --compiler prodg or sn")
     if args.apply and not args.body:
         ap.error("--apply needs --body")
     if args.body and not args.body.is_file():

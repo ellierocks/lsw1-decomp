@@ -69,7 +69,7 @@ void NuTexAnimProgAssembleEnd(s32 minimumSize)
 }
 
 void fn_80008CD8(void* heap, void* block);
-void lbl_801556E4(void* block);
+void free(void* block);
 s32 memcmp(void* a, void* b, u32 size);
 extern char lbl_8018D4E4[];
 extern char lbl_8018D508[];
@@ -118,7 +118,7 @@ unlinked:
         if (lbl_80407AAC) {
             fn_80008CD8(lbl_80407AAC, block);
         } else {
-            lbl_801556E4(block);
+            free(block);
         }
     }
 }
@@ -127,7 +127,7 @@ extern char lbl_8018D43C[];
 extern char lbl_8018D484[];
 extern char str_NuMem_AllocFailed[];
 void* fn_80008E54(void* heap, s32 size, s32 align);
-void* lbl_801556A8(s32 size);
+void* malloc(s32 size);
 u32 strlen(char* s);
 void* memset(void* p, s32 v, u32 size);
 char* strcpy(char* dst, char* src);
@@ -164,7 +164,7 @@ failed:
     if (lbl_80407AAC) {
         block = fn_80008E54(lbl_80407AAC, strlen(file) + size + 0x2d, 4);
     } else {
-        block = lbl_801556A8(strlen(file) + size + 0x2d);
+        block = malloc(strlen(file) + size + 0x2d);
     }
     result = (u8*)block;
     end = block == 0;

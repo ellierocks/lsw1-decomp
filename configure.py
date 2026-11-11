@@ -304,16 +304,24 @@ cflags_sn_target_defs = [
     "-D__LANGUAGE_C",
     "-DLANGUAGE_C",
 ]
+# newlib's small-data threshold is below 34 bytes: vfscanf's 34-byte `basefix` and locale's
+# 48-byte `lconv` are addressed with lis/addi, while `__mb_cur_max` and `_impure_ptr` use r13.
+# `-G 8` is the eabi default. newlib was configured with --enable-newlib-mb (MB_CAPABLE):
+# vfscanf calls _mbtowc_r and locale's .rodata holds "C-JIS", "C-EUCJP" and "C-SJIS".
 cflags_sn_libc = [
     "-O2",
     "-mfast-cast",
     "-fno-common",
-    "-G 1024",
+    "-G 8",
     "-I src/sn/include",
     "-DNDEBUG=1",
+    "-DMB_CAPABLE",
     *cflags_sn_target_defs,
 ]
-cflags_sn_libgcc = [*cflags_sn_libc, "-I src/sn/libgcc"]
+# libgcc keeps `-G 1024`: each division object's 256-byte `__clz_tab` sits in `.sdata2`.
+cflags_sn_libgcc = [
+    "-G 1024" if flag == "-G 8" else flag for flag in cflags_sn_libc if flag != "-DMB_CAPABLE"
+] + ["-I src/sn/libgcc"]
 
 config.linker_version = "GC/1.3.2"
 # Use the retail SN linker; MWLD remains the fallback for template REL support.
@@ -606,7 +614,10 @@ config.libs = [
             Object(Matching, "sn/libc/ctype/isdigit.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/ctype/tolower.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/ctype/toupper.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdio/sscanf.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdlib/atof.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/stdlib/exit.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdlib/rand.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/stdlib/strtoul.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/string/memcmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/string/memcpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
@@ -621,7 +632,12 @@ config.libs = [
             Object(Matching, "sn/libc/string/strstr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/stdlib/strtol.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/ctype/isspace.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/errno/errno.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdio/refill.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/string/memchr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdio/fflush.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdio/fwalk.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            Object(Matching, "sn/libc/stdio/stdio.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/reent/closer.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/reent/fstatr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
             Object(Matching, "sn/libc/reent/lseekr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),

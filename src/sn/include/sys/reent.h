@@ -122,7 +122,9 @@ struct __sFILE {
   int	_ur;		/* saved _r when _r is counting ungetc data */
 
   /* tricks to meet minimum requirements even when malloc() fails */
-  unsigned char _ubuf[3];	/* guarantee an ungetc() buffer */
+  /* SN Systems: 10 bytes, not 3 (retail ungetc stores _ubuf[9] at FILE+0x49 and
+     _nbuf sits at FILE+0x4a; see docs/sn_runtime.md) */
+  unsigned char _ubuf[10];	/* guarantee an ungetc() buffer */
   unsigned char _nbuf[1];	/* guarantee a getc() buffer */
 
   /* separate buffer for fgetline() when line crosses buffer boundary */
