@@ -8,8 +8,12 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 ## Task routing
 
 - Run `python3 tools/kickoff.py` first: it reports checkout, sweep and sibling-worktree state
-  (`worktree_cleanup.py --audit` has the detail) and recommends a lane; `--start` records the baseline.
-  [Strategy](docs/strategy.md) holds the current phase; update it when the plan changes.
+  (`worktree_cleanup.py --audit` has the detail) and names the plan's next unclaimed item;
+  `--start --item ID` claims it and records the baseline.
+- **Work the plan's next item** ([strategy](docs/strategy.md), [`config/plan.toml`](config/plan.toml)).
+  Go off plan only when Ellie asks, when a tooling fix unlocks more plan bytes than the item,
+  or when Dolphin runtime evidence is asked for or needed to settle an ambiguity; state the
+  off-plan choice and its reason in the PR. Revise the plan file when `tools/plan.py` says so.
   [Workflow gaps](docs/workflow_gaps.md) ranks the known tooling and process gaps.
 - **Improve the workflow as you go.** Fix drafting, m2c, sweep and search tools when
   that unlocks matches more effectively than hand-editing each function. Preserve

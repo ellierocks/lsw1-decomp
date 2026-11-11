@@ -85,7 +85,7 @@ file, and a taken slot or name fails at import ([how to add one](sprint_workflow
 
 ## 5. The plan document carries results, and its next lead is not done
 
-[Strategy](strategy.md#phase-3-agent-draft-and-climb-for-game-code) says sprint results stay
+[Strategy](history/strategy_2026-11-10.md#phase-3-agent-draft-and-climb-for-game-code) says sprint results stay
 in the PR, but its "Automatic progress" paragraph is a 50-line history of sweep figures
 dated 2026-11-08. The first next lead of the 2026-11-08 handoff, rerunning the full sweep
 above 0x100 with all merged repairs, had not been run two days and seven PRs later; the
