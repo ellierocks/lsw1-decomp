@@ -1045,3 +1045,47 @@ void *fn_8008EE48(s32 *arg0, u32 *arg1, s32 arg2) {
     }
     return (void *) var_r29;
 }
+
+struct aiscriptparam_s {
+    char *name;
+    f32 value;
+};
+struct aiscript_s {
+    u8 pad0[0x18];
+    struct aiscriptparam_s params[4];
+};
+struct aiparamproc_s {
+    u8 pad0[4];
+    struct aiscript_s *script;
+};
+
+extern s32 NuAToI(char *s);
+extern s32 strcasecmp(const char *a, const char *b);
+extern f32 fn_800077E8(char *s);
+extern char str_ScriptToken_ParamLower[];
+extern f32 lbl_8019C574[];
+
+f32 AIParamToFloat(struct aiparamproc_s *processor, char *param) {
+    char *cursor;
+    u32 n;
+    s32 i;
+
+    if (param != NULL) {
+        if (processor != NULL) {
+            cursor = NuStrIStr(param, str_ScriptToken_ParamLower);
+            if (cursor != NULL) {
+                i = NuAToI(cursor);
+                if ((u32)i < 4) return processor->script->params[i].value;
+            } else if (processor->script != NULL) {
+                for (i = 0; i < 4; i++) {
+                    if (processor->script->params[i].name != NULL &&
+                        strcasecmp(processor->script->params[i].name, param) == 0) {
+                        return processor->script->params[i].value;
+                    }
+                }
+            }
+        }
+        return fn_800077E8(param);
+    }
+    return lbl_8019C574[0];
+}

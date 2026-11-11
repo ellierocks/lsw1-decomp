@@ -100,3 +100,31 @@ void NuVecAdd(struct nuvec_s *arg0, struct nuvec_s *arg1, struct nuvec_s *arg2) 
 void NuVecSub(struct nuvec_s *arg0, struct nuvec_s *arg1, struct nuvec_s *arg2) {
     NuVecSubPS(arg0, arg1, arg2);
 }
+
+void NuVecMtxTransform(struct nuvec_s *dst, struct nuvec_s *src, struct numtx_s *mtx) {
+    NuVecMtxTransformPS(dst, src, mtx);
+}
+
+extern f64 lbl_80154144();
+extern f32 lbl_8018F138[];
+extern f32 lbl_8018F13C[];
+extern f32 lbl_8018F140[];
+
+f32 NuFsqrt(f32 x) {
+    f32 y;
+    f32 h;
+
+    if (x > lbl_8018F138[0]) {
+        asm("frsqrte %0, %1" : "=f"(y) : "f"(x));
+        h = x * lbl_8018F13C[0];
+        y = y * (lbl_8018F140[0] - h * y * y);
+        y = y * (lbl_8018F140[0] - h * y * y);
+        y = y * (lbl_8018F140[0] - h * y * y);
+        y = y * (lbl_8018F140[0] - h * y * y);
+        return y * x;
+    }
+    if (x == lbl_8018F138[0]) {
+        return lbl_8018F138[0];
+    }
+    return lbl_80154144();
+}

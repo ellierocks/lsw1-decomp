@@ -189,3 +189,57 @@ void SetAIMessage(f32 farg0) {
         (*(f32 *)((s8 *)(temp_r3) + (0x28))) = farg0;
     }
 }
+
+struct aivec_s { f32 x, y, z; };
+struct aipathinfo_s { s32 w[6]; };
+struct aigroup_s {
+    void *leader;
+    u8 pad4[0x4C];
+    u32 flags_hi : 3;
+    u32 is_in_formation : 1;
+};
+struct aipacket_s {
+    u8 pad0[0x50];
+    void *owner;
+    u8 pad54[0xF0 - 0x54];
+    struct aigroup_s *group;
+    u8 padF4[0x170 - 0xF4];
+    struct aivec_s fallback_destination;
+    f32 fallback_stopping_distance;
+    f32 movement_parameter;
+    struct aipathinfo_s fallback_path_info;
+    u8 pad19C[4];
+    u32 movement_mode : 3;
+};
+
+extern void AIFormationFollow(struct aipacket_s *packet);
+extern void fn_8008CDE8(struct aigroup_s *group, void (*move)());
+extern void fn_8008C13C();
+extern void fn_8008C768();
+
+void AIMoveInstruction(struct aipacket_s *packet, struct aivec_s *destination,
+                       struct aipathinfo_s *path_info, s32 mode,
+                       f32 stopping_distance, f32 movement_parameter) {
+    struct aigroup_s *group = packet->group;
+
+    if (group != NULL && group->is_in_formation) {
+        switch (mode) {
+        case 1:
+            if (group->leader == packet->owner) fn_8008CDE8(group, fn_8008C768);
+            AIFormationFollow(packet);
+            return;
+        case 4:
+            if (group->leader == packet->owner) fn_8008CDE8(group, fn_8008C13C);
+            AIFormationFollow(packet);
+            return;
+        case 5:
+            mode = 1;
+            break;
+        }
+    }
+    if (destination != NULL) packet->fallback_destination = *destination;
+    if (path_info != NULL) packet->fallback_path_info = *path_info;
+    packet->fallback_stopping_distance = stopping_distance;
+    packet->movement_parameter = movement_parameter;
+    packet->movement_mode = mode;
+}

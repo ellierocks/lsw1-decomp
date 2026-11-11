@@ -223,10 +223,10 @@ extern char *lbl_80408B78;
 extern char *lbl_80408B84;
 extern f32 lbl_8040AF18;
 extern f32 lbl_80408A84;
-extern s32 lbl_80408AB0;
-extern s32 lbl_80408B18;
+extern char *lbl_80408AB0;
+extern char *lbl_80408B18;
 extern u8 lbl_80408A57;
-void fn_800769B4(void *, s32, u8);
+void fn_800769B4(void *, char *, u32);
 
 void fn_80077340(void *arg0) {
     char buf[0x80];
@@ -246,7 +246,7 @@ void fn_80077340(void *arg0) {
     {
         f32 time = lbl_8040AF18;
         f32 offset = lbl_80408A84;
-        s32 action = lbl_80408AB0;
+        char *action = lbl_80408AB0;
         *(f32 *)((u8 *)arg0 + 0x9C) = time - offset;
         fn_800769B4(arg0, action, lbl_80408A57);
     }
@@ -287,7 +287,7 @@ void fn_80077480(void *arg0) {
     {
         f32 time = lbl_8040AF18;
         f32 offset = lbl_80408A84;
-        s32 action = lbl_80408AB0;
+        char *action = lbl_80408AB0;
         *(f32 *)((u8 *)arg0 + 0x9C) = time - offset;
         fn_800769B4(arg0, action, lbl_80408A57);
     }

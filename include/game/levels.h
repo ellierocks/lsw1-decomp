@@ -13,7 +13,7 @@
 struct nugspline_s {
     u8 pad0[2];
     s16 ptsize;
-    u8 pad4[4];
+    char *name;                   /* NuSplineFind compares it */
     char *pts;
 };
 
@@ -63,7 +63,10 @@ struct nuinstanim_s {
 /* Scene behind a special handle. instanim_data[i] points at animation data whose first
  * f32 is its end frame (OpenSaga NuSpecialGetAnimEndFrame). */
 struct nugscn_s {
-    u8 pad0[0x50];
+    u8 pad0[0x2C];
+    s32 numsplines;               /* NuSplineFind */
+    struct nugspline_s *splines;
+    u8 pad34[0x50 - 0x34];
     f32 **instanim_data;
 };
 

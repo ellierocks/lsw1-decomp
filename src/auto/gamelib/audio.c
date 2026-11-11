@@ -137,7 +137,8 @@ void fn_8006E094(void)
     }
 }
 
-struct AudioNameEntry { const char* name; u8 pad[0x10]; s16 linked; u8 rest[0x2a]; };
+/* 0x40-byte sound table entry: `next` chains a name-hash bucket (PauseMenu_HandleEntry1). */
+struct AudioNameEntry { const char* name; u8 pad4[0xc]; s16 next; u8 pad12[2]; s16 linked; u8 rest[0x2a]; };
 extern struct AudioNameEntry lbl_803B6E04[];
 extern char lbl_8019854C[], lbl_8019857C[];
 extern void (*fn_80009970(char*, s32))();
@@ -282,4 +283,63 @@ void *memset(void *, s32, u32);
 
 void fn_8006DB64(void *arg0) {
     memset(arg0, -1, 0x64);
+}
+
+extern u32 lbl_803C3B24[];
+extern s16 *lbl_8040AEEC;
+
+/* Sound id for a name: upper-cased CRC32 (table lbl_803C3B24) whose low byte picks a bucket
+ * of lbl_8040AEEC; entries of lbl_803B6E04 chain through `next`. -1 when absent. */
+s32 PauseMenu_HandleEntry1(const char *name) {
+    u32 hash = 0;
+    s32 i = 0;
+    s16 id;
+    s8 c;
+    u8 bucket;
+
+    while (name[i] != 0) {
+        u32 top = hash >> 24;
+        c = name[i++];
+        if ((u32)(c - 'a') <= 'z' - 'a') {
+            c -= 0x20;
+        }
+        top ^= c;
+        hash = (hash << 8) ^ lbl_803C3B24[top];
+    }
+    bucket = hash;
+    if (lbl_8040AEEC == NULL) {
+        return -1;
+    }
+    id = lbl_8040AEEC[bucket];
+    /* The do-while(0) scopes are what give retail its register allocation (r28 name,
+     * r29 table base). */
+next:
+    do {
+        if (id == -1) {
+            return -1;
+        }
+    } while (0);
+    do {
+        if (fn_800076E4(name, lbl_803B6E04[id].name, 0x20) != 0) {
+            id = lbl_803B6E04[id].next;
+            goto next;
+        }
+    } while (0);
+    return id;
+}
+
+extern s32 fn_8006B328(s32 id, void *pos, f32 a, f32 b);
+extern f32 lbl_801986C8[];
+extern f32 lbl_801986D4[];
+
+/* Play the sound named `name` at `pos`. */
+void fn_8006DCD4(const char *name, void *pos) {
+    s32 id = PauseMenu_HandleEntry1(name);
+    if (id != -1) {
+        fn_8006B328(id, pos, lbl_801986C8[0], lbl_801986C8[0]);
+    }
+}
+
+void fn_8006DE5C(s32 id, void *pos) {
+    fn_8006B328(id, pos, lbl_801986D4[0], lbl_801986D4[0]);
 }

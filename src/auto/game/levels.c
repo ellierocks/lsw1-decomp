@@ -3726,7 +3726,7 @@ void fn_800D0374(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
     }
 }
 
-s32 NewRumble(s32, f32);
+void NewRumble(s32, f32);
 s32 fn_800AC020(s32, f32);
 s32 fn_801261FC(void *, s32);
 extern s32 gPlayer1Pointer[];
@@ -5357,4 +5357,42 @@ void fn_800BA628(s32 arg0) {
         }
         i_var_r31 += 1;
     } while (i_var_r31 <= 286);
+}
+
+/* Fields fn_800B00B8 reads and writes (MenuHeader-shaped: fn_800B0120 uses the same
+ * 0x138/0x13C pair on MenuHeader). */
+struct levels_fade_s {
+    u8 pad0[0xE8];
+    struct nuvec_s vE8;
+    u8 padF4[0x138 - 0xF4];
+    f32 f138;
+    f32 f13C;
+    f32 f140;
+    u8 pad144[0x168 - 0x144];
+    u16 h168;
+    u16 h16A;
+    u16 h16C;
+    u16 h16E;
+    u16 h170;
+    u16 h172;
+    u8 pad174;
+    u8 b175;
+    u8 pad176[2];
+    u8 b178;
+};
+extern f32 lbl_801A005C[];
+
+void fn_800B00B8(struct levels_fade_s *o, f32 a, f32 b) {
+    f32 zero = lbl_801A005C[0];
+    if (a > zero) {
+        s8 *p = (s8 *)MenuHeader;
+        o->vE8 = *(struct nuvec_s *)(p + 0xF4);
+        o->f140 = b;
+        o->h168 = o->h16A;
+        o->h16C = o->h16E;
+        o->h170 = o->h172;
+        o->f138 = zero;
+        o->f13C = a;
+        o->b178 = o->b175;
+    }
 }
