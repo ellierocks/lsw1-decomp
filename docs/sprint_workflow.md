@@ -57,6 +57,14 @@ layout findings in the owning reference. Choose the implementation and commit st
 that fits the work; tool improvements are part of the task, not automatically a separate
 project. Never weaken verification, compiler pins or split boundaries to manufacture wins.
 
+To add a sweep repair, add one new module to `tools/sweep_repairs/` and edit no shared
+file. Decorate the rewrite with `@repair(stage, order)` (`from . import repair`); the
+stages and their signatures are listed in `tools/sweep_repairs/__init__.py`. Pick an
+order no other repair in that stage uses: the package imports every module itself, and
+a taken slot or function name raises at import. Keep the module's regexes in the module,
+and test the rewrite in a new test file of its own. The result flag written into a
+row is the function's name.
+
 ## Kickoff
 
 Before choosing targets, run `python3 tools/worktree_cleanup.py --audit` and `--index-only`,

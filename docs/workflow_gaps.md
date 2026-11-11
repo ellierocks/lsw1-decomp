@@ -10,7 +10,7 @@ delete the row when nothing remains to say.
 | 1 | [Stale task packs change scores](#1-stale-task-packs-change-scores) | fixed, #111 |
 | 2 | [Unfinished and parked work is invisible across worktrees](#2-unfinished-and-parked-work-is-invisible-across-worktrees) | fixed, #110 |
 | 3 | [Transient download failures turn main red](#3-transient-download-failures-turn-main-red) | fixed, #109 |
-| 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | guarded, #109; split open |
+| 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | fixed, #109, #114 |
 | 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | open |
 | 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | partly fixed |
 
@@ -77,9 +77,9 @@ added a module-level `SWITCH` regex, the later silently shadowing the earlier un
 
 Fix so far: a test rejects a tool module that binds one top-level name twice (#109).
 
-Open: splitting the repairs into one module each behind a registry would remove the
-conflicts. It was not done in this pass because it rewrites the file that open sprint
-worktrees have edited, and should land when no sweep branch is in flight.
+Fixed (#114): the repairs live in `tools/sweep_repairs/`, one module per family with
+its regexes beside it, registered by stage and explicit order; a new repair is one new
+file, and a taken slot or name fails at import ([how to add one](sprint_workflow.md#improve-the-workflow-as-you-go)).
 
 ## 5. The plan document carries results, and its next lead is not done
 
