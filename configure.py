@@ -337,7 +337,11 @@ def sdk_cflags(unit: str) -> List[str]:
         overrides["-char unsigned"] = "-char signed"
     if unit == "exi/EXIBios":
         overrides["-O4,p"] = "-O3,p"
-    return [overrides.get(flag, flag) for flag in cflags_mw_sdk]
+    flags = [overrides.get(flag, flag) for flag in cflags_mw_sdk]
+    if unit == "Runtime/__init_cpp":
+        # The retained constructor loop has unscheduled loads and two branch chains.
+        flags += ["-schedule off", "-opt nopeep"]
+    return flags
 
 
 def SDKObject(unit: str, matching: bool, external_bss: bool = False) -> Object:
@@ -470,6 +474,13 @@ config.libs = [
             # native split produces their asm and objects, so they are not listed here.
         ],
     },
+    DolphinLib("cw_runtime", [
+        SDKObject("TRK_MINNOW_DOLPHIN/ppcdown", Matching),
+        Object(NonMatching, "dolphin/Runtime/cvt_fp2unsigned.c", compiler="prodg",
+               compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+        SDKObject("Runtime/tealeaf", Matching),
+        SDKObject("Runtime/__init_cpp", Matching),
+    ]),
     DolphinLib("mtx", [
         SDKObject("mtx/mtx", Matching),
         SDKObject("mtx/mtxvec", Matching),

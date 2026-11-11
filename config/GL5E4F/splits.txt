@@ -323,6 +323,15 @@ auto/game/podrace.c:
 	.text       start:0x80146194 end:0x801503A0
 	.rodata     start:0x801AF668 end:0x801B0460
 
+dolphin/TRK_MINNOW_DOLPHIN/ppcdown.c:
+	.text       start:0x801503A0 end:0x80151724
+
+dolphin/Runtime/cvt_fp2unsigned.c:
+	.text       start:0x80153184 end:0x801531CC
+
+dolphin/Runtime/tealeaf.c:
+	.text       start:0x801531CC end:0x801531E8
+
 sn/libc/ctype/isdigit.c:
 	.text       start:0x80154168 end:0x8015417C
 
@@ -518,6 +527,9 @@ dolphin/os/OSThread.c:
 dolphin/os/OSTime.c:
 	.text       start:0x801637C4 end:0x801638A0
 	.data       start:0x801E4678 end:0x801E46D8
+
+dolphin/Runtime/__init_cpp.c:
+	.text       start:0x801638A0 end:0x80163914
 
 dolphin/os/OSMutex.c:
 	.text       start:0x80163914 end:0x80163984

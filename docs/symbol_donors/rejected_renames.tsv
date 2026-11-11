@@ -67,3 +67,4 @@
 0x8017DFC4	GXGetGPStatus	GXSetBreakPtCallback	GXFifo import: retained instructions and BSS relocation identify callback setter; see sdk_import.md
 0x800068F4	NuGetFrameAdvance	NuFParGetWord	GC parser line/word buffers at +0x108/+0x30A, quote/separator loop, UTF16 dispatch; strict NuFParGetInt/GetFloat callers; see opensaga_matching_results.md
 0x800080D4	NuGSceneDestroy	NuUnicodeToAscii	GC lhz source/stb destination loop converts U+2018/2019/2013/2026/2122 to bytes 91/92/96/85/99; see opensaga_matching_results.md
+0x801638C0	__init_cpp_exceptions	__init_cpp	Strict MSSB constructor-loop body match: walks the constructor array at 801FD050; no exception fragment registration.
