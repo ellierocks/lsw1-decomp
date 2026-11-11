@@ -57,6 +57,10 @@ layout findings in the owning reference. Choose the implementation and commit st
 that fits the work; tool improvements are part of the task, not automatically a separate
 project. Never weaken verification, compiler pins or split boundaries to manufacture wins.
 
+To choose which fix to make, [sweep blockers](sweep_blockers.md) ranks what stops the last
+full sweep by class, with functions and bytes. Regenerate it with
+`python3 tools/sweep_report.py --write`; measure a fix with `--json` before and `--compare` after.
+
 To add a sweep repair, add one new module to `tools/sweep_repairs/` and edit no shared
 file. Decorate the rewrite with `@repair(stage, order)` (`from . import repair`); the
 stages and their signatures are listed in `tools/sweep_repairs/__init__.py`. Pick an
