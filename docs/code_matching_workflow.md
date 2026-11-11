@@ -172,6 +172,8 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
 - `mulli` + `add` + `lha 0x14(rN)` (or `addi` + `lbzx`) is a struct-array or member-array
   access, `((Frame *)base)[i].field`; raw `base + i*K + off` arithmetic folds the offset
   into the address instead (`fn_800B2ED4`, `fn_80108DA8`).
+- When retail reloads a global after calls, naming the global at each use can avoid
+  keeping m2c's cached temporary in a callee-saved register (`fn_800D4DAC`).
 - A global accessed directly, not through a local pointer, gives CSE'd base+offset
   address constants (`fn_8010439C`). An indexed `p[0xD8 + i*0x34]` instead of a walking
   pointer fixes the induction setup (`fn_80106128`).
