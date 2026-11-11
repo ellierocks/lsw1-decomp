@@ -8,6 +8,7 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 ## Task routing
 
 - Start with [strategy](docs/strategy.md) for the current phase; update it when the plan changes.
+  [Workflow gaps](docs/workflow_gaps.md) ranks the known tooling and process gaps.
 - **Improve the workflow as you go.** Fix drafting, m2c, sweep and search tools when
   that unlocks matches more effectively than hand-editing each function. Preserve
   reproducible patches, test the fix and rerun it on affected targets to collect the
