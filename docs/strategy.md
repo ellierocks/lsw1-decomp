@@ -101,9 +101,8 @@ One item per thread, one PR, its own worktree, branch `t3/plan-<item>`.
 Revision 3 left no code item blocked: every runtime piece has a donor, an upstream
 source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
 
-- **Debugger driver** (stage 0, `8018A10C..8018AB8C`, 2,688 bytes): MSSB's CC0
-  `src/Dolphin/OdemuExi2/DebuggerDriver.c` (registered Matching there) has the same
-  function sizes. Port it as a new unit with the `DBOpen`/`DBClose` `blr`s
+- **Debugger driver** (stage 0, `8018A10C..8018AB8C`, 2,688 bytes): done in #120, ported
+  from MSSB's CC0 `DebuggerDriver.c` and promoted
   ([debugger driver](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)).
 - **CodeWarrior runtime and MetroTRK** (stage 0, `801503A0` unit and
   `__init_cpp_exceptions`, 5,144 bytes): MSSB's CC0 `Runtime/` and `TRK_MINNOW_DOLPHIN/`.

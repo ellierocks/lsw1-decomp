@@ -37,7 +37,7 @@ why = "The last CodeWarrior code: it uses neither ProDG nor Nu2 prototypes, so i
 [[stage.item]]
 id = "debugger"
 functions = ["fn_8018A10C", "fn_8018A110", "DBWrite", "DBRead", "DBQueryData", "DBInitInterrupts", "DBInitComm", "DBGHandler", "MWCallback", "DBGReadStatus", "DBGWrite", "DBGRead", "DBGReadMailbox", "DBGEXIImm"]
-note = "Port the CC0 MSSB DebuggerDriver.c (same function sizes) as a new unit split at 8018A10C..8018AB8C: docs/sdk_import.md#debugger-driver-range-8018a10c8018ab8c."
+note = "Ported from the CC0 MSSB DebuggerDriver.c and promoted in #120: docs/sdk_import.md#debugger-driver-range-8018a10c8018ab8c."
 # at revision 2: 14 functions, 2,688 bytes left
 
 [[stage.item]]

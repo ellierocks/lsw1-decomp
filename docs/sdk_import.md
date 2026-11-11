@@ -149,6 +149,7 @@ SISamplingRate 4 (`SamplingRate`, folded back from the old `SISamplingRateBSS` u
 |---|---|
 | `ax/AXSPB` | The compiled `.bss` is `0x36` bytes; the gap unit dtk would need starts at the odd address `0x802FCB16`, and dtk aborts (`Invalid alignment for split`). The donor size is a MWCC-vs-retail rounding problem, not a layout mismatch. |
 | `gx/GXDisplayList` | Defines `DisplayListFifo`, `OldCPUFifo` and `__savedGXdata`, but retail has no symbols for them: they sit unnamed in dtk's `lbl_8030EB90` (0x5D8, the tail of the old 0xb88 `gxData`). Requirement (b) cannot be proved without per-symbol offsets, and no xref evidence has been gathered to split the label. Without a retail range the compiled BSS would grow the image. |
+| `OdemuExi2/DebuggerDriver` | Its 21-byte `.sbss` ends at `8040ACE5`; DTK rejects the following odd-address gap. All six statics are located by relocations, but their storage remains on the fallback. |
 | `os/OSReset` | Carries the flag but defines no BSS statics; harmless, left alone. |
 
 `ai/ai` is not on the fallback and has no retail `.bss`/`.sbss` range: its
@@ -1687,17 +1688,16 @@ against the surrounding retail range, not just the probe table.
 
 ### Debugger driver range `8018A10C..8018AB8C`
 
-Retail `.text` `8018A10C..8018AB8C` (0xA80 bytes) is the Metrowerks debugger driver
-(EXI channel 2 mailbox transport), not a dolsdk2004 unit.
-`~/.cache/lsw1/dolsdk2004/src/` has only the stub replacements (`odemustubs`,
-`odenotstub`, `amcstubs`, `amcnotstub`) and `db/db.c`, which retail already splits at
-`80167280..8016736C`. Searching the donor and the opensaga cache for `DBGEXIImm`,
-`DBGHandler`, `MWCallback` and `DBGReadStatus` finds nothing, so there is no source to
-import and none was invented.
+The complete Metrowerks debugger transport is now **Matching** in
+`src/dolphin/OdemuExi2/DebuggerDriver.c`: **14 functions, 2,688 code bytes and
+4 initialized data bytes**. This supersedes the earlier no-source hypothesis:
+[dolsdk2004](../src/dolphin/README.md) only has stub replacements, but
+[MSSB's CC0 implementation](https://github.com/nlopez99/mssb-decomp/blob/407dbcbe70f8be5d167d0b1f0a229f38e0359019/src/Dolphin/OdemuExi2/DebuggerDriver.c)
+contains the real EXI channel 2 mailbox transport. The source credits that commit.
 
 | Retail address | Size | Function |
 |---|---:|---|
-| `8018A10C`, `8018A110` | 0x4 each | lone `blr`s, unnamed (`fn_8018A10C`, `fn_8018A110`) |
+| `8018A10C`, `8018A110` | 0x4 each | `DBClose`, `DBOpen` |
 | `8018A114` | 0x260 | `DBWrite` |
 | `8018A374` | 0x8C | `DBRead` |
 | `8018A400` | 0x9C | `DBQueryData` |
@@ -1707,31 +1707,58 @@ import and none was invented.
 | `8018A5E4`, `8018A690`, `8018A76C`, `8018A848` | 0xAC, 0xDC, 0xDC, 0xAC | `DBGReadStatus`, `DBGWrite`, `DBGRead`, `DBGReadMailbox` |
 | `8018A8F4` | 0x298 | `DBGEXIImm` |
 
-The callers and callees agree with the names (`call_graph.tsv`): the `DB*` entry points
-wrap `OSDisableInterrupts`/`OSRestoreInterrupts` around the `DBG*` helpers, all of which
-funnel into `DBGEXIImm`, and `DBInitInterrupts`/`DBInitComm` call
-`__OSMaskInterrupts`, `__OSUnmaskInterrupts` and `__OSSetInterruptHandler`. CrashWOC
-links the same code with the same sizes: `crashwoc_fn_matches.tsv` has `DBGEXIImm`
-(exact), `DBGHandler` and `DBWrite` (normalized body) paired to these addresses. CrashWOC
-orders it `DBGEXIImm..DBWrite`, `DBOpen`, `DBClose`, then the `EXI2_*` stubs, while retail
-runs in reverse. `DBClose`/`DBOpen` would then be the two `blr`s at `8018A10C` and
-`8018A110`, with the `EXI2_*` stubs and `AMC_IsStub` not linked in LSW1.
+The existing `call_graph.tsv` evidence agrees: the `DB*` entry points wrap
+interrupt handling around `DBG*` helpers that funnel into `DBGEXIImm`.
+`crashwoc_fn_matches.tsv` also pairs `DBGEXIImm` exactly, and `DBGHandler` and
+`DBWrite` by normalized body. CrashWOC orders the driver in the opposite direction;
+MSSB's recorded addresses put `DBClose` and `DBOpen` first, as in retail.
 
-The range sits directly after the HVQM4 decoder (`8018432C..8018A10C`, out of scope) and
-before `fn_8018AB8C`/`_write`, which call `InitializeUART`/`WriteUARTN`, so the
-range boundary is `8018A10C..8018AB8C`.
+MSSB's `configure.py` selects GC/1.2.5 for this library; its older unit Makefile
+selects 1.2.5n with `-common off -inline deferred`. Local experiments with both
+versions reproduce `DBGEXIImm`; the import uses the existing **GC/1.2.5n and
+unmodified dolsdk2004 release flags**, with no compiler pin or flag override.
+Deferred generation reverses the functions but changes inlining. Instead, the
+retained definitions follow retail order, and an inline status body is shared by
+`DBWrite` and the out-of-line `DBGReadStatus`. Unused donor stubs are omitted;
+inlined helpers' unreferenced out-of-line copies are stripped normally.
 
-**Lead (2026-11-11).** MSSB (`nlopez99/mssb-decomp`, CC0) registers
-`src/Dolphin/OdemuExi2/DebuggerDriver.c` as Matching, with the same function sizes as
-retail (`DBGEXIImm` 0x298, `DBWrite` 0x260, two 0x4 stubs). It is the `debugger` item of
-plan stage 0. The paragraph below predates it.
+`DBQueryData` restores interrupts inside the `!RecvDataLeng` block, as retail's
+branch at `8018A420` skips the restore call when data is already pending. The
+donor placed the restore outside that block. The dead assignment of the flag's
+value to `pEXIInputFlag` is omitted; its subsequent address assignment matches
+retail. The complete ordered section proof establishes `DBClose` then `DBOpen`
+next to the verified `DBWrite`, rather than naming either stub from its size.
 
-**Earlier hypothesis.** No donor source exists, so this is not an import. A hand-written
-`DebuggerDriver.c` would have to be reconstructed from the retail (or CrashWOC) bytes with
-the CodeWarrior GC/1.2.5n compiler, starting from `DBGEXIImm` and the `DBG*` helpers,
-then given a split at `8018A10C..8018AB8C`, its own `.sbss`/`.bss` ranges (not yet
-located) and the `DBOpen`/`DBClose` names. Until then the two `blr`s stay unnamed and the
-`DB*` labels remain symbol-only, which is not matching progress.
+| Section | Retail range, end exclusive | Ownership |
+|---|---|---|
+| `.text` | `8018A10C..8018AB8C` | Promoted, all 14 functions |
+| `.sdata` | `8040A1C0..8040A1C4` | Promoted `SendCount = 0x80` and three zero alignment bytes |
+| `.sbss` | `8040ACD0..8040ACE5` | Located by relocations; remains on assembly fallback |
+
+The `.sbss` relocations establish `MTRCallback` at `8040ACD0`, `DBGCallback` at
+`8040ACD4`, `SendMailData` at `8040ACD8`, `RecvDataLeng` at `8040ACDC`,
+`pEXIInputFlag` at `8040ACE0` and the byte `EXIInputFlag` at `8040ACE4`.
+The compiled extent is 21 bytes. Owning that exact extent makes DTK abort with
+`Invalid alignment for split` on the following gap at `8040ACE5`, so the unit uses
+`external_bss=True`, like AXSPB. No padding objects or BSS ownership are invented.
+The driver owns no `.bss` or `.data`. The neighboring HVQM4 range and every
+function from `fn_8018AB8C` onward retain their boundaries.
+
+From `origin/main` commit `7db800a412ed3fd3581c579ed88cbcd040c5c2ea`, matched code
+increases **354,044 → 356,732 bytes**, functions **2,375 → 2,389**, and matched data
+**127,502 → 127,506 bytes**. All 14 functions pass individual
+`verify_fn.py NAME --unit dolphin/OdemuExi2/DebuggerDriver --build --strict-symbols`
+checks; no function remains unmatched. The complete-unit gate passes both owned
+sections and their relocations. The linked gate verifies all 2,692 owned bytes
+and all previously promoted ranges. The whole DOL has zero differing bytes and
+retains retail SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/OdemuExi2/DebuggerDriver --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+```
 
 ## OS thread, init, exec and EABI batch
 

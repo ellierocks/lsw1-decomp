@@ -563,6 +563,9 @@ config.libs = [
     DolphinLib("hvqm4", [
         SDKObject("hvqm4/hvqm4dec", NonMatching, external_bss=True),
     ]),
+    DolphinLib("OdemuExi2", [
+        SDKObject("OdemuExi2/DebuggerDriver", Matching, external_bss=True),
+    ]),
     {
         "lib": "sn_runtime",
         "mw_version": config.linker_version,
