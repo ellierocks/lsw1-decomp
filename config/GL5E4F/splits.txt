@@ -326,6 +326,9 @@ auto/game/podrace.c:
 dolphin/TRK_MINNOW_DOLPHIN/ppcdown.c:
 	.text       start:0x801503A0 end:0x80151724
 
+dolphin/TRK_MINNOW_DOLPHIN/exception.c:
+	.text       start:0x80151724 end:0x80153184
+
 dolphin/Runtime/cvt_fp2unsigned.c:
 	.text       start:0x80153184 end:0x801531CC
 

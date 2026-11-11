@@ -481,6 +481,7 @@ config.libs = [
     },
     DolphinLib("cw_runtime", [
         SDKObject("TRK_MINNOW_DOLPHIN/ppcdown", Matching),
+        SDKObject("TRK_MINNOW_DOLPHIN/exception", Matching),
         Object(NonMatching, "dolphin/Runtime/cvt_fp2unsigned.c", compiler="prodg",
                compiler_version=PRODG_VERSION, cflags=cflags_prodg),
         SDKObject("Runtime/__start", Matching),

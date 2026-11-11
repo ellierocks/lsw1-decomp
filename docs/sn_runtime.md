@@ -211,3 +211,124 @@ retain the conversion as pending, and classify the remaining debugger
 fallback as SN rather than an MSSB MetroTRK import. No plan file was copied
 from that unmerged branch. Raw experiments and verification logs stay under
 ignored `work/cw-runtime/`.
+
+### Exception vectors and transport follow-up
+
+The second `cw-runtime` pass reconstructs the complete residual
+`80151724..80153184` range as
+[`TRK_MINNOW_DOLPHIN/exception.c`](../src/dolphin/TRK_MINNOW_DOLPHIN/exception.c).
+Its **54 entries / 6,752 bytes are promoted**. This is independently reconstructed
+SN assembly, using the same pinned GC/1.2.5n `asm`/`nofralloc` mechanism as
+`ppcdown`; no donor bodies, compiler overrides or verifier changes are involved.
+The new unit exactly occupies the old auto range. The preceding `ppcdown` end
+and following conversion start remain `80151724` and `80153184`.
+
+The installer at `80151AFC` proves the two vector-template boundaries: its
+preincrement copies start at `80151724` (0x54 bytes) and `80151778` (0xB0 bytes).
+The templates finish their executable paths with `rfi` at `80151764` and
+`80151814`; their following four zero words apiece are embedded template data,
+retained with `opword 0`. The two zero words at `80152408..80152410` also stay
+inside their assembly range. They are not fabricated executable functions.
+
+Entry names below retain the existing `lbl_` spelling where one existed;
+otherwise they are `fn_` plus the address. Sizes run to the next listed entry,
+except that the twelve patch slots are individually eight bytes.
+
+| Entry address(es) | Boundary and original-assembly evidence |
+|---|---|
+| `80151724` | Generic vector copied as 0x54 bytes; saves r31, SRR0/1 and LR at absolute low-memory offsets `0xDE8..0xDF8`, enables translation through SRR1 and transfers to `80151828` using `rfi`. |
+| `80151778` | Program vector copied as 0xB0 bytes; preserves CR/XER in SPRG0/1, tests the exception cause and either branches to the saved OS vector in BSS or reaches the same SRR0/1 transfer. |
+| `80151828` | SRR0 destination of both templates; saves GPRs through inherited r31 without a C frame, replaces r1/r2/r13 and joins command dispatch. |
+| `80151AFC` | Called by `ppcdown`; installs vector instruction words, copies both exact templates, backs up the OS vector, and patches its branch displacement. Error paths read inherited r31; manually ordered eight-byte frame. |
+| `80151C90` | Separate entry after the installer's `blr`; saves r31 in SPRG1, supplies exception number 4 in SPRG2 and branches to the common GPR save at `80151D1C`. |
+| `80151CA8` | Address installed as the data-storage vector branch target; saves r31/SRR0 in SPRGs and `rfi`s at `80151CC0` to `80151CC4`. |
+| `80151CC4` | SRR0 continuation; tests the `ppcdown` recovery guard, restores CR and either `rfi`s at `80151CF8` to `80150418` or sets exception number 3 before the common save. Ends with a branch to `801518FC`. |
+| `80151DD4` | Separate leaf after that dispatch branch; returns the workspace's transport selector using the assembly unit's explicit `lis/ori` address convention. |
+| `80151DE4` | Called by `ppcdown`; restores FPSCR, paired singles and all FPRs, including ABI-preserved registers, without a compiler frame. Ends at `80151F08`'s `blr`. |
+| `80151F0C` | Paired save entry called by `ppcdown`; writes all FPRs and FPSCR, tests HID2 and saves paired singles. Ends at `80152034`'s `blr`. |
+| `80152038` | `bl` target of the instruction decoder; consumes r4/r10 and returns its mask in private r12/r0 state, with no C ABI return convention. |
+| `80152070` | Called by exception dispatch; decodes the faulting instruction against saved registers, retains LR in unsaved r30, and reads the inherited workspace. Two return paths share that private LR; eight trailing zero bytes are retained. |
+| `80152410` | Direct exception-dispatch branch target; packet loop uses inherited r31, invokes callbacks through workspace offsets, and enters command handlers through a table. |
+| `80152524` | Command-table target; acknowledges the packet then joins `80152544` to update saved r3/PC and tail-branch to `ppcdown` register restoration. |
+| `80152578` | Command-table target; sets the step flag and branches into the packet loop at `8015247C`, without a prologue or return. |
+| `8015258C` | Command-table target; sets the same flag, puts -1 in private r3 and branches into `80152544`. |
+| `801525A8` | Branch target for local syscall commands; retains the command in unsaved r30, calls the local helpers, updates the saved context and branches to register restoration. |
+| `80152610` | Called by `ppcdown`; overwrites the twelve following branch instructions with trap words `0x10..0x1B`. It returns directly at `801526D0`. |
+| `801526D4` | Common `bl`/tail-branch destination of those slots; explicitly ordered LR/frame saves call `OSReport` and return -1. |
+| `80152700`, `80152708`, `80152710`, `80152718`, `80152720`, `80152728`, `80152730`, `80152738`, `80152740`, `80152748`, `80152750`, `80152758` | Twelve independently address-taken eight-byte patch slots. Each initially contains a branch to `801526D4` and an unreachable `blr`; the writer at `80152610` proves that neither instruction may be discarded or merged. |
+| `80152760` | `ppcdown` transport initialization callback; receives two wire words in r5/r6, keeps them across later helper calls and validates the `SNDL` signature. Explicit `lis/ori` pairs and manually ordered frame match the surrounding assembly. |
+| `801528B4` | `ppcdown` interrupt-install callback; installs `80152CE0`, masks/unmasks the observed EXI interrupt, and returns before the next callback. Uses the same explicit address pairs and frame order. |
+| `801528FC` | `ppcdown` query callback; leaves the wire word in private r5 across the deselect helper and only then moves it to r3. A normal opaque C call could clobber that live volatile register. |
+| `80152984`, `80152B40` | Separate receive/send callbacks installed by `ppcdown`, each ending in its own `blr`. DMA loops retain private r5 byte counts across the completion helper; send also has an explicit CTR delay loop. |
+| `80152CD8`, `80152CDC` | Two distinct address-taken `ppcdown` callbacks, each exactly one `blr`; kept as separate entries in the assembly transport callback family. |
+| `80152CE0` | Interrupt-handler address used by `801528B4`; acknowledges the hardware and invokes the stored callback after setting its pending byte. Explicit address pairs and eight-byte frame preserve the assembly helper layout. |
+| `80152D34`, `80152D4C`, `80152D60` | `bl` targets for EXI select, deselect and handshake; private helpers with explicit hardware stores. The handshake returns r5 state and uses an exact six-iteration CTR delay. Deselect preserves callers' live r5/r6. |
+| `80152D88` | `bl` target for DMA completion; only clobbers r3/r4, preserving callers' private r5 count, and polls the EXI transfer bit until clear. |
+| `80152D9C`, `80152DDC`, `80152E10`, `80152E4C` | Separate byte/word read/write `bl` targets, bounded by their `blr`s; manual eight-byte frames retain LR through r4 and call `80152D88`. Their restricted clobbers preserve r5/r6 for the initialization/query callers. |
+| `80152E7C`, `80152ECC`, `80152F3C`, `80152FA4`, `80153008`, `80153078`, `801530E0` | Seven distinct transport operations, bounded by their returns at `80152EC8`, `80152F38`, `80152FA0`, `80153004`, `80153074`, `801530DC`, `80153180`. They share manual `stmw/lmw r28` frames, including unused saves, and call the same restricted-clobber handshake/read/write helpers. The last operation retains the fifteen-iteration CTR delay. |
+
+Shared interior entries remain labels, not extra functions:
+`8015175C` and `8015180C` capture the relocated vector PC through `bl`/LR;
+`801517D8` restores the program-vector CR/XER; `801518FC` and `80151D1C`
+join context-save paths; `8015247C` and `80152544` join packet/command paths.
+CodeWarrior `entry` exports these labels. Local branches to the same instruction
+use local labels where the target has no relocation, preserving both the complete
+section relocation set and each strict function proof. The original instruction
+at `80152784` is `ori r0,r0,...`, despite the disassembler's `nop` alias; its
+nonzero low half and data relocation must be retained.
+
+The installer copies the original 0x104-byte OS vector range to `802F3368..802F346C`;
+`801517D4` branches there. `symbols.txt` now identifies that instruction buffer
+inside the old workspace symbol, shortening the preceding symbol at the exact
+buffer start. The BSS split, owner, addresses and storage remain unchanged; no
+BSS is promoted. Three external branch destinations in the following fallback
+range (`801532DC`, `80153458`, `801538A0`) gain labels for relocation proof;
+that neighbouring text range is unchanged and unpromoted.
+
+Every entry passes its individual
+`python3 tools/verify_fn.py NAME --build --strict-symbols` check. The exception
+unit passes `verify_unit.py dolphin/TRK_MINNOW_DOLPHIN/exception --build
+--functions` (**54/54**, complete `.text` and relocations). The preceding
+`ppcdown` unit still passes **33/33** and its complete-unit proof.
+After selecting the exception object as `Matching`, `bash build.sh` and
+`dol_compare.py --linked-units` pass with **zero differing bytes**, including
+all 6,752 newly promoted bytes. The rebuilt DOL retains SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+The baseline for this pass is **365,384 matched code bytes / 2,452 functions**;
+the result is **372,136 / 2,506**, a gain of **6,752 bytes / 54 functions**.
+After rebasing onto main `cce8790`, including the nufile and HVQM4 work, the report is
+**381,752 bytes / 2,526 functions**; this change still contributes only
+6,752 bytes / 54 entries. Matched data stays **128,546 bytes**. Replacing the old single pad function
+with 54 discovered entries changes the function denominator from 4,201 to
+4,254; the code-byte denominator remains 1,602,028. Discovery itself is not
+credited: the gain is the compiled unit that passed both promotion gates.
+
+### Conversion plateau after the exception follow-up
+
+`__cvt_fp2unsigned` remains **NonMatching**, at **16/18 exact instructions**
+(**94.11% objdiff**, strict **MISMATCH**). This pass rechecked the existing cast
+and bounded the additional search to three C addressing forms: an explicit
+external bound, a volatile constant load, and a volatile pointer to the constant.
+They scored 9/18, 9/18 and 6/18 respectively. None recovers retail's
+`lis/addi; lfd 0(r9)` while retaining the existing instruction sequence.
+The volatile-pointer form materializes an address but adds pointer storage and
+changes the stack frame. The best source remains unchanged.
+
+The C cast reproduces the conversion paths, CR combination, stack layout and
+register choices, which is strong compiler-generated evidence. The neighbouring
+assembly bridges and the extra `addi` do not establish an assembly origin for
+this body. It is therefore parked in `config/plan.toml`, with the next hypothesis
+to recover the SN `tealeaf` conversion source/addressing convention or try its
+original compiler revision in a score-only experiment. Compiler pins and the
+strict oracle are unchanged. Plan revision 6 names the exception source unit
+and records this plateau, closing `cw-runtime` with one parked function.
+
+`sprint_finish.py` passes with 54 verified entries, one parked conversion and
+zero deferred entries. The bench records 706.5 active seconds (11.8 minutes),
+**275.2 verified entries/hour / 34,405 verified bytes/hour**. The complete test
+suite passes **619 tests, two skipped**. `plan.py --no-remote` reports no revision
+warnings.
+
+Raw reconstruction, score and verification logs stay under ignored
+`work/cw-runtime/`; no Dolphin session or sweep was run.
