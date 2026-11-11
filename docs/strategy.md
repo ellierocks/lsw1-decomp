@@ -60,8 +60,8 @@ done when each function of each item is matched in the report or parked with a r
 
 | Stage | Targets | Code bytes | Functions | Depends on |
 |---|---|---:|---:|---|
-| 0 SDK residue | debugger driver, CodeWarrior runtime and MetroTRK, HVQM4 decoder, SDK leftovers | 29,680 | 95 | nothing; CodeWarrior, so it runs alongside stage 1 |
-| 1 Engine core | prototype hubs, then `nucore`, `numath`, `rtl`, `nusound3`, `nungc`, `nufmv`, newlib, SN tail | 95,216 + hubs | 196 | source-unit scaffolding for `rnc`, `nuheap`, `nugraph_2`, `NGCStreaming2`, `HVQM4PlayerEx` ([gap 8](workflow_gaps.md#8-functions-without-a-source-unit-are-not-swept)) |
+| 0 SDK residue | SN debugger and CodeWarrior runtime, HVQM4 decoder, SDK leftovers | 28,672 | 46 | nothing; CodeWarrior, so it runs alongside stage 1 |
+| 1 Engine core | prototype hubs, then `nucore`, `numath`, `rtl`, `nusound3`, `nungc`, `nufmv`, newlib, SN tail | 99,184 + hubs | 197 | source-unit scaffolding for `rnc`, `nuheap`, `nugraph_2`, `NGCStreaming2`, `HVQM4PlayerEx` ([gap 8](workflow_gaps.md#8-functions-without-a-source-unit-are-not-swept)) |
 | 2 Nu3d engine | `auto/nu3d/*`, `nu3dx/nuanim` | 152,100 | 272 | stage 1 prototypes; vector, matrix and material types; `nuportal_gen` scaffold |
 | 3 Objects, AI, camera | `apiobject`, `aisys`, `aiscript`, `gameai`, `gameaiscript`, `socksys` | 189,208 | 264 | `include/game` object and AI types ([game structs](game_structs.md)); `aiscript` scaffold |
 | 4 Gamelib and GUI | `audio`, `apimenu`, `apisave`, `saveload`, `gcutscn`, `terrain`, `debris` | 202,700 | 273 | stages 1–3 types |
@@ -104,10 +104,13 @@ source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
 - **Debugger driver** (stage 0, `8018A10C..8018AB8C`, 2,688 bytes): done in #120, ported
   from MSSB's CC0 `DebuggerDriver.c` and promoted
   ([debugger driver](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)).
-- **CodeWarrior runtime and MetroTRK** (stage 0, `801503A0` unit and
-  `__init_cpp_exceptions`, 5,144 bytes): MSSB's CC0 `Runtime/` and `TRK_MINNOW_DOLPHIN/`.
-  `fn_801503A0` uses r31 without saving it, so the TRK bodies are CodeWarrior `asm`
-  functions, as in the donor.
+- **SN debugger and CodeWarrior runtime** (stage 0, item `cw-runtime`): #122 promoted
+  SN's `ppcdown` debugger assembly, the `tealeaf` ABI bridges and `__init_cpp`
+  (5,140 bytes). MSSB's MetroTRK turned out to be a different debugger, so `ppcdown` was
+  rebuilt as `asm` from LSW1's own bytes, with per-entry evidence
+  ([runtime follow-up](sn_runtime.md#codewarrior-runtime-and-debugger-follow-up)).
+  Left: `__cvt_fp2unsigned` (16/18 instructions) and the debugger's exception vectors
+  at `80151724..80153184` (6,752 bytes), which need their entries found first.
 - **HVQM4 decoder** (stage 0, `dolphin/hvqm4/hvqm4dec`, 18,592 bytes): the parked
   candidate strictly verifies 18 of 43 functions
   ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with the two
@@ -119,12 +122,14 @@ source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
   stdio and stdlib (`sprintf` at `801541B4`, `vfprintf`, ...) in unnamed pad blocks. Name
   the functions inside each block without moving its ends, then import them the way
   `src/sn/` was ([SN runtime](sn_runtime.md#not-imported) lists the known failures).
-- **SN tail** (stage 1, 4,556 bytes): the libsn console and syscall stubs after the
+- **SN tail** (stage 1, 8,524 bytes): the libsn console and syscall stubs after the
   debugger driver are ordinary ProDG C (standard prologues, calls to `InitializeUART`
   and `WriteUARTN`); `cosf`, `fabsf` and `copysignf` are newlib libm. `_exit` is the crt
   word `.long 0; blr`. An assembly body is acceptable only where the retail bytes show
   the original was assembly (non-ABI register use, data words), with that evidence
-  recorded per function.
+  recorded per function. The item also holds `801531E8..80154168` (3,968 bytes,
+  split out by #122), which opens with an SN `__va_arg`-style routine and needs its
+  entries found first.
 - **Data** (stage 7): most comes with promoting units. The rest needs data splits per
   section ([build configuration](build_config.md)); there is no data-matching lane yet.
 
