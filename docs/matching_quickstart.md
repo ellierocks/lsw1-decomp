@@ -30,32 +30,37 @@ rather than a game function, skip to `tools/sdk_import_unit.py` in
 
 ## 2. Pick a target
 
-`python3 tools/kickoff.py` prints the shortlist: sweep state, near misses, the top
-`next_target.py --by-unit` units with ownership filtering, and a recommended lane;
-`--start UNIT` records the queue and baseline. Its yield priorities come from
-[strategy](strategy.md#choosing-a-task); the [sprint reference](sprint_workflow.md#scope)
-describes the sweep and ownership detection. Inspect related code shapes before choosing;
-the ranking does not estimate matching time. Naming and donor mining serve that target.
-For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
+`python3 tools/kickoff.py` prints checkout and sweep state and the plan's next item: the
+first open, unblocked, unclaimed item of the current stage in
+[`config/plan.toml`](../config/plan.toml) ([strategy](strategy.md#rule)). `kickoff.py --start
+--item ID` claims it (a record in the git common directory that every local worktree sees; a
+`t3/plan-ID` branch or PR claims it too), saves the queue and baseline and opens the bench run.
+Name the branch `t3/plan-ID`. `python3 tools/plan.py` shows stages, items, claims and "plan
+needs revision" warnings. Anything else (`--start UNIT`, `--start-lane`, another item) needs
+`--off-plan "REASON"`, which is recorded; state it in the PR too. The lane figures kickoff
+prints are off-plan context; the [sprint reference](sprint_workflow.md#scope) describes the
+sweep and ownership. For SDK units, `python3 tools/sdk_probe.py --pending` ranks the queue and
 `python3 tools/sdk_import_unit.py UNIT --apply` imports and proves a unit.
 
 ```sh
-python3 tools/kickoff.py                # state, lanes, recommendation
-python3 tools/sweep.py --apply          # then bash build.sh and verify_fn.py on each match
-python3 tools/sweep_permute.py          # permuter on the biggest near-misses (background it)
+python3 tools/kickoff.py                # state, the plan's next item, off-plan lanes
+python3 tools/kickoff.py --start --item ID
+python3 tools/sweep.py --unit UNIT --apply    # each of the item's units when the sweep is stale
+python3 tools/sweep_permute.py          # permuter on the item's near misses, then its stage's
 python3 tools/sweep_permute.py --apply-saved  # later: write its confirmed matches
-python3 tools/next_target.py
-python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
-python3 tools/next_target.py --jp-paired --max-size 0x400   # readable JP PC x86 body
+python3 tools/next_target.py            # the item's functions, ranked
+python3 tools/next_target.py --all --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
 ```
 
-`next_target.py` lists undone functions inside split units, sorted by direct callee count and
-then size, with their unit, source, OpenSaga lookup state and Japanese PC pair
-(`jp`, see [PC builds](research.md#pc-builds)). Donor name leads, then PC pairs,
-break otherwise equal ranking ties. Choose a `ready` row that is not `claimed`. An empty list does not mean the work is finished:
-most game code lies outside split units (Phase 2 in [strategy](strategy.md)).
-The default shows only the 15 smallest rows, so a lane of mid-size targets needs
-`--min-size`, `--unit` (repeatable prefix) and a larger `--limit`. A `(new file)`
+`next_target.py` lists the item's unmatched functions (claimed by this checkout, else the next
+item), sorted by direct callee count and then size, with their unit, source, OpenSaga lookup
+state and Japanese PC pair (`jp`, see [PC builds](research.md#pc-builds)); `in src` marks a
+function that already has a non-matching definition. `--all` restores the global ranking of
+undone functions in split units (default `--max-size 0x200`; `--jp-paired` keeps paired
+ones). `hillclimb.py try` records whether its function is in the plan target set and warns
+on an off-plan attempt. Choose a row that is not `claimed`, inspect related code shapes
+first (the ranking does not estimate matching time), and let naming and donor mining serve
+that target. The default shows 15 rows; widen with `--limit`. A `(new file)`
 source means the unit has no C yet: create the `source_path` it names
 (`src/<unit>.c`) and draft into it. If `configure.py` has no entry for the unit
 yet (for example `auto/game/pickups`), add one beside the other `auto/` entries:
