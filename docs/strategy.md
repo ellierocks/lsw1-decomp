@@ -109,8 +109,11 @@ source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
   (5,140 bytes). MSSB's MetroTRK turned out to be a different debugger, so `ppcdown` was
   rebuilt as `asm` from LSW1's own bytes, with per-entry evidence
   ([runtime follow-up](sn_runtime.md#codewarrior-runtime-and-debugger-follow-up)).
-  Left: `__cvt_fp2unsigned` (16/18 instructions) and the debugger's exception vectors
-  at `80151724..80153184` (6,752 bytes), which need their entries found first.
+  Revision 6 replaces the residual auto unit with
+  `dolphin/TRK_MINNOW_DOLPHIN/exception`: 54 assembly entries / 6,752 bytes are
+  promoted with exact boundaries and per-entry evidence. The only remaining
+  conversion, `__cvt_fp2unsigned`, is parked at 16/18 instructions after bounded
+  address-materialization experiments; the existing C cast remains the candidate.
 - **HVQM4 decoder** (stage 0, `dolphin/hvqm4/hvqm4dec`, 18,592 bytes): the parked
   candidate, built with GC/1.2.5, strictly verifies 23 of 43 functions
   ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with

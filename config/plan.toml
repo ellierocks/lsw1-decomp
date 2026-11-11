@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 5
+revision = 6
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -42,8 +42,8 @@ note = "Ported from the CC0 MSSB DebuggerDriver.c and promoted in #120: docs/sdk
 
 [[stage.item]]
 id = "cw-runtime"
-units = ["dolphin/TRK_MINNOW_DOLPHIN/ppcdown", "dolphin/Runtime/tealeaf", "dolphin/Runtime/__init_cpp", "dolphin/Runtime/cvt_fp2unsigned", "auto_01_80151724_text"]
-note = "#122 promoted ppcdown, tealeaf and __init_cpp (docs/sn_runtime.md#codewarrior-runtime-and-debugger-follow-up). Left: __cvt_fp2unsigned (16/18, lis/addi + lfd 0(r9) addressing) and the SN debugger exception vectors at 80151724..80153184 (6,752 B), which have no function symbols yet: discover the entries, then reconstruct as asm with per-entry evidence, as for ppcdown."
+units = ["dolphin/TRK_MINNOW_DOLPHIN/ppcdown", "dolphin/Runtime/tealeaf", "dolphin/Runtime/__init_cpp", "dolphin/Runtime/cvt_fp2unsigned", "dolphin/TRK_MINNOW_DOLPHIN/exception"]
+note = "#122 promoted ppcdown, tealeaf and __init_cpp (docs/sn_runtime.md#codewarrior-runtime-and-debugger-follow-up). The exception unit now promotes 54 entries / 6,752 B at 80151724..80153184 with per-entry assembly evidence. __cvt_fp2unsigned is parked at 16/18 after bounded addressing experiments; no assembly provenance is established for that C-shaped body."
 # at revision 4: 2 functions, 6,824 bytes left
 
 [[stage.item]]
@@ -1574,3 +1574,7 @@ reason = "Best 142/245; two instructions missing and CR4/register allocation dif
 [[parked]]
 function = "NuDatOpenEx"
 reason = "Best 235/358; one instruction missing; retail saves r19 and retains a stack name pointer and parsing cursor. Tried typed draft, allocator prototype and parse/store ordering fixes, pointer-walk parsing and 180 variants. Next: recover allocation/name and file-tree parsing inline helpers."
+
+[[parked]]
+function = "__cvt_fp2unsigned"
+reason = "Best 16/18 exact instructions (94.11% objdiff), strict MISMATCH: ProDG folds the constant low half into lfd, while retail uses lis/addi then lfd 0(r9). Explicit bound and volatile-load/pointer forms did not improve it. Next: recover the SN tealeaf conversion source/addressing convention or test its original compiler revision in a score-only experiment; current evidence does not establish an assembly origin."
