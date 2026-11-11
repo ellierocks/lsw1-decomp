@@ -1546,3 +1546,31 @@ reason = "Score N/A (0 executable instructions): 12 zero bytes are the overlappi
 [[parked]]
 function = "pad_00_8000348C_init"
 reason = "Score N/A (0 executable instructions): 20 zero alignment bytes after __init_hardware, with no entry or branch target. Next: distinguish section alignment from functions in DTK reports; keep retail fallback rather than synthesize an assembly function."
+
+[[parked]]
+function = "fn_80005A4C"
+reason = "Best 47/52; one extra handle move in retail after strlen; inlined write argument materialization differs. Tried typed helper, separate length local and bounded variant/permuter searches. Next: recover the original write helper parameter types and scope."
+
+[[parked]]
+function = "NuDatFileOpen"
+reason = "Best 125/157; register allocation and a retained index copy instead of retail byte offset. Tried typed table, retry-loop shape, byte-offset accessor and 180 variants. Next: use an inline handle allocator with the byte-offset lifetime spanning seek."
+
+[[parked]]
+function = "NuDatFileLoadBufferLsn"
+reason = "Best 64/98; rounded read sizes live across diagnostics in retail; candidate uses one fewer saved register. Tried typed draft, shared overflow tail and arithmetic shape, 180 variants. Next: recover the platform LSN stub inline and argument evaluation."
+
+[[parked]]
+function = "NuFileOpen"
+reason = "Best 191/243; four instructions missing and different slot index allocation after lookup. Tried typed device lookup, archive-return lifetime/memorycard branch rewrite, 180 variants. Next: recover original slot initialization and inline asynchronous status helpers."
+
+[[parked]]
+function = "fn_80008E78"
+reason = "Best 151/204; compiler merges error blocks duplicated in retail; checksum/decrypt scheduling differs. Tried typed pak draft, checksum/decrypt helpers and 180 variants. Next: separate version-specific checksum validation helpers and error exits."
+
+[[parked]]
+function = "fn_80009E94"
+reason = "Best 142/245; two instructions missing and CR4/register allocation differs across cached and ARAM reads. Tried typed DVD draft, direct CR4 predicate and 180 variants. Next: recover the original asynchronous direct-read and ARAM-copy inline boundaries."
+
+[[parked]]
+function = "NuDatOpenEx"
+reason = "Best 235/358; one instruction missing; retail saves r19 and retains a stack name pointer and parsing cursor. Tried typed draft, allocator prototype and parse/store ordering fixes, pointer-walk parsing and 180 variants. Next: recover allocation/name and file-tree parsing inline helpers."
