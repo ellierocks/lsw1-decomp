@@ -447,6 +447,7 @@ config.libs = [
             Object(NonMatching, "auto/nufmv/ngc/nufmvmtl.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nungc/ngcapi.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nusound3/ngc/NGCStreaming.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nusound3/ngc/NGCStreaming2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nusound3/ngc/nusound.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/ngc_video.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(Matching, "auto/nu3d/ngc/nugobj.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),

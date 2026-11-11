@@ -225,7 +225,7 @@ void fn_80044F6C(s32 arg0, s32 arg1) {
     lbl_80407F38 = 1;
 }
 
-s32 (*fn_80009970(s32 *, s32))();
+void (*fn_80009970(s32 *, s32))(s32 *, ...);
 extern s32 lbl_80193F2C[];
 extern s32 lbl_801940DC[];
 
@@ -273,4 +273,138 @@ void fn_80044F28(s32 *arg0, f32 fpad0, f32 farg1, f32 farg2) {
     if ((farg1 > lbl_801940FC[0]) || (farg2 > lbl_801940FC[0])) {
         fn_80034FD4(*arg0, farg1, farg2);
     }
+}
+
+extern volatile s32 lbl_8040A444, lbl_8040A448;
+
+void fn_80043040(s32 pad0, s32 arg1) {
+    lbl_8040A444 = 1;
+    lbl_8040A448 = arg1;
+}
+
+s32 CARDClose(s32 *);
+s32 CARDUnmount(s32);
+extern s32 lbl_80299BA0[];
+extern volatile s32 lbl_8040A450;
+extern volatile s32 lbl_8040A454;
+extern volatile s32 lbl_8040A458;
+extern volatile s32 lbl_8040A45C;
+extern volatile s32 lbl_8040A460;
+
+void fn_80042FC8(void) {
+    if ((s32) lbl_8040A458 != 0) {
+        CARDClose(lbl_80299BA0);
+        lbl_8040A45C = 0;
+        lbl_8040A458 = 0;
+        lbl_8040A460 = 0;
+    }
+    if ((s32) lbl_8040A450 != 0) {
+        CARDUnmount(0);
+        lbl_8040A450 = 0;
+    }
+    lbl_8040A460 = 0;
+    lbl_8040A450 = 0;
+    lbl_8040A454 = 0;
+    lbl_8040A458 = 0;
+    lbl_8040A45C = 0;
+}
+
+struct nusound_node_s {
+    s32 id;
+    char *name;
+    struct nusound_node_s *left, *right;
+};
+extern s32 strcmp(const char *, const char *);
+void fn_80045050(struct nusound_node_s *root, struct nusound_node_s *node) {
+    struct nusound_node_s *child;
+
+    if (strcmp(node->name, root->name) > 0) {
+        child = root->right;
+        if (child == NULL) {
+            root->right = node;
+            return;
+        }
+        goto block_4;
+    }
+    child = root->left;
+    if (child != NULL) {
+block_4:
+        fn_80045050(child, node);
+        return;
+    }
+    root->left = node;
+}
+
+extern s32 (*fn_80009948(s32 *, s32))(s32 *, ...);
+extern s32 lbl_801940C4[];
+extern u32 lbl_804082D4, lbl_80408310;
+s32 fn_80044C78(s32 id) {
+    u32 *p = &lbl_80408310;
+    u32 state;
+    if (id == 0)
+        p = &lbl_804082D4;
+    state = *p;
+    switch (state) {
+    case 0:
+    case 4:
+        return 0;
+    case 1:
+    case 2:
+        return 2;
+    case 3:
+        return 1;
+    default:
+        return fn_80009948(lbl_80193F2C, 0x3b8)(lbl_801940C4);
+    }
+}
+
+extern void fn_80043128(s32 *);
+void fn_80043484(s32 value)
+{
+    s32 args[8];
+    s32 i;
+    for (i = 1; i < 8; i++)
+        args[i] = 0;
+    args[0] = value;
+    fn_80043128(args);
+}
+
+extern void fn_800434C8(s32 *);
+void fn_80043F58(s32 value)
+{
+    s32 args[8];
+    s32 i;
+    for (i = 1; i < 8; i++)
+        args[i] = 0;
+    args[0] = value;
+    fn_800434C8(args);
+}
+
+s32 (*fn_8000995C(s32 *, s32))();
+extern s32 lbl_80193F9C[];
+extern s32 lbl_80193FBC[];
+extern s32 lbl_80194010[];
+extern s32 lbl_80194064[];
+extern s32 lbl_8040A4A8;
+extern s32 lbl_8040A4AC;
+extern s32 lbl_8040A4B0;
+
+void NuSoundSetRequestTable(s32 arg0, s32 arg1) {
+    s32 count;
+
+    count = arg1;
+    fn_8000995C(lbl_80193F2C, 0x9A)(lbl_80193F9C);
+    if ((s32) (count * 0x10) > (s32) lbl_8040A4A8) {
+        fn_80009970(lbl_80193F2C, 0x9E)(lbl_80193FBC);
+        fn_80009970(lbl_80193F2C, 0x9F)(lbl_80193FBC);
+        fn_80009970(lbl_80193F2C, 0xA0)(lbl_80193FBC);
+        fn_80009970(lbl_80193F2C, 0xA1)(lbl_80194010);
+        fn_80009970(lbl_80193F2C, 0xA2)(lbl_80194064, count, lbl_8040A4A8 / 16);
+        fn_80009970(lbl_80193F2C, 0xA3)(lbl_80193FBC);
+        fn_80009970(lbl_80193F2C, 0xA4)(lbl_80193FBC);
+        fn_80009970(lbl_80193F2C, 0xA5)(lbl_80193FBC);
+        count = lbl_8040A4A8 / 16;
+    }
+    lbl_8040A4AC = arg0;
+    lbl_8040A4B0 = count;
 }
