@@ -97,3 +97,13 @@ its initialized data; BSS stays in fallback storage.
 `hvqm4/hvqm4dec.c` is a NonMatching reconstruction, separate from the
 dolsdk2004 imports. Its provenance is recorded in the source and the
 [HVQM4 handoff](../../docs/sdk_import.md#hvqm4-decoder-parked).
+
+`Runtime/__init_cpp.c` adapts the constructor loop from MSSB's CC0
+`src/Dolphin/os/__ppc_eabi_init.cpp`, commit
+`407dbcbe70f8be5d167d0b1f0a229f38e0359019`; its licence is
+[COPYING.MSSB](COPYING.MSSB). `TRK_MINNOW_DOLPHIN/ppcdown.c` and
+`Runtime/tealeaf.c` reconstruct SN's original assembly calling conventions
+from LSW1, and `Runtime/cvt_fp2unsigned.c` is an independent, unpromoted
+ProDG C candidate. These four files are separate from the dolsdk2004 imports.
+MSSB's runtime and MetroTRK were reviewed but do not supply these SN bodies.
+See [runtime evidence](../../docs/sn_runtime.md#codewarrior-runtime-and-debugger-follow-up).

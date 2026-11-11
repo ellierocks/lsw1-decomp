@@ -96,3 +96,118 @@ keeps that name and stays in the auto-generated text. No boundary was moved to r
 | `vfprintf`, `strtod`, `impure`, `_xeh`, `_x_exit`, `_x_pure` | do not compile or fix up yet (endianness config, `_register_malloc`, elf fixup failure) |
 | `strchr`, `strncat`, `strrchr`, `atoi`, `mbtowc_r`, `qsort`, stdio (`sprintf`, `fflush`, `fopen`, ...) | compile but do not match; not investigated |
 | `__negdi2`, `__cmpdi2`, `__ucmpdi2`, `__do_global_dtors`, `__main`, libm | no match yet / not wired |
+
+## CodeWarrior runtime and debugger follow-up
+
+Plan item `cw-runtime` was investigated from main `7db800a`. Its donor lead
+needs three corrections, established by bodies rather than symbol names:
+
+- `0x801503A0..0x80151724` is the leading SN `ppcdown` debugger assembly,
+  including `EnableMetroTRKInterrupts`. MSSB's
+  `src/Dolphin/TRK_MINNOW_DOLPHIN/dolphin_trk.c` implements a different debugger:
+  its interrupt wrapper calls `EnableEXI2Interrupts`, whereas LSW1 manipulates
+  the SN workspace and installs SN handlers. No MSSB TRK bodies were copied.
+- `0x801531CC..0x801531E8` is seven SN `tealeaf` ABI bridge entries, each a
+  tail branch to a retained libgcc implementation. MSSB's
+  `src/Dolphin/Runtime/runtime.c` instead has full arithmetic implementations.
+  Branch destinations prove the previously unnamed entries: `__mod2i` at
+  `801531D8`, `__div2u` at `801531E0`, and `__mod2u` at `801531E4`.
+- `0x801638A0..0x80163914` corresponds to MSSB's
+  `src/Dolphin/os/__ppc_eabi_init.cpp` wrapper and constructor loop, not
+  `Runtime/__init_cpp_exceptions.cpp`. The latter registers an exception
+  fragment; LSW1 walks the null-terminated constructor array at `801FD050`.
+  The loop is consequently renamed `__init_cpp`. The wrapper keeps its
+  neutral `fn_801638A0` name because `__init_user` already names the separate
+  empty `.init` entry at `80003464`.
+
+The MSSB revision reviewed and used for the constructor loop is
+`407dbcbe70f8be5d167d0b1f0a229f38e0359019` (CC0; see
+[the source provenance](../src/dolphin/README.md) and
+[licence](../src/dolphin/COPYING.MSSB)). RE4 was read only for object identity
+and calling-convention evidence; none of its source was copied.
+
+### Original assembly evidence
+
+The `ppcdown` implementation is an assembly reconstruction from LSW1, emitted
+with CodeWarrior `asm`/`nofralloc`, rather than a transfer from MSSB. Its
+private calling convention requires assembly. This applies to the following
+entries; ordinary compiler-generated C in neighbouring fallback ranges was
+not transcribed.
+
+| Entries (address suffixes; `fn_` unless named) | Evidence requiring the original assembly ABI |
+|---|---|
+| `801503A0`, `80150418` | Copy and recovery entry use inherited r31 and the `+0x6EC` exception guard; neither saves r31. |
+| `80150428`, `EnableMetroTRKInterrupts`, `8015057C` | Explicit `lis/ori` addresses, manually managed LR calls, workspace callback offsets and nonstandard prologue/epilogue order; initialization patches other routines' instruction words. |
+| `801507CC` | Assembly workspace setter uses `lis/ori` and returns its private r3/r4 values. |
+| `801507E0`, `801508CC`, `801508F4` | Dispatcher and error/return entries inherit the workspace and branch among command handlers without C frames. |
+| `801508F8`, `80150938`, `80150978`, `801509C8`, `80150A64`, `80150B54`, `80150B9C`, `80150C3C`, `80150D94`, `80150DE8`, `80150EAC` | Command handlers retain LR in r30, use r31 without saving it, and exchange packet fields with byte-reversed loads/stores; error paths branch into the common return entry. |
+| `80150D64`, `80150D80`, `80150DBC`, `80150DD4` | Hardware helpers return private register/CR0 state consumed directly by their assembly callers. |
+| `lbl_80150F04`, `80150F34` | Reset command falls through into register restoration and `rfi`; saved r31 and r1 are restored from the debugger workspace. |
+| `8015100C`, `801510BC`, `801510E8` | TTY paths inherit r31, branch to the restore entry and share the interior entry at `8015110C`; that entry preserves LR in r29. |
+| `8015114C`, `80151190`, `80151350`, `80151510` | Special-register and FPR/paired-single save/restore use the inherited debugger workspace; MSR/FPSCR and GQR state must be restored in the observed order. |
+| Seven `tealeaf` entries | Single unconditional branches preserve the incoming CodeWarrior/libgcc EABI arguments and caller LR. |
+
+`lbl_80150F4C` and `lbl_8015110C` identify shared interior assembly entries,
+so compiled and target relocations agree even when another entry targets
+an interior instruction. The reset command at `80150F04` is now an explicit
+48-byte entry; five previously label-only arithmetic bridges are four-byte
+functions. These symbol discoveries alone are not matching progress.
+
+### Flags and promotion
+
+The constructor donor strictly matches with pinned **GC/1.2.5n**, ordinary
+SDK release flags plus **`-schedule off -opt nopeep`** for this unit only.
+Scheduling otherwise hoists the array address into the prologue, and peephole
+optimization removes the two branch-to-next-instruction chains. The donor's
+GC/2.6 runtime settings do not apply. The hand-written assembly units use
+the unchanged SDK flags; compiler pins, split boundaries of neighbouring
+units, and verifier rules are unchanged.
+
+| Source unit under `src/dolphin/` | Retail text range (end exclusive) | Strict entries | Promoted code bytes |
+|---|---|---:|---:|
+| `TRK_MINNOW_DOLPHIN/ppcdown` | `801503A0..80151724` | 33/33 | 4,996 |
+| `Runtime/tealeaf` | `801531CC..801531E8` | 7/7 | 28 |
+| `Runtime/__init_cpp` | `801638A0..80163914` | 2/2 | 116 |
+
+All 42 entries pass individual `verify_fn.py NAME --unit UNIT --build
+--strict-symbols` checks. All three units pass `verify_unit.py UNIT --build
+--functions`; after selecting their compiled objects with `Matching`,
+`bash build.sh` and `dol_compare.py --linked-units` pass with **zero differing
+bytes**. Data/BSS stays with its existing owner. The complete rebuilt DOL
+retains SHA-1 `95cca08a19224775d1a8d6cc64601fb7d0080981`.
+
+Baseline matching was **354,044 code bytes / 2,375 functions**. Final matching
+is **359,184 bytes / 2,417 functions**, an increase of **5,140 bytes / 42
+entries**; matched data remains **127,502 bytes**. Of the original requested
+37 functions / 5,144 bytes, **36 functions / 5,072 bytes** now strictly match
+and are promoted. The additional six entries account for 68 bytes.
+
+The report denominator changes from 1,591,228 bytes / 4,192 functions to
+1,602,016 bytes / 4,200 functions. Besides the six newly explicit entries,
+DTK now counts the residual fallback ranges `80151724..80153184` (6,752
+bytes) and `801531E8..80154168` (3,968 bytes) as two `pad_` functions. They
+remain unmatched assembly fallback. This is accounting exposed by splitting
+the former auto unit, not newly decompiled code. The podrace boundary at
+`801503A0` and every existing neighbouring split are retained.
+
+### Remaining requested function
+
+| Function | Best result | Next hypothesis |
+|---|---|---|
+| `__cvt_fp2unsigned` (`80153184`, 72 bytes) | ProDG C cast: **16/18 exact instructions**, **94.11% objdiff**, strict **MISMATCH**; not promoted | Retail materializes the constant's full address with `lis/addi`, then loads with `lfd 0(r9)`. Current ProDG folds the low relocation into `lfd`. Recover the SN `tealeaf` conversion source/addressing convention or investigate its original compiler revision using a separate score-only experiment. |
+
+The candidate is `Runtime/cvt_fp2unsigned.c`, compiled with the pinned
+ProDG flags and kept `NonMatching`. A C cast already reproduces the
+comparison, CR combination, both conversion paths, stack layout and result
+registers. Changes to scheduling, small-data threshold, TOC flags and
+`-mfast-cast` did not fix the address materialization. MSSB's longer
+saturating assembly conversion is rejected because LSW1 does not clamp
+negative or overflowing inputs. This C-generated near-match has not been
+replaced with a transcription of its retail instructions.
+
+`config/plan.toml` is not on this main baseline; it belongs to the parent's
+`t3/strategy-100` branch. Its `cw-runtime` item needs to track the new units,
+retain the conversion as pending, and classify the remaining debugger
+fallback as SN rather than an MSSB MetroTRK import. No plan file was copied
+from that unmerged branch. Raw experiments and verification logs stay under
+ignored `work/cw-runtime/`.
