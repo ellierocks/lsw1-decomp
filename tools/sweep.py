@@ -441,6 +441,8 @@ def sweep_one(t: dict) -> dict:
             res, body = repair_draft(name, source, body, (OUT / name / "asm.s").read_text(), unit_text)
             res["context"] = context is not None
             res, body = try_variants(name, source, res, body)
+            res, body = final_repairs(name, source, res, body,
+                                      (OUT / name / "asm.s").read_text(), unit_text)
         if best is None or better(res, best[0]):
             best = (res, body)
         if res["verdict"] == "MATCH":
@@ -457,6 +459,27 @@ def sweep_one(t: dict) -> dict:
                                   r"this is the first entry", ln)]
         res["error"] = (msgs[0] if msgs else err.splitlines()[-1])[:200]
     return {**row, **res}
+
+
+def final_repairs(name: str, source: str, res: dict, body: str,
+                  asm: str, unit: str) -> tuple[dict, str]:
+    """Independent alternatives to the completed pipeline; always retain its result.
+
+    A locally better greedy repair can block a later improvement. Final repairs each
+    start from the same completed draft and cannot lower its score, even indirectly.
+    """
+    base = body
+    for rewrite in sweep_repairs.stage("final"):
+        alt = rewrite(base, name, asm, unit)
+        if alt == base:
+            continue
+        candidate, alt = score_draft(name, source, alt)
+        candidate, alt = try_variants(name, source, candidate, alt)
+        if better(candidate, res):
+            candidate[rewrite.__name__] = True
+            candidate["context"] = res.get("context")
+            res, body = candidate, alt
+    return res, body
 
 
 def try_variants(name: str, source: str, res: dict, body: str) -> tuple[dict, str]:

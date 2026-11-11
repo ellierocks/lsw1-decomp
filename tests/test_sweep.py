@@ -422,6 +422,23 @@ class RepairDraftTest(unittest.TestCase):
         self.assertNotIn("frame_buffer", res)
         self.assertEqual(body, "void g(f32 *);\n" + self.BODY)
 
+    def test_final_repairs_start_from_completed_pipeline(self):
+        from unittest import mock
+        def first(body, *args):
+            return body + "first"
+        def second(body, *args):
+            return body + "second"
+        scores = {"basefirst": 6, "basesecond": 8}
+        with mock.patch.object(sweep.sweep_repairs, "stage", return_value=(first, second)), \
+                mock.patch.object(sweep, "score_draft", side_effect=lambda n, s, b:
+                                  ({"verdict": "MISMATCH", "exact": scores[b], "target": 10}, b)), \
+                mock.patch.object(sweep, "try_variants", side_effect=lambda n, s, r, b: (r, b)):
+            result, body = sweep.final_repairs("f", "u.c",
+                {"verdict": "MISMATCH", "exact": 7, "target": 10}, "base", "", "")
+        self.assertEqual(result["exact"], 8)
+        self.assertEqual(body, "basesecond")
+        self.assertTrue(result["second"])
+
     def test_strip_tmp(self):
         res = sweep.strip_tmp({"verdict": "COMPILE-ERROR",
                                "error": "Z:/tmp/score_fn_w1otsbmy/levels.c:5363: parse error before `*'"})
