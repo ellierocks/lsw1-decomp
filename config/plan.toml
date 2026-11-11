@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 3
+revision = 4
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -36,15 +36,15 @@ why = "The last CodeWarrior code: it uses neither ProDG nor Nu2 prototypes, so i
 
 [[stage.item]]
 id = "debugger"
-functions = ["fn_8018A10C", "fn_8018A110", "DBWrite", "DBRead", "DBQueryData", "DBInitInterrupts", "DBInitComm", "DBGHandler", "MWCallback", "DBGReadStatus", "DBGWrite", "DBGRead", "DBGReadMailbox", "DBGEXIImm"]
+functions = ["DBClose", "DBOpen", "DBWrite", "DBRead", "DBQueryData", "DBInitInterrupts", "DBInitComm", "DBGHandler", "MWCallback", "DBGReadStatus", "DBGWrite", "DBGRead", "DBGReadMailbox", "DBGEXIImm"]
 note = "Ported from the CC0 MSSB DebuggerDriver.c and promoted in #120: docs/sdk_import.md#debugger-driver-range-8018a10c8018ab8c."
 # at revision 2: 14 functions, 2,688 bytes left
 
 [[stage.item]]
 id = "cw-runtime"
-units = ["auto_01_801503A0_text", "auto_01_801638A0_text"]
-note = "CodeWarrior runtime and MetroTRK: port MSSB's CC0 src/Dolphin/Runtime (runtime.c, __init_cpp_exceptions.cpp) and TRK_MINNOW_DOLPHIN. fn_801503A0 uses r31 unsaved, so TRK bodies are CodeWarrior asm functions as in the donor."
-# at revision 3: 37 functions, 5,144 bytes left
+units = ["dolphin/TRK_MINNOW_DOLPHIN/ppcdown", "dolphin/Runtime/tealeaf", "dolphin/Runtime/__init_cpp", "dolphin/Runtime/cvt_fp2unsigned", "auto_01_80151724_text"]
+note = "#122 promoted ppcdown, tealeaf and __init_cpp (docs/sn_runtime.md#codewarrior-runtime-and-debugger-follow-up). Left: __cvt_fp2unsigned (16/18, lis/addi + lfd 0(r9) addressing) and the SN debugger exception vectors at 80151724..80153184 (6,752 B), which have no function symbols yet: discover the entries, then reconstruct as asm with per-entry evidence, as for ppcdown."
+# at revision 4: 2 functions, 6,824 bytes left
 
 [[stage.item]]
 id = "hvqm4"
@@ -135,8 +135,8 @@ note = "newlib 1.8.2 stdio/stdlib in unnamed pad blocks (sprintf at 801541B4, vf
 
 [[stage.item]]
 id = "sn-tail"
-functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text", "_exit"]
-note = "SN libsn console/syscall stubs (ProDG C: normal prologues, call InitializeUART/WriteUARTN) and newlib libm (cosf, fabsf, copysignf; fdlibm sf_*). _exit is the crt word .long 0; blr: an assembly body is acceptable only where retail bytes show the original was assembly (non-ABI register use, data words); record that evidence per function."
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text", "_exit", "pad_01_801531E8_text"]
+note = "SN libsn console/syscall stubs (ProDG C: normal prologues, call InitializeUART/WriteUARTN) and newlib libm (cosf, fabsf, copysignf; fdlibm sf_*). pad_01_801531E8_text (801531E8..80154168, 3,968 B, split out by #122) starts with an SN __va_arg-style routine and has no function symbols yet: discover entries first. _exit is the crt word .long 0; blr: an assembly body is acceptable only where retail bytes show the original was assembly (non-ABI register use, data words); record that evidence per function."
 # at revision 3: 18 functions, 4,556 bytes left
 
 [[stage]]
