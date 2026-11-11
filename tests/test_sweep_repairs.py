@@ -14,6 +14,7 @@ class RegistryTest(unittest.TestCase):
         # The order sweep.py hard-coded before the split. A new repair may take any free
         # slot without editing this list; these keep their relative order.
         before = {
+            "final": [],
             "frame": ["empty_frame", "frame_buffer"],
             "scored": ["byte_strides", "base_pointer", "loop_guard", "index_loops", "countdown_loops",
                        "positive_guards", "switch_chain"],

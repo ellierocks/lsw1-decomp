@@ -9,6 +9,7 @@ function name raises at import, so two branches that pick the same slot fail in 
 Stages (the result flag sweep.py writes into a row is the function's `__name__`):
   frame     (body, asm) -> str        target frame size; sweep_one, before `scored`
   scored    (body) -> str             sweep_one, each kept only when it scores better
+  final     (body, name, asm, unit) -> str | list[str]   independent alternatives after the pipeline
   variant   (body) -> str             try_variants, one alternative per repair
   variants  (body) -> list[str]       try_variants, after every `variant`
 A repair returns BODY unchanged (or []) when it does not apply.
@@ -23,6 +24,7 @@ from typing import Callable
 STAGES = {
     "frame": "(body, asm) -> str",
     "scored": "(body) -> str",
+    "final": "(body, name, asm, unit) -> str | list[str]",
     "variant": "(body) -> str",
     "variants": "(body) -> list[str]",
 }

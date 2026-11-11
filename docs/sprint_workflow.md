@@ -67,7 +67,10 @@ stages and their signatures are listed in `tools/sweep_repairs/__init__.py`. Pic
 order no other repair in that stage uses: the package imports every module itself, and
 a taken slot or function name raises at import. Keep the module's regexes in the module,
 and test the rewrite in a new test file of its own. The result flag written into a
-row is the function's name.
+row is the function's name. Use the `final` stage for new speculative repairs: it
+tries each alternative against the completed pipeline, preserving that result.
+It accepts one rewritten body or a bounded list; near-match variants also run on
+each alternative. Earlier greedy stages can change which later repair wins.
 
 ## Kickoff
 

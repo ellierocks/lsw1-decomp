@@ -172,6 +172,11 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
 - `mulli` + `add` + `lha 0x14(rN)` (or `addi` + `lbzx`) is a struct-array or member-array
   access, `((Frame *)base)[i].field`; raw `base + i*K + off` arithmetic folds the offset
   into the address instead (`fn_800B2ED4`, `fn_80108DA8`).
+- When retail reloads a global after calls, naming the global at each use can avoid
+  keeping m2c's cached temporary in a callee-saved register (`fn_800D4DAC`).
+- Swapping the operands of a complete local-plus-global addition can change ProDG
+  allocation and instruction order (`fn_800B3980`, 89 to 147 exact instructions).
+  Try bounded alternatives even below 80%; do not swap substrings of larger expressions.
 - A global accessed directly, not through a local pointer, gives CSE'd base+offset
   address constants (`fn_8010439C`). An indexed `p[0xD8 + i*0x34]` instead of a walking
   pointer fixes the induction setup (`fn_80106128`).
@@ -200,6 +205,9 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   scores strictly better, so they cannot lower a result. Mac types are kinds, not structs. m2c's compare-in-GPR idioms
   (`mfcr` + `rlwinm`, `cror`, carry sequences) need the patched m2c from `tools/fetch_m2c.sh`;
   an unpatched checkout leaves them as `M2C_CARRY`/`M2C_ERROR` and the sweep reports UNHANDLED.
+- If a header or m2c alias still prototypes a call that retail makes unprototyped,
+  a call through `T (*)()` restores the CR6 setup (`fn_80095A44`, 34 to 39 exact
+  instructions). The sweep tests this after the normal prototype repairs.
 - Paired-single add/sub in game code is an inline `asm volatile` block, written with the
   `NuVecAddPS`/`NuVecSubPS` macros from `numath/nuvec_ps.h` (numeric register syntax,
   because the assembler rejects `f1` inside `asm()`). Use `(dst, a, b)`; the sweep emits

@@ -13,6 +13,8 @@ delete the row when nothing remains to say.
 | 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | fixed, #109, #114 |
 | 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | fixed, #113, #116 |
 | 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | partly fixed |
+| 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | open |
+| 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | open |
 
 ## 1. Stale task packs change scores
 
@@ -96,6 +98,13 @@ commits touching its inputs since it ran.
 
 ## 6. Smaller recurring friction
 
+- Sweep repairs accepted while both forms failed compilation could hide a later
+  compiling form. Checkpoint retries recover those paths, including when the
+  accumulating path eventually compiles. New repairs run as independent final
+  alternatives so a locally better rewrite cannot block a better downstream path.
+- Cached compile diagnostics carried a random `score_fn_*` temporary directory.
+  The sweep strips it on both cache writes and reads, including older cache entries.
+
 - `sprint_finish.py --matched-from-diff` counted a `static inline` helper (`ForceObjsReady`,
   #98). That case was already fixed; #109 fixed `inline static` and attribute-prefixed
   helpers, and #116 a return type on the line above the name.
@@ -110,3 +119,19 @@ commits touching its inputs since it ran.
 - `tools/quick_wins.py` reads one hard-coded split file, `auto_01_8001752C_text.s`, which a
   later split can leave behind (see gap 1). It does not feed scoring, so it was left; point
   it at the current units when next touched.
+
+## 7. Sweep runtime and cache invalidation
+
+The full 1,355-row sweep takes roughly 11 minutes warm and 15 minutes cold.
+Score keys include the entire unit source, so applying one match invalidates the
+scores of its neighbours. Missing task packs each launch `ls1_task_pack.py` even
+though the unattended sweep needs only assembly. Measure cold and warm runs and
+require identical result rows before changing either path. Retain visible
+declarations and every input that can affect strict scoring in cache keys.
+
+## 8. Functions without a source unit are not swept
+
+The blocker report records 131 unswept functions (131,080 bytes) without C source.
+They need source-unit scaffolding and compiler wiring before the sweep can draft
+them. This is missing coverage, not a compile-error repair; prioritize units by
+expected matching yield and preserve the existing split boundaries.
