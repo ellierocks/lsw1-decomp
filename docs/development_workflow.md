@@ -91,6 +91,14 @@ permuter base→best score and status note. Unmerged or dirty worktrees are kept
 `--keep PATH_OR_BRANCH` for one whose thread is still active. Start the next sprint on a parked
 function from `INDEX.md` rather than from an old worktree.
 
+`--audit` is read-only apart from `INDEX.md`: one row per worktree (prunable or missing ones
+flagged) with branch, commits ahead of `origin/main` by patch equivalence (squash and
+cherry-pick merges count as merged) and behind it, uncommitted paths, commits not on the
+upstream, idle hours and parked notes, then a "needs attention" list of dirty worktrees,
+unpushed unmerged commits and unmerged branches whose upstream is gone. It does not fetch
+unless given `--fetch`. `--audit` and `--index-only` also index parked notes still in live
+worktrees, as `live:NAME` rows with absolute paths.
+
 ## Secrets
 
 `ORIG_KEY` is the passphrase for `orig/GL5E4F/sys/main.dol.enc`. It is set as an

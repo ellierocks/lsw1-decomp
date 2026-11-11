@@ -15,6 +15,7 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 - [Sprint tools](docs/sprint_workflow.md) cover target selection, ownership detection,
   queue accounting and verification. Choose scope and search effort for the task;
   T3 owns orchestration and continuation.
+- Before choosing targets, check sibling worktrees with `python3 tools/worktree_cleanup.py --audit`.
 - Matching: follow the [quickstart](docs/matching_quickstart.md) for bootstrap,
   target selection, scoring and handoff, and [C matching](docs/code_matching_workflow.md)
   for strict verification and promotion. SDK work uses [SDK import](docs/sdk_import.md#importing-a-unit-quickly).

@@ -58,6 +58,9 @@ project. Never weaken verification, compiler pins or split boundaries to manufac
 
 ## Kickoff
 
+Before choosing targets, run `python3 tools/worktree_cleanup.py --audit` and `--index-only`,
+and check `work/archive/worktrees/INDEX.md` in the main checkout for work a sibling already parked.
+
 For the queue-based sprint helper:
 
 1. Take the unit's near-misses from `work/sweep/results.json`, then fill with
