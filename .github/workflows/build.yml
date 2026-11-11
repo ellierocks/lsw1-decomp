@@ -41,7 +41,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Ninja
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ninja-build
+        # Pinned upstream release instead of apt: Ubuntu mirror outages failed every PR.
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors -o /tmp/ninja.zip \
+            https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip
+          sudo unzip -o -q /tmp/ninja.zip -d /usr/local/bin
+          ninja --version
       - name: Decrypt and verify retail DOL
         env:
           ORIG_KEY: ${{ secrets.ORIG_KEY }}
@@ -113,7 +118,12 @@ jobs:
           python-version: "3.12"
 
       - name: Install Ninja
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        # Pinned upstream release instead of apt: Ubuntu mirror outages failed every PR.
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors -o /tmp/ninja.zip \
+            https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip
+          sudo unzip -o -q /tmp/ninja.zip -d /usr/local/bin
+          ninja --version
 
       # Fork PRs have no access to secrets, so they cannot decrypt the original
       # DOL. Skip the build there rather than fail; the decomp.dev report is
