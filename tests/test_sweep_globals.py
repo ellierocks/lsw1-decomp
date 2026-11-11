@@ -1,7 +1,7 @@
 """Cached globals: preserve conversions and reject writes and local sources."""
 import unittest
 from tools import sweep  # make tools imports available
-from sweep_repairs.globals import inline_globals, inline_globals_after_calls
+from sweep_repairs.globals import LOCAL_DECL, _decls, inline_globals, inline_globals_after_calls
 
 
 class GlobalsTest(unittest.TestCase):
@@ -37,6 +37,17 @@ class GlobalsTest(unittest.TestCase):
     def test_no_intervening_call(self):
         body = self.BODY.replace("use(temp_r9);", "out = temp_r9;")
         self.assertEqual(inline_globals_after_calls(body), body)
+
+
+    def test_decl_scan_matches_pattern(self):
+        deep = " " * 120
+        body = ("void f(void) {\n    s32 temp_r9;\n\tf32 *var_f1 ;  \n    temp_r3;\n"
+                "    struct Foo\n    *temp_r4;\n    int a; s32 temp_r5;\n"
+                f"{deep}temp_r3 = lbl_X;\n{deep}temp_r3 = temp_r4;\n{deep}u8 temp_r6;\n"
+                "    xtemp_r7;\n    s32 temp_;\n    s32 temp_r8;")
+        want = [(m.span(), m.groupdict()) for m in LOCAL_DECL.finditer(body)]
+        self.assertEqual([(m.span(), m.groupdict()) for m in _decls(body)], want)
+        self.assertGreaterEqual(len(want), 5)
 
 
 if __name__ == "__main__":

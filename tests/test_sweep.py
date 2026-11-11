@@ -452,7 +452,11 @@ class SweepCacheTest(unittest.TestCase):
         from unittest import mock
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "u.c").write_text("void f(void) {}\n")
+            (root / "src").mkdir()
+            (root / "src" / "u.c").write_text("void f(void) {}\n")
+            obj = root / "build/GL5E4F/obj/u.o"
+            obj.parent.mkdir(parents=True)
+            obj.write_bytes(b"elf1")
             (root / "f").mkdir()
             (root / "f" / "asm.s").write_text("blr\n")
             ctx = root / "u.i"
@@ -468,14 +472,30 @@ class SweepCacheTest(unittest.TestCase):
                     mock.patch.object(sweep, "unit_context", return_value=ctx), \
                     mock.patch.object(sweep, "_score", side_effect=fake), \
                     mock.patch.dict(sweep._SCORES, clear=True):
-                first = sweep.score("f", "u.c", "body")
+                first = sweep.score("f", "src/u.c", "body")
                 sweep._SCORES.clear()  # a later run, or another checkout
-                self.assertEqual(sweep.score("f", "u.c", "body"), first)
+                self.assertEqual(sweep.score("f", "src/u.c", "body"), first)
                 self.assertEqual(calls, ["body"])
                 ctx.write_text("typedef long s32;\n")  # a header change invalidates the verdict
                 sweep._SCORES.clear()
-                sweep.score("f", "u.c", "body")
+                sweep.score("f", "src/u.c", "body")
                 self.assertEqual(calls, ["body", "body"])
+                obj.write_bytes(b"elf2")  # so does a re-split target object (data, relocations)
+                sweep._SCORES.clear()
+                sweep.score("f", "src/u.c", "body")
+                self.assertEqual(len(calls), 3)
+
+    def test_score_tools_cover_score_fn_imports(self):
+        """Every tools/ module score_fn.py imports is a cache-key input."""
+        import modulefinder
+        import os
+        from pathlib import Path
+        tools = Path(sweep.__file__).resolve().parent
+        finder = modulefinder.ModuleFinder(path=[str(tools)] + sys.path)
+        finder.run_script(str(tools / "score_fn.py"))
+        local = {Path(m.__file__).name for m in finder.modules.values()
+                 if m.__file__ and Path(os.path.abspath(m.__file__)).parent == tools}
+        self.assertEqual(local - {"__init__.py"}, set(sweep.SCORE_TOOLS))
 
     def test_m2c_output_cached_by_asm_and_context_text(self):
         import subprocess

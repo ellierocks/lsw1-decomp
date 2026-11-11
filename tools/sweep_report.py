@@ -323,10 +323,11 @@ class Rescorer:
     def key(self, name: str, source: str, body: str) -> str | None:
         asm = self.target_asm(name)
         ctx = self.context_digest(source)
-        if asm is None or ctx is None:
+        obj = self.sweep.target_object(source)
+        if asm is None or ctx is None or not obj.is_file():
             return None
         h = hashlib.sha256(self.tools_digest().encode())
-        for part in (name, self.sweep.file_digest(ROOT / source), ctx, asm, body):
+        for part in (name, self.sweep.file_digest(ROOT / source), ctx, self.sweep.file_digest(obj), asm, body):
             h.update(len(part).to_bytes(8, "little") + part.encode())
         return h.hexdigest()
 
