@@ -19,6 +19,7 @@ class Stage:
     command: list[str]
     outputs: list[Path]
     required_inputs: list[Path]
+    any_inputs: tuple[Path, ...] = ()  # at least one must exist
 
 
 STAGES = [
@@ -75,10 +76,25 @@ STAGES = [
             Path("build/pc_analysis/pc_analysis.txt"),
             Path("build/pc_analysis/pc_symbol_proposals.txt"),
         ],
+        [Path("orig/GL5E4F/sys/main.dol")],
+        (
+            Path("orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe"),
+            Path("orig/pc/usa/retail/LEGO Star Wars Game/LegoStarwars.exe"),
+            Path("orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe"),
+            Path("orig/pc/patch2/LEGO Star Wars Game/LegoStarwars.exe"),
+        ),
+    ),
+    Stage(
+        "pc-anchors",
+        [sys.executable, "tools/pc_gc_anchors.py"],
+        [
+            Path("build/pc_analysis/gc_pc_anchors.tsv"),
+            Path("build/pc_analysis/pc_source_files.tsv"),
+        ],
         [
             Path("orig/GL5E4F/sys/main.dol"),
-            Path("orig/pc/usa/LEGOStarWarsDemo/program files/Giant/LEGO Star Wars/LegoStarwars.exe"),
-            Path("orig/pc/usa/retail/LEGO Star Wars Game/LegoStarwars.exe"),
+            Path("config/GL5E4F/symbols.txt"),
+            Path("orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe"),
         ],
     ),
     Stage(
@@ -122,7 +138,10 @@ STAGES = [
 
 
 def missing_inputs(stage: Stage) -> list[Path]:
-    return [p for p in stage.required_inputs if not (ROOT / p).exists()]
+    missing = [p for p in stage.required_inputs if not (ROOT / p).exists()]
+    if stage.any_inputs and not any((ROOT / p).exists() for p in stage.any_inputs):
+        missing.extend(stage.any_inputs)
+    return missing
 
 
 def run_stage(stage: Stage, dry_run: bool = False) -> bool:

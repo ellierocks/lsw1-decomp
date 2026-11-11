@@ -4,7 +4,7 @@
 Output (work/<FunctionName>/ by default; ignored by git):
   prompt.md          — LLM task description
   context.md         — Struct definitions, signatures, types
-  donor_evidence.md  — Pinned OpenSaga leads, limits and review instructions
+  donor_evidence.md  — Pinned OpenSaga leads, the Japanese PC x86 pair, limits and review instructions
   asm.s              — Extracted assembly for the function
   related_symbols.md — Callers, callees, Mac hints, data refs
   verify.sh          — Strict rebuild and verification command
@@ -31,9 +31,10 @@ from collections import defaultdict
 from pathlib import Path
 
 try:
-    from . import opensaga
+    from . import opensaga, pc_gc_anchors
 except ImportError:
     import opensaga
+    import pc_gc_anchors
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -778,7 +779,8 @@ def generate_object_pack(name, addr, size, out_root, mac_hits, callee_list, asm,
     if task_dir.exists() and any(task_dir.iterdir()):
         raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
-    (task_dir / "donor_evidence.md").write_text(opensaga.markdown(name))
+    (task_dir / "donor_evidence.md").write_text(
+        opensaga.markdown(name) + pc_gc_anchors.donor_markdown(addr))
 
     struct_text, module = extract_struct_defs(name, addr)
     combined_asm = extract_asm_for_cluster(cluster)
@@ -932,7 +934,8 @@ def generate_pack(name, addr, size, out_root, mac_hits=None, callee_list=None, a
     if task_dir.exists() and any(task_dir.iterdir()):
         raise SystemExit(f"Refusing to overwrite existing task: {task_dir}; use another --out-dir")
     task_dir.mkdir(parents=True, exist_ok=True)
-    (task_dir / "donor_evidence.md").write_text(opensaga.markdown(name))
+    (task_dir / "donor_evidence.md").write_text(
+        opensaga.markdown(name) + pc_gc_anchors.donor_markdown(addr))
 
     if mac_hits is None:
         mac_hits = find_mac_hits(display_name)

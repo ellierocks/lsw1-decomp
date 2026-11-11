@@ -4,6 +4,8 @@ Build index — generate hashes.tsv for all files in each available build.
 
 For disc images: hashes the disc and the extracted executable.
 For extracted directories (xbox_demo_oxm045): hashes all files.
+Recorded files that are not present locally keep their existing rows, so a
+partial orig/ does not erase the registry.
 
 Output: research/revisions/hashes.tsv
 
@@ -93,17 +95,26 @@ def main():
     with open(BUILDS_TSV, newline="", encoding="utf-8") as f:
         builds = list(csv.DictReader(f, delimiter="\t"))
 
+    previous: dict[str, list[dict]] = {}
+    if HASHES_TSV.exists():
+        with open(HASHES_TSV, newline="", encoding="utf-8") as f:
+            for old in csv.DictReader(f, delimiter="\t"):
+                previous.setdefault(old["build_id"], []).append(old)
+
     all_entries = []
     for row in builds:
         build_id = row["build_id"]
         print(f"  indexing {build_id} ...")
         entries = index_build(row)
-        all_entries.extend(entries)
-        print(f"    {len(entries)} file(s)")
+        hashed = {e["rel_path"] for e in entries}
+        kept = [old for old in previous.get(build_id, [])
+                if old["rel_path"] not in hashed and not (ROOT / old["rel_path"]).exists()]
+        print(f"    {len(entries)} file(s) hashed, {len(kept)} absent file(s) kept")
+        all_entries.extend(kept + entries)
 
     HASHES_TSV.parent.mkdir(parents=True, exist_ok=True)
     with open(HASHES_TSV, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=HASH_COLS, delimiter="\t")
+        writer = csv.DictWriter(f, fieldnames=HASH_COLS, delimiter="\t", lineterminator="\n")
         writer.writeheader()
         writer.writerows(all_entries)
 

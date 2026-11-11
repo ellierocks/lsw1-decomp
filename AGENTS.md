@@ -24,7 +24,9 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
   no-hit/unavailable limit in the PR or plateau handoff. With no name hit, `hillclimb.py`
   records the no-hit limit itself.
 - Binary evidence: [Ghidra and REA](docs/research.md#ghidra-and-rea) provide decompiles,
-  callers and cross-references. Confirm proposed types and names against target
+  callers and cross-references. The Japanese PC 1.0 exe has readable x86 bodies for
+  paired GC functions; task packs list the pair ([PC builds](docs/research.md#pc-builds)).
+  Confirm proposed types and names against target
   assembly; donor output and generated C are evidence, not the acceptance oracle.
 - Runtime evidence: when a layout, caller or value stays ambiguous statically, check
   `python3 tools/dolphin.py status` and use the running game, or `dolphin.py launch` one
