@@ -53,15 +53,15 @@ code compiled with ProDG GCC 2.95, plus HVQM4, the debugger driver and libsn.
 
 ## Stages
 
-Bytes and functions are as of revision 1 (stage 0 split out of stage 6 in revision 2);
+Bytes and functions are as of revision 3 for stages 0 and 1 and revision 1 for the rest;
 `plan.py` prints the live figures. A stage is
 done when each function of each item is matched in the report or parked with a reason in
 `plan.toml`.
 
 | Stage | Targets | Code bytes | Functions | Depends on |
 |---|---|---:|---:|---|
-| 0 SDK residue | debugger driver, HVQM4 decoder, SDK leftovers | 24,440 | 50 | nothing; CodeWarrior, so it runs alongside stage 1 |
-| 1 Engine core | prototype hubs, then `nucore`, `numath`, `rtl`, `nusound3`, `nungc`, `nufmv` | 77,624 + hubs | 171 | source-unit scaffolding for `rnc`, `nuheap`, `nugraph_2`, `NGCStreaming2`, `HVQM4PlayerEx` ([gap 8](workflow_gaps.md#8-functions-without-a-source-unit-are-not-swept)) |
+| 0 SDK residue | debugger driver, CodeWarrior runtime and MetroTRK, HVQM4 decoder, SDK leftovers | 29,680 | 95 | nothing; CodeWarrior, so it runs alongside stage 1 |
+| 1 Engine core | prototype hubs, then `nucore`, `numath`, `rtl`, `nusound3`, `nungc`, `nufmv`, newlib, SN tail | 95,216 + hubs | 196 | source-unit scaffolding for `rnc`, `nuheap`, `nugraph_2`, `NGCStreaming2`, `HVQM4PlayerEx` ([gap 8](workflow_gaps.md#8-functions-without-a-source-unit-are-not-swept)) |
 | 2 Nu3d engine | `auto/nu3d/*`, `nu3dx/nuanim` | 152,100 | 272 | stage 1 prototypes; vector, matrix and material types; `nuportal_gen` scaffold |
 | 3 Objects, AI, camera | `apiobject`, `aisys`, `aiscript`, `gameai`, `gameaiscript`, `socksys` | 189,208 | 264 | `include/game` object and AI types ([game structs](game_structs.md)); `aiscript` scaffold |
 | 4 Gamelib and GUI | `audio`, `apimenu`, `apisave`, `saveload`, `gcutscn`, `terrain`, `debris` | 202,700 | 273 | stages 1–3 types |
@@ -69,7 +69,6 @@ done when each function of each item is matched in the report or parked with a r
 | 5b Levels | `auto/game/levels`, eight address slices | 163,176 | 252 | stages 1–4 |
 | 5c Obstacle | `auto/game/obstacle`, eight address slices | 164,328 | 176 | stages 1–4; `ForceCode` and `ApplyGravity` are hubs |
 | 5d Config and force | both units have no source file yet | 91,484 | 64 | scaffolding; JP PC pairs cover 63 KB |
-| 6 No known route | libsn units, runtime tail after the debugger driver | 22,832 | 71 | see below |
 | 7 Data | everything not promoted with its code | 2,490,232 | – | unit promotion; `.rodata` ownership |
 
 Stage 0 comes first because it needs neither ProDG nor the Nu2 prototypes, and each of
@@ -97,23 +96,36 @@ One item per thread, one PR, its own worktree, branch `t3/plan-<item>`.
 5. `sprint_finish.py` closes the bench. The PR states matched bytes and functions from
    `matching_progress.py`.
 
-## No known route yet
+## Runtime and SDK routes
+
+Revision 3 left no code item blocked: every runtime piece has a donor, an upstream
+source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
 
 - **Debugger driver** (stage 0, `8018A10C..8018AB8C`, 2,688 bytes): MSSB's CC0
   `src/Dolphin/OdemuExi2/DebuggerDriver.c` (registered Matching there) has the same
   function sizes. Port it as a new unit with the `DBOpen`/`DBClose` `blr`s
   ([debugger driver](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)).
+- **CodeWarrior runtime and MetroTRK** (stage 0, `801503A0` unit and
+  `__init_cpp_exceptions`, 5,144 bytes): MSSB's CC0 `Runtime/` and `TRK_MINNOW_DOLPHIN/`.
+  `fn_801503A0` uses r31 without saving it, so the TRK bodies are CodeWarrior `asm`
+  functions, as in the donor.
 - **HVQM4 decoder** (stage 0, `dolphin/hvqm4/hvqm4dec`, 18,592 bytes): the parked
   candidate strictly verifies 18 of 43 functions
   ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with the two
   scheduling near-misses, then the bit readers.
-- **SDK leftovers** (stage 0, `Pad`, `dvdfs`, `.init` stubs, 3,160 bytes): functions the
-  dolsdk2004 donors did not match; per-function version drift against retail.
-- **libsn and the runtime tail** (stage 6, 22,832 bytes, blocked): the libsn units and
-  the UART, syscall-stub and libm functions after the debugger driver
-  (`8018AB8C..8018BD4C`) have no upstream source that matches
-  ([SN runtime](sn_runtime.md#not-imported)). Unlocked by an SN runtime source, another
-  ProDG game's decompilation of the same objects, or newlib built with SN's flags.
+- **SDK leftovers** (stage 0, 3,256 bytes): `Pad`, `dvdfs`, the `.init` stubs,
+  `__DVDLowTestAlarm` and the `GXGetFifo*` stubs; per-function version drift against
+  dolsdk2004.
+- **newlib** (stage 1, 13,036 bytes): what was called libsn is mostly newlib 1.8.2
+  stdio and stdlib (`sprintf` at `801541B4`, `vfprintf`, ...) in unnamed pad blocks. Name
+  the functions inside each block without moving its ends, then import them the way
+  `src/sn/` was ([SN runtime](sn_runtime.md#not-imported) lists the known failures).
+- **SN tail** (stage 1, 4,556 bytes): the libsn console and syscall stubs after the
+  debugger driver are ordinary ProDG C (standard prologues, calls to `InitializeUART`
+  and `WriteUARTN`); `cosf`, `fabsf` and `copysignf` are newlib libm. `_exit` is the crt
+  word `.long 0; blr`. An assembly body is acceptable only where the retail bytes show
+  the original was assembly (non-ABI register use, data words), with that evidence
+  recorded per function.
 - **Data** (stage 7): most comes with promoting units. The rest needs data splits per
   section ([build configuration](build_config.md)); there is no data-matching lane yet.
 

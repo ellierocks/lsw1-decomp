@@ -19,7 +19,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 2
+revision = 3
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -39,6 +39,12 @@ note = "Port the CC0 MSSB DebuggerDriver.c (same function sizes) as a new unit s
 # at revision 2: 14 functions, 2,688 bytes left
 
 [[stage.item]]
+id = "cw-runtime"
+units = ["auto_01_801503A0_text", "auto_01_801638A0_text"]
+note = "CodeWarrior runtime and MetroTRK: port MSSB's CC0 src/Dolphin/Runtime (runtime.c, __init_cpp_exceptions.cpp) and TRK_MINNOW_DOLPHIN. fn_801503A0 uses r31 unsaved, so TRK bodies are CodeWarrior asm functions as in the donor."
+# at revision 3: 37 functions, 5,144 bytes left
+
+[[stage.item]]
 id = "hvqm4"
 units = ["dolphin/hvqm4/hvqm4dec"]
 note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_import.md#hvqm4-decoder-parked."
@@ -47,9 +53,9 @@ note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_im
 
 [[stage.item]]
 id = "sdk-leftovers"
-units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "auto_00_80003100_init", "auto_00_8000348C_init"]
-note = "Functions the dolsdk2004 donors did not match, plus the .init stubs."
-# at revision 1: 11 functions, 3,160 bytes left
+units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "auto_00_80003100_init", "auto_00_8000348C_init", "auto_01_8016BE88_text", "auto_01_8017C754_text"]
+note = "Functions the dolsdk2004 donors did not match, the .init stubs, __DVDLowTestAlarm (dvdlow.c) and the GXGetFifo* stubs."
+# at revision 3: 19 functions, 3,256 bytes left
 
 
 [[stage]]
@@ -118,6 +124,18 @@ id = "nungc-nufmv"
 units = ["auto/nungc/ngcapi", "auto/nungc/ps2dma", "auto/nufmv/ngc/nufmvmtl", "auto/nufmv/ngc/HVQM4PlayerEx", "auto/effects/objects/part", "auto/gamelib/glutils"]
 note = "HVQM4PlayerEx has no source file yet."
 # at revision 1: 31 functions, 15,772 bytes left
+
+[[stage.item]]
+id = "newlib"
+units = ["auto_01_801541B4_text", "auto_01_8015535C_text", "auto_01_801562B8_text", "auto_01_80159478_text", "auto_01_8015A2A8_text", "auto_01_8015A938_text"]
+note = "newlib 1.8.2 stdio/stdlib in unnamed pad blocks (sprintf at 801541B4, vfprintf, ...): name the functions inside the blocks without moving split ends, then import from newlib with the src/sn flags. Known failures: docs/sn_runtime.md#not-imported."
+# at revision 3: 7 functions (pad blocks), 13,036 bytes left
+
+[[stage.item]]
+id = "sn-tail"
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text", "_exit"]
+note = "SN libsn console/syscall stubs (ProDG C: normal prologues, call InitializeUART/WriteUARTN) and newlib libm (cosf, fabsf, copysignf; fdlibm sf_*). _exit is the crt word .long 0; blr: an assembly body is acceptable only where retail bytes show the original was assembly (non-ABI register use, data words); record that evidence per function."
+# at revision 3: 18 functions, 4,556 bytes left
 
 [[stage]]
 id = "s2-nu3d"
@@ -1509,23 +1527,6 @@ note = "No source file yet: the first slice scaffolds src/auto/game/config.c."
 
 
 [[stage]]
-id = "s6-no-route"
-title = "Code without a known route (libsn and runtime)"
-why = "Each item needs a lead before agents can work it; docs/strategy.md names what would unlock each."
-
-[[stage.item]]
-id = "libsn"
-units = ["auto_01_801503A0_text", "auto_01_801541B4_text", "auto_01_80159478_text", "auto_01_801562B8_text", "auto_01_8015535C_text", "auto_01_8015A2A8_text", "auto_01_8015A938_text", "auto_01_801638A0_text", "auto_01_8016BE88_text", "auto_01_8017C754_text", "auto_01_8015AFFC_text"]
-blocked = "libsn and runtime misses have no upstream source and no split: docs/sn_runtime.md#not-imported."
-# at revision 1: 54 functions, 18,284 bytes left
-
-[[stage.item]]
-id = "runtime-tail"
-functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text"]
-blocked = "libsn UART and syscall stubs and newlib libm after the debugger driver; no upstream source matches yet: docs/sn_runtime.md#not-imported."
-# at revision 2: 17 functions, 4,548 bytes left
-
-[[stage]]
 id = "s7-data"
 title = "Data"
 why = "Initialised data, .rodata and .bss ownership not already promoted with code units."
@@ -1533,5 +1534,5 @@ why = "Initialised data, .rodata and .bss ownership not already promoted with co
 [[stage.item]]
 id = "data"
 data = true
-note = "Most data comes with promoting units in stages 1-6; .rodata ownership also unblocks code-identical functions that fail --strict-symbols on string addresses."
+note = "Most data comes with promoting units in stages 0-5; .rodata ownership also unblocks code-identical functions that fail --strict-symbols on string addresses."
 # at revision 1: 2,490,232 data bytes left
