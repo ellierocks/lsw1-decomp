@@ -202,6 +202,9 @@ ProDG shapes that recur in near-misses (the sweep tries the first two as variant
   scores strictly better, so they cannot lower a result. Mac types are kinds, not structs. m2c's compare-in-GPR idioms
   (`mfcr` + `rlwinm`, `cror`, carry sequences) need the patched m2c from `tools/fetch_m2c.sh`;
   an unpatched checkout leaves them as `M2C_CARRY`/`M2C_ERROR` and the sweep reports UNHANDLED.
+- If a header or m2c alias still prototypes a call that retail makes unprototyped,
+  a call through `T (*)()` restores the CR6 setup (`fn_80095A44`, 34 to 39 exact
+  instructions). The sweep tests this after the normal prototype repairs.
 - Paired-single add/sub in game code is an inline `asm volatile` block, written with the
   `NuVecAddPS`/`NuVecSubPS` macros from `numath/nuvec_ps.h` (numeric register syntax,
   because the assembler rejects `f1` inside `asm()`). Use `(dst, a, b)`; the sweep emits
