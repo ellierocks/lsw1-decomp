@@ -14,6 +14,9 @@ class SweepPermuteTest(unittest.TestCase):
                 {"name": "d", "verdict": "MATCH", "size": 900, "exact": 100, "target": 100}]
         self.assertEqual([r["name"] for r in sp.queue(rows, 0.9, 10)], ["b", "a"])
         self.assertEqual([r["name"] for r in sp.queue(rows, 0.9, 1)], ["b"])
+        rows.append({"name": "e", "verdict": "MISMATCH", "size": 50, "exact": 99, "target": 100})
+        scope = {"functions": ["e"], "stage": ["a", "e"]}  # the plan item first, then its stage
+        self.assertEqual([r["name"] for r in sp.queue(rows, 0.9, 10, scope)], ["e", "a"])
 
     def test_splice_replaces_or_appends(self):
         text = "int g;\nvoid f(void) {\n    g = 1;\n}\nvoid h(void) {}\n"

@@ -7,17 +7,22 @@ A target is a named `.text` function in config/GL5E4F/symbols.txt that:
   - is not already claimed by a work/<name>/ directory, and
   - lies inside a split unit (so verify_fn.py can compare it).
 
+By default the list is the plan target set (tools/plan.py: the item this checkout claimed,
+else the plan's next item), including its functions already drafted in src/, with no size
+limit; `--all` (or `--off-plan REASON`) ranks every ready target as before (default
+`--max-size 0x200`), and `--by-unit` without it lists the target stage's plan items.
+
 Ranking: fewest distinct direct callees first, then smallest size; donor name
 leads, then a Japanese PC 1.0 pair (readable x86 body), break ties. Callees and
 sizes come from the retail DOL. Read-only; nothing is written. The `jp` column
 reads build/pc_analysis/gc_pc_anchors.tsv (`python3 tools/pc_gc_anchors.py`);
 `--jp-paired` keeps only paired targets (see docs/research.md#pc-builds).
 
-    python3 tools/next_target.py
-    python3 tools/next_target.py --max-size 0x80 --limit 30 --json
-    python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
-    python3 tools/next_target.py --by-unit --max-size 0x200 --limit 20
-    python3 tools/next_target.py --jp-paired --max-size 0x400 --limit 40
+    python3 tools/next_target.py                  # the plan item's targets
+    python3 tools/next_target.py --all --max-size 0x80 --limit 30 --json
+    python3 tools/next_target.py --all --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
+    python3 tools/next_target.py --all --by-unit --max-size 0x200 --limit 20
+    python3 tools/next_target.py --all --jp-paired --max-size 0x400 --limit 40
 """
 from __future__ import annotations
 
@@ -111,17 +116,21 @@ def squash(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
-def sprint_branches(remote: bool = True) -> set[str]:
-    """Names (without the `t3/sprint-` prefix) of active sprint branches, excluding the current one.
+REPO = "ellierocks767/lsw1-decomp"
 
-    Active means an open PR (via `gh`) or a local/`origin` sprint branch not yet merged into
+
+def active_branches(prefix: str, remote: bool = True, include_current: bool = False) -> set[str]:
+    """Names (without PREFIX) of active PREFIX* branches, excluding the current one unless
+    INCLUDE_CURRENT.
+
+    Active means an open PR (via `gh`, on REPO) or a local/`origin` branch not yet merged into
     origin/main: a sprint that is pushed but has no PR yet, or lives in another local worktree,
-    still owns its unit. Run `git fetch` first for an up-to-date view of other machines.
+    still owns its target. Run `git fetch` first for an up-to-date view of other machines.
     """
     heads: set[str] = set()
     try:
         out = subprocess.run(["git", "branch", "-a", "--no-merged", "origin/main", "--format=%(refname:short)",
-                              "--list", SPRINT_PREFIX + "*", "origin/" + SPRINT_PREFIX + "*"],
+                              "--list", prefix + "*", "origin/" + prefix + "*"],
                              cwd=ROOT, capture_output=True, text=True, timeout=15)
         if out.returncode == 0:
             heads.update(h.removeprefix("origin/") for h in out.stdout.split())
@@ -129,7 +138,7 @@ def sprint_branches(remote: bool = True) -> set[str]:
         pass
     if remote:
         try:
-            out = subprocess.run(["gh", "pr", "list", "--state", "open", "--json", "headRefName",
+            out = subprocess.run(["gh", "pr", "list", "--repo", REPO, "--state", "open", "--json", "headRefName",
                                   "--jq", ".[].headRefName"], cwd=ROOT, capture_output=True, text=True,
                                  timeout=15)
             heads.update(out.stdout.split() if out.returncode == 0 else [])
@@ -139,7 +148,12 @@ def sprint_branches(remote: bool = True) -> set[str]:
         cur = subprocess.run(["git", "branch", "--show-current"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     except OSError:
         cur = ""
-    return {h[len(SPRINT_PREFIX):] for h in heads if h.startswith(SPRINT_PREFIX) and h != cur}
+    return {h[len(prefix):] for h in heads if h.startswith(prefix) and (include_current or h != cur)}
+
+
+def sprint_branches(remote: bool = True) -> set[str]:
+    """Names (without the `t3/sprint-` prefix) of active sprint branches, excluding the current one."""
+    return active_branches(SPRINT_PREFIX, remote=remote)
 
 
 def unit_keys(unit: str) -> set[str]:
@@ -210,12 +224,34 @@ def print_by_unit(rows, args, owned=frozenset()) -> int:
     return 0
 
 
+def print_plan_items(state: dict, scope: dict, args) -> int:
+    """`--by-unit` under the plan: the target stage's items instead of units."""
+    import plan
+    stage = plan.stage_of(state, scope["stage_id"])
+    items = stage["items"] if stage else []
+    if args.json:
+        print(json.dumps([{k: i[k] for k in ("id", "fn_left", "bytes_left", "closed", "blocked", "units")}
+                          | {"claim": state["claims"]["items"].get(i["id"])} for i in items], indent=2))
+        return 0
+    print(f"Stage {scope['stage_id']} items (--all --by-unit for units, off plan):")
+    print(f"  {'item':<18}{'fn left':>8}{'bytes left':>12}  claim")
+    for i in items:
+        c = state["claims"]["items"].get(i["id"])
+        who = ("closed" if i["closed"] else "blocked" if i["blocked"] else
+               ("mine" if c["mine"] else "claimed: " + c["by"]) if c else "-")
+        print(f"  {i['id']:<18}{i['fn_left']:>8}{i['bytes_left']:>12,}  {who}")
+    print(f"\nTarget: {scope['item']}  ->  python3 tools/next_target.py")
+    return 0
+
+
 class TargetError(Exception):
     """A required input (retail DOL, JP anchor table) is missing."""
 
 
-def collect(max_size: int = 0x200, min_size: int = 0, prefixes=(), jp_paired: bool = False):
-    """(ranked ready rows, count of in-range unmatched functions outside any split unit)."""
+def collect(max_size: int = 0x200, min_size: int = 0, prefixes=(), jp_paired: bool = False, names=None):
+    """(ranked ready rows, count of in-range unmatched functions outside any split unit). NAMES
+    (a plan target set) keeps only those functions and includes ones already drafted in src/ or
+    recorded verified by hillclimb, marked `defined`/`ledger_verified`."""
     dol = vf.load_dol(vf.DOL_PATH, [])
     if dol is None:
         raise TargetError(f"retail DOL missing at {vf.DOL_PATH.relative_to(ROOT)}; see README.md")
@@ -242,9 +278,14 @@ def collect(max_size: int = 0x200, min_size: int = 0, prefixes=(), jp_paired: bo
 
     rows, skipped_unit = [], 0
     for name, addr, size in symbols:
-        if not size or size > max_size or size < min_size or name in done or name in verified:
+        if not size or size > max_size or size < min_size:
             continue
-        unit = unit_of[name]
+        if names is not None:
+            if name not in names:
+                continue
+        elif name in done or name in verified:
+            continue
+        unit = unit_of[name] if name in unit_of else vf.lookup_unit(addr)
         if unit is None:
             skipped_unit += 1
             continue
@@ -265,6 +306,7 @@ def collect(max_size: int = 0x200, min_size: int = 0, prefixes=(), jp_paired: bo
             "source": str(source.relative_to(ROOT)) if source else None,
             "source_path": str(source.relative_to(ROOT)) if source else f"src/{unit}.c",
             "claimed": name in claimed, "attempts": attempts.get(name, 0),
+            "defined": name in done, "ledger_verified": name in verified,
             "unit_left": unit_left.get(unit, 0),
             "jp": {"pc_address": f"0x{jp[0]:08X}", "method": jp[1]} if jp else None,
         })
@@ -282,7 +324,8 @@ def owned_units(rows, remote: bool = True) -> set[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--max-size", type=lambda s: int(s, 0), default=0x200, help="largest size in bytes (default 0x200)")
+    ap.add_argument("--max-size", type=lambda s: int(s, 0), default=None,
+                    help="largest size in bytes (default 0x200 with --all, else no limit)")
     ap.add_argument("--min-size", type=lambda s: int(s, 0), default=0, help="smallest size in bytes (default 0)")
     ap.add_argument("--unit", action="append", default=[], metavar="PREFIX",
                     help="only units starting with PREFIX, e.g. auto/game/ (repeatable)")
@@ -293,10 +336,32 @@ def main(argv=None) -> int:
     ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
     ap.add_argument("--jp-paired", action="store_true",
                     help="only targets paired with a Japanese PC 1.0 x86 function (gc_pc_anchors.tsv)")
+    ap.add_argument("--all", action="store_true", help="rank every ready target, not the plan item's (off plan)")
+    ap.add_argument("--off-plan", metavar="REASON", help="as --all, stating why")
     args = ap.parse_args(argv)
 
+    scope = state = None
+    if not (args.all or args.off_plan):
+        import plan
+        try:
+            state = plan.status(remote=not args.no_remote, records=[])
+        except plan.PlanError as exc:
+            print(f"plan unavailable ({exc}); showing the global ranking", file=sys.stderr)
+        else:
+            scope = plan.plan_targets(state=state)
+            if scope["item"] is None:
+                print("plan has no recommendable item; showing the global ranking (python3 tools/plan.py)",
+                      file=sys.stderr)
+                scope = None
+    elif args.off_plan:
+        print(f"off plan: {args.off_plan}", file=sys.stderr)
+    if args.max_size is None:
+        args.max_size = 0x200 if scope is None else 0x100000
+    if scope is not None and args.by_unit:
+        return print_plan_items(state, scope, args)
     try:
-        rows, skipped_unit = collect(args.max_size, args.min_size, args.unit, args.jp_paired)
+        rows, skipped_unit = collect(args.max_size, args.min_size, args.unit, args.jp_paired,
+                                     names=set(scope["functions"]) if scope else None)
     except TargetError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return vf.EXIT_ERROR
@@ -304,18 +369,24 @@ def main(argv=None) -> int:
     if args.by_unit:
         return print_by_unit(rows_all, args, owned_units(rows_all, remote=not args.no_remote))
     rows = rows[:args.limit]
+    if scope is not None and not args.json:
+        whose = "claimed by this checkout" if scope["mine"] else "the plan's next item"
+        print(f"Plan item {scope['item']} (stage {scope['stage_id']}, {whose}): {len(scope['functions'])} functions "
+              f"left, {len(rows_all)} listed; --all for the global ranking (off plan)\n")
 
     if args.json:
         print(json.dumps(rows, indent=2))
         return 0
+    nw = max([22] + [len(r["name"]) + 2 for r in rows])
     uw = max([18] + [len(r["unit"]) + 2 for r in rows])
     sw = max([28] + [len(r["source"] or "(new file)") + 2 for r in rows])
-    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<{uw}}{'source':<{sw}}{'saga':<14}"
+    print(f"{'name':<{nw}}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<{uw}}{'source':<{sw}}{'saga':<14}"
           f"{'jp':<12}state")
     for r in rows:
-        state = "claimed" if r["claimed"] else ("attempted" if r["attempts"] else "ready")
+        state = ("claimed" if r["claimed"] else "in src" if r.get("defined") else
+                 "attempted" if r["attempts"] else "ready")
         jp = r["jp"]["pc_address"] if r["jp"] else "-"
-        print(f"{r['name']:<22}{r['address']:<12}{r['size']:>#6x} {r['callees']:>7}  {r['unit']:<{uw}}"
+        print(f"{r['name']:<{nw}}{r['address']:<12}{r['size']:>#6x} {r['callees']:>7}  {r['unit']:<{uw}}"
               f"{(r['source'] or '(new file)'):<{sw}}{r['opensaga']['result']:<14}{jp:<12}{state}")
     if rows:
         top = rows[0]
@@ -326,8 +397,9 @@ def main(argv=None) -> int:
         print(f"  python3 tools/score_fn.py {top['name']} {src}")
         print(f"  python3 tools/hillclimb.py try {top['name']} --unit {top['unit']} --source {src} "
               "--hypothesis '<one falsifiable change>' --donor-note '<GC-grounded donor review or limit>'")
-    print(f"\n{len(rows_all)} ready targets lie in split units. {skipped_unit} unmatched functions within "
-          f"--max-size are outside any split unit and cannot be verified yet (see Phase 2 in docs/strategy.md).")
+    print(f"\n{len(rows_all)} {'plan' if scope else 'ready'} targets lie in split units. {skipped_unit} unmatched "
+          f"functions within --max-size are outside any split unit and cannot be verified yet "
+          f"(docs/workflow_gaps.md).")
     return 0
 
 

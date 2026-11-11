@@ -32,6 +32,14 @@ def report(verdict='MISMATCH', differences=2, exact=2):
 
 
 class HillclimbTests(unittest.TestCase):
+    def test_plan_membership_is_recorded_not_enforced(self):
+        targets = {'item': 'hubs', 'functions': ['fn_1']}
+        self.assertEqual(hc.plan_check('fn_1', targets=targets), {'item': 'hubs', 'in_plan': True})
+        self.assertEqual(hc.plan_check('fn_2', 'runtime evidence', targets=targets),
+                         {'item': 'hubs', 'in_plan': False, 'off_plan': True, 'off_plan_reason': 'runtime evidence'})
+        unavailable = hc.plan_check('fn_2', targets={'item': None, 'functions': [], 'error': 'no report'})
+        self.assertNotIn('off_plan', unavailable)
+
     def test_strict_match_beats_unverified_and_partial(self):
         partial = hc.score(report())
         unknown = hc.score(report('MATCH (unverified references)', 0, 4))

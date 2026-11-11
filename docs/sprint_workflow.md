@@ -26,17 +26,22 @@ orchestration and continuation. [Strategy](strategy.md) describes current opport
   directory to time a cold run. Without
   `--apply`, `sweep_permute.py` can run in the background while you draft;
   `--apply-saved` then writes its confirmed matches.
-- `next_target.py --by-unit` ranks units; `--unit UNIT --limit N` lists targets.
-  Related functions can share types and draft shapes. Unit selection is a useful
-  grouping, not a limit on a tool fix's scope or on collecting its matches.
-- **Ownership is by branch name.** Run `python3 tools/git_origin.py fetch origin` first.
-  `--by-unit` then skips units owned by an open `t3/sprint-*` PR (asked through `gh`;
-  `--no-remote` turns that off) or by any local or `origin` sprint branch not yet merged
-  into `origin/main`, which covers a pushed sprint with no PR yet. For a single-unit sprint, use
-  `t3/sprint-<unit-leaf>` for automatic ownership detection. Other branch names and
-  cross-unit work are not covered by this heuristic; inspect active work before editing. `work/` claim markers are local to each
-  worktree and invisible elsewhere. Units are ranked by bytes in their first ten ready
-  targets; `*` marks ten or fewer functions left, not promotion readiness.
+- **Plan items are the scope.** `next_target.py`, `sweep_permute.py`, the near-miss lane
+  and `hillclimb.py` default to the plan target set: the item this checkout claimed with
+  `kickoff.py --start --item ID`, else the plan's next item ([strategy](strategy.md#rule)).
+  `--all` restores the global order; `--off-plan "REASON"` starts or records anything else.
+  Related functions can share types and draft shapes; an item is a grouping, not a limit on a
+  tool fix's scope or on collecting its matches.
+- **Ownership is by claim and branch name.** Run `python3 tools/git_origin.py fetch origin`
+  first. An item is claimed by a record under `<git common dir>/lsw1-plan-claims/` (every
+  local worktree sees it; stale once its worktree or branch is gone or its post-claim commits
+  are merged into `origin/main`), by a local or `origin` `t3/plan-<item>` branch not yet
+  merged, or by an open PR of that name (asked through `gh`; `--no-remote` turns that off).
+  `python3 tools/plan.py` lists claims; `--release ID` drops a record. Legacy
+  `t3/sprint-<unit-leaf>` branches still own their unit, and so the items listing it;
+  `next_target.py --all --by-unit` skips such units (ranked by bytes in their first ten ready
+  targets; `*` marks ten or fewer functions left, not promotion readiness). Other branch names are not covered;
+  inspect active work before editing. `work/` claim markers are local to each worktree.
 - **Shared types need evidence.** Confirm fields against target accesses and their
   consumers; leave unknown layout as padding or local views.
 - **Promotion needs data too.** Check all owned sections before counting on a promotion
@@ -77,10 +82,12 @@ each alternative. Earlier greedy stages can change which later repair wins.
 
 ## Kickoff
 
-`python3 tools/kickoff.py` reports the checkout, sweep, lanes, sibling worktrees and
-measured yield, and recommends a lane. `python3 tools/kickoff.py --start UNIT [FN ...]` (or
-`--start-lane sweep|near-misses`) prints ownership conflicts, queues the given names or the
-unit's near misses plus `next_target.py --unit UNIT --limit 40`, records the baseline
+`python3 tools/kickoff.py` reports the checkout, sweep, sibling worktrees, measured yield and
+off-plan lanes, and recommends the plan's next item. `python3 tools/kickoff.py --start --item
+ID` claims the item and queues its functions; off plan, `--start UNIT [FN ...] --off-plan
+"REASON"` (or `--start-lane sweep|near-misses --off-plan "REASON"`) queues the given names or
+the unit's near misses plus `next_target.py --all --unit UNIT --limit 40`. Either prints
+ownership conflicts, records the baseline
 (objdiff figures, strict-only count, DOL hash) and opens the bench run; rerunning it only
 adds names. It refuses when the checkout is behind `origin/main` (update first: merge, or
 rebase while nothing is pushed; with no fetch it checks the last fetched `origin/main`) or
@@ -252,6 +259,13 @@ the lane order changes.
 ## Kickoff prompt
 
 ```text
+Plan item: ID. Branch t3/plan-ID.
+Run python3 tools/kickoff.py --start --item ID --model MODEL.
+```
+
+Off plan (Ellie asked, a tooling fix, or runtime evidence):
+
+```text
 Sprint: UNIT (optionally: fn_A, fn_B, ...). Branch t3/sprint-<unit-leaf>.
-Run python3 tools/kickoff.py --start UNIT [fn_A ...] --model MODEL.
+Run python3 tools/kickoff.py --start UNIT [fn_A ...] --off-plan "REASON" --model MODEL.
 ```
