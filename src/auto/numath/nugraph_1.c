@@ -47,18 +47,31 @@ f32 NuPlnLine3(f32* pln, f32* p, f32* dir, f32* out)
     return t;
 }
 
-f32 fn_8000BDD0(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* c)
+static inline f32 LineEx(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* c, struct nuvec_s* out)
 {
+    f32 len;
+    f32 d;
+    f32 dist;
     struct nuvec_s dir;
     struct nuvec_s w;
     struct nuvec_s pt;
     struct nuvec_s tmp;
     NuVecSub(&dir, b, a);
-    NuVecScale(&dir, &dir, 1.0f / fn_8000CB50(&dir));
+    len = fn_8000CB50(&dir);
+    NuVecScale(&dir, &dir, 1.0f / len);
     NuVecSub(&w, c, a);
-    NuVecScale(&pt, &dir, NuVecDot(&dir, &w));
+    d = NuVecDot(&dir, &w);
+    NuVecScale(&pt, &dir, d);
     NuVecAdd(&pt, &pt, a);
-    return fn_8000CD08(&pt, c, &tmp);
+    dist = fn_8000CD08(&pt, c, &tmp);
+    if (out != 0)
+        *out = pt;
+    return dist;
+}
+
+f32 fn_8000BDD0(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* c)
+{
+    return LineEx(a, b, c, 0);
 }
 
 s32 fn_8000BE70(f32* v, f32* min, f32* max)

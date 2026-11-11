@@ -17,18 +17,3 @@ void NuVec4MtxTransformVU0(struct nuvec4_s* dest, struct nuvec4_s* a, struct num
     dest->z = z;
     dest->w = w;
 }
-
-f32 NuVecDist(struct nuvec_s* a, struct nuvec_s* b, struct nuvec_s* dist)
-{
-    struct nuvec_s tmp;
-    if (dist == 0)
-    {
-        NuVecSub(&tmp, a, b);
-        dist = &tmp;
-    }
-    else
-    {
-        NuVecSub(dist, a, b);
-    }
-    return NuVecMag(dist);
-}

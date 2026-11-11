@@ -56,7 +56,7 @@ struct nuangvec_s {
 
 // Math functions
 void NuVecMtxTransform(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
-void NuVecMtxTransformH(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
+f32 NuVecMtxTransformH(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
 void NuVecMtxRotate(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
 void NuVecInvMtxTransform(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);
 void NuVecInvMtxRotate(struct nuvec_s* dst, struct nuvec_s* src, struct numtx_s* mtx);

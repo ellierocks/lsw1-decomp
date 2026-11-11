@@ -9,9 +9,9 @@ void NuMtxTranslate(struct numtx_s* m, struct nuvec_s* v)
 
 void NuMtxPreTranslate(struct numtx_s* m, struct nuvec_s* v)
 {
-    m->_30 = v->x * m->_00 + v->y * m->_10 + v->z * m->_20 + m->_30;
-    m->_31 = v->x * m->_01 + v->y * m->_11 + v->z * m->_21 + m->_31;
-    m->_32 = v->x * m->_02 + v->y * m->_12 + v->z * m->_22 + m->_32;
+    m->_30 += v->x * m->_00 + v->y * m->_10 + v->z * m->_20;
+    m->_31 += v->x * m->_01 + v->y * m->_11 + v->z * m->_21;
+    m->_32 += v->x * m->_02 + v->y * m->_12 + v->z * m->_22;
 }
 
 void NuMtxScale(struct numtx_s* m, struct nuvec_s* v)

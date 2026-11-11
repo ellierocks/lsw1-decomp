@@ -336,3 +336,103 @@ void NuMtxAlignZ(struct numtx_s* mt, struct nuvec_s* v)
         mt->_12 *= k;
     }
 }
+
+void fn_8000D4DC(struct numtx_s* mi, struct numtx_s* m0)
+{
+    f32 a[4][4];
+    s32 p[4];
+    s32 j;
+    s32 k;
+    s32 i;
+    s32 n;
+    f32 sum;
+    f32 best;
+    f32 q;
+    f32 piv;
+
+    n = 4;
+    a[0][0] = m0->_00;
+    a[0][1] = m0->_01;
+    a[0][2] = m0->_02;
+    a[0][3] = m0->_03;
+    a[1][0] = m0->_10;
+    a[1][1] = m0->_11;
+    a[1][2] = m0->_12;
+    a[1][3] = m0->_13;
+    a[2][0] = m0->_20;
+    a[2][1] = m0->_21;
+    a[2][2] = m0->_22;
+    a[2][3] = m0->_23;
+    a[3][0] = m0->_30;
+    a[3][1] = m0->_31;
+    a[3][2] = m0->_32;
+    a[3][3] = m0->_33;
+
+    for (i = 0; i < n; i++) {
+        best = 0.0f;
+        p[i] = 0;
+        for (j = i; j < n; j++) {
+            sum = 0.0f;
+            for (k = i; k < n; k++) {
+                sum += fn_8000ED40(a[j][k]);
+            }
+            q = fn_8000ED40(a[j][i]) / sum;
+            if (best < q) {
+                best = q;
+                p[i] = j;
+            }
+        }
+        if (best == 0.0f) {
+            return;
+        }
+        if (p[i] != i) {
+            for (k = 0; k < n; k++) {
+                f32 f = a[i][k];
+                a[i][k] = a[p[i]][k];
+                a[p[i]][k] = f;
+            }
+        }
+        piv = a[i][i];
+        for (k = 0; k < n; k++) {
+            if (k != i) {
+                a[i][k] = -a[i][k] / piv;
+                for (j = 0; j < n; j++) {
+                    if (j != i) {
+                        a[j][k] += a[j][i] * a[i][k];
+                    }
+                }
+            }
+        }
+        for (j = 0; j < n; j++) {
+            a[j][i] = a[j][i] / piv;
+        }
+        a[i][i] = 1.0f / piv;
+    }
+
+    for (i = n - 1; i >= 0; i--) {
+        if (p[i] != i) {
+            for (j = 0; j < n; j++) {
+                f32 f = a[j][i];
+                a[j][i] = a[j][p[i]];
+                a[j][p[i]] = f;
+            }
+        }
+    }
+
+    mi->_00 = a[0][0];
+    mi->_01 = a[0][1];
+    mi->_02 = a[0][2];
+    mi->_03 = a[0][3];
+    mi->_10 = a[1][0];
+    mi->_11 = a[1][1];
+    mi->_12 = a[1][2];
+    mi->_13 = a[1][3];
+    mi->_20 = a[2][0];
+    mi->_21 = a[2][1];
+    mi->_22 = a[2][2];
+    mi->_23 = a[2][3];
+    mi->_30 = a[3][0];
+    mi->_31 = a[3][1];
+    mi->_32 = a[3][2];
+    mi->_33 = a[3][3];
+}

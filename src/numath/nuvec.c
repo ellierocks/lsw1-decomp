@@ -1,15 +1,14 @@
 #include "numath/nuvec.h"
 
-void NuVecMtxTransformH(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* b)
+f32 NuVecMtxTransformH(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* b)
 {
-    f32 ax = a->x, ay = a->y, az = a->z;
-    f32 w = 1.0f / (ax * b->_03 + ay * b->_13 + az * b->_23 + b->_33);
-    f32 y = (ax * b->_01 + ay * b->_11 + az * b->_21 + b->_31) * w;
-    f32 z = (ax * b->_02 + ay * b->_12 + az * b->_22 + b->_32) * w;
-    f32 x = (ax * b->_00 + ay * b->_10 + az * b->_20 + b->_30) * w;
-    dest->x = x;
+    f32 w = 1.0f / (a->x * b->_03 + a->y * b->_13 + a->z * b->_23 + b->_33);
+    f32 y = (a->x * b->_01 + a->y * b->_11 + a->z * b->_21 + b->_31) * w;
+    f32 z = (a->x * b->_02 + a->y * b->_12 + a->z * b->_22 + b->_32) * w;
+    dest->x = (a->x * b->_00 + a->y * b->_10 + a->z * b->_20 + b->_30) * w;
     dest->y = y;
     dest->z = z;
+    return w;
 }
 
 void NuVecMtxRotate(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* b)
