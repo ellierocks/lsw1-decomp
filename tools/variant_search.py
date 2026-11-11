@@ -340,8 +340,7 @@ def main(argv=None) -> int:
         extra += ["-I", inc]
     if args.compiled_symbol:
         extra += ["--compiled-symbol", args.compiled_symbol]
-    if args.compiler:
-        extra += ["--compiler", args.compiler]
+    extra += osr.compiler_args(args.compiler, args.source)
     with tempfile.TemporaryDirectory(prefix="variant_search_") as tmp:
         def scorer(variant, index):
             return osr.score_source(args.name, variant, extra, Path(tmp), index)

@@ -49,7 +49,7 @@ note = "#122 promoted ppcdown, tealeaf and __init_cpp (docs/sn_runtime.md#codewa
 [[stage.item]]
 id = "hvqm4"
 units = ["dolphin/hvqm4/hvqm4dec"]
-note = "Built with GC/1.2.5; 23/43 functions strict-verify. Next: MCBlockDecDCNest 107/108, fn_80189FFC code 68/68 but adpcm4Table needs section proof, HVQM4InitDecoder 207/216: docs/sdk_import.md#hvqm4-decoder-parked."
+note = "GC/1.2.5; Pikmin CC0 donor adds 10 strict matches / 8,160 B: 33/43 functions, 16,296 B verified, zero promoted. Ten remain: MCBlockDecDCNest 107/108; PpicPlaneDec and fn_80189FFC have exact instructions but unproved tables; eight code mismatches. Owning existing BSS layouts works but regresses reference verification until full-unit code/relocations pass. Next: docs/sdk_import.md#pikmin-cc0-donor-follow-up."
 # at revision 1: 25 functions, 18,592 bytes left
 
 

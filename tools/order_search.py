@@ -56,6 +56,7 @@ import json
 import math
 import random
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -250,6 +251,23 @@ def count(template: Template, const_locals: bool) -> int:
     return n
 
 
+def compiler_args(compiler: str | None, source: Path) -> list[str]:
+    """Carry the original unit's SDK settings across temporary candidate paths."""
+    if not compiler:
+        return []
+    args = ["--compiler", compiler]
+    if compiler == "sdk":
+        try:
+            from .score_fn import unit_mw_settings
+        except ImportError:
+            from score_fn import unit_mw_settings
+        settings = unit_mw_settings(source)
+        if settings:
+            version, flags = settings
+            args += ["--mw-version", version, "--mw-flags", shlex.join(flags)]
+    return args
+
+
 def score_source(name: str, text: str, extra: list[str], tmpdir: Path, index: int) -> dict:
     """Compile and score one variant with score_fn.py; returns its JSON report or an error."""
     src = tmpdir / f"cand{index}.c"
@@ -436,8 +454,7 @@ def main(argv=None) -> int:
         extra += ["-I", inc]
     if args.compiled_symbol:
         extra += ["--compiled-symbol", args.compiled_symbol]
-    if args.compiler:
-        extra += ["--compiler", args.compiler]
+    extra += compiler_args(args.compiler, args.source)
     with tempfile.TemporaryDirectory(prefix="order_search_") as tmp:
         def scorer(text, index):
             return score_source(args.name, text, extra, Path(tmp), index)

@@ -4,6 +4,7 @@ import io
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 from tools import order_search as os_
 
@@ -19,6 +20,23 @@ SOURCE = """void f(struct s* p)
     g(p);
 }
 """
+
+
+class CompilerSettingsTests(unittest.TestCase):
+    def test_sdk_search_keeps_original_unit_compiler_and_quoted_flags(self):
+        from tools import score_fn
+        with mock.patch.object(score_fn, "unit_mw_settings",
+                               return_value=("1.2.5", ["-lang=c", "-i include/dolphin",
+                                                       "-pragma cats off"])) as settings:
+            args = os_.compiler_args("sdk", Path("src/dolphin/hvqm4/hvqm4dec.c"))
+        settings.assert_called_once_with(Path("src/dolphin/hvqm4/hvqm4dec.c"))
+        self.assertEqual(args[:4], ["--compiler", "sdk", "--mw-version", "1.2.5"])
+        import shlex
+        self.assertEqual(shlex.split(args[5]), ["-lang=c", "-i include/dolphin", "-pragma cats off"])
+
+    def test_other_compilers_keep_their_existing_defaults(self):
+        self.assertEqual(os_.compiler_args(None, Path("x.c")), [])
+        self.assertEqual(os_.compiler_args("prodg", Path("x.c")), ["--compiler", "prodg"])
 
 
 def report(verdict, exact, returncode=1):

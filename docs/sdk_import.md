@@ -1946,7 +1946,7 @@ Portable workflow checks and 178 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (o
 The decoder now has a split and a source candidate at
 [`src/dolphin/hvqm4/hvqm4dec.c`](../src/dolphin/hvqm4/hvqm4dec.c), registered
 **NonMatching**. Its 43 functions cover `8018432C..8018A10C` (24,032 bytes).
-Twenty-three functions (8,136 bytes) strictly verify; **zero code or data bytes are
+Thirty-three functions (16,296 bytes) strictly verify; **zero code or data bytes are
 promoted**. The normal build retains assembly fallback for the complete unit.
 The debugger range beginning at `8018A10C` is unchanged.
 
@@ -1979,7 +1979,8 @@ same compiler as the build. Previously it fell back to GC/1.2.5n and failed to
 find SDK headers. `--mw-version VER --mw-flags 'FLAGS'` still override both for
 experiments without changing build pins or the verification oracle.
 
-Strict results, checked against the retail DOL and symbol destinations:
+Historical GC/1.2.5 baseline: 23 strict results, checked against the retail DOL
+and symbol destinations. The [Pikmin follow-up](#pikmin-cc0-donor-follow-up) adds ten:
 
 | Verified function | Bytes |
 |---|---:|
@@ -2062,7 +2063,9 @@ flow and layout; no Tilka implementation was copied. Searches plateaued without
 another strict match, so unverified rewrites remain local rather than expanding
 the committed source diff.
 
-Every remaining function's score follows. Scores show exact / target
+Historical pre-Pikmin scores for the 20 then-remaining functions follow.
+The current ten are listed in the [follow-up](#pikmin-cc0-donor-follow-up).
+Scores show exact / target
 instructions, an informational measure, **not verification**. "Committed" is
 the candidate source compiled with GC/1.2.5. "Earlier best" is the best local
 experiment under GC/1.2.5n from the previous parking; those rewrites were not
@@ -2121,6 +2124,114 @@ map generation and shell syntax checks; this C-only follow-up reruns the retail
 build and strict checks. Local baselines, Ghidra output, experimental source
 snapshots, per-function scores and detailed logs remain in ignored
 `work/hvqm4/` and `work/hvqm4b/`; the source and this handoff retain the reviewable result.
+
+### Pikmin CC0 donor follow-up
+
+Pikmin's Matching decoder supplies ten new strict matches, **8,160 code bytes**.
+The unit advances from **23/43 functions / 8,136 bytes** to **33/43 / 16,296**,
+with all 23 earlier strict matches preserved. **Zero bytes are promoted**: the
+complete unit remains NonMatching and uses assembly fallback.
+
+The donor is [projectPiki/pikmin](https://github.com/projectPiki/pikmin), commit
+`9a2163626a269ae7c699fc195cf91a5ca791044d`, **CC0-1.0**
+([license](https://github.com/projectPiki/pikmin/blob/9a2163626a269ae7c699fc195cf91a5ca791044d/LICENSE.MD)).
+Reviewed inputs are `src/hvqm4dec/hvqm4dec.c`, `include/hvqm4.h` and
+`configure.py`'s `cflags_base`. Bodies for all 12 shared nonverified functions
+were tried with donor inline helpers and types, retaining GL5E4F's observed
+layouts. Donor `int` locals matter: MWCC distinguishes them from this project's
+`s32` (`long`), affecting initialization loops, nest copying and B-picture
+scheduling. Explicit inline readers defined before their callers recover nested
+Huffman decoding. The LSW1-only basis readers reuse those helpers with target
+sample layouts; `ReadBasisNibble` takes a byte pointer. Retained nonmatching
+rewrites improve the score without regressing an existing strict match.
+
+| New strict function | Bytes |
+|---|---:|
+| `HVQM4InitDecoder` | 864 |
+| `_readTree` | 716 |
+| `Ipic_BasisNumDec` | 708 |
+| `IpicDcvDec` | 316 |
+| `MakeNest` | 932 |
+| `WeightImBlock` | 408 |
+| `ReadBasisByte` | 1,008 |
+| `decode_PB_cc` | 1,052 |
+| `ReadBasisNibble` | 1,072 |
+| `BpicPlaneDec` | 1,084 |
+
+Both projects use **GC/1.2.5**, `-O4,p -inline auto`, integer enums, hardware FP,
+disabled C++ exceptions and the `cats off` pragma. Differences from our SDK flags:
+
+| Setting | Pikmin `cflags_base` | Accepted SDK flags |
+|---|---|---|
+| Alignment | `-align powerpc` | Compiler default |
+| FP contraction | `-fp_contract off` | Compiler default |
+| Character type | Compiler default | `-char unsigned` |
+| Strings | `-str reuse -multibyte` | Compiler default |
+| Diagnostics | `warn_notinlined off`, `-maxerrors 1`, release `-w off` | `-warn pragmas -requireprotos` |
+| Other controls | `-nosyspath -RTTI off` | `-I-`, SDK defines |
+
+Include paths and project-specific version defines were adapted for this
+checkout. Testing Pikmin's complete base flags with local include paths preserved
+every strict match but added no matches or code gains. The accepted per-unit compiler and SDK flags are therefore
+unchanged. This follows the [per-unit identification rule](code_matching_workflow.md#promotion).
+
+The bounded searches exposed a workflow bug: temporary candidate paths lost the
+unit's compiler override and flags. `order_search.py` and `variant_search.py` now
+forward the original unit's MWCC version and shell-quoted flags. Focused tests
+cover that forwarding. Serial reruns tried 140 plane, 140 DC-nest and four motion
+variants; none improved the retained scores. No concurrent sweep ran.
+
+Current remaining scores show exact / target instructions, **not verification**:
+
+| Function | Score | Next evidence needed |
+|---|---:|---|
+| `BasisBlockDec` | 43/334 | Scalar accumulator and stack-buffer lifetimes; candidate has 333 instructions. |
+| `IpicPlaneDec` | 50/60 | Stride copy and stack-store order; candidate has 59 instructions. |
+| `MotionComp` | 16/59 | Parameter copies and offset expression scheduling; candidate has 62 instructions. |
+| `MCBlockDecBasis` | 458/651 | Type-specific basis paths and stack lifetimes; candidate has 706 instructions. |
+| `MCBlockDecMCNest` | 45/114 | Plane target/stride and motion-offset lifetimes; candidate has 118 instructions. |
+| `MCBlockDecDCNest` | 107/108 | Initial plane copy must use the colored state local instead of the parameter; bounded declarations, qualifiers and types did not solve it. |
+| `PpicPlaneDec` | 268/268 | All instructions agree; strict verification refuses unproved `mcbTypeNext` transition-table references. |
+| `fn_80189934` | 37/127 | Stream/header lifetimes and ADPCM predictor updates; candidate has 131 instructions. |
+| `fn_80189B30` | 54/145 | Paired-channel header/predictor scheduling; candidate has 149 instructions. |
+| `fn_80189FFC` | 68/68 | All instructions agree; `adpcm4Table` contents and relocations still need full-unit proof. |
+
+Tilka/hvqm4 commit `09700757304af4f439f0e50e7a0160cadc4d7a48`
+(LGPLv2-or-later) was checked for newer basis/control-flow and layout evidence;
+no implementation was copied. Pikmin's header also credits Bakuten Shoot Beyblade
+2002. Repository and code searches found no usable CC0 decoder source for that
+lead. Sound type/index variants did not improve the existing scores. Donor
+copies, trials and raw logs remain under ignored `work/hvqm4c/`.
+
+The externalized-BSS refusal was investigated without changing split boundaries.
+Temporarily owning BSS reproduced the complete **2,624-byte `.bss` and 32-byte
+`.sbss` layouts**, passing the existing BSS-layout checks. The unit gate then
+reached the code-size mismatch: its diagnostic says `.text: donor section is
+-272 bytes short of the retail range` (the candidate is 272 bytes too large).
+Seven earlier strict matches became reference-unverified while the complete-unit
+proof failed, so that configuration was rejected. `external_bss=True` remains;
+the final unit gate still refuses the section-set mismatch. DebuggerDriver has
+no BSS split ranges, so its externalization does not resolve this unit's existing
+owned ranges. Once code matches, own the existing BSS ranges and prove all
+sections/relocations before promotion. No verifier, pins or boundaries changed.
+
+On the same rebased main (`58647c0`), the report moves from **383,968 code bytes /
+2,541 functions** to **392,128 / 2,551**; matched data stays **128,546 bytes**.
+The unit's report count is 24 → 34 functions / 8,408 → 16,568 bytes because it
+credits `fn_80189FFC` despite unverified references. Strict counts above exclude
+it and `PpicPlaneDec`. The original kickoff baseline predates unrelated main
+merges; its larger cumulative delta is not attributed to this task.
+
+Final validation: all 43 individual `verify_fn.py NAME --build --strict-symbols`
+checks produce 33 MATCH, eight MISMATCH and two MATCH with unverified references.
+`bash build.sh`, `matching_progress.py` and `sprint_finish.py` pass; the sprint
+queue accounts for ten verified gains and nine parked targets (`fn_80189FFC`
+was already excluded from that queue). The unit gate refuses the BSS section
+set as described above. `dol_compare.py --linked-units` and the whole-image
+comparison both report **zero differing bytes**, SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. Portable validation passes
+**621 tests (two skipped)**, compileall, configuration, map generation, shell
+syntax, documentation links and `git diff --check`.
 
 ## SDK leftovers
 

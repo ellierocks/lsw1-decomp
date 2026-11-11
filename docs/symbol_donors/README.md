@@ -17,6 +17,25 @@ file helpers, the corrected parser layout and the next queue. The
 [donor audit](opensaga_audit.md) records remaining lanes, target-specific
 counterexamples and the corrected `NuStrCpy` return contract.
 
+## Pikmin: SDK and middleware
+
+Check [projectPiki/pikmin](https://github.com/projectPiki/pikmin) early for
+Dolphin SDK and middleware imports. The repository is **CC0-1.0**; the HVQM4
+review pins commit `9a2163626a269ae7c699fc195cf91a5ca791044d`
+([license](https://github.com/projectPiki/pikmin/blob/9a2163626a269ae7c699fc195cf91a5ca791044d/LICENSE.MD)).
+Its Matching `src/hvqm4dec/hvqm4dec.c`, `include/hvqm4.h` and `configure.py`
+provide bodies, explicit inline helpers, types and GC/1.2.5 compiler evidence.
+Retain target layouts and independently strict-verify every transplant; names
+and the donor's Matching status alone establish neither identity nor promotion.
+See the [HVQM4 results](../sdk_import.md#pikmin-cc0-donor-follow-up).
+
+Pikmin credits Bakuten Shoot Beyblade 2002 and Tilka/hvqm4 as earlier evidence.
+The reviewed Tilka revision `09700757304af4f439f0e50e7a0160cadc4d7a48`
+is LGPLv2-or-later and supplies control-flow/layout evidence only. Repository
+and code searches did not locate a CC0 Beyblade decoder source; the header's
+credit is a lead, not permission to copy another game's implementation.
+Donor clones and search results remain under ignored `work/`.
+
 ## Japanese PC 1.0
 
 `pc_jp_pairs.tsv` holds GC↔x86 function pairs confirmed by reading both bodies,
