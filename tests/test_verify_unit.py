@@ -23,6 +23,9 @@ class Symbols:
     def addr(self, name):
         return {'external': 0x1020, '__start': 0x3000}.get(name)
 
+    def object_at(self, addr):
+        return None
+
 
 class Retail:
     def __init__(self, data):
