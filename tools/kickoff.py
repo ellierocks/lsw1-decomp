@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
-"""Start here: checkout and sweep state, lanes with available bytes, and the command to begin.
+"""Start here: checkout and sweep state, the plan's next item, and the command to begin.
 
     python3 tools/kickoff.py                      # read-only report, a few seconds
     python3 tools/kickoff.py --no-remote          # without the GitHub open-PR ownership query
-    python3 tools/kickoff.py --start UNIT [FN ...]           # unit sprint: audit, queue, baseline, bench
-    python3 tools/kickoff.py --start-lane sweep|near-misses  # the same for an automatic lane
+    python3 tools/kickoff.py --start --item ID    # claim a plan item: audit, queue, baseline, bench
+    python3 tools/kickoff.py --start UNIT [FN ...] --off-plan "REASON"           # off-plan unit sprint
+    python3 tools/kickoff.py --start-lane sweep|near-misses --off-plan "REASON"  # off-plan lane
 
-Recommendation rule:
-1. The sweep is missing or stale (a commit touched src/, include/ or the sweep tools since
-   it ran) -> rerun it first: it collects the cheapest bytes and refreshes every other figure.
-2. Else unclaimed near misses (>=90% exact) -> near-misses; else the top unit by first-wave bytes.
-   When finished runs measured verified bytes per active hour for both, the higher rate wins.
-3. The top workflow blocker is printed as the alternative when its >=80% bytes exceed the near misses'.
+Recommendation: the plan's next item (`tools/plan.py`, config/plan.toml, docs/strategy.md): the
+first open, unblocked, unclaimed item of the current stage, or a look-ahead item of the next
+stage when every open one is claimed. A missing sweep is rerun first; a stale one (a commit
+touched src/, include/ or the sweep tools since it ran) is rerun on the item's units. The lane
+figures (near misses, drafts, units, workflow blockers) are printed as off-plan context, with
+the lane the pre-plan rule would pick.
 
 `--start` never builds: it refuses when the checkout is behind origin/main (`--allow-behind`)
 or the build is missing, prints ownership conflicts, saves the queue and baseline through
-`sprint_finish.record_baseline` and opens a `sprint_bench` run with lane, unit and model
-(`--model`, else `$LSW1_MODEL`). Rerunning it for the same lane and unit only adds new queue
-names; `--restart` replaces another lane's baseline. `sprint_finish.py` closes the bench run.
+`sprint_finish.record_baseline` and opens a `sprint_bench` run with lane, unit, item and model
+(`--model`, else `$LSW1_MODEL`). `--start --item ID` also claims the item (`plan.claim`); it
+refuses an item that is not the plan's next one, and `--start UNIT` and `--start-lane` refuse
+outright, unless `--off-plan "REASON"` is given, which is then recorded in the bench run and the
+saved queue. An item another checkout claims needs `--force` as well. The near-miss lane's queue
+is the plan target set's near misses, then the rest of the current stage's (`--all`: global).
+Rerunning `--start` for the same lane, unit and item only adds new queue names; `--restart`
+replaces another lane's baseline. `sprint_finish.py` closes the bench run.
 """
 from __future__ import annotations
 
@@ -32,6 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import next_target as nt  # noqa: E402
+import plan  # noqa: E402
 import sprint_bench as sb  # noqa: E402
 import sprint_finish as sf  # noqa: E402
 import sprint_metrics as metrics  # noqa: E402
@@ -318,10 +325,55 @@ def gather(sweep_dir: Path, remote: bool) -> dict:
         ranked, _ = nt.rank_units(small, owned, 3)
         units = [{"unit": u, "ready": len(rs), "left": rs[0]["unit_left"],
                   "wave_bytes": sum(r["size"] for r in rs[:nt.WAVE_SIZE])} for u, rs in ranked]
-    return {"checkout": checkout_state(), "sweep_dir": sweep_dir, "rows": rows,
+    try:
+        plan_state, plan_error = plan_status(remote), None
+    except plan.PlanError as exc:
+        plan_state, plan_error = None, str(exc)
+    return {"plan": plan_state, "plan_error": plan_error,
+            "checkout": checkout_state(), "sweep_dir": sweep_dir, "rows": rows,
             "sweep": sweep_status(rows, meta, mtime), "meta": meta, "ready": ready,
             "ready_error": ready_error, "owned": owned, "units": units,
             "blockers": read_blockers(BLOCKERS), "records": sb.compare(), "worktrees": worktree_summary()}
+
+
+def plan_status(remote: bool) -> dict:
+    """plan.status() (a seam for tests)."""
+    return plan.status(remote=remote)
+
+
+def sweep_commands(sweep: dict, units: list[str]) -> list[str]:
+    """The sweep the plan item needs first: the whole tree when there is none, the item's units
+    when it is stale, nothing when it is fresh."""
+    if sweep["state"] == "missing":
+        return ["python3 tools/sweep.py --apply"]
+    if sweep["state"] == "stale":
+        return [f"python3 tools/sweep.py --unit {u} --apply" for u in units] or ["python3 tools/sweep.py --apply"]
+    return []
+
+
+def plan_lines(state: dict) -> list[str]:
+    """The plan section: current stage, next item, its sweep precondition and the start command."""
+    ps = state.get("plan")
+    if ps is None:
+        return [f"Plan:     unavailable ({state.get('plan_error')})"]
+    nxt = ps["next"]
+    lines = [f"Plan:     revision {ps['revision']}, current stage {ps['current'] or 'none'}"]
+    if ps.get("mine"):
+        lines.append(f"          this checkout claims item {ps['mine']}")
+    for rec in ps["claims"]["stale"]:
+        lines.append(f"          stale claim ignored: {rec['item']} ({rec['stale']})")
+    lines += ["          " + l for l in plan.warning_lines(ps)]
+    if not nxt:
+        return lines + ["\nRecommendation: no recommendable plan item; revise config/plan.toml (docs/strategy.md#revising-the-plan)."]
+    item = nxt["item"]
+    lines.append(f"\nRecommendation: {plan.describe_next(ps)}")
+    pre = sweep_commands(state["sweep"], item["units"])
+    if pre:
+        lines.append(f"  first, the sweep is {state['sweep']['state']} ({state['sweep']['why']}): " + " && ".join(pre))
+    if not nxt.get("mine"):
+        lines.append(f"  python3 tools/kickoff.py --start --item {item['id']}")
+    lines.append(f"  python3 tools/plan.py --item {item['id']}    # its functions")
+    return lines
 
 
 def worktree_summary() -> str | None:
@@ -365,7 +417,7 @@ def lane_table(state: dict) -> tuple[list[str], dict, dict | None, dict | None]:
     if state["rows"] is None:
         filt = " (no sweep yet)"
     lines.append(f"  near-misses  {len(near)} fn, {near_lane['bytes']:,} B at >=90%{filt}; top {units_of(near)}"
-                 f"  ->  python3 tools/sweep_permute.py --apply, or python3 tools/kickoff.py --start-lane near-misses")
+                 f"  ->  python3 tools/sweep_permute.py --apply, or python3 tools/kickoff.py --start-lane near-misses --off-plan REASON")
     hint = (f"python3 tools/score_fn.py {drafts[0]['name']} {drafts[0]['source']} "
             f"--body {state['sweep_dir'] / drafts[0]['name'] / 'sweep_draft.c'} --diff") if drafts else "-"
     lines.append(f"  drafts 80-90 {len(drafts)} fn, {sum(r['size'] for r in drafts):,} B; top {units_of(drafts)}"
@@ -373,7 +425,7 @@ def lane_table(state: dict) -> tuple[list[str], dict, dict | None, dict | None]:
     if state["units"]:
         for i, u in enumerate(state["units"], 1):
             lines.append(f"  unit #{i}      {u['unit']}: {u['ready']} ready, {u['left']} left, "
-                         f"{u['wave_bytes']:,} B first wave  ->  python3 tools/kickoff.py --start {u['unit']}")
+                         f"{u['wave_bytes']:,} B first wave  ->  python3 tools/kickoff.py --start {u['unit']} --off-plan REASON")
     else:
         lines.append(f"  unit         {state['ready_error'] or 'no ready units'}")
     blockers = state["blockers"]
@@ -417,27 +469,40 @@ def print_report(state: dict) -> None:
         print("          MISMATCH bands: " + "; ".join(f"{label} {n} fn/{size:,} B"
                                                       for label, n, size in bands(rows)))
     lines, near_lane, unit, blocker = lane_table(state)
-    print("\nLanes:")
+    print("\nOff-plan lanes (context; starting one needs --off-plan REASON):")
     print("\n".join(lines))
     print("\nMeasured yield (verified per active hour, sprint_bench):")
     print("\n".join("  " + l for l in yield_lines(state["records"])))
     lane, why, alt = recommend(state["sweep"], near_lane, unit, blocker, lane_rates(state["records"]))
-    first = "" if c["build"]["ready"] else "bash build.sh first (scoring needs it), then "
-    print(f"\nRecommendation: {first}{lane}: {why}.")
-    if alt:
-        print(f"Alternative:    {alt}.")
+    print(f"  off-plan lane rule would pick {lane}: {why}" + (f"; alternative {alt}" if alt else ""))
+    if not c["build"]["ready"]:
+        print("\nbash build.sh first (scoring needs it).")
+    print()
+    print("\n".join(plan_lines(state)))
 
 
 # --- start ----------------------------------------------------------------------------------
 
+def plan_ordered(rows: list[dict], scope: list[str] | None) -> list[dict]:
+    """ROWS inside SCOPE (ordered plan target names), in scope order, or ROWS when SCOPE is None."""
+    if scope is None:
+        return rows
+    rank = {n: i for i, n in reversed(list(enumerate(scope)))}
+    return sorted((r for r in rows if r["name"] in rank), key=lambda r: rank[r["name"]])
+
+
 def build_queue(lane: str, unit: str | None, names: list[str], rows: list[dict] | None,
-                ready_rows: list[dict] | None, owned: set[str]) -> list[str]:
-    """Given names, else the lane's default queue (docs/sprint_workflow.md#kickoff)."""
+                ready_rows: list[dict] | None, owned: set[str], scope: list[str] | None = None) -> list[str]:
+    """Given names, else the lane's default queue (docs/sprint_workflow.md#kickoff). SCOPE (plan
+    target names, ordered) restricts and orders the near-miss lane; the plan lane is SCOPE."""
+    if lane == "plan":
+        return metrics.dedupe(names + list(scope or []))
     if names or lane == "sweep":
         return metrics.dedupe(names)
     ready = {r["name"] for r in ready_rows} if ready_rows is not None else None
     if lane == "near-misses":
-        return [r["name"] for r in available(rows or [], NEAR, 1.01, ready, owned)][:QUEUE_LIMIT]
+        near = available(rows or [], NEAR, 1.01, ready, owned if scope is None else set())
+        return [r["name"] for r in plan_ordered(near, scope)][:QUEUE_LIMIT]
     near = [r["name"] for r in available(rows or [], NEAR, 1.01, ready, set()) if r["unit"] == unit]
     fill = [r["name"] for r in ready_rows or [] if r["unit"] == unit and r["size"] <= 0x200
             and not r["claimed"]][:QUEUE_LIMIT]
@@ -454,7 +519,46 @@ def audit_conflicts(unit: str | None, owned: set[str]) -> list[str]:
     return out
 
 
-def start(lane: str, unit: str | None, names: list[str], args) -> int:
+def plan_gate(lane: str, item_id: str | None, args) -> tuple[str | None, dict | None]:
+    """(error or None, plan state or None). A plan item must be the next one (or this checkout's)
+    and not claimed elsewhere; everything else needs --off-plan REASON. The near-miss lane's plan
+    scope comes from the state."""
+    try:
+        state = plan_status(not args.no_remote)
+    except plan.PlanError as exc:
+        if args.off_plan and not item_id:
+            return None, None
+        return f"error: {exc}", None
+    nxt = state["next"]
+    hint = (f"the plan's next item is {nxt['item']['id']} (python3 tools/kickoff.py --start --item "
+            f"{nxt['item']['id']})" if nxt else "the plan has no recommendable item (python3 tools/plan.py)")
+    if not item_id:
+        if not args.off_plan:
+            what = f"--start-lane {lane}" if lane != "unit" else "--start UNIT"
+            return (f"error: {what} is off plan; {hint}. Pass --off-plan \"REASON\" to proceed "
+                    "(docs/strategy.md#rule)"), state
+        return None, state
+    item = plan.find_item(state, item_id)
+    if item is None:
+        return f"error: no item {item_id} in config/plan.toml", state
+    if item["closed"]:
+        return f"error: item {item_id} is closed", state
+    if plan.taken(state["claims"], item_id) and not args.force:
+        return (f"error: item {item_id} is claimed by {state['claims']['items'][item_id]['by']}; "
+                f"{hint}, or pass --force"), state
+    if (not nxt or nxt["item"]["id"] != item_id) and not args.off_plan:
+        why = f"blocked ({item['blocked'].rstrip('.')})" if item["blocked"] else "not the plan's next item"
+        return f"error: item {item_id} is {why}; {hint}. Pass --off-plan \"REASON\" to proceed", state
+    return None, state
+
+
+def start(lane: str, unit: str | None, names: list[str], args, item_id: str | None = None) -> int:
+    error, state = plan_gate(lane, item_id, args)
+    if error:
+        print(error, file=sys.stderr)
+        return 2
+    if args.off_plan:
+        print(f"off plan: {args.off_plan}")
     if not args.allow_behind:
         behind = sf.behind_origin()
         if behind:
@@ -477,36 +581,56 @@ def start(lane: str, unit: str | None, names: list[str], args) -> int:
     if unit and conflicts and conflicts[0].startswith("unit ") and not args.force:
         print("error: another sprint owns this unit; pick another or pass --force", file=sys.stderr)
         return 2
+    scope = None
+    if item_id:
+        scope = plan.functions_for(item_id, state)
+    elif lane == "near-misses" and state and not args.all:
+        targets = plan.plan_targets(state=state)
+        scope = targets["functions"] + targets["stage"]
+        print(f"near misses: plan item {targets['item']}, then the rest of stage {targets['stage_id']} "
+              "(--all for the global order)")
     rows, _, _ = load_sweep(args.sweep_dir)
-    queue = build_queue(lane, unit, names, rows, ready_rows, owned)
-    tag = {"lane": lane, "unit": unit}
+    queue = build_queue(lane, unit, names, rows, ready_rows, owned, scope)
+    tag = {"lane": lane, "unit": unit, "item": item_id}
+    extra = dict(tag, **({"off_plan": args.off_plan} if args.off_plan else {}))
     base = json.loads(sf.BASELINE.read_text()) if sf.BASELINE.is_file() else None
     if base and {k: base.get(k) for k in tag} == tag and not args.restart:
         added = metrics.queue_add(sf.BASELINE, queue) or []
-        print(f"baseline: kept ({lane} {unit or ''} at {base.get('head')}); queue +{len(added)}")
+        print(f"baseline: kept ({lane} {unit or item_id or ''} at {base.get('head')}); queue +{len(added)}")
     elif base and not args.restart:
         print(f"error: {sf.BASELINE.relative_to(ROOT)} belongs to lane {base.get('lane')} "
-              f"{base.get('unit') or ''}; finish it first or pass --restart", file=sys.stderr)
+              f"{base.get('unit') or base.get('item') or ''}; finish it first or pass --restart", file=sys.stderr)
         return 2
     else:
-        code = sf.record_baseline(queue, allow_behind=True, extra=tag)
+        code = sf.record_baseline(queue, allow_behind=True, extra=extra)
         if code:
             return code
+    if item_id:
+        print(f"claim: {plan.claim(item_id)}")
     timing = ROOT / "work" / "sprint_timing.json"
     if not timing.exists():
         sf.phase(timing, "matching")
     current = sb.current_start()
-    if current and current.get("lane") == lane and current.get("unit") == unit and not args.restart:
+    if (current and all(current.get(k) == v for k, v in tag.items()) and not args.restart):
         print(f"bench: run {current.get('run_id')} already open")
     else:
-        opened = sb.start(args.model, None, args.launched_at, lane=lane, unit=unit)
-        print(f"bench: opened run {opened['run_id']} (lane {lane}, model {args.model})")
+        opened = sb.start(args.model, None, args.launched_at, lane=lane, unit=unit, item=item_id,
+                          off_plan=args.off_plan)
+        print(f"bench: opened run {opened['run_id']} (lane {lane}{f', item {item_id}' if item_id else ''}, "
+              f"model {args.model})")
     print(f"queue: {len(queue)} names" + (f": {' '.join(queue[:12])}{' ...' if len(queue) > 12 else ''}"
                                           if queue else ""))
     print("\nNext:")
     if lane == "sweep":
         print("  python3 tools/sweep.py --apply && bash build.sh")
         print("  python3 tools/sprint_finish.py FN... --unit sweep --queue FN... --merge")
+    elif lane == "plan":
+        first = next((r for r in ready_rows if queue and r["name"] == queue[0]), None)
+        src = (first or {}).get("source_path") or "src/UNIT.c"
+        print(f"  python3 tools/next_target.py           # the item's targets, ranked")
+        print(f"  python3 tools/score_fn.py {queue[0] if queue else 'NAME'} {src} --diff")
+        print(f"  python3 tools/sprint_finish.py --unit {src} --matched-from-diff --merge "
+              "--parked 'FN=score: mismatch; next: idea' --deferred FN ...")
     else:
         src = f"src/{unit}.c" if unit else "src/UNIT.c"
         print(f"  python3 tools/score_fn.py {queue[0] if queue else 'NAME'} {src} --diff")
@@ -517,8 +641,13 @@ def start(lane: str, unit: str | None, names: list[str], args) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--start", nargs="+", metavar="UNIT [FN]", help="start a unit sprint")
-    ap.add_argument("--start-lane", choices=["sweep", "near-misses"], help="start an automatic lane")
+    ap.add_argument("--start", nargs="*", metavar="UNIT [FN]",
+                    help="start a plan item (with --item ID) or, off plan, a unit sprint")
+    ap.add_argument("--item", help="the config/plan.toml item to start (with --start)")
+    ap.add_argument("--start-lane", choices=["sweep", "near-misses"], help="start an automatic lane (off plan)")
+    ap.add_argument("--off-plan", metavar="REASON",
+                    help="start something other than the plan's next item, recording why")
+    ap.add_argument("--all", action="store_true", help="near-miss lane: global order instead of the plan scope")
     ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
     ap.add_argument("--sweep-dir", type=Path, default=None,
                     help="sweep results to read (default $LSW1_SWEEP_DIR or work/sweep)")
@@ -527,12 +656,22 @@ def main(argv=None) -> int:
     ap.add_argument("--launched-at", type=float, help="epoch seconds the thread was launched (bench startup split)")
     ap.add_argument("--allow-behind", action="store_true", help="start even when behind origin/main")
     ap.add_argument("--restart", action="store_true", help="replace an existing baseline and bench run")
-    ap.add_argument("--force", action="store_true", help="start a unit another sprint branch owns")
+    ap.add_argument("--force", action="store_true", help="start a unit or item another branch or checkout owns")
     args = ap.parse_args(argv)
     args.sweep_dir = args.sweep_dir or default_sweep_dir()
-    if args.start and args.start_lane:
+    if args.off_plan is not None and not args.off_plan.strip():
+        ap.error("--off-plan needs a reason")
+    if args.start is not None and args.start_lane:
         ap.error("choose --start or --start-lane")
-    if args.start:
+    if args.item and args.start is None:
+        ap.error("--item needs --start")
+    if args.start is not None:
+        if args.item:
+            if args.start:
+                ap.error("--start --item ID takes no unit; the item names its functions")
+            return start("plan", None, [], args, item_id=args.item)
+        if not args.start:
+            ap.error("--start needs --item ID (or, off plan, a UNIT)")
         return start("unit", args.start[0].removeprefix("src/").removesuffix(".c"), args.start[1:], args)
     if args.start_lane:
         return start(args.start_lane, None, [], args)
