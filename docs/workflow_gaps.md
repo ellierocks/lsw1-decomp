@@ -15,6 +15,7 @@ delete the row when nothing remains to say.
 | 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | partly fixed |
 | 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | partly fixed, #119 |
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | open |
+| 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | partly fixed, numath promoted |
 
 ## 1. Stale task packs change scores
 
@@ -113,7 +114,7 @@ commits touching its inputs since it ran.
 - Rate limits stopped about ten sessions mid-task. This is outside the repository; short
   scoped threads and the audit in gap 2 limit what a stopped session can strand.
 - Code-identical functions fail `--strict-symbols` on string-literal addresses
-  (`fn_80076DF0`). The oracle is right; these wait for `.rodata` ownership.
+  (`fn_80076DF0`). The oracle is right; these wait for `.rodata` ownership (gap 9).
 - The git guard blocks commits whose command runs in the main checkout. Use
   `git -C <worktree>`.
 - `tools/quick_wins.py` reads one hard-coded split file, `auto_01_8001752C_text.s`, which a
@@ -147,3 +148,21 @@ The blocker report records 131 unswept functions (131,080 bytes) without C sourc
 They need source-unit scaffolding and compiler wiring before the sweep can draft
 them. This is missing coverage, not a compile-error repair; prioritize units by
 expected matching yield and preserve the existing split boundaries.
+
+## 9. Strict-only functions wait on `.rodata` layout
+
+On 2026-11-11, 203 functions (54,460 bytes) passed `verify_fn.py --strict-symbols` but
+scored below 100% in objdiff, because their units emit literals at other `.rodata`
+offsets. `tools/rodata_layout.py` (`gap`, `diff UNIT`, `survey`) measures this and
+classifies each byte. The cause in every affected unit is the same: retail ranges keep
+the constant pools of dead-stripped functions and a `VuMath.h` string copy at each TU
+start ([stripped constant pools](build_config.md#stripped-constant-pools-and-tu-starts)).
+Retail-order definitions, the shared `VuMath.h` header and `rodata_layout.py
+placeholders` reproduced and promoted `nutrig`, `nugraph_1`, `nugraph_3` and `nuvec`
+(40 functions, 10,012 bytes).
+
+Open: the other units are not code-complete, and most reference strings through
+`extern lbl_` names that have to become literals first. Steps 1 and 3 of the mechanism
+still raise strict-only functions in incomplete units once the functions before them
+emit their pools. `nustring` also needs its string order explained and its range start
+corrected.

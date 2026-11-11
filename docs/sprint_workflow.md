@@ -218,6 +218,9 @@ that figure, not an adjusted objdiff total. In a unit with a `.rodata` range
 ([provisional ranges](build_config.md#provisional-rodata-ranges)), such a function counts once
 the unit's literals sit at retail offsets. An `extern lbl_` reference already matches by name.
 To promote the unit, its C must emit every literal in the range, strings included, in retail order.
+`python3 tools/rodata_layout.py diff UNIT` shows where the layout diverges and why;
+stripped pools and extra TU header copies are carried with `rodata_layout.py placeholders`
+([stripped constant pools](build_config.md#stripped-constant-pools-and-tu-starts)).
 
 If main moved since the baseline, the report delta includes main's changes; record
 "includes main drift: yes" rather than building a separate baseline worktree. Run
