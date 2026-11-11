@@ -15,7 +15,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from tools.project import (
     Object,
@@ -347,13 +347,15 @@ def sdk_cflags(unit: str) -> List[str]:
     return flags
 
 
-def SDKObject(unit: str, matching: bool, external_bss: bool = False) -> Object:
+def SDKObject(unit: str, matching: bool, external_bss: bool = False,
+              mw_version: Optional[str] = None) -> Object:
     name = f"dolphin/{unit}.c"
     target = config.out_path() / "obj" / f"dolphin/{unit}.o"
     symbols = Path("config/GL5E4F/symbols.txt")
     flag = f" --external-bss {symbols}" if external_bss else ""
+    extra = {"mw_version": mw_version} if mw_version else {}
     return Object(
-        matching, name, cflags=sdk_cflags(unit),
+        matching, name, cflags=sdk_cflags(unit), **extra,
         post_build=[
             "{dtk} elf fixup {out} {out}",
             f"$python tools/strip_unused.py --target {target}{flag} {{out}}",
@@ -578,7 +580,9 @@ config.libs = [
         SDKObject("gx/GXPerf", Matching),
     ]),
     DolphinLib("hvqm4", [
-        SDKObject("hvqm4/hvqm4dec", NonMatching, external_bss=True),
+        # Hudson's middleware was built with GC/1.2.5, not the SDK's 1.2.5n:
+        # see docs/sdk_import.md#hvqm4-decoder-parked (epilogue mtlr placement).
+        SDKObject("hvqm4/hvqm4dec", NonMatching, external_bss=True, mw_version="GC/1.2.5"),
     ]),
     DolphinLib("OdemuExi2", [
         SDKObject("OdemuExi2/DebuggerDriver", Matching, external_bss=True),

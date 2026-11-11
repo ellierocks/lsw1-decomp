@@ -112,9 +112,10 @@ source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
   Left: `__cvt_fp2unsigned` (16/18 instructions) and the debugger's exception vectors
   at `80151724..80153184` (6,752 bytes), which need their entries found first.
 - **HVQM4 decoder** (stage 0, `dolphin/hvqm4/hvqm4dec`, 18,592 bytes): the parked
-  candidate strictly verifies 18 of 43 functions
-  ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with the two
-  scheduling near-misses, then the bit readers.
+  candidate, built with GC/1.2.5, strictly verifies 23 of 43 functions
+  ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with
+  `MCBlockDecDCNest` (107/108), the `adpcm4Table` proof for `fn_80189FFC` (68/68
+  code) and `HVQM4InitDecoder` (207/216).
 - **SDK leftovers** (stage 0, 3,256 bytes): `Pad`, `dvdfs`, the `.init` stubs,
   `__DVDLowTestAlarm` and the `GXGetFifo*` stubs; per-function version drift against
   dolsdk2004.

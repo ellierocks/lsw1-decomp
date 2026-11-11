@@ -49,7 +49,7 @@ note = "#122 promoted ppcdown, tealeaf and __init_cpp (docs/sn_runtime.md#codewa
 [[stage.item]]
 id = "hvqm4"
 units = ["dolphin/hvqm4/hvqm4dec"]
-note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_import.md#hvqm4-decoder-parked."
+note = "Built with GC/1.2.5; 23/43 functions strict-verify. Next: MCBlockDecDCNest 107/108, fn_80189FFC code 68/68 but adpcm4Table needs section proof, HVQM4InitDecoder 207/216: docs/sdk_import.md#hvqm4-decoder-parked."
 # at revision 1: 25 functions, 18,592 bytes left
 
 

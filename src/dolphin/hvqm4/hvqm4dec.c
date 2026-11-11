@@ -1011,24 +1011,35 @@ void IpicLineDec(HVQState* state, u8* dst, s32 stride, HVQStack* stack, s32 coun
     stack->line_next += 2;
 }
 
-void IpicPlaneDec(HVQState* state, s32 plane_idx, u8* dst) {
-    HVQPlane* plane = state->planes + plane_idx;
+void IpicPlaneDec(HVQState* state, s32 plane_idx, u8* dst_) {
+    HVQBlock** payload;
+    s32 stride;
+    s32 stride4;
+    s32 width;
+    s32 y;
+    u8* dst;
+    HVQPlane* plane;
+    HVQBlock* p;
     HVQStack stack;
-    s32 stride = plane->width;
-    s32 y = plane->v_blocks;
-    s32 width = plane->h_blocks;
-    s32 stride4 = stride * 4;
 
-    stack.line_prev = plane->payload;
-    stack.line_curr = plane->payload;
-    stack.line_next = plane->payload + plane->h_blocks_safe;
+    plane = &state->planes[plane_idx];
+    payload = &plane->payload;
+    y = plane->v_blocks;
+    width = plane->h_blocks;
+    dst = dst_;
+    stride = plane->width;
     stack.plane_idx = plane_idx;
+    p = plane->payload;
+    stack.line_prev = p;
+    stack.line_curr = p;
+    stack.line_next = p + plane->h_blocks_safe;
+    stride4 = stride * 4;
     if (y > 0) {
         IpicLineDec(state, dst, stride, &stack, width);
         dst += stride4;
         y--;
     }
-    stack.line_prev = plane->payload;
+    stack.line_prev = *payload;
     for (; y > 1; y--) {
         IpicLineDec(state, dst, stride, &stack, width);
         dst += stride4;
@@ -1491,18 +1502,33 @@ void MCBlockDecMCNest(HVQState* state, HVQMCPlane* mc, s32 x, s32 y) {
     } while (i < 3);
 }
 
-void MCBlockDecDCNest(HVQState* state, HVQMCPlane* mc) {
-    HVQPlane* plane = state->planes;
+/* Retail colors the parameters after the loop locals and reserves one unused stack slot,
+ * so the parameters are copied into locals declared after j. 107/108: only the plane copy
+ * reads r3 instead of the state copy. */
+void MCBlockDecDCNest(HVQState* state_, HVQMCPlane* mc_) {
     s32 i;
+    HVQBlock* blocks;
+    s32 stride;
+    s32 hsafe;
+    u16* boffs;
+    s32* poffs;
+    s32 n;
+    s32 j;
+    HVQState* state;
+    HVQMCPlane* mc;
+    HVQPlane* plane;
+    s32 unused;
 
+    state = state_;
+    mc = mc_;
+    plane = state->planes;
     for (i = 0; i < 3; i++) {
-        HVQBlock* blocks = mc->payload_cur_blk;
-        u16* boffs = plane->mcb_offset;
-        u16 stride = plane->width;
-        s32* poffs = plane->pb_offset;
-        u16 hsafe = plane->h_blocks_safe;
-        u8 n = plane->blocks_per_mcb;
-        s32 j;
+        blocks = mc->payload_cur_blk;
+        boffs = plane->mcb_offset;
+        stride = plane->width;
+        poffs = plane->pb_offset;
+        hsafe = plane->h_blocks_safe;
+        n = plane->blocks_per_mcb;
 
         for (j = 0; j < n; j++) {
             u16 off = *boffs++;
@@ -2233,7 +2259,7 @@ void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 f
         return;
     }
     hasHdr = (type & 0x80) ? 1 : 0;
-    tbl = *(s32**)((u8*)adpcm4Table + ((type * 4) & 0xC));
+    tbl = adpcm4Table[type & 3];
     bytes = count * 2;
     if (hasHdr != 0) {
         adpcmStride4 = frame;
@@ -2246,11 +2272,10 @@ void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 f
         st->pred1 = (s16)((in[2] << 8) | in[3]);
         in += 4;
     }
-    n = count;
     p0 = st->pred0;
     p1 = st->pred1;
-    if (count != 0) {
-        do {
+    for (n = count; n != 0; n--) {
+        {
             p0 += tbl[in[0]];
             if (p0 < -0x8000) {
                 p0 = -0x8000;
@@ -2269,8 +2294,7 @@ void fn_80189FFC(HVQSoundState* st, u8* in, s16* out, u32 type, u32 count, s32 f
             out[0] = (s16)p1;
             in += 2;
             out += 2;
-            n -= 1;
-        } while (n != 0);
+        }
     }
     st->pred0 = p0;
     st->pred1 = p1;
