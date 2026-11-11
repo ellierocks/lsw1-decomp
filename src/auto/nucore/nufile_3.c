@@ -1,12 +1,6 @@
 #include "types.h"
 #include "nucore/nufile.h"
 
-// Local view of the GC file device; only the separator at 0x10 is confirmed.
-struct nufiledeviceview_s {
-    u8 unknown00[0x10];
-    char dirSeparator;
-};
-
 extern struct numemfile_s lbl_803120C0[];
 extern struct BlockInfo lbl_801FD080[];
 extern s32 lbl_80407A40;
@@ -61,7 +55,7 @@ void NuFileEndBlockRead(s32 handle)
     }
 }
 
-void fn_80005BC0(struct nufiledeviceview_s* dev, char* path)
+void fn_80005BC0(struct nufileentry_s* dev, char* path)
 {
     char* start = path;
     char* src = path;
