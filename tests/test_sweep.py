@@ -385,7 +385,7 @@ class RepairDraftTest(unittest.TestCase):
         def fake_score(name, source, body, apply=False):
             scored.append(body)
             if compiles(body):
-                return {"verdict": "MISMATCH", "exact": 5, "target": 9}
+                return {"verdict": "MISMATCH", "exact": int(compiles(body)), "target": 9}
             return {"verdict": "COMPILE-ERROR", "error": "u.c:3: incompatible types"}
 
         stages = {"frame": (sweep.frame_buffer,), "scored": ()}
@@ -408,12 +408,19 @@ class RepairDraftTest(unittest.TestCase):
         self.assertEqual(body, "void g(f32 *);\n" + self.BODY)
 
     def test_accumulated_repairs_still_win(self):
-        # Both repairs are needed: the accumulating path finds it, with no retry.
+        # Both repairs are needed: the accumulating path still wins after retry.
         (res, body), scored = self.repair(lambda b: "void g(" in b and "char sp8" in b)
         self.assertEqual(res["verdict"], "MISMATCH")
         self.assertTrue(res["frame_buffer"] and res["prototypes"])
         self.assertIn("char sp8[0x38];", body)
-        self.assertEqual(len(scored), 3)
+        self.assertEqual(len(scored), 4)
+
+    def test_compiling_accumulation_does_not_hide_better_checkpoint(self):
+        (res, body), _ = self.repair(
+            lambda b: (3 if "char sp8" in b else 7) if "void g(" in b else 0)
+        self.assertEqual(res["exact"], 7)
+        self.assertNotIn("frame_buffer", res)
+        self.assertEqual(body, "void g(f32 *);\n" + self.BODY)
 
     def test_strip_tmp(self):
         res = sweep.strip_tmp({"verdict": "COMPILE-ERROR",

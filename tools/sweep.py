@@ -403,17 +403,15 @@ def run_steps(name: str, source: str, steps, start: int, res: dict | None, body:
 
 def repair_draft(name: str, source: str, body: str, asm_text: str, unit_text: str) -> tuple[dict, str]:
     """(score, body) of m2c draft BODY after the sweep's repairs (repair_steps). Repairs
-    accumulate on a draft that fails to compile; if it still fails at the end, each form a
-    failing repair replaced (and the draft before stack_arrays) is repaired again keeping
-    only improvements, and the best result wins: a repair accepted blind can then never
-    hide a draft that a later repair alone would have made compile."""
+    accumulate on a draft that fails to compile; each form such a failing repair replaced
+    (and the draft before stack_arrays) is then repaired again keeping only improvements,
+    and the best result wins: a repair accepted blind can never hide a draft that a later
+    repair alone would have made compile, nor one it would have compiled better."""
     steps = repair_steps(name, asm_text, unit_text)
     stacked = stack_arrays(body)
     checkpoints: list = [(0, None, body)] if stacked != body else []
     res, out = score_draft(name, source, stacked)
     res, out = run_steps(name, source, steps, 0, res, out, unit_text, asm_text, checkpoints)
-    if res["verdict"] != "COMPILE-ERROR":
-        return res, out
     for start, cp_res, cp_body in checkpoints:
         if cp_res is None:
             cp_res, cp_body = score_draft(name, source, cp_body)
