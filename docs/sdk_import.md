@@ -1946,7 +1946,7 @@ Portable workflow checks and 178 tests with `VERIFY_FN_REQUIRE_RETAIL=1` pass (o
 The decoder now has a split and a source candidate at
 [`src/dolphin/hvqm4/hvqm4dec.c`](../src/dolphin/hvqm4/hvqm4dec.c), registered
 **NonMatching**. Its 43 functions cover `8018432C..8018A10C` (24,032 bytes).
-Twenty-one functions (5,716 bytes) strictly verify; **zero code or data bytes are
+Twenty-three functions (8,136 bytes) strictly verify; **zero code or data bytes are
 promoted**. The normal build retains assembly fallback for the complete unit.
 The debugger range beginning at `8018A10C` is unchanged.
 
@@ -1955,10 +1955,28 @@ The source adapts CC0 MSSB reconstruction code at commit
 ([upstream PR #27](https://github.com/nlopez99/mssb-decomp/pull/27)), with
 LSW1-specific control flow, structures and sound routines. Tilka/hvqm4 supplied
 algorithm/layout evidence, not copied implementation. See the source provenance
-comment. No Hudson SDK archive was needed. The successful configuration is
-GC/1.2.5n with the existing dolsdk2004 release flags (`-O4,p -inline auto`);
-the initial MSSB `-inline noauto` lead is not the accepted configuration.
-`score_fn.py --mw-version VER --mw-flags 'FLAGS'` supports alternate compiler
+comment. No Hudson SDK archive was needed. The unit builds with the dolsdk2004
+release flags (`-O4,p -inline auto`) but **GC/1.2.5**, not the SDK library's
+GC/1.2.5n; the initial MSSB `-inline noauto` lead is not the accepted configuration.
+
+### Per-unit compiler override (GC/1.2.5)
+
+`configure.py` pins this one object with `SDKObject(..., mw_version="GC/1.2.5")`;
+the rest of the SDK stays on GC/1.2.5n and no flags change. Evidence: under
+GC/1.2.5n, `HVQM4SetBuffer` (280/281) and `HVQM4DecodeIpic` (323/324) differ only
+in where the epilogue places `mtlr` among the saved-register restores, and no
+source shape moved it. Compiling the unchanged candidate with each MWCC GC version
+showed that GC/1.0, 1.1 and 1.2.5 put `mtlr` where retail does, making both
+functions strict matches while all 21 earlier strict matches still verify.
+GC/1.1p1, 1.3 and later regress them. GC/1.2.5 is the closest version to
+the SDK's and is the one pinned. Hudson shipped HVQM4 as separate middleware, so
+an older compiler than the SDK's is plausible. The linked-image comparison stays
+at zero differing bytes.
+
+`score_fn.py --compiler sdk` now reads the unit's `mw_version` and `cflags`
+(include directories, `-lang=c`) from `build.ninja`, so trial scores use the
+same compiler as the build. Previously it fell back to GC/1.2.5n and failed to
+find SDK headers. `--mw-version VER --mw-flags 'FLAGS'` still override both for
 experiments without changing build pins or the verification oracle.
 
 Strict results, checked against the retail DOL and symbol destinations:
@@ -1979,6 +1997,8 @@ Strict results, checked against the retail DOL and symbol destinations:
 | `fn_80188758` | 32 |
 | `HVQM4InitSeqObj` | 36 |
 | `HVQM4BuffSize` | 116 |
+| `HVQM4SetBuffer` | 1,124 |
+| `HVQM4DecodeIpic` | 1,296 |
 | `HVQM4DecodePpic` | 36 |
 | `HVQM4DecodeBpic` | 1,448 |
 | `HVQM4DecSoundCreate` | 84 |
@@ -1998,17 +2018,41 @@ matches remain intact.
 `HVQM4DecodeIpic` improves from 322/324 to **323/324** by initializing the loop
 index before the plane pointer. Its only remaining difference is the epilogue's
 `mtlr` placement. `HVQM4SetBuffer` remains 280/281. Local declaration/sign variants,
-explicit return and loop-shape experiments did not solve their epilogues; these
-are parked. No compiler flags, pins, verification rules or split boundaries changed.
+explicit return and loop-shape experiments did not solve their epilogues under
+GC/1.2.5n; the [GC/1.2.5 override](#per-unit-compiler-override-gc125) later solved both. No compiler flags, pins, verification rules or split boundaries changed.
 
-The report moves from **354,044 code bytes / 2,375 functions** to **354,320 /
+The GC/1.2.5 follow-up (rebased on main `0ca0aff`) adds **two strict matches /
+2,420 bytes**: `HVQM4SetBuffer` and `HVQM4DecodeIpic`. The report reads
+**368,076 code bytes / 2,455 functions** with matched data unchanged at 127,506
+bytes. Without these two functions, main would be 365,656 / 2,453. It also raises
+three unverified scores in the committed candidate:
+
+- `MCBlockDecDCNest` reaches 107/108. Retail colors the parameters after the
+  loop locals and reserves one unused 8-byte stack slot, so the source copies the
+  parameters into locals declared after `j` and declares an unused local. Only
+  the plane-pointer copy still reads `r3` instead of the state copy. Indexing,
+  K&R definitions, casts, `register` and copy order did not change this.
+- `IpicPlaneDec` reaches 50/60 after a sequential declaration-order sweep.
+- `fn_80189FFC` has all 68 instructions identical once it uses a counted
+  `for (n = count; n != 0; n--)` loop (retail's CTR loop) and `adpcm4Table[type & 3]`
+  indexing. It still returns `MATCH (unverified references)`: `adpcm4Table` is an
+  address-taken pointer table whose contents and relocations only the full-unit
+  proof can check, so it is **not counted**.
+
+`HVQM4InitDecoder` stays at 207/216. All twelve orderings of the two zero stores
+and two reciprocal loops, separate counters, `do`-loops and `i + 1` indexing
+emit loop guards (`cmpwi; bge`) that retail lacks, or lose the unrolling.
+`WeightImBlock` drops to 23/102 under GC/1.2.5. All 22 valid declaration orders
+score 22–23, because its gap is in instruction scheduling, not register colouring.
+
+Earlier history: the report moved from **354,044 code bytes / 2,375 functions** to **354,320 /
 2,378** before rebasing; matched data remains 127,502 bytes. After rebasing onto
 main `8f5823e` (including the debugger driver and CW runtime), the final report is
 **362,148 code bytes / 2,434 functions** and 127,506 matched data bytes. The HVQM4
 change itself remains **276 bytes / three functions**, with no matched-data delta.
 This credits candidate function matches; the unit still promotes **zero bytes**
-and links its complete assembly fallback. The remaining **22 functions / 18,316
-bytes** are unverified.
+and links its complete assembly fallback. After the GC/1.2.5 follow-up, **20
+functions / 15,896 bytes** remain unverified.
 
 Search covered the readers first, then Huffman, basis/nest, inter-picture and
 ADPCM routines. Sequential `variant_search.py` runs tried at most 180 variants per
@@ -2018,37 +2062,34 @@ flow and layout; no Tilka implementation was copied. Searches plateaued without
 another strict match, so unverified rewrites remain local rather than expanding
 the committed source diff.
 
-Best attempted scores for every remaining function follow. Scores show exact /
-target instructions, an informational measure, **not verification**. Best uses
-`score_fn.py`'s ordering (difference count before instruction-count delta and exact
-count), so a better score can have fewer exact instructions. Except for the two
-scheduling near-misses and unchanged baselines, these may describe local
-experiments rather than the committed candidate.
+Every remaining function's score follows. Scores show exact / target
+instructions, an informational measure, **not verification**. "Committed" is
+the candidate source compiled with GC/1.2.5. "Earlier best" is the best local
+experiment under GC/1.2.5n from the previous parking; those rewrites were not
+committed and need re-scoring under GC/1.2.5.
 
-| Remaining function | Best exact / target | Next hypothesis |
-|---|---:|---|
-| `HVQM4InitDecoder` | 207/216 | Preserve retail's unrolled reciprocal loops while scheduling each zero entry with its own table; countdown/do-loop rewrites lost unrolling. |
-| `_readTree` | 143/179 | Earlier reader definitions inline the outer bit/byte reads; nested recursive copies still call `getBit`. Recover that inline structure and the 0x38 frame. |
-| `Ipic_BasisNumDec` | 127/177 | Two levels of Huffman/bit inlining recover the 177-instruction leaf body. Signed row counts, separate luma/chroma lifetimes and the 0x48 frame remain. |
-| `IpicDcvDec` | 27/79 | Use signed row/column counts and a full-width predictor; retain `state + i * 0x14` instead of incrementing a second pointer. |
-| `MakeNest` | 15/233 | Retail copies eight pixels per unrolled iteration; replace narrowing `u16` counters with the target's full-width counts before tuning register order. |
-| `WeightImBlock` | 55/102 | Direct `satTable + 0x80` indexing improves allocation; align the order and lifetimes of the shared horizontal/vertical sums. |
-| `BasisBlockDec` | 16/334 | Retail has a separate one-basis path before the general accumulation path; recover its scalar accumulators and stack buffers. |
-| `ReadBasisByte` | 63/252 | Keep the progressive sample pointer and retail's unsigned min/max chain; declaration order alone does not recover the scalar sample schedule. |
-| `IpicPlaneDec` | 48/60 | Retain `&plane->payload` across the first line call and cache the initial block pointer; finish the stride/height register and stack-store order. |
-| `MotionComp` | 10/59 | Hoisting destination, source and stride before helper selection reduces the size gap from 15 to three instructions; align parameter-copy and offset-expression order. |
-| `decode_PB_cc` | 75/263 | Reconstruct the nested inline Huffman decodes and signed full-width run/type temporaries before register tuning. |
-| `MCBlockDecBasis` | 78/651 | Recover the target's separate type-specific basis paths, scalar accumulation and original stack-buffer lifetimes. |
-| `ReadBasisNibble` | 73/268 | Check full-width sample/min/max temporaries and the byte-reader pointer updates before inlined Huffman-factor decoding. |
-| `MCBlockDecMCNest` | 38/114 | Preserve the luma target/stride across plane iteration; align per-plane motion offsets and block/type local lifetimes. |
-| `MCBlockDecDCNest` | 74/108 | Instruction count and control flow already agree; reorder the plane loop's live block, offset, stride and index locals to match saved registers. |
-| `PpicPlaneDec` | 66/268 | Keep the saved initial baseline; recover nested Huffman inlining and motion-vector temporary lifetimes. The reader change alters this unverified caller's allocation. |
-| `BpicPlaneDec` | 64/271 | Recover the motion-vector delta inline structure, then branch-local references and run state. |
-| `HVQM4SetBuffer` | 280/281 | Only `mtlr` versus stack-pop order remains; declaration, return and loop-shape approaches plateaued. |
-| `HVQM4DecodeIpic` | 323/324 | Only `mtlr` placement among saved-register restores remains; plane-pointer initialization is fixed. |
-| `fn_80189934` | 37/127 | Align the stream/header pointer lifetimes and high/low-nibble predictor updates; strict acceptance also needs ADPCM table contents/relocations proved. |
-| `fn_80189B30` | 54/145 | Align the paired-channel header reads, predictors and table/index update ordering; table proof remains mandatory. |
-| `fn_80189FFC` | 49/68 | Use a CTR-friendly sample countdown and separate stream/predictor registers; the address-taken `adpcm4Table` still lacks complete section proof. |
+| Remaining function | Committed | Earlier best | Next hypothesis |
+|---|---:|---:|---|
+| `HVQM4InitDecoder` | 207/216 | 207/216 | Retail has no loop guards: the `divTable` loop is unrolled 8× with the zero store scheduled inside it, and `mcdivTable[0] = 0` sits just before the CTR loop. Every loop/statement order tried still emits guards. |
+| `_readTree` | 99/179 | 143/179 | Earlier reader definitions inline the outer bit/byte reads; nested recursive copies still call `getBit`. Recover that inline structure and the 0x38 frame. |
+| `Ipic_BasisNumDec` | 2/177 | 127/177 | Two levels of Huffman/bit inlining recover the 177-instruction leaf body. Signed row counts, separate luma/chroma lifetimes and the 0x48 frame remain. |
+| `IpicDcvDec` | 25/79 | 27/79 | Use signed row/column counts and a full-width predictor; retain `state + i * 0x14` instead of incrementing a second pointer. |
+| `MakeNest` | 14/233 | 15/233 | Retail copies eight pixels per unrolled iteration; replace narrowing `u16` counters with the target's full-width counts before tuning register order. |
+| `WeightImBlock` | 23/102 | 55/102 | Semantics and expression trees match retail; the gap is scheduling. Declaration order has no effect under GC/1.2.5. |
+| `BasisBlockDec` | 9/334 | 16/334 | Retail has a separate one-basis path before the general accumulation path; recover its scalar accumulators and stack buffers. |
+| `ReadBasisByte` | 49/252 | 63/252 | Keep the progressive sample pointer and retail's unsigned min/max chain; declaration order alone does not recover the scalar sample schedule. |
+| `IpicPlaneDec` | 50/60 | 48/60 | Stride is loaded into a temporary and then copied (`lhz r6; addi r30,r6,0`); `u16` stride/width/height made it worse. Finish that copy and the stack-store order. |
+| `MotionComp` | 13/59 | 10/59 | Hoisting destination, source and stride before helper selection reduces the size gap from 15 to three instructions; align parameter-copy and offset-expression order. |
+| `decode_PB_cc` | 75/263 | 75/263 | Reconstruct the nested inline Huffman decodes and signed full-width run/type temporaries before register tuning. |
+| `MCBlockDecBasis` | 79/651 | 78/651 | Recover the target's separate type-specific basis paths, scalar accumulation and original stack-buffer lifetimes. |
+| `ReadBasisNibble` | 56/268 | 73/268 | Check full-width sample/min/max temporaries and the byte-reader pointer updates before inlined Huffman-factor decoding. |
+| `MCBlockDecMCNest` | 30/114 | 38/114 | Preserve the luma target/stride across plane iteration; align per-plane motion offsets and block/type local lifetimes. |
+| `MCBlockDecDCNest` | 107/108 | 74/108 | Only the plane copy reads `r3` (the parameter) instead of the state copy; find what makes retail copy from the coloured local. |
+| `PpicPlaneDec` | 54/268 | 66/268 | Keep the saved initial baseline; recover nested Huffman inlining and motion-vector temporary lifetimes. The reader change alters this unverified caller's allocation. |
+| `BpicPlaneDec` | 64/271 | 64/271 | Recover the motion-vector delta inline structure, then branch-local references and run state. |
+| `fn_80189934` | 37/127 | 37/127 | Align the stream/header pointer lifetimes and high/low-nibble predictor updates; strict acceptance also needs ADPCM table contents/relocations proved. |
+| `fn_80189B30` | 54/145 | 54/145 | Align the paired-channel header reads, predictors and table/index update ordering; table proof remains mandatory. |
+| `fn_80189FFC` | 68/68 | 49/68 | Code is identical; strict acceptance needs `adpcm4Table` contents and relocations proved, which needs the full-unit proof (blocked by the externalized BSS section set) or a per-symbol relocation check in `verify_fn.py`. |
 
 Owned data ranges are `.rodata` `801B0604..801B0640`, `.data`
 `801FB640..801FD048`, `.bss` `8030F168..8030FBA8`, and `.sbss`
@@ -2071,15 +2112,15 @@ python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --li
 
 The full-unit command is expected to fail until the above blockers are resolved;
 run `verify_fn.py --strict-symbols` individually for the table entries. At this follow-up's parking,
-`bash build.sh`, all 21 individual strict checks and the linked-image comparison
-pass with **zero differing bytes** across the whole image; none of the 18 baseline
-strict matches regresses. The full-unit command still refuses the externalized
+`bash build.sh`, all 23 individual strict checks and the linked-image comparison
+pass with **zero differing bytes** across the whole image; none of the 21 earlier
+strict matches regresses under GC/1.2.5. The full-unit command still refuses the externalized
 BSS section set, so initialized data/relocations and BSS layout are not proved.
 The earlier parking also passed 366 portable tests (two skipped), configuration,
 map generation and shell syntax checks; this C-only follow-up reruns the retail
 build and strict checks. Local baselines, Ghidra output, experimental source
 snapshots, per-function scores and detailed logs remain in ignored
-`work/hvqm4/`; the source and this handoff retain the reviewable result.
+`work/hvqm4/` and `work/hvqm4b/`; the source and this handoff retain the reviewable result.
 
 ## SDK leftovers
 
