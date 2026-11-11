@@ -52,7 +52,7 @@ python3 tools/binary_mining_pipeline.py
 | `mac-code-match` (`python3 tools/mac_code_match.py`) | Match unnamed GC functions to Mac demo functions by code body: callers/callees by name, immediates, field (width, offset), float literals, strings and order inside anchor gaps, propagated until stable. Tiered HIGH/MEDIUM/LOW with evidence; `--emit-renames FILE` writes HIGH pairs for `batch_rename.py`. Hold-out on named GC functions: HIGH 96.1% (98/102), MEDIUM 86.0% (labels are noisy: some repo names are themselves wrong). Families of near-identical functions (`Action_*`, `NuFPar*`, `CutScene*`) are the remaining false positives, so check MEDIUM by hand. | `docs/symbol_donors/mac_code_match.tsv` |
 | `mac-protos` (`python3 tools/mac_protos.py --build`) | Demangle the Mac text symbols into int/float/pointer parameter lists for `tools/sweep.py` (unknown struct pointers become `void *`; by-value structs, 64-bit integers and function pointers are dropped). | `docs/symbol_donors/mac_lsw1_demo_prototypes.tsv` |
 | `pc-versions` | Mine strings that any present PC build shares with GC and emit DOL-addressed string proposals. | `build/pc_analysis/pc_analysis.txt`, `build/pc_analysis/pc_symbol_proposals.txt` |
-| `pc-anchors` | Pair GC functions with readable Japanese PC 1.0 x86 functions by shared strings and aligned call order; map assert source paths to functions ([PC builds](#pc-builds)). | `build/pc_analysis/gc_pc_anchors.tsv`, `build/pc_analysis/pc_source_files.tsv` |
+| `pc-anchors` | Pair GC functions with readable Japanese PC 1.0 x86 functions by shared strings, call order, pointer tables, globals and layout; map assert source paths to functions ([PC builds](#pc-builds)). | `build/pc_analysis/gc_pc_anchors.tsv`, `gc_pc_globals.tsv`, `pc_source_files.tsv` |
 | `gc-data-xrefs` | Scan GC code references to data labels and rescore Mac data symbol candidates. | `docs/symbol_donors/gc_data_xrefs.tsv`, `docs/symbol_donors/mac_data_to_gc_verified.md` |
 | `sdk-islands` | Map likely Dolphin SDK/MSL/runtime islands for later known-library matching and splits. | `docs/symbol_donors/sdk_islands.md`, `docs/symbol_donors/sdk_islands.tsv` |
 | `sdk-anchor-queue` | Consume local SDK symbol-order files and emit SDK rename candidates from named anchor gaps. | `docs/symbol_donors/sdk_anchor_rename_queue.md`, `docs/symbol_donors/sdk_anchor_rename_queue.tsv` |
@@ -116,15 +116,55 @@ python3 tools/binary_mining_pipeline.py pc-anchors   # tools/pc_gc_anchors.py
 ```
 
 It pairs a GC function with the x86 function that references the same strings
-(each string occurring once per binary), then pairs callees of paired functions
-where both ordered call lists align. On held-out string pairs the call-order
-step was correct 33 of 33 times; looser alignment rules fell below 95%. It
-writes `build/pc_analysis/gc_pc_anchors.tsv` (about 470 pairs) and
-`pc_source_files.tsv`, which lists the x86 functions that reference each
-`.\dir\file.c` assert path and their paired GC functions (split evidence).
-Task packs include the target's pair in `donor_evidence.md`. In a worktree,
-which has no `orig/pc`, the exe is taken from the primary checkout, and the
-table is generated on first use (about 20 s) or after `pc_jp_pairs.tsv` changes.
+(each string occurring once per binary), then repeats these steps to a fixed point:
+
+| Method | Rule |
+|---|---|
+| `callee` | Callees of a paired function where both ordered call lists align. |
+| `table` | Function-pointer tables of equal length that agree at two or more paired slots. |
+| `global` | The only unpaired user of a paired global on each side, with matching shape. A global pair is a GC data symbol and an x86 address used together by every pair that uses either. |
+| `layout` | Equal gaps of one or two functions between address-adjacent pairs. |
+| `shape-callee`, `shape-layout` | Unequal gaps: the one candidate whose size, call count, float constants and strings fit. |
+
+A step pairs a function only if it is the sole candidate both ways, its
+paired callees mostly agree, the size ratio is sane and their message strings
+(not source paths) overlap. Function starts and calls come from the system
+`objdump`; without it, starts fall back to a byte scan that invents
+mid-instruction starts, and the `global` and shape steps weaken.
+
+`python3 tools/pc_gc_anchors.py --evaluate` hides 20% of the string pairs
+(with their strings) over 20 seeds and counts how the other steps re-derive
+them: 439 of 442 (99.3%). The three misses are one GC function,
+`fn_8003BA5C`, which inlines the x86 helper its string sits in. Held-out
+functions carry strings, so non-string functions may pair less accurately.
+Of seven inferred pairs read in full on both sides, one (from the `global` step)
+was wrong before the string veto and the shape check on that step; the other six,
+and the pair that replaced the wrong one, are correct. Twelve more, sampled across
+the `global` and shape methods, have the same callees in the same order. Rejected rules: looser call-list alignment (below
+95%), pairing callers of paired functions (83%), and float constants alone (6 of
+11), which now only support the shape test.
+
+Outputs, in `build/pc_analysis/`:
+
+- `gc_pc_anchors.tsv`: about 980 pairs, with the method in the evidence column.
+- `gc_pc_globals.tsv`: about 180 global pairs.
+- `pc_source_files.tsv`: the x86 functions that reference each `.\dir\file.c`
+  assert path and their paired GC functions.
+
+Task packs include the target's pair in `donor_evidence.md` and mark inferred
+pairs. In a worktree, which has no `orig/pc`, the exe is taken from the primary
+checkout, and the table is generated on first use (about 25 s) or after
+`pc_jp_pairs.tsv` changes. `python3 tools/next_target.py --jp-paired` lists
+ready targets that have a pair, and its `jp` column shows the x86 address.
+
+PC struct layouts differ from GC. `fn_800F10B4` and JP `0x00468340` run the
+same logic on shifted offsets (`+0x287` against `+0x290`, `+0xed8` against
+`+0xeec`), so take field order from x86, never offsets.
+
+`python3 tools/pc_gc_splits.py` projects the x86 file extents (MSVC links each
+object contiguously, so the functions between the first and last loader of an
+assert path belong to that file) onto GC address order. It writes boundary leads
+to `pc_split_leads.tsv`; see [build configuration](build_config.md#japanese-pc-file-extents).
 
 Read a paired body with REA: `open_binary` on
 `orig/pc/jpn/retail/LEGO Star Wars Game/LegoStarwars.exe`, then

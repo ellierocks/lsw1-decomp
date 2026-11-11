@@ -8,13 +8,16 @@ A target is a named `.text` function in config/GL5E4F/symbols.txt that:
   - lies inside a split unit (so verify_fn.py can compare it).
 
 Ranking: fewest distinct direct callees first, then smallest size; donor name
-leads break ties. Callees and
-sizes come from the retail DOL. Read-only; nothing is written.
+leads, then a Japanese PC 1.0 pair (readable x86 body), break ties. Callees and
+sizes come from the retail DOL. Read-only; nothing is written. The `jp` column
+reads build/pc_analysis/gc_pc_anchors.tsv (`python3 tools/pc_gc_anchors.py`);
+`--jp-paired` keeps only paired targets (see docs/research.md#pc-builds).
 
     python3 tools/next_target.py
     python3 tools/next_target.py --max-size 0x80 --limit 30 --json
     python3 tools/next_target.py --min-size 0x80 --max-size 0x400 --unit auto/game/ --limit 50
     python3 tools/next_target.py --by-unit --max-size 0x200 --limit 20
+    python3 tools/next_target.py --jp-paired --max-size 0x400 --limit 40
 """
 from __future__ import annotations
 
@@ -30,8 +33,10 @@ import verify_fn as vf  # noqa: E402
 
 try:
     from . import opensaga
+    from . import pc_gc_anchors
 except ImportError:
     import opensaga
+    import pc_gc_anchors
 
 
 ROOT = vf.ROOT
@@ -210,6 +215,8 @@ def main(argv=None) -> int:
     ap.add_argument("--by-unit", action="store_true",
                     help="summarize ready targets per unit to scope a sprint (first-wave bytes descending; units owned by an open t3/sprint-* PR are skipped)")
     ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open sprint PRs")
+    ap.add_argument("--jp-paired", action="store_true",
+                    help="only targets paired with a Japanese PC 1.0 x86 function (gc_pc_anchors.tsv)")
     args = ap.parse_args(argv)
 
     dol = vf.load_dol(vf.DOL_PATH, [])
@@ -217,6 +224,13 @@ def main(argv=None) -> int:
         print(f"error: retail DOL missing at {vf.DOL_PATH.relative_to(ROOT)}; see README.md", file=sys.stderr)
         return vf.EXIT_ERROR
     donor_state = opensaga.snapshot()
+    jp_pairs = pc_gc_anchors.load_anchors()
+    if jp_pairs is None:
+        if args.jp_paired:
+            print("error: build/pc_analysis/gc_pc_anchors.tsv missing; run python3 tools/pc_gc_anchors.py",
+                  file=sys.stderr)
+            return vf.EXIT_ERROR
+        jp_pairs = {}
     symbols = read_symbols()
     done = defined_in_src()
     verified, attempts = ledger_state()
@@ -242,6 +256,9 @@ def main(argv=None) -> int:
             continue
         if not in_units(unit, args.unit):
             continue
+        jp = jp_pairs.get(addr)
+        if args.jp_paired and jp is None:
+            continue
         code = dol.read(addr, size)
         if code is None:
             continue
@@ -255,8 +272,10 @@ def main(argv=None) -> int:
             "source_path": str(source.relative_to(ROOT)) if source else f"src/{unit}.c",
             "claimed": name in claimed, "attempts": attempts.get(name, 0),
             "unit_left": unit_left.get(unit, 0),
+            "jp": {"pc_address": f"0x{jp[0]:08X}", "method": jp[1]} if jp else None,
         })
-    rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["address"]))
+    rows.sort(key=lambda r: (r["callees"], r["size"], not r["opensaga"]["matches"], r["jp"] is None,
+                             r["address"]))
     rows_all = rows
     if args.by_unit:
         branches = sprint_branches(remote=not args.no_remote)
@@ -270,11 +289,13 @@ def main(argv=None) -> int:
         return 0
     uw = max([18] + [len(r["unit"]) + 2 for r in rows])
     sw = max([28] + [len(r["source"] or "(new file)") + 2 for r in rows])
-    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<{uw}}{'source':<{sw}}{'saga':<14}state")
+    print(f"{'name':<22}{'address':<12}{'size':>6} {'callees':>7}  {'unit':<{uw}}{'source':<{sw}}{'saga':<14}"
+          f"{'jp':<12}state")
     for r in rows:
         state = "claimed" if r["claimed"] else ("attempted" if r["attempts"] else "ready")
+        jp = r["jp"]["pc_address"] if r["jp"] else "-"
         print(f"{r['name']:<22}{r['address']:<12}{r['size']:>#6x} {r['callees']:>7}  {r['unit']:<{uw}}"
-              f"{(r['source'] or '(new file)'):<{sw}}{r['opensaga']['result']:<14}{state}")
+              f"{(r['source'] or '(new file)'):<{sw}}{r['opensaga']['result']:<14}{jp:<12}{state}")
     if rows:
         top = rows[0]
         src = top["source"] or f"src/{top['unit']}.c"
