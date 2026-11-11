@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Reproduce SN dead stripping for MWCC SDK objects.
+"""Reproduce SN dead stripping for MWCC SDK objects and ProDG SN runtime objects.
 
 Ported from adonis-singh/re4 tools/strip_unused.py, commit
-9b76ff003081d6ece8b838453fb8310743a972c7 (MWCC path only).
+9b76ff003081d6ece8b838453fb8310743a972c7 (MWCC path only). ProDG (GCC) objects
+use the same symbol and relocation handling; their `.comment` ident is left as is.
 Keep symbols listed in the DTK target object for the unit; preserve local
 pooled data and the reference implementation's eight-byte data granularity.
 Abort if surviving code references anything removed. Run after dtk elf fixup.
@@ -21,6 +22,13 @@ STT_SECTION = 3
 STB_LOCAL = 0
 STB_GLOBAL = 1
 DATA_GRANULE = 8
+# ProDG (GCC) objects carry the compiler ident in .comment, not MWCC's per-symbol records.
+GCC_IDENT = b'\x00GCC: '
+
+def has_mwcc_comment(elf):
+    """True when .comment holds MWCC per-symbol records (a GCC ident is left alone)."""
+    return '.comment' in elf.names and not elf.contents[elf.index('.comment')].startswith(GCC_IDENT)
+
 
 class Elf:
 
@@ -228,7 +236,7 @@ def externalize_bss(elf, table, section='.bss', dead=None):
                 sym = new_index[sym]
             out += struct.pack('>IIi', r_off, sym << 8 | rtype, r_add)
         elf.contents[i] = out
-    if '.comment' in elf.names:
+    if has_mwcc_comment(elf):
         ci = elf.index('.comment')
         body = elf.contents[ci]
         hdr = len(body) - 8 * len(syms)
@@ -277,7 +285,7 @@ def globalize_bss(elf, target_bind):
             r_off, r_info, r_add = struct.unpack('>IIi', elf.contents[i][o:o + 12])
             out += struct.pack('>IIi', r_off, remap[r_info >> 8] << 8 | r_info & 255, r_add)
         elf.contents[i] = out
-    if '.comment' in elf.names:
+    if has_mwcc_comment(elf):
         ci = elf.index('.comment')
         body = elf.contents[ci]
         hdr = len(body) - 8 * len(syms)
@@ -442,7 +450,7 @@ def main():
                     sys.exit(f'strip_unused: {elf.names[target]} relocation: {e}')
             out += struct.pack('>IIi', r_off, remap[sym] << 8 | rtype, r_add)
         elf.contents[i] = out
-    if '.comment' in elf.names:
+    if has_mwcc_comment(elf):
         ci = elf.index('.comment')
         body = elf.contents[ci]
         hdr = len(body) - 8 * len(syms)

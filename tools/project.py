@@ -741,7 +741,7 @@ def generate_build_ninja(
         f"$python {prodg_cc} --compiler {compilers / '$compiler_version'} --as-bin {gnu_as} "
         f"--dtk {dtk} {prodg_wibo}--dep $basefile.d "
         + "".join(f"{shlex.quote(a)} " for a in config.prodg_extra_args)
-        + "$cflags -c $in -o $out"
+        + "$cflags -c $in -o $out$post_build"
     )
     prodg_implicit: List[Optional[Path]] = [
         prodg_cc, compilers_implicit, wrapper_implicit, binutils_implicit or gnu_as, dtk,

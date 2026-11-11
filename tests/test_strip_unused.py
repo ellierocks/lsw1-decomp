@@ -11,8 +11,8 @@ from tools.strip_unused import Elf
 SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "strip_unused.py"
 
 
-def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data", data_type=1):
-    """Build a minimal big-endian ELF32 with text, data, RELA, and MWCC comments."""
+def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data", data_type=1, comment=None):
+    """Build a minimal big-endian ELF32 with text, data, RELA, and MWCC comments (or COMMENT)."""
     names = ["", ".text", data_name, ".rela.text", ".symtab", ".strtab", ".comment", ".shstrtab"]
     shstr = b"\0"
     name_offsets = [0]
@@ -28,7 +28,8 @@ def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data
     symtab = b"".join(entries)
     rela = b"".join(struct.pack(">IIi", off, sym << 8 | 1, addend)
                     for off, sym, addend in relocations)
-    comment = b"HEADER!!" + b"".join(bytes([i]) * 8 for i in range(len(entries)))
+    if comment is None:
+        comment = b"HEADER!!" + b"".join(bytes([i]) * 8 for i in range(len(entries)))
     contents = [b"", text, data, rela, symtab, strings, comment, shstr]
     types = [0, 1, data_type, 4, 2, 3, 1, 3]
     links = [0, 0, 0, 4, 5, 0, 0, 0]
@@ -84,6 +85,19 @@ class StripUnusedTests(unittest.TestCase):
         self.assertEqual([(s[0], s[1]) for s in symbols(elf)], [("", 0), ("kept", 0), ("external", 0)])
         self.assertEqual(struct.unpack(">IIi", elf.contents[elf.index(".rela.text")]), (0, 2 << 8 | 1, 0))
         self.assertEqual(elf.contents[elf.index(".comment")], b"HEADER!!" + bytes(8) + bytes([2]) * 8 + bytes([3]) * 8)
+
+    def test_prodg_gcc_ident_comment_is_kept(self):
+        # A ProDG (GCC) object's .comment is the compiler ident, not MWCC per-symbol records;
+        # with eight symbols its 0x38 bytes would otherwise pass for a header plus records.
+        ident = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+        source = [("dead", 0, 4, 2, 1), ("kept", 4, 4, 2, 1)]
+        make_elf(self.obj, source, text=b"DEADKEEP", comment=ident)
+        make_elf(self.target, [("kept", 0, 4, 2, 1)], text=b"KEEP")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        self.assertEqual(elf.contents[elf.index(".text")], b"KEEP")
+        self.assertEqual(elf.contents[elf.index(".comment")], ident)
 
     def test_removed_data_leaves_remainder(self):
         source = [("dead_data", 0, 12, 1, 2), ("kept_data", 12, 4, 1, 2)]

@@ -344,8 +344,14 @@ sn/libc/ctype/tolower.c:
 sn/libc/ctype/toupper.c:
 	.text       start:0x80154198 end:0x801541B4
 
+sn/libc/stdio/sprintf.c:
+	.text       start:0x801541B4 end:0x8015428C
+
 sn/libc/stdio/sscanf.c:
 	.text       start:0x8015428C end:0x80154384
+
+sn/libc/stdio/vsprintf.c:
+	.text       start:0x8015525C end:0x801552B8
 
 sn/libc/stdlib/atof.c:
 	.text       start:0x801552B8 end:0x801552DC
