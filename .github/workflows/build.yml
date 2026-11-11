@@ -52,6 +52,21 @@ jobs:
         env:
           VERIFY_FN_REQUIRE_RETAIL: "1"
         run: python3 -m unittest -v tests.test_verify_fn
+      - name: Export public dashboard statistics
+        env:
+          REPORT_REVISION: ${{ github.sha }}
+          REPORT_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          python3 tools/export_progress.py
+          --output artifacts/progress.json
+          --revision "$REPORT_REVISION"
+          --build-url "$REPORT_BUILD_URL"
+      - name: Upload public dashboard statistics
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-progress
+          path: artifacts/progress.json
+          if-no-files-found: error
       - name: Render current README progress
         id: readme
         run: |
@@ -170,3 +185,28 @@ jobs:
           name: GL5E4F_report
           path: build/GL5E4F/report.json
           if-no-files-found: error
+
+  progress:
+    name: Publish dashboard statistics
+    needs: [tooling, retail]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    concurrency:
+      group: progress-data
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dashboard-progress
+          path: artifacts
+      - name: Publish checked statistics and history
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: python3 tools/publish_progress.py artifacts/progress.json

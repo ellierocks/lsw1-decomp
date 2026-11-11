@@ -148,6 +148,8 @@ and splits; `tools/` and `tests/` own tooling and regressions. `orig/` holds loc
 retail/donor inputs (plaintext is ignored), `build/` holds generated objects and
 reports, and ignored `work/` holds matching experiments.
 
+The [progress website](docs/progress_site.md) publishes matching statistics separately from the decomp build.
+
 ## License
 
 Released under CC0 1.0 Universal; see [LICENSE](LICENSE).

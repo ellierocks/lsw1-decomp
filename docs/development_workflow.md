@@ -62,6 +62,7 @@ into the build until it matches.
 |-----|---------------|---------|---------|
 | `tooling` | `.github/workflows/build.yml` | push to `main`, PRs | Portable checks above |
 | `retail` | `.github/workflows/build.yml` | push to `main`, same-repo PRs, dispatch | Decrypts the DOL with `ORIG_KEY`, then runs `bash build.sh` and the verifier tests against genuine ProDG objects (`VERIFY_FN_REQUIRE_RETAIL=1`) |
+| `progress` | `.github/workflows/build.yml` | successful main push or main dispatch | Publishes allowlisted [website statistics](progress_site.md) and history to `progress-data` |
 | `readme` | `.github/workflows/build.yml` | successful main push or dispatched update branch | Publishes README progress to a check branch and fast-forwards `main` after it passes |
 | `build` | `.github/workflows/build.yml` | push to `main`, PRs | Builds the report and uploads `GL5E4F_report` for decomp.dev |
 | `build-map` | `.github/workflows/generate-map.yml` | changes to symbols or map tooling | Uploads the Dolphin map |
