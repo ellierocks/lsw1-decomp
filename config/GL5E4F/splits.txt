@@ -321,7 +321,7 @@ auto/game/chris.c:
 
 auto/game/podrace.c:
 	.text       start:0x80146194 end:0x801503A0
-	.rodata     start:0x801AF668 end:0x801B0460
+	.rodata     start:0x801AF668 end:0x801AFF78
 
 dolphin/TRK_MINNOW_DOLPHIN/ppcdown.c:
 	.text       start:0x801503A0 end:0x80151724
@@ -358,6 +358,11 @@ sn/libc/stdlib/atof.c:
 
 sn/libc/stdlib/exit.c:
 	.text       start:0x801552DC end:0x8015535C
+
+sn/libc/stdlib/mbtowc_r.c:
+	.text       start:0x8015535C end:0x80155678
+	.rodata     start:0x801AFFBC end:0x801AFFD4
+	.data       start:0x801E1C88 end:0x801E1FE8
 
 sn/libc/stdlib/rand.c:
 	.text       start:0x80155678 end:0x801556A8
@@ -406,6 +411,11 @@ sn/libc/ctype/isspace.c:
 
 sn/libc/errno/errno.c:
 	.text       start:0x80159478 end:0x80159480
+
+sn/libc/locale/locale.c:
+	.text       start:0x80159480 end:0x801594B0
+	.rodata     start:0x801B0430 end:0x801B0488
+	.sdata      start:0x80409FBC end:0x80409FC0
 
 sn/libc/stdio/refill.c:
 	.text       start:0x80159ED0 end:0x8015A064

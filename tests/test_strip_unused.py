@@ -21,10 +21,10 @@ def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data
         shstr += name.encode() + b"\0"
     strings = b"\0"
     entries = [struct.pack(">IIIBBH", 0, 0, 0, 0, 0, 0)]
-    for name, value, size, kind, section in symbols:
+    for name, value, size, kind, section, *bind in symbols:
         offset = len(strings)
         strings += name.encode() + b"\0"
-        entries.append(struct.pack(">IIIBBH", offset, value, size, 0x10 | kind, 0, section))
+        entries.append(struct.pack(">IIIBBH", offset, value, size, (bind[0] if bind else 1) << 4 | kind, 0, section))
     symtab = b"".join(entries)
     rela = b"".join(struct.pack(">IIi", off, sym << 8 | 1, addend)
                     for off, sym, addend in relocations)
@@ -108,6 +108,31 @@ class StripUnusedTests(unittest.TestCase):
         elf = Elf(self.obj.read_bytes())
         self.assertEqual(elf.contents[elf.index(".data")], b"ijklKEEP")
         self.assertEqual([(s[0], s[1]) for s in symbols(elf)], [("", 0), ("kept_data", 4)])
+
+    DEAD_STATIC_SOURCE = [("dead", 0, 4, 2, 1), ("kept", 4, 4, 2, 1),
+                          ("dead_static", 0, 8, 1, 2, 0), ("live_static", 8, 8, 1, 2, 0)]
+
+    def strip_dead_static(self, comment):
+        make_elf(self.obj, self.DEAD_STATIC_SOURCE, text=b"DEADKEEP", data=b"deadstatLIVESTAT",
+                 relocations=[(0, 3, 0), (4, 4, 0)], comment=comment)
+        make_elf(self.target, [("kept", 0, 4, 2, 1)], text=b"KEEP")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        return elf.contents[elf.index(".data")], [s[0] for s in symbols(elf)]
+
+    def test_prodg_static_used_only_by_removed_function_is_dropped(self):
+        # locale.c: `lc_ctype` is only read by the stripped `_setlocale_r`.
+        ident = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+        data, names = self.strip_dead_static(ident)
+        self.assertEqual(data, b"LIVESTAT")
+        self.assertEqual(names, ["", "kept", "live_static"])
+
+    def test_mwcc_static_used_only_by_removed_function_is_kept(self):
+        # OSThread.c keeps such statics in retail.
+        data, names = self.strip_dead_static(None)
+        self.assertEqual(data, b"deadstatLIVESTAT")
+        self.assertEqual(names, ["", "kept", "dead_static", "live_static"])
 
     def test_small_constants_are_readonly_even_without_stripping(self):
         definitions = [("constant", 0, 4, 1, 2)]

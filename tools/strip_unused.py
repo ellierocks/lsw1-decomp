@@ -331,6 +331,10 @@ def main():
     def sym_name(s):
         end = strs.index(b'\x00', s[0])
         return strs[s[0]:end].decode()
+    # In a ProDG object only references from surviving code keep a local static: retail
+    # drops locale.c `lc_ctype`, used only by the removed `_setlocale_r`. MWCC SDK objects
+    # keep such statics (OSThread.c .data). See docs/sn_runtime.md.
+    dead_code = {} if has_mwcc_comment(elf) else dead_function_ranges(elf, keep)
     refcount = [0] * len(syms)
     pooled_sections = set()
     for i, sh in enumerate(elf.sections):
@@ -338,6 +342,8 @@ def main():
             continue
         for o in range(0, len(elf.contents[i]), 12):
             r_off, r_info = struct.unpack('>II', elf.contents[i][o:o + 8])
+            if any(start <= r_off < end for start, end in dead_code.get(sh[7], ())):
+                continue
             sym = r_info >> 8
             refcount[sym] += 1
             s = syms[sym]
