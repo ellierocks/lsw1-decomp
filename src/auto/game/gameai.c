@@ -155,3 +155,35 @@ void *fn_8012CA84(s32 arg0, s32 arg1, s32 arg2) {
     }
     return temp_r3;
 }
+
+f32 fn_8000CD08(void *, void *, s32 *);
+extern f32 lbl_801ACDB0[];
+
+void *fn_801272FC(void *arg0, void *arg1, s32 arg2, s32 arg3) {
+    char sp8[0x10];
+    f32 temp_f1;
+    f32 var_f31;
+    s16 temp_r9;
+    s32 temp_r0;
+    s32 var_r28;
+    void *var_r27;
+    void *var_r31;
+    var_r27 = NULL;
+    if ((s32) (*(s32 *)((s8 *)(arg0) + (0x57C))) != 0) {
+        return NULL;
+    }
+    var_f31 = lbl_801ACDB0[0];
+    var_r28 = 0;
+    var_r31 = (*(void **)((s8 *)(arg0) + (0x58C)));
+    if (var_r28 < (s32) (*(s32 *)((s8 *)(arg0) + (0x590)))) {
+        do {
+            if (!((*(u16 *)((s8 *)(var_r31) + (0x20))) & 3) && ((arg2 == 0) || ((temp_r0 = (*(s32 *)((s8 *)((*(void **)((s8 *)(var_r31) + (0x4C)))) + (0x34))), (((temp_r0 & 0x02000000) == 0) == 0)) && (temp_r0 & 0x10000000) && ((*(s32 *)((s8 *)((*(void **)((s8 *)(arg1) + (0x64)))) + (4))) & 4) && ((temp_r9 = (*(s16 *)((s8 *)(var_r31) + (0x22))), ((temp_r9 == -1) != 0)) || (temp_r9 != (s16) (*(s16 *)((s8 *)(arg1) + (0x282))))))) && ((temp_f1 = fn_8000CD08(var_r31 + 0x78, arg1 + 0x90, sp8), ((arg3 == 0) == 0)) || (temp_f1 < (*(f32 *)((s8 *)(var_r31) + (0x74))))) && (temp_f1 < var_f31)) {
+                var_f31 = temp_f1;
+                var_r27 = var_r31;
+            }
+            var_r28 += 1;
+            var_r31 += 0xF4;
+        } while (var_r28 < (*(s32 *)((s8 *)(arg0) + (0x590))));
+    }
+    return var_r27;
+}

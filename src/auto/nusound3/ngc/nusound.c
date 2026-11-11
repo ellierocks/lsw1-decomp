@@ -266,3 +266,11 @@ void fn_80044E88(s32 arg0, s32 arg1, s32 arg2, f32 fpad0, f32 farg1, f32 farg2) 
         fn_80034FD4(1, farg1, farg2);
     }
 }
+
+extern f32 lbl_801940FC[];
+
+void fn_80044F28(s32 *arg0, f32 fpad0, f32 farg1, f32 farg2) {
+    if ((farg1 > lbl_801940FC[0]) || (farg2 > lbl_801940FC[0])) {
+        fn_80034FD4(*arg0, farg1, farg2);
+    }
+}
