@@ -1721,7 +1721,12 @@ The range sits directly after the HVQM4 decoder (`8018432C..8018A10C`, out of sc
 before `fn_8018AB8C`/`_write`, which call `InitializeUART`/`WriteUARTN`, so the
 range boundary is `8018A10C..8018AB8C`.
 
-**Next hypothesis.** No donor source exists, so this is not an import. A hand-written
+**Lead (2026-11-11).** MSSB (`nlopez99/mssb-decomp`, CC0) registers
+`src/Dolphin/OdemuExi2/DebuggerDriver.c` as Matching, with the same function sizes as
+retail (`DBGEXIImm` 0x298, `DBWrite` 0x260, two 0x4 stubs). It is the `debugger` item of
+plan stage 0. The paragraph below predates it.
+
+**Earlier hypothesis.** No donor source exists, so this is not an import. A hand-written
 `DebuggerDriver.c` would have to be reconstructed from the retail (or CrashWOC) bytes with
 the CodeWarrior GC/1.2.5n compiler, starting from `DBGEXIImm` and the `DBG*` helpers,
 then given a split at `8018A10C..8018AB8C`, its own `.sbss`/`.bss` ranges (not yet

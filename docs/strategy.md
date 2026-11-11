@@ -53,12 +53,14 @@ code compiled with ProDG GCC 2.95, plus HVQM4, the debugger driver and libsn.
 
 ## Stages
 
-Bytes and functions are as of revision 1; `plan.py` prints the live figures. A stage is
+Bytes and functions are as of revision 1 (stage 0 split out of stage 6 in revision 2);
+`plan.py` prints the live figures. A stage is
 done when each function of each item is matched in the report or parked with a reason in
 `plan.toml`.
 
 | Stage | Targets | Code bytes | Functions | Depends on |
 |---|---|---:|---:|---|
+| 0 SDK residue | debugger driver, HVQM4 decoder, SDK leftovers | 24,440 | 50 | nothing; CodeWarrior, so it runs alongside stage 1 |
 | 1 Engine core | prototype hubs, then `nucore`, `numath`, `rtl`, `nusound3`, `nungc`, `nufmv` | 77,624 + hubs | 171 | source-unit scaffolding for `rnc`, `nuheap`, `nugraph_2`, `NGCStreaming2`, `HVQM4PlayerEx` ([gap 8](workflow_gaps.md#8-functions-without-a-source-unit-are-not-swept)) |
 | 2 Nu3d engine | `auto/nu3d/*`, `nu3dx/nuanim` | 152,100 | 272 | stage 1 prototypes; vector, matrix and material types; `nuportal_gen` scaffold |
 | 3 Objects, AI, camera | `apiobject`, `aisys`, `aiscript`, `gameai`, `gameaiscript`, `socksys` | 189,208 | 264 | `include/game` object and AI types ([game structs](game_structs.md)); `aiscript` scaffold |
@@ -67,8 +69,12 @@ done when each function of each item is matched in the report or parked with a r
 | 5b Levels | `auto/game/levels`, eight address slices | 163,176 | 252 | stages 1–4 |
 | 5c Obstacle | `auto/game/obstacle`, eight address slices | 164,328 | 176 | stages 1–4; `ForceCode` and `ApplyGravity` are hubs |
 | 5d Config and force | both units have no source file yet | 91,484 | 64 | scaffolding; JP PC pairs cover 63 KB |
-| 6 No known route | HVQM4, SDK leftovers, debugger driver, libsn | 47,272 | 120 | see below |
+| 6 No known route | libsn units, runtime tail after the debugger driver | 22,832 | 71 | see below |
 | 7 Data | everything not promoted with its code | 2,490,232 | – | unit promotion; `.rodata` ownership |
+
+Stage 0 comes first because it needs neither ProDG nor the Nu2 prototypes, and each of
+its items has a donor or a parked candidate; finishing it closes the CodeWarrior side.
+Its items can run beside stage-1 items.
 
 Large units are sliced into items of about 20 KB so one child can finish one. Items
 overlap only where a hub function also belongs to its unit's item.
@@ -93,16 +99,21 @@ One item per thread, one PR, its own worktree, branch `t3/plan-<item>`.
 
 ## No known route yet
 
-- **HVQM4 decoder** (`dolphin/hvqm4/hvqm4dec`, 18,592 bytes): a route exists. The
-  parked candidate strictly verifies 18 of 43 functions
-  ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it.
-- **SDK leftovers** (`Pad`, `dvdfs`, `.init` stubs, 3,160 bytes): functions the
+- **Debugger driver** (stage 0, `8018A10C..8018AB8C`, 2,688 bytes): MSSB's CC0
+  `src/Dolphin/OdemuExi2/DebuggerDriver.c` (registered Matching there) has the same
+  function sizes. Port it as a new unit with the `DBOpen`/`DBClose` `blr`s
+  ([debugger driver](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)).
+- **HVQM4 decoder** (stage 0, `dolphin/hvqm4/hvqm4dec`, 18,592 bytes): the parked
+  candidate strictly verifies 18 of 43 functions
+  ([HVQM4 evidence](sdk_import.md#hvqm4-decoder-parked)); resume it with the two
+  scheduling near-misses, then the bit readers.
+- **SDK leftovers** (stage 0, `Pad`, `dvdfs`, `.init` stubs, 3,160 bytes): functions the
   dolsdk2004 donors did not match; per-function version drift against retail.
-- **Debugger driver** (`8018A10C..8018AB8C`, 7,236 bytes, blocked): needs a hand-written
-  `DebuggerDriver.c`. A donor compiled for the same SDK revision would unlock it.
-- **libsn and the unsplit runtime ranges** (18,284 bytes, blocked): no upstream source
-  and no split ([SN runtime](sn_runtime.md#not-imported)). Unlocked by an SN runtime
-  source or another ProDG game's decompilation of the same objects, then splits.
+- **libsn and the runtime tail** (stage 6, 22,832 bytes, blocked): the libsn units and
+  the UART, syscall-stub and libm functions after the debugger driver
+  (`8018AB8C..8018BD4C`) have no upstream source that matches
+  ([SN runtime](sn_runtime.md#not-imported)). Unlocked by an SN runtime source, another
+  ProDG game's decompilation of the same objects, or newlib built with SN's flags.
 - **Data** (stage 7): most comes with promoting units. The rest needs data splits per
   section ([build configuration](build_config.md)); there is no data-matching lane yet.
 

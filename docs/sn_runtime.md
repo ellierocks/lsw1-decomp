@@ -92,7 +92,7 @@ keeps that name and stays in the auto-generated text. No boundary was moved to r
 | Item | Cause |
 |---|---|
 | libsn `dummy`, `FSasync`, `sndvd` and asm-body units | no upstream source; stays assembly fallback |
-| Debugger driver `0x8018A10C..0x8018AB8C` | only RE4 sources exist and its licence excludes `src/`; assembly fallback |
+| Debugger driver `0x8018A10C..0x8018AB8C` | CodeWarrior SDK code, not libsn; the CC0 MSSB `DebuggerDriver.c` is the lead ([plan](strategy.md#no-known-route-yet), [range](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)) |
 | `vfprintf`, `strtod`, `impure`, `_xeh`, `_x_exit`, `_x_pure` | do not compile or fix up yet (endianness config, `_register_malloc`, elf fixup failure) |
 | `strchr`, `strncat`, `strrchr`, `atoi`, `mbtowc_r`, `qsort`, stdio (`sprintf`, `fflush`, `fopen`, ...) | compile but do not match; not investigated |
 | `__negdi2`, `__cmpdi2`, `__ucmpdi2`, `__do_global_dtors`, `__main`, libm | no match yet / not wired |

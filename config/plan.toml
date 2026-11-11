@@ -19,13 +19,38 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 1
+revision = 2
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
 # [[parked]]
 # function = "fn_XXXXXXXX"
 # reason = "best 52/57; r27/r28 swap of ...; next: ..."
+
+[[stage]]
+id = "s0-sdk"
+title = "SDK residue (CodeWarrior)"
+why = "The last CodeWarrior code: it uses neither ProDG nor Nu2 prototypes, so it does not wait on the call graph, and finishing it closes the SDK side. Each item has a donor or a parked candidate."
+
+[[stage.item]]
+id = "debugger"
+functions = ["fn_8018A10C", "fn_8018A110", "DBWrite", "DBRead", "DBQueryData", "DBInitInterrupts", "DBInitComm", "DBGHandler", "MWCallback", "DBGReadStatus", "DBGWrite", "DBGRead", "DBGReadMailbox", "DBGEXIImm"]
+note = "Port the CC0 MSSB DebuggerDriver.c (same function sizes) as a new unit split at 8018A10C..8018AB8C: docs/sdk_import.md#debugger-driver-range-8018a10c8018ab8c."
+# at revision 2: 14 functions, 2,688 bytes left
+
+[[stage.item]]
+id = "hvqm4"
+units = ["dolphin/hvqm4/hvqm4dec"]
+note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_import.md#hvqm4-decoder-parked."
+# at revision 1: 25 functions, 18,592 bytes left
+
+
+[[stage.item]]
+id = "sdk-leftovers"
+units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "auto_00_80003100_init", "auto_00_8000348C_init"]
+note = "Functions the dolsdk2004 donors did not match, plus the .init stubs."
+# at revision 1: 11 functions, 3,160 bytes left
+
 
 [[stage]]
 id = "s1-engine"
@@ -1485,32 +1510,20 @@ note = "No source file yet: the first slice scaffolds src/auto/game/config.c."
 
 [[stage]]
 id = "s6-no-route"
-title = "Code without a known route"
+title = "Code without a known route (libsn and runtime)"
 why = "Each item needs a lead before agents can work it; docs/strategy.md names what would unlock each."
-
-[[stage.item]]
-id = "hvqm4"
-units = ["dolphin/hvqm4/hvqm4dec"]
-note = "Resume the parked candidate (18/43 functions strict-verify): docs/sdk_import.md#hvqm4-decoder-parked."
-# at revision 1: 25 functions, 18,592 bytes left
-
-[[stage.item]]
-id = "sdk-leftovers"
-units = ["dolphin/pad/Pad", "dolphin/dvd/dvdfs", "auto_00_80003100_init", "auto_00_8000348C_init"]
-note = "Functions the dolsdk2004 donors did not match, plus the .init stubs."
-# at revision 1: 11 functions, 3,160 bytes left
-
-[[stage.item]]
-id = "debugger"
-units = ["auto_01_8018A10C_text", "auto_01_8018CAFC_text"]
-blocked = "Needs a hand-written DebuggerDriver.c; no donor source compiled with this SDK's flags is known."
-# at revision 1: 31 functions, 7,236 bytes left
 
 [[stage.item]]
 id = "libsn"
 units = ["auto_01_801503A0_text", "auto_01_801541B4_text", "auto_01_80159478_text", "auto_01_801562B8_text", "auto_01_8015535C_text", "auto_01_8015A2A8_text", "auto_01_8015A938_text", "auto_01_801638A0_text", "auto_01_8016BE88_text", "auto_01_8017C754_text", "auto_01_8015AFFC_text"]
 blocked = "libsn and runtime misses have no upstream source and no split: docs/sn_runtime.md#not-imported."
 # at revision 1: 54 functions, 18,284 bytes left
+
+[[stage.item]]
+id = "runtime-tail"
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text"]
+blocked = "libsn UART and syscall stubs and newlib libm after the debugger driver; no upstream source matches yet: docs/sn_runtime.md#not-imported."
+# at revision 2: 17 functions, 4,548 bytes left
 
 [[stage]]
 id = "s7-data"
