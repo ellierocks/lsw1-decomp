@@ -104,6 +104,8 @@ slot offsets by `0x54C`, buffers by `0x1000`, and visits three slots.
 | --- | --- | --- |
 | `0x000` | `fileBuffer` | allocator pointer load/store |
 | `0x004` | `file` | file handle store |
+| `0x108` | `line` | byte line writer masks `0x1FF`; UTF16 writer masks `0xFF`, terminator is unmasked |
+| `0x30A` | `word` | byte/UTF16 token writers use `0x1FF`/`0xFF` masks |
 | `0x50C` | `lineNum` | 32-bit `-1` initialization |
 | `0x510`, `0x514`, `0x518` | `linePos`, `charPos`, `bufferStart` | line/byte reader accesses |
 | `0x51C` | `bufferEnd` | refill limit, 32-bit `-1` initialization |
@@ -112,12 +114,36 @@ slot offsets by `0x54C`, buffers by `0x1000`, and visits three slots.
 | `0x544` | `fileSize` | 32-bit size store |
 | `0x548`, `0x549` | `isUtf16`, `isUtf8` | byte BOM flags |
 
-The complete stride is `0x54C` on GC's 32-bit ABI. Opaque ranges deliberately
-include the filename starting at `+8` and the word buffer starting at `+0x30A`:
-those start offsets do not prove their extents. Do not import the donor's
-separator pointers or four-slot pool. Confirm additional widths, extents and
-signedness from consumers before replacing opaque bytes. The header is layout
-evidence, not a strict code match.
+The complete stride is `0x54C` on GC's 32-bit ABI. The filename range at
+`+8` remains opaque. The line view spans the `0x202` bytes before the word
+buffer; its circular byte/UTF16 accesses use the first `0x200` bytes. The word
+view covers `0x200` bytes, followed by two opaque bytes before `lineNum`.
+The typed UTF16 line reader strictly matches with this shared layout; existing
+promoted parser ranges remain byte-identical. Do not import the donor's
+separator pointers or four-slot pool.
+
+The nucore-misc allocator work also confirms the GC debug prototypes
+`NuMemAlloc(size, file, line)` and `NuMemFree(data, file, line)`: callers pass
+file/line in `r4`/`r5`, and the JP diagnostic pairs at `0x528920`/`0x528B40`
+corroborate them. The GC allocation header is `0x20` bytes (next, previous,
+line, serial, size, then a 12-byte guard), followed by payload, a 12-byte tail
+guard and filename. `memexternal_s` holds a pointer to the mutable cursor
+union and an end union by value; target loads at `+0`/`+4` distinguish them.
+The OpenSaga release allocator omits these debug arguments and guards.
+
+Parser archive accesses reuse `nufile.h`'s shared `nudathdr_s`, `nudatfile_s`
+and `numemfile_s` declarations. The memory-file slot's `+0x10` word is an
+active flag: `fn_80005CC4` tests and sets it, and `fn_80005D34` clears it.
+Its stride remains `0x14`; all thirteen previously verified parser bodies
+still strictly match after replacing the duplicate layouts. `NuMemAllocFn`
+also uses the shared void `fn_80005764` prototype; its bytes are unchanged.
+
+Keyword review of OpenSaga's `NuHeapCreate`/`NuHeapAllocAlignedNamed` confirms
+the boundary-tag algorithm, but the GC assembly owns the layout: three-word
+block headers, a footer pointer at `header + payload size + 12`, high-bit
+allocation flag, and `0x10` bytes total overhead. The initial free block starts
+at heap `+0x30`, with payload size `heap size - 0x50`. The new heap and RNC
+comparison units remain NonMatching; no donor source was copied.
 
 The [animation evidence](opensaga_animation_evidence.md) corroborates the
 existing shared `nuanim.h` legacy key/curve/time layouts; reuse those types.

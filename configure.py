@@ -422,6 +422,8 @@ config.libs = [
             Object(NonMatching, "auto/nucore/nustring.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/nufpar.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/numem.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nucore/rnc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(NonMatching, "auto/nucore/nuheap.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/nufile_1.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(Matching, "auto/nucore/nufile_2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nucore/nufile_3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),

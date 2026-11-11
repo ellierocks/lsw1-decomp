@@ -17,7 +17,17 @@ struct nufpcom_s {
 struct nufpar_s {
     char* fileBuffer;
     fileHandle file;
-    u8 unknown008[0x504];
+    u8 unknown008[0x100];
+    /* fn_800061D8/fn_80006398 line writers and fn_80006830 word reader. */
+    union {
+        u16 w[0x101];
+        u8 b[0x202];
+    } line;
+    union {
+        u16 w[0x100];
+        u8 b[0x200];
+    } word;
+    u8 unknown50A[2];
     s32 lineNum;
     s32 linePos;
     s32 charPos;

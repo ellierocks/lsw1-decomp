@@ -510,3 +510,58 @@ u8* fn_800081CC(u16* dst, u8* src)
     }
     return src;
 }
+
+extern char lbl_8018DA4C[];
+extern char lbl_8018DA50[];
+static inline u8* LastChar(u8* s, u8 c)
+{
+    u8* end = s;
+    if (*end) { do { end++; } while (*end); }
+    while (end >= s) {
+        if (*end == c) return end;
+        end--;
+    }
+    return 0;
+}
+
+static inline void Copy8(u8* dst, u8* src)
+{
+    if (src) {
+        do { *dst++ = *src; } while (*src++);
+    }
+}
+
+static inline void Cat8(u8* dst, u8* src)
+{
+    u8* p = dst;
+    u8* s = src;
+    while (*p) p++;
+    if (src) { do { *p++ = *s; } while (*s++); }
+}
+/* Historical symbol: copy a byte path and replace or append its extension. */
+void NuStrCatW(u8* dst, u8* src, u8* extension, s32 capacity)
+{
+    u8* dot;
+    u8* slash;
+    u8* backslash;
+    s32 len;
+    if (src && extension && dst) {
+        Copy8(dst, src);
+        dot = LastChar(dst, '.');
+        slash = LastChar(dst, '/');
+        backslash = LastChar(dst, '\\');
+        if (backslash > slash) slash = backslash;
+        if (slash >= dot) {
+            Cat8(dst, (u8*)lbl_8018DA4C);
+            Cat8(dst, extension);
+        } else {
+            *++dot = extension[0];
+            *++dot = extension[1];
+            *++dot = extension[2];
+            dot[1] = 0;
+        }
+        len = 0;
+        while (*dst) { dst++; len++; }
+        if (len > capacity - 1) fn_80009948(lbl_8018D88C, 0x7b7)(lbl_8018DA50);
+    }
+}

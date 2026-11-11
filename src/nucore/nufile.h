@@ -86,7 +86,7 @@ struct numemfile_s {
     char* end;
     char* curr;
     s32 used;
-    u8 unknown10[4];
+    s32 active;
 };
 
 struct fileinfo_s {
