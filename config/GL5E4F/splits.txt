@@ -612,6 +612,9 @@ dolphin/dvd/dvdlow.c:
 	.bss        start:0x802F49E8 end:0x802F4AB8
 	.sdata      start:0x8040A0E0 end:0x8040A0E4
 
+dolphin/dvd/dvdlow_test.c:
+	.text       start:0x8016BE88 end:0x8016BEC0
+
 dolphin/vi/vi.c:
 	.text       start:0x8016BEC0 end:0x8016E058
 	.data       start:0x801F6748 end:0x801F6B30
@@ -751,6 +754,9 @@ dolphin/card/CARDUnlock.c:
 dolphin/card/CARDRdwr.c:
 	.text       start:0x8017C4C4 end:0x8017C754
 
+dolphin/amcstubs/AmcExi2Stubs.c:
+	.text       start:0x8017C754 end:0x8017C77C
+
 dolphin/gx/GXInit.c:
 	.text       start:0x8017C77C end:0x8017DB08
 	.data       start:0x801FAA80 end:0x801FACBC
@@ -834,6 +840,12 @@ dolphin/os/OSFatal.c:
 	.bss        start:0x8030FBA8 end:0x8030FE80
 	.sdata      start:0x8040A2A8 end:0x8040A2AC
 	.sdata2     start:0x8040BCF0 end:0x8040BD30
+
+dolphin/Runtime/__start.c:
+	.init       start:0x80003100 end:0x80003328
+
+dolphin/Runtime/__init_fpu.c:
+	.init       start:0x80003334 end:0x80003464
 
 dolphin/os/__ppc_eabi_init.c:
 	.init       start:0x80003464 end:0x8000348C

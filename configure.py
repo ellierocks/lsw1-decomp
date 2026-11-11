@@ -341,6 +341,9 @@ def sdk_cflags(unit: str) -> List[str]:
     if unit == "Runtime/__init_cpp":
         # The retained constructor loop has unscheduled loads and two branch chains.
         flags += ["-schedule off", "-opt nopeep"]
+    if unit == "Runtime/__start":
+        # The reset-button helper loads the MMIO base after its stack prologue.
+        flags += ["-schedule off"]
     return flags
 
 
@@ -478,6 +481,8 @@ config.libs = [
         SDKObject("TRK_MINNOW_DOLPHIN/ppcdown", Matching),
         Object(NonMatching, "dolphin/Runtime/cvt_fp2unsigned.c", compiler="prodg",
                compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+        SDKObject("Runtime/__start", Matching),
+        SDKObject("Runtime/__init_fpu", Matching),
         SDKObject("Runtime/tealeaf", Matching),
         SDKObject("Runtime/__init_cpp", Matching),
     ]),
@@ -519,7 +524,7 @@ config.libs = [
     DolphinLib("db", [SDKObject("db/db", Matching)]),
     DolphinLib("vi", [SDKObject("vi/vi", Matching)]),
     DolphinLib("pad", [SDKObject("pad/Padclamp", Matching), SDKObject("pad/Pad", Matching)]),
-    DolphinLib("dvd", [SDKObject("dvd/dvdfs", Matching), SDKObject("dvd/dvd", Matching), SDKObject("dvd/dvdqueue", Matching), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching)]),
+    DolphinLib("dvd", [SDKObject("dvd/dvdfs", Matching), SDKObject("dvd/dvd", Matching), SDKObject("dvd/dvdqueue", Matching), SDKObject("dvd/dvderror", Matching), SDKObject("dvd/dvdidutils", Matching), SDKObject("dvd/dvdFatal", Matching), SDKObject("dvd/fstload", Matching), SDKObject("dvd/dvdlow", Matching), SDKObject("dvd/dvdlow_test", Matching)]),
     DolphinLib("ai", [SDKObject("ai/ai", Matching)]),
     DolphinLib("ar", [SDKObject("ar/ar", Matching), SDKObject("ar/arq", Matching)]),
     DolphinLib("ax", [
@@ -555,6 +560,7 @@ config.libs = [
         SDKObject("card/CARDUnlock", Matching),
         SDKObject("card/CARDRdwr", Matching),
     ]),
+    DolphinLib("amcstubs", [SDKObject("amcstubs/AmcExi2Stubs", Matching)]),
     DolphinLib("gx", [
         SDKObject("gx/GXAttr", Matching),
         SDKObject("gx/GXInit", Matching),

@@ -68,3 +68,5 @@
 0x800068F4	NuGetFrameAdvance	NuFParGetWord	GC parser line/word buffers at +0x108/+0x30A, quote/separator loop, UTF16 dispatch; strict NuFParGetInt/GetFloat callers; see opensaga_matching_results.md
 0x800080D4	NuGSceneDestroy	NuUnicodeToAscii	GC lhz source/stb destination loop converts U+2018/2019/2013/2026/2122 to bytes 91/92/96/85/99; see opensaga_matching_results.md
 0x801638C0	__init_cpp_exceptions	__init_cpp	Strict MSSB constructor-loop body match: walks the constructor array at 801FD050; no exception fragment registration.
+0x8017C758	GXGetFifoBase	EXI2_EnableInterrupts	SDK leftovers: complete AmcExi2Stubs section and mode-2 debugger transport table at 801E19E0; see sdk_import.md#sdk-leftovers
+0x8017C75C	GXGetFifoSize	EXI2_Poll	SDK leftovers: complete AmcExi2Stubs section and mode-2 debugger transport table at 801E19E0; see sdk_import.md#sdk-leftovers

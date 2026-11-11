@@ -193,6 +193,26 @@ class VerifyUnitTests(unittest.TestCase):
         mine = self.bss_elf(0x28, [(0, 8, 'a'), (8, 0x16, 'b'), (0x20, 8, 'c')])
         self.assertEqual(self.bss_proof(target, mine), {'.bss': 0x2000})
 
+    def test_sized_bss_reference_requires_complete_layout_proof(self):
+        objects = [(0, 4, 'a'), (4, 4, 'b')]
+        target = self.bss_elf(8, objects)
+        mine = self.bss_elf(8, objects)
+        # ELF's NOBITS reader supplies zeroes, but the DOL has no BSS bytes.
+        mine.section_bytes = lambda section: bytes(section.size)
+        retail = NS(read=lambda address, size: None)
+        func = NS(elf=mine, data_widths={('.bss', 4): 4})
+        for proof, address, expected in [
+            (self.bss_proof(target, mine), 0x2004, 'verified:'),
+            (None, 0x2004, 'unverified:'),
+            (self.bss_proof(target, mine), 0x2000, 'unverified:'),
+            (self.bss_proof(target, self.bss_elf(8, [(0, 8, 'a')])), 0x2004, 'unverified:'),
+        ]:
+            with self.subTest(proof=proof, address=address):
+                cmp = Comparer(Symbols(), retail, proof)
+                cmp.pending_data[('b', ('.bss', 4), address)] = 0
+                cmp.verify_data(func, Report('test'))
+                self.assertTrue(cmp.mappings['b'].startswith(expected), cmp.mappings)
+
     def test_bss_gap_symbols_are_accepted_only_as_alignment_padding(self):
         mine = self.bss_elf(0x28, [(0, 0xc, 'a'), (0x10, 0x18, 'b')])
         ok = self.bss_elf(0x28, [(0, 0xc, 'a'), (0xc, 4, 'gap_04_0000200C_bss'), (0x10, 0x18, 'b')])

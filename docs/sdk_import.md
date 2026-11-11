@@ -2080,3 +2080,147 @@ map generation and shell syntax checks; this C-only follow-up reruns the retail
 build and strict checks. Local baselines, Ghidra output, experimental source
 snapshots, per-function scores and detailed logs remain in ignored
 `work/hvqm4/`; the source and this handoff retain the reviewable result.
+
+## SDK leftovers
+
+From `4970a42`, all executable functions of plan item `sdk-leftovers` pass the
+strict oracle. Four exact auto ranges are now source-backed Matching units;
+existing split boundaries and compiler pins are unchanged.
+
+| Unit under `dolphin/` | Section and retail range, end exclusive | Functions | Newly promoted code bytes |
+|---|---|---:|---:|
+| `Runtime/__start` | `.init 80003100..80003328` | 4 | 552 |
+| `Runtime/__init_fpu` | `.init 80003334..80003464` | 1 | 304 |
+| `dvd/dvdlow_test` | `.text 8016BE88..8016BEC0` | 1 | 56 |
+| `amcstubs/AmcExi2Stubs` | `.text 8017C754..8017C77C` | 7 | 40 |
+
+The DVD test uses its unchanged dolsdk2004 body, removed from the already imported
+`dvdlow.c` where it had been stripped. Its two alarm objects keep their existing
+owned BSS ranges in `dvdlow`; no storage is duplicated or externalized.
+
+### Donor and stub identity
+
+The first dolsdk2004 `gx/GXFifo.c` trial fails: `GXGetFifoBase` loads the base
+pointer, whereas retail at `8017C758` only returns, and `GXGetFifoSize` loads
+`fifo+8`, whereas `8017C75C` returns zero. MSSB's CC0 `gx/GXFifo.c` has only
+unused placeholders for these functions. Neither body is a retail GX getter.
+
+Retail `fn_8015057C` instead establishes their identity: debug mode 2 selects
+the seven-pointer table `801E19E0`; mode 3 selects `801E19FC`, whose entries
+are the real `DBInitComm`, `DBInitInterrupts`, `DBQueryData`, `DBRead`, `DBWrite`,
+`DBOpen`, `DBClose`. The mode-2 table points in order at `8017C754`, `8017C758`,
+`8017C75C`, `8017C764`, `8017C76C`, `8017C774`, `8017C778`. The entire 40-byte
+section equals dolsdk2004 `amcstubs/AmcExi2Stubs.c`, in order:
+`EXI2_Init`, `EXI2_EnableInterrupts`, `EXI2_Poll`, `EXI2_ReadN`, `EXI2_WriteN`,
+`EXI2_Reserve`, `EXI2_Unreserve`. Its unreferenced `AMC_IsStub` is stripped.
+MSSB's corresponding CC0 source agrees. The donor is imported unchanged, the
+seven symbols follow the table identity, and the two false GX names are recorded
+in `rejected_renames.tsv`. The names themselves earn no matching credit.
+
+The MSSB revision reviewed is `407dbcbe70f8be5d167d0b1f0a229f38e0359019`;
+its [CC0 licence](../src/dolphin/COPYING.MSSB) and
+[provenance](../src/dolphin/README.md) are retained. No MSSB text is copied
+for this batch. dolsdk2004 remains pinned at `2328b4164b1a98422a2255d83ce9a5a7548990cc`.
+
+### Original startup assembly and flags
+
+Both dolsdk2004 and MSSB `os/__start.c` use the SDK register-clearing and
+ROM-copy setup. The first donor `__start` trial matches only 18/85 retail
+instructions (87 donor instructions). The SN entry instead initializes its
+linker bases, clears two fixed BSS extents and enters the SN debugger. Its
+assembly reconstruction retains symbolic relocations and the current callee names.
+The two BSS-end immediates retain retail's `80407A3C` and `8040B2E4`; the
+existing blocked relocation at `8000315C` is unchanged.
+
+| Function | Evidence that retail was assembly |
+|---|---|
+| `__start` (`80003100`, 340 bytes) | Establishes r1/r2/r13 before an ABI frame exists; owns r29-r31 across startup; writes SRR0/SRR1 and executes `rfi` to its own `+0x144` entry. |
+| `fn_80003254` (`80003254`, 108 bytes) | Frameless boot-argument parser returns argc in r3 and argv in r4; every caller consumes both registers directly. It also writes the aligned argv address to low-memory ArenaHi. |
+| `__init_registers` (`80003300`, 40 bytes) | Initializes GQR0..7 through `mtspr`; a frameless startup register sequence, unlike the SDK helper of this name. |
+| `__init_fpu` (`80003334`, 304 bytes) | Enables MSR[FP], tests HID2[PSE], explicitly seeds all 32 paired and scalar FPRs, and writes FPSCR; normal C cannot express this register initialization. |
+
+`fn_800032C0` remains C: it masks the low-memory pad-3 buttons with `0xEEF`
+and calls `OSResetSystem(0, 0, FALSE)` when the chord is held. With the standard
+GC/1.2.5n SDK flags its instructions score 15/16: the scheduler hoists
+`lis r3,0x8000` ahead of the two stack stores. Adding only `-schedule off` to
+`Runtime/__start` produces 16/16, and all four functions and the complete
+552-byte section pass strict verification. There is no peephole or optimization
+override for this unit. Other SDK compile commands are unchanged.
+
+### Pad/dvdfs data and BSS proof
+
+Pad and dvdfs were already promoted; their five remaining report rows have
+identical instructions. Their data symbols were too coarse or mistyped:
+
+- `CmdReadOrigin` and `CmdCalibrate` are `u32` values `41000000` and `42000000`,
+  confirmed by their declarations and SI transfers, not two-byte strings. Each
+  owns four bytes; the Pad `.sdata` section now scores completely.
+- The `801F5D00..801F5D8C` and `801F5D8C..801F5FF0` covering labels are split into
+  the donor's ten individual strings with their exact lengths and alignment gaps.
+  Complete section/relocation proof and linked bytes remain identical. dvdfs
+  `.data` now scores completely.
+
+This credits five already compiled functions (2,284 bytes), plus 1,040 previously
+uncredited data bytes (Pad `.sdata` 32, dvdfs `.data` 1,008). Before unrelated
+main drift, the report is 361,872 -> 365,108 matched code bytes,
+127,506 -> 128,546 matched data bytes and 2,431 -> 2,449 matched functions.
+The actual new source promotion is 952 code bytes / 13 functions, separate
+from those metadata corrections.
+
+After rebasing onto main `0139228`, the report reaches **365,384 matched code
+bytes, 128,546 matched data bytes and 2,452 matched functions**. Current main
+has 362,148 / 127,506 / 2,434 respectively; the branch's gain stays
+**3,236 code bytes, 1,040 data bytes and 18 functions**. The kickoff-to-final
+change includes main's separate HVQM4 gain of 276 bytes / three functions.
+
+`sprint_finish.py` closes the bench with 18 verified item functions / 3,236 bytes,
+two parked non-functions and zero deferred functions in 771.8 active seconds:
+84.0 functions per active hour, 15,094 verified bytes per active hour. The verified
+count includes the five Pad/dvdfs metadata corrections; new promotion remains
+13 functions / 952 bytes. Its generic “Promoted: none” line is superseded by the
+separate complete-unit and linked-image proofs above.
+
+The strict verifier previously rejected *sized* reads into owned BSS even when
+`prove_unit` had proved its exact layout and canonical relocations. Address-taken
+references already used that proof. Sized reads now require the same complete
+proof, correct address and in-section width. No-proof, wrong-address, changed
+layout and initialized-vs-BSS cases still fail. The regression test fails with
+the old method and passes with the fix; Pad now passes 19/19 functions, dvdfs
+11/11, and the unchanged dvdlow unit passes 20/20.
+
+### Remaining report rows and reproduction
+
+There are no executable functions left in this item. Two synthetic DTK functions
+remain parked, with score N/A (zero executable instructions):
+
+- `pad_00_80003328_init`: 12 zero bytes containing the overlapping zero constants
+  read at `80003328` and `8000332C` by `__init_fpu`. Carving its neighbours makes
+  DTK count these as another function (+12 total code bytes and +1 total function,
+  without matched credit). Next: distinguish code-section constants in reports.
+- `pad_00_8000348C_init`: 20 zero alignment bytes after `__init_hardware`, with no
+  executable entry. Next: distinguish section padding in reports.
+
+Both stay on the retail fallback. No fake assembly functions or matching bytes
+are introduced for either range. Plan revision 5 follows the carved unit names
+and parks those non-functions, so `plan.py --no-remote` has no revision warnings.
+
+```sh
+bash build.sh
+python3 tools/verify_unit.py dolphin/Runtime/__start --build --functions
+python3 tools/verify_unit.py dolphin/Runtime/__init_fpu --build --functions
+python3 tools/verify_unit.py dolphin/dvd/dvdlow_test --build --functions
+python3 tools/verify_unit.py dolphin/amcstubs/AmcExi2Stubs --build --functions
+python3 tools/verify_unit.py dolphin/pad/Pad --build --functions
+python3 tools/verify_unit.py dolphin/dvd/dvdfs --build --functions
+python3 tools/verify_unit.py dolphin/dvd/dvdlow --build --functions
+python3 tools/dol_compare.py build/GL5E4F/main.dol orig/GL5E4F/sys/main.dol --linked-units
+python3 tools/matching_progress.py
+python3 -m unittest discover -s tests
+```
+
+Every retained function passes `verify_fn.py NAME --build --strict-symbols`
+through the unit gate. All linked source-backed ranges and the whole DOL are
+byte-identical to retail (zero differing bytes), SHA-1
+`95cca08a19224775d1a8d6cc64601fb7d0080981`. All 618 unit tests pass (two skipped),
+as do Python compilation, map generation, shell syntax, local documentation links
+and `git diff --check`. Raw trials stay in ignored `work/`.

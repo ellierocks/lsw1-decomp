@@ -142,6 +142,12 @@ claimed, parked or blocked work, or a finished item run that matched nothing. Re
 score; reorder on evidence such as measured yield, a new donor or a type that unlocks
 another stage.
 
+Revision 5 closes the executable `sdk-leftovers` work. Its former auto ranges
+are now exact `Runtime/__start`, `Runtime/__init_fpu`, `dvd/dvdlow_test` and
+`amcstubs/AmcExi2Stubs` units; existing split boundaries stay fixed. The two remaining
+`.init` pseudo-functions contain only constants or alignment and are parked,
+not counted as decompiled functions. See [SDK leftovers](sdk_import.md#sdk-leftovers).
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle. Never weaken

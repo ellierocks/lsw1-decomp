@@ -609,7 +609,9 @@ class Comparer:
                                          f"{key}: mine {sec.name} ends before {width} bytes"))
                 self.mappings[key] = "MISMATCH: referenced data runs past the end of mine"
             elif target_bytes is None:
-                if sec.sh_type == SHT_NOBITS:
+                if sec.sh_type == SHT_NOBITS and self.unit_proof_covers(mloc, sec, width, taddr):
+                    self.mappings[key] = "verified: full unit sections, BSS layout and relocations match retail"
+                elif sec.sh_type == SHT_NOBITS:
                     self.mappings[key] = "unverified: both uninitialised (bss); layout not compared"
                 else:
                     self.mappings[key] = ("unverified: retail address 0x%08X is not file-backed "
