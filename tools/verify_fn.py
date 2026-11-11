@@ -856,6 +856,19 @@ def disassemble(obj: Path, func: Func, notes: list[str], label: str) -> Optional
 
 # --------------------------------------------------------- locating objects
 
+def current_target_objects() -> Optional[set]:
+    """Resolved paths of the objects the last dtk split listed, or None without its config.json.
+
+    dtk does not delete the object of a unit that a re-split renamed, so a stale copy can
+    still define the function.
+    """
+    try:
+        units = json.loads((TARGET_OBJ_DIR.parent / "config.json").read_text())["units"]
+        return {(ROOT / u["object"]).resolve() for u in units}
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 def find_target_object(name: str, addr: int, size: int, unit: Optional[str]) -> Path:
     if not TARGET_OBJ_DIR.is_dir():
         raise ToolError("no target objects under build/GL5E4F/obj; run `bash build.sh` first")
@@ -878,6 +891,9 @@ def find_target_object(name: str, addr: int, size: int, unit: Optional[str]) -> 
     if not hits:
         raise ToolError(f"no target object under build/GL5E4F/obj defines '{name}' "
                         f"(0x{addr:08X}); rerun `bash build.sh` to re-split the DOL")
+    current = current_target_objects() if len(hits) > 1 else None
+    if current is not None:
+        hits = [h for h in hits if h.resolve() in current] or hits
     if len(hits) > 1:
         raise ToolError(f"'{name}' is defined in several target objects: "
                         + ", ".join(str(h.relative_to(ROOT)) for h in hits))

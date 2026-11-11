@@ -292,14 +292,16 @@ def prove_unit(target, mine, ranges, symbols, dol):
             return refuse(f"{name}: unsupported, duplicate or unresolved relocation in the "
                           f"{'target' if tc is None else 'donor'} object")
         if code:
-            # DTK emits a relocation for a branch back to its own function
-            # entry; the assembler resolves it. Accept it only when the
-            # branch assembled in the source object lands on the same address.
+            # DTK emits a relocation for a branch within the section (back to
+            # its own function entry, or a call to a static function such as
+            # fread's byte copier); the assembler resolves it. Accept it only
+            # when the relative branch or call assembled in the source object
+            # lands on the same address.
             for offset, (kind, addend, address, mask) in tc.items():
                 if offset in mc or kind not in LOCAL_BRANCH_OPCODES:
                     continue
                 word = int.from_bytes(mb[offset:offset + 4], 'big')
-                if word >> 26 != LOCAL_BRANCH_OPCODES[kind] or word & 3:
+                if word >> 26 != LOCAL_BRANCH_OPCODES[kind] or word & 2:
                     continue
                 bits = 26 if kind == 10 else 16
                 disp = word & mask

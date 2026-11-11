@@ -182,6 +182,31 @@ class VerifyUnitTests(unittest.TestCase):
         bad = elf(bytes.fromhex('7c0000004082fff8'), [])
         self.assertIsNone(prove_unit(target, bad, ranges, Symbols1(), retail))
 
+    def test_resolved_call_to_static_function_requires_assembled_destination(self):
+        # fread.c: `bl fread_copy` is resolved by the assembler; DTK keeps an R_PPC_REL24.
+        ranges = {'.text': (0x1000, 0x1008)}
+        sections = [NS(index=0, name='', flags=0, size=0, sh_type=0),
+                    NS(index=1, name='.text', flags=6, size=8, sh_type=1)]
+        syms = [NS(shndx=1, name='helper', value=0)]
+
+        def elf(code, relocs):
+            obj = NS(sections=sections, symbols=syms, relocs={1: relocs})
+            obj.section_bytes = lambda section: code
+            return obj
+        target = elf(bytes.fromhex('4e800020' '48000001'), [NS(offset=4, rtype=10, sym=0, addend=0)])
+        retail = NS(read=lambda address, size: bytes.fromhex('4e8000204bfffffd')
+                    if address == 0x1000 else None)
+
+        class NoSymbols:
+            def addr(self, name):
+                return None
+        good = elf(bytes.fromhex('4e8000204bfffffd'), [])
+        self.assertEqual(prove_unit(target, good, ranges, NoSymbols(), retail), {'.text': 0x1000})
+        wrong = elf(bytes.fromhex('4e8000204bfffff9'), [])
+        self.assertIsNone(prove_unit(target, wrong, ranges, NoSymbols(), retail))
+        absolute = elf(bytes.fromhex('4e8000204bffffff'), [])
+        self.assertIsNone(prove_unit(target, absolute, ranges, NoSymbols(), retail))
+
     def test_short_zero_alignment_tail_is_accepted_but_not_other_gaps(self):
         data = b'ABCD'
         ranges = {'.data': (0x1000, 0x1008)}
