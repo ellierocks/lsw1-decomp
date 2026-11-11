@@ -111,6 +111,7 @@ the binary; donor projects supply evidence.
 | [Sprint workflow](docs/sprint_workflow.md) | Matching tools, workflow improvements, queue accounting and evidence |
 | [Phase 3 batch history](docs/phase3_batches.md) | Results and failure modes from the earlier multi-unit batches |
 | [Workflow gaps](docs/workflow_gaps.md) | Ranked tooling and process gaps with evidence and state |
+| [Sweep blockers](docs/sweep_blockers.md) | Generated ranking of what blocks the automatic sweep, by functions and bytes |
 | [Matching quickstart](docs/matching_quickstart.md) | Bootstrap, pick a target, score, record and verify in six steps |
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |
 | [Compiler evaluation](docs/compiler_evaluation.md) | ProDG audit, RTL diagnostics and SN GCC v1.79 results |
