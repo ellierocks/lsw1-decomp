@@ -136,6 +136,10 @@ does not predict how hard the remaining mismatch is. `sweep_permute.py --apply` 
 >=90% near misses. `python3 tools/kickoff.py` shows the current figures and whether the sweep
 is stale; rerun affected targets after header or tool changes. Dated figures, the repair list
 and the remaining compile-error classes are in the [sweep history](phase3_batches.md#sweep-history).
+Prioritize measured sweep repairs and runtime improvements using the current
+[blocker classes](sweep_blockers.md). Keep the completed pipeline as the baseline
+for speculative alternatives; a better intermediate score does not guarantee a
+better final draft.
 
 Available approaches include m2c and Ghidra drafts, donor evidence, shared types,
 manual iteration with `score_fn.py`, and automated search. The
