@@ -10,7 +10,9 @@
 
 A function is matched when its `fuzzy_match_percent` in build/GL5E4F/report.json is 100; an
 item is closed when each of its functions is matched or listed in `[[parked]]`, a stage when
-all its items are closed, and the current stage is the first one not closed. The `data` item
+all its items are closed, and the current stage is the first one not closed and not marked
+`alongside = true`. An alongside stage (stage 0, the CodeWarrior SDK residue) does not wait on
+the call graph: its open items are worked beside the current stage's and come first in order. The `data` item
 closes when the report's data bytes are all matched.
 
 Claims: `claim(ID)` (run by `kickoff.py --start --item ID`) writes
@@ -20,8 +22,10 @@ branch or an open PR named `t3/plan-ID` also claims the item, as does a legacy
 worktree is gone, its branch is gone, or its branch gained commits since the claim and they
 are merged into origin/main. This checkout's own claim is "mine", not taken.
 
-`next_item()` is the first open, unblocked, unclaimed item of the current stage; when every open
-item there is taken, the first free item of the next open stage, flagged as look-ahead.
+`active_items()` are the open, unblocked, unclaimed items of the open alongside stages before
+the current stage, then of the current stage; when none is free, those of the next open stage,
+flagged as look-ahead. `next_item()` is the first of them. `kickoff.py --start --item` accepts
+any active item.
 `plan_targets()` is what other tools default to: this checkout's claimed item, else the next item.
 """
 from __future__ import annotations
@@ -143,6 +147,7 @@ def evaluate(plan: dict, report: dict) -> dict:
                     warnings.append(f"item {item['id']} names {m}, which the report lacks")
             items.append(rec)
         stages.append({"id": stage["id"], "title": stage.get("title", ""), "items": items,
+                       "alongside": bool(stage.get("alongside")),
                        "closed": all(i["closed"] for i in items),
                        "fn_left": sum(i["fn_left"] for i in items),
                        "bytes_left": sum(i["bytes_left"] for i in items),
@@ -154,7 +159,8 @@ def evaluate(plan: dict, report: dict) -> dict:
                 uncovered[unit] = uncovered.get(unit, 0) + 1
     for unit, n in sorted(uncovered.items()):
         warnings.append(f"{n} unmatched function(s) of {unit} are in no item")
-    current = next((s for s in stages if not s["closed"]), None)
+    current = (next((s for s in stages if not s["closed"] and not s["alongside"]), None)
+               or next((s for s in stages if not s["closed"]), None))
     return {"revision": plan.get("revision"), "stages": stages, "current": current["id"] if current else None,
             "warnings": warnings, "parked": parked}
 
@@ -297,12 +303,28 @@ def next_item(state: dict, cl: dict) -> dict | None:
         item = find_item(state, own)
         if item and not item["closed"]:
             return {"item": item, "stage": item["stage"], "lookahead": False, "mine": True}
+    active = active_items(state, cl)
+    if not active:
+        return None
+    item, lookahead = active[0]
+    return {"item": item, "stage": item["stage"], "lookahead": lookahead, "mine": False}
+
+
+def active_items(state: dict, cl: dict) -> list[tuple[dict, bool]]:
+    """[(item, lookahead)]: the free items of the open alongside stages up to and including the
+    current stage; when none is free, those of the next open non-alongside stage (look-ahead)."""
     pending = [s for s in state["stages"] if not s["closed"]]
-    for n, stage in enumerate(pending[:2]):
-        free = [i for i in open_items(stage) if not taken(cl, i["id"])]
-        if free:
-            return {"item": free[0], "stage": stage["id"], "lookahead": n > 0, "mine": False}
-    return None
+    free = lambda st: [i for i in open_items(st) if not taken(cl, i["id"])]
+    now, rest, seen_current = [], [], False
+    for stage in pending:
+        if not seen_current:
+            if stage["alongside"] or stage["id"] == state["current"]:
+                now += free(stage)
+            seen_current = stage["id"] == state["current"]
+        elif not stage["alongside"]:
+            rest = free(stage)
+            break
+    return [(i, False) for i in now] or [(i, True) for i in rest]
 
 
 # --- bench yield ----------------------------------------------------------------------------
@@ -412,12 +434,14 @@ def print_status(state: dict) -> None:
     print(f"\n{'stage':<20}{'items':>6}{'open':>6}{'fn left':>9}{'bytes left':>12}  state")
     for s in state["stages"]:
         n_open = sum(1 for i in s["items"] if not i["closed"])
-        mark = "closed" if s["closed"] else ("current" if s["id"] == state["current"] else "")
+        mark = "closed" if s["closed"] else ("current" if s["id"] == state["current"]
+                                             else "alongside" if s["alongside"] else "")
         mark += " (data bytes)" if s["data"] else ""
         print(f"{s['id']:<20}{len(s['items']):>6}{n_open:>6}{s['fn_left']:>9}{s['bytes_left']:>12,}  {mark}")
-    cur = stage_of(state, state["current"])
-    if cur:
-        print(f"\nStage {cur['id']} ({cur['title']}):")
+    shown = [s for s in state["stages"] if not s["closed"] and s["alongside"]
+             and state["stages"].index(s) < state["stages"].index(stage_of(state, state["current"]))]
+    for cur in shown + [s for s in [stage_of(state, state["current"])] if s]:
+        print(f"\nStage {cur['id']} ({cur['title']}{', alongside' if cur['alongside'] else ''}):")
         print(f"  {'item':<18}{'fn left':>8}{'bytes left':>12}  claim")
         for i in cur["items"]:
             c = state["claims"]["items"].get(i["id"])

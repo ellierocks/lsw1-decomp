@@ -18,7 +18,7 @@ the lane the pre-plan rule would pick.
 or the build is missing, prints ownership conflicts, saves the queue and baseline through
 `sprint_finish.record_baseline` and opens a `sprint_bench` run with lane, unit, item and model
 (`--model`, else `$LSW1_MODEL`). `--start --item ID` also claims the item (`plan.claim`); it
-refuses an item that is not the plan's next one, and `--start UNIT` and `--start-lane` refuse
+refuses an item outside the plan's active stages (`plan.active_items`), and `--start UNIT` and `--start-lane` refuse
 outright, unless `--off-plan "REASON"` is given, which is then recorded in the bench run and the
 saved queue. An item another checkout claims needs `--force` as well. The near-miss lane's queue
 is the plan target set's near misses, then the rest of the current stage's (`--all`: global).
@@ -546,8 +546,12 @@ def plan_gate(lane: str, item_id: str | None, args) -> tuple[str | None, dict | 
     if plan.taken(state["claims"], item_id) and not args.force:
         return (f"error: item {item_id} is claimed by {state['claims']['items'][item_id]['by']}; "
                 f"{hint}, or pass --force"), state
-    if (not nxt or nxt["item"]["id"] != item_id) and not args.off_plan:
-        why = f"blocked ({item['blocked'].rstrip('.')})" if item["blocked"] else "not the plan's next item"
+    active = {i["id"] for i, _ in plan.active_items(state, state["claims"])}
+    own = nxt and nxt.get("mine") and nxt["item"]["id"] == item_id
+    forced = args.force and plan.taken(state["claims"], item_id)
+    if item_id not in active and not own and not forced and not args.off_plan:
+        why = (f"blocked ({item['blocked'].rstrip('.')})" if item["blocked"]
+               else "not in the plan's active stages")
         return f"error: item {item_id} is {why}; {hint}. Pass --off-plan \"REASON\" to proceed", state
     return None, state
 

@@ -7,7 +7,8 @@
 #
 # An item names `units` (every function of those report units) or `functions` (symbol names).
 # It is closed when each of its functions is matched in the report or listed in [[parked]].
-# A stage is closed when all its items are closed. `blocked` marks an item that has no known
+# A stage is closed when all its items are closed. A stage with `alongside = true` is not the
+# current stage; its open items are worked beside the current stage's and come first. `blocked` marks an item that has no known
 # route yet; tools never recommend it, and a stage left with only blocked items needs a plan
 # revision. The `data` item measures the report's data bytes instead of functions.
 #
@@ -30,6 +31,7 @@ revision = 3
 [[stage]]
 id = "s0-sdk"
 title = "SDK residue (CodeWarrior)"
+alongside = true
 why = "The last CodeWarrior code: it uses neither ProDG nor Nu2 prototypes, so it does not wait on the call graph, and finishing it closes the SDK side. Each item has a donor or a parked candidate."
 
 [[stage.item]]

@@ -91,6 +91,21 @@ class NextItemTests(unittest.TestCase):
         self.assertEqual((targets["item"], targets["mine"], targets["functions"]), ("core", True, ["a2", "b1"]))
         self.assertEqual(targets["stage"], ["c1", "a2", "b1"])
 
+    def test_alongside_stage_runs_beside_the_current_one(self):
+        p = json.loads(json.dumps(PLAN))
+        p["stage"].insert(0, {"id": "s0", "alongside": True, "item": [{"id": "side", "units": ["game/c"]}]})
+        s = state_with(plan_=p)
+        self.assertEqual(s["current"], "s1")
+        self.assertEqual(s["next"]["item"]["id"], "side")
+        active = [i["id"] for i, la in plan.active_items(s, NO_CLAIMS)]
+        self.assertEqual(active, ["side", "hub", "core"])
+        cl = {"items": {k: {"by": "x", "mine": False} for k in ("side", "hub", "core")}, "stale": []}
+        self.assertEqual([(i["id"], la) for i, la in plan.active_items(s, cl)], [("game", True)])
+        done = report(**{"core/a": [], "core/b": [], "game/c": [fn("c1", 50, True), fn("c2", 60)]})
+        s = state_with(plan_=p, report_=done)
+        self.assertEqual(s["current"], "s2")
+        self.assertEqual(s["next"]["item"]["id"], "side")  # still open, still worked
+
     def test_blocked_items_are_never_recommended(self):
         p = json.loads(json.dumps(PLAN))
         p["stage"][1]["item"][1] = {"id": "stuck", "units": ["game/c"], "blocked": "no route"}

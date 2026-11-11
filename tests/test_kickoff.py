@@ -252,14 +252,17 @@ class StartTests(unittest.TestCase):
 
     def test_off_plan_starts_refuse_without_reason(self):
         for argv in (("--start", "auto/u"), ("--start-lane", "near-misses"), ("--start-lane", "sweep"),
-                     ("--start", "--item", "second"), ("--start", "--item", "later")):
+                     ("--start", "--item", "later")):
             code, out = self.run_main(*argv)
             self.assertEqual(code, 2, argv)
             self.assertIn("--off-plan", out)
             self.assertIn("next item is first", out)
         self.assertFalse(sf.BASELINE.exists())
         self.assertEqual(self.claimed, [])
-        code, out = self.run_main("--start", "auto/u", "--off-plan", "runtime evidence")
+        code, out = self.run_main("--start", "--item", "second")  # any item of the current stage
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.claimed, ["second"])
+        code, out = self.run_main("--start", "auto/u", "--off-plan", "runtime evidence", "--restart")
         self.assertEqual(code, 0, out)
         self.assertEqual(json.loads(sf.BASELINE.read_text())["off_plan"], "runtime evidence")
         self.assertEqual(self.events()[0]["off_plan"], "runtime evidence")
