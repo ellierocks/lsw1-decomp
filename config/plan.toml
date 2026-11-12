@@ -129,8 +129,8 @@ note = "HVQM4PlayerEx has no source file yet."
 
 [[stage.item]]
 id = "newlib"
-units = ["auto_01_801541B4_text", "auto_01_8015535C_text", "auto_01_801562B8_text", "auto_01_80159478_text", "auto_01_8015A2A8_text", "auto_01_8015A938_text"]
-note = "newlib 1.8.2 stdio/stdlib in unnamed pad blocks (sprintf at 801541B4, vfprintf, ...): name the functions inside the blocks without moving split ends, then import from newlib with the src/sn flags. Known failures: docs/sn_runtime.md#not-imported."
+units = ["auto_01_801556A8_text", "auto_01_801562B8_text"]
+note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Left: SN-written malloc/free/strtod (OSPanic stubs, no _dtoa) and the SN vfprintf rewrite (_write output, floor/fmod/log10 cvt, vfprintf dispatching to _vfiprintf_r). No upstream source: hand-match. See docs/sn_runtime.md#not-imported."
 # at revision 3: 7 functions (pad blocks), 13,036 bytes left
 
 [[stage.item]]

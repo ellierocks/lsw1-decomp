@@ -119,7 +119,7 @@ extern char lbl_8018E198[];
 extern char str_NuDebugMsg_Format[];
 extern char lbl_801B0660[];
 s32 sprintf(char*, char*, ...);
-s32 lbl_8015525C(char*, char*, va_list);
+s32 vsprintf(char*, char*, va_list);
 void NuStrCat(char*, char*);
 char* strstr(char*, char*);
 void fn_800099A0(char*);
@@ -131,7 +131,7 @@ void fn_80009564(char* fmt, ...)
     va_list args;
     sprintf(lbl_802059AC, lbl_8018E180, lbl_8040A2C8, lbl_8040A2CC);
     va_start(args, fmt);
-    lbl_8015525C(lbl_802055AC, fmt, args);
+    vsprintf(lbl_802055AC, fmt, args);
     NuStrCat(lbl_802059AC, lbl_802055AC);
     NuStrCat(lbl_802059AC, lbl_8018E198);
     fn_800099A0(lbl_802059AC);
@@ -143,7 +143,7 @@ void fn_8000965C(char* fmt, ...)
     va_list args;
     sprintf(lbl_802059AC, lbl_8018E19C, lbl_8040A2C8, lbl_8040A2CC);
     va_start(args, fmt);
-    lbl_8015525C(lbl_802055AC, fmt, args);
+    vsprintf(lbl_802055AC, fmt, args);
     NuStrCat(lbl_802055AC, lbl_8018E198);
     fn_800099D4(lbl_802055AC);
     va_end(args);
@@ -155,7 +155,7 @@ void fn_80009748(char* fmt, ...)
     if (!*lbl_801B0660 || strstr(lbl_8040A2C8, lbl_801B0660)) {
         sprintf(lbl_802059AC, str_NuDebugMsg_Format, lbl_8040A2C8, lbl_8040A2CC);
         va_start(args, fmt);
-        lbl_8015525C(lbl_802055AC, fmt, args);
+        vsprintf(lbl_802055AC, fmt, args);
         NuStrCat(lbl_802055AC, lbl_8018E198);
         fn_800099F8(lbl_802055AC);
     }
@@ -167,7 +167,7 @@ void fn_80009858(s32 unused, char* fmt, ...)
     va_list args;
     sprintf(lbl_802059AC, str_NuDebugMsg_Format, lbl_8040A2C8, lbl_8040A2CC);
     va_start(args, fmt);
-    lbl_8015525C(lbl_802055AC, fmt, args);
+    vsprintf(lbl_802055AC, fmt, args);
     NuStrCat(lbl_802055AC, lbl_8018E198);
     fn_800099F8(lbl_802059AC);
     fn_800099F8(lbl_802055AC);

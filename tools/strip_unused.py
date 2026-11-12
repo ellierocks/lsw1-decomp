@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Reproduce SN dead stripping for MWCC SDK objects.
+"""Reproduce SN dead stripping for MWCC SDK objects and ProDG SN runtime objects.
 
 Ported from adonis-singh/re4 tools/strip_unused.py, commit
-9b76ff003081d6ece8b838453fb8310743a972c7 (MWCC path only).
+9b76ff003081d6ece8b838453fb8310743a972c7 (MWCC path only). ProDG (GCC) objects
+use the same symbol and relocation handling; their `.comment` ident is left as is.
 Keep symbols listed in the DTK target object for the unit; preserve local
 pooled data and the reference implementation's eight-byte data granularity.
 Abort if surviving code references anything removed. Run after dtk elf fixup.
@@ -17,10 +18,18 @@ SHT_RELA = 4
 SHT_NOBITS = 8
 STT_OBJECT = 1
 STT_FUNC = 2
+SHF_EXECINSTR = 4
 STT_SECTION = 3
 STB_LOCAL = 0
 STB_GLOBAL = 1
 DATA_GRANULE = 8
+# ProDG (GCC) objects carry the compiler ident in .comment, not MWCC's per-symbol records.
+GCC_IDENT = b'\x00GCC: '
+
+def has_mwcc_comment(elf):
+    """True when .comment holds MWCC per-symbol records (a GCC ident is left alone)."""
+    return '.comment' in elf.names and not elf.contents[elf.index('.comment')].startswith(GCC_IDENT)
+
 
 class Elf:
 
@@ -228,7 +237,7 @@ def externalize_bss(elf, table, section='.bss', dead=None):
                 sym = new_index[sym]
             out += struct.pack('>IIi', r_off, sym << 8 | rtype, r_add)
         elf.contents[i] = out
-    if '.comment' in elf.names:
+    if has_mwcc_comment(elf):
         ci = elf.index('.comment')
         body = elf.contents[ci]
         hdr = len(body) - 8 * len(syms)
@@ -277,13 +286,49 @@ def globalize_bss(elf, target_bind):
             r_off, r_info, r_add = struct.unpack('>IIi', elf.contents[i][o:o + 12])
             out += struct.pack('>IIi', r_off, remap[r_info >> 8] << 8 | r_info & 255, r_add)
         elf.contents[i] = out
-    if '.comment' in elf.names:
+    if has_mwcc_comment(elf):
         ci = elf.index('.comment')
         body = elf.contents[ci]
         hdr = len(body) - 8 * len(syms)
         if hdr >= 0:
             recs = [body[hdr + 8 * k:hdr + 8 * k + 8] for k in range(len(syms))]
             elf.contents[ci] = bytearray(body[:hdr]) + bytearray().join(recs[i] for i in order)
+
+
+def relocate_resolved_branches(elf, removed, dead, shift):
+    """Re-encode `b`/`bl` displacements the assembler resolved across a removed range.
+
+    GCC's assembler resolves a call to a static function in the same section and
+    emits no relocation (findfp.c `__sinit` calling `std` past the stripped
+    `__sfp`). MWCC emits a relocation for every call, so its objects skip this.
+    """
+    relocated = {}
+    for i, sh in enumerate(elf.sections):
+        if sh[1] == SHT_RELA:
+            relocated.setdefault(sh[7], set()).update(
+                struct.unpack('>I', elf.contents[i][o:o + 4])[0] & ~3
+                for o in range(0, len(elf.contents[i]), 12))
+    for shndx in removed:
+        if not elf.sections[shndx][2] & SHF_EXECINSTR:
+            continue
+        body = elf.contents[shndx]
+        for off in range(0, len(body) - 3, 4):
+            if off in relocated.get(shndx, ()) or any(a <= off < b for a, b in dead.get(shndx, ())):
+                continue
+            word, = struct.unpack('>I', body[off:off + 4])
+            if word >> 26 != 18 or word & 2:
+                continue
+            disp = word & 0x03FFFFFC
+            disp -= (disp & 0x02000000) << 1
+            dest = off + disp
+            if not 0 <= dest < len(body):
+                continue
+            if any(a <= dest < b for a, b in dead.get(shndx, ())):
+                sys.exit(f'strip_unused: {elf.names[shndx]}+{off:#x} branches into a removed function')
+            new = shift(shndx, dest) - shift(shndx, off)
+            if new != disp:
+                word = word & 0xFC000003 | new & 0x03FFFFFC
+                body[off:off + 4] = struct.pack('>I', word)
 
 
 def main():
@@ -323,6 +368,14 @@ def main():
     def sym_name(s):
         end = strs.index(b'\x00', s[0])
         return strs[s[0]:end].decode()
+    # In a ProDG object only references from surviving code keep a local static: retail
+    # drops locale.c `lc_ctype`, used only by the removed `_setlocale_r`. MWCC SDK objects
+    # keep such statics (OSThread.c .data). See docs/sn_runtime.md.
+    mwcc = has_mwcc_comment(elf)
+    dead_code = {} if mwcc else dead_function_ranges(elf, keep)
+    # MWCC data is cut in the reference's eight-byte granules; a ProDG object loses the
+    # whole object: retail keeps none of __main.o's 4-byte `__do_global_dtors` pointer.
+    granule = DATA_GRANULE if mwcc else 1
     refcount = [0] * len(syms)
     pooled_sections = set()
     for i, sh in enumerate(elf.sections):
@@ -330,6 +383,8 @@ def main():
             continue
         for o in range(0, len(elf.contents[i]), 12):
             r_off, r_info = struct.unpack('>II', elf.contents[i][o:o + 8])
+            if any(start <= r_off < end for start, end in dead_code.get(sh[7], ())):
+                continue
             sym = r_info >> 8
             refcount[sym] += 1
             s = syms[sym]
@@ -355,7 +410,7 @@ def main():
         if stype == STT_FUNC:
             removed.setdefault(shndx, []).append((s[1], s[1] + s[2]))
         elif bind != STB_LOCAL or (refcount[i] == 0 and shndx not in pooled_sections):
-            cut = s[2] - s[2] % DATA_GRANULE
+            cut = s[2] - s[2] % granule
             if cut:
                 removed.setdefault(shndx, []).append((s[1], s[1] + cut))
         else:
@@ -385,6 +440,8 @@ def main():
             if end <= off:
                 d += end - start
         return off - d
+    if not mwcc:
+        relocate_resolved_branches(elf, removed, dead, shift)
     for shndx, ranges in removed.items():
         old = elf.contents[shndx]
         new = bytearray()
@@ -442,7 +499,7 @@ def main():
                     sys.exit(f'strip_unused: {elf.names[target]} relocation: {e}')
             out += struct.pack('>IIi', r_off, remap[sym] << 8 | rtype, r_add)
         elf.contents[i] = out
-    if '.comment' in elf.names:
+    if has_mwcc_comment(elf):
         ci = elf.index('.comment')
         body = elf.contents[ci]
         hdr = len(body) - 8 * len(syms)

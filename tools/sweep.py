@@ -252,7 +252,8 @@ CACHE_ROOT = Path(os.environ.get("LSW1_SWEEP_CACHE") or Path.home() / ".cache/ls
 # score_fn.py hardcodes its compiler flags, so configure.py and config.yml are not inputs:
 # keying on them dropped the whole cache on most merges.
 SCORE_TOOLS = ("score_fn.py", "prodg_cc.py", "verify_fn.py", "verify_unit.py", "hillclimb.py",
-               "variant_search.py", "order_search.py", "sprint_bench.py", "sprint_metrics.py", "opensaga.py")
+               "variant_search.py", "order_search.py", "sprint_bench.py", "sprint_metrics.py", "opensaga.py",
+               "prodg_branch_relocs.py", "strip_unused.py")
 SCORE_CONFIG: tuple[str, ...] = ()
 CACHED_VERDICTS = {"MATCH", "MISMATCH", "COMPILE-ERROR"}
 USE_CACHE = True

@@ -528,6 +528,16 @@ class ErrorHandlingTests(Env):
         code, out, _ = self.run_tool("--compiled-symbol", "Foo2")
         self.assertEqual(code, 0, out)
 
+    def test_renamed_unit_leaves_stale_target_object_ignored(self):
+        """dtk keeps the object of a unit a re-split renamed; config.json names the live one."""
+        for rel in ("old_unit.o", "new_unit.o"):
+            self.put("target", build_elf([("Foo", FOO)], undefined=["ext_a"], relocs=FOO_RELOCS), rel)
+        self.assertRaisesRegex(vf.ToolError, "several target objects",
+                               vf.find_target_object, "Foo", 0, 16, None)
+        config = {"units": [{"object": "build/obj/new_unit.o", "name": "new_unit"}]}
+        (self.tmp / "build/config.json").write_text(json.dumps(config))
+        self.assertEqual(vf.find_target_object("Foo", 0, 16, None), self.tmp / "build/obj/new_unit.o")
+
     def test_object_not_built(self):
         self.target()
         code, _, err = self.run_tool()

@@ -304,16 +304,27 @@ cflags_sn_target_defs = [
     "-D__LANGUAGE_C",
     "-DLANGUAGE_C",
 ]
+# newlib's small-data threshold is below 34 bytes: vfscanf's 34-byte `basefix` and locale's
+# 48-byte `lconv` are addressed with lis/addi, while `__mb_cur_max` and `_impure_ptr` use r13.
+# `-G 8` is the eabi default. newlib was configured with --enable-newlib-mb (MB_CAPABLE):
+# vfscanf calls _mbtowc_r and locale's .rodata holds "C-JIS", "C-EUCJP" and "C-SJIS".
 cflags_sn_libc = [
     "-O2",
     "-mfast-cast",
     "-fno-common",
-    "-G 1024",
+    "-G 8",
     "-I src/sn/include",
     "-DNDEBUG=1",
+    "-DMB_CAPABLE",
     *cflags_sn_target_defs,
 ]
-cflags_sn_libgcc = [*cflags_sn_libc, "-I src/sn/libgcc"]
+# libgcc keeps `-G 1024`: each division object's 256-byte `__clz_tab` sits in `.sdata2`.
+cflags_sn_libgcc = [
+    "-G 1024" if flag == "-G 8" else flag for flag in cflags_sn_libc if flag != "-DMB_CAPABLE"
+] + ["-I src/sn/libgcc"]
+# `__main` reads its 4-byte `initialized` with lis/lwz from .bss, not r13-relative .sbss, so
+# that object was built below `-G 4`; `-G 0` emits it with .lcomm as retail has it.
+cflags_sn_libgcc_main = ["-G 0" if flag == "-G 1024" else flag for flag in cflags_sn_libgcc]
 
 config.linker_version = "GC/1.3.2"
 # Use the retail SN linker; MWLD remains the fallback for template REL support.
@@ -362,6 +373,20 @@ def SDKObject(unit: str, matching: bool, external_bss: bool = False,
         ],
         post_build_implicit=[Path("tools/strip_unused.py"), target] + ([symbols] if external_bss else []),
     )
+
+
+def SnObject(path: str, cflags: List[str] = cflags_sn_libc, strip: bool = False) -> Object:
+    """An SN runtime object under src/sn. `strip` reproduces the SN linker dropping functions
+    nothing references (`_sprintf_r`, `_setlocale_r`, ...): tools/strip_unused.py keeps only
+    the symbols of the unit's split target object."""
+    extra = {}
+    if strip:
+        target = config.out_path() / "obj" / path.replace(".c", ".o")
+        extra = {
+            "post_build": [f"$python tools/strip_unused.py --target {target} {{out}}"],
+            "post_build_implicit": [Path("tools/strip_unused.py"), target],
+        }
+    return Object(Matching, path, compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags, **extra)
 
 
 def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
@@ -603,39 +628,61 @@ config.libs = [
         "cflags": cflags_base,
         "progress_category": "runtime",
         "objects": [
-            Object(Matching, "sn/libc/ctype/isdigit.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/ctype/tolower.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/ctype/toupper.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/stdlib/exit.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/stdlib/strtoul.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/memcmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/memcpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/memset.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strcasecmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strcat.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strcmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strcpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strlen.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strncmp.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strncpy.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/strstr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/stdlib/strtol.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/ctype/isspace.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/memchr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/reent/closer.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/reent/fstatr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/reent/lseekr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/reent/readr.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/reent/writer.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libgcc/_ashldi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libgcc/_ashrdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libgcc/_divdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libgcc/_lshrdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libgcc/_moddi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libgcc/_udivdi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libgcc/_umoddi3.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libgcc),
-            Object(Matching, "sn/libc/stdio/vprintf.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
-            Object(Matching, "sn/libc/string/memmove.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libc),
+            SnObject("sn/libc/ctype/isdigit.c"),
+            SnObject("sn/libc/ctype/tolower.c"),
+            SnObject("sn/libc/ctype/toupper.c"),
+            SnObject("sn/libc/stdio/sprintf.c", strip=True),
+            SnObject("sn/libc/stdio/sscanf.c"),
+            SnObject("sn/libc/stdio/vfscanf.c"),
+            SnObject("sn/libc/stdio/vsprintf.c", strip=True),
+            SnObject("sn/libc/stdlib/atof.c"),
+            SnObject("sn/libc/stdlib/exit.c"),
+            SnObject("sn/libc/stdlib/mbtowc_r.c"),
+            SnObject("sn/libc/stdlib/rand.c"),
+            SnObject("sn/libc/stdlib/strtoul.c"),
+            SnObject("sn/libc/string/memcmp.c"),
+            SnObject("sn/libc/string/memcpy.c"),
+            SnObject("sn/libc/string/memset.c"),
+            SnObject("sn/libc/string/strcasecmp.c"),
+            SnObject("sn/libc/string/strcat.c"),
+            SnObject("sn/libc/string/strcmp.c"),
+            SnObject("sn/libc/string/strcpy.c"),
+            SnObject("sn/libc/string/strlen.c"),
+            SnObject("sn/libc/string/strncmp.c"),
+            SnObject("sn/libc/string/strncpy.c"),
+            SnObject("sn/libc/string/strstr.c"),
+            SnObject("sn/libc/stdlib/strtol.c"),
+            SnObject("sn/libc/ctype/isspace.c"),
+            SnObject("sn/libc/errno/errno.c"),
+            SnObject("sn/libc/locale/locale.c", strip=True),
+            SnObject("sn/libc/stdio/fread.c"),
+            SnObject("sn/libc/stdio/refill.c"),
+            SnObject("sn/libc/stdio/ungetc.c", strip=True),
+            SnObject("sn/libc/string/memchr.c"),
+            SnObject("sn/libc/stdio/fflush.c"),
+            SnObject("sn/libc/stdio/findfp.c", strip=True),
+            SnObject("sn/libc/stdio/fwalk.c"),
+            SnObject("sn/libc/stdio/makebuf.c"),
+            SnObject("sn/libc/stdio/stdio.c"),
+            SnObject("sn/libc/reent/closer.c"),
+            SnObject("sn/libc/reent/fstatr.c"),
+            SnObject("sn/libc/reent/lseekr.c"),
+            SnObject("sn/libc/reent/readr.c"),
+            SnObject("sn/libc/reent/writer.c"),
+            SnObject("sn/libm/math/s_floor.c", strip=True),
+            SnObject("sn/libm/fmod.c", strip=True),
+            SnObject("sn/libm/log.c", strip=True),
+            SnObject("sn/libm/log10.c", strip=True),
+            SnObject("sn/libgcc/__main.c", cflags_sn_libgcc_main, strip=True),
+            SnObject("sn/libgcc/_ashldi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_ashrdi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_divdi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_lshrdi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_moddi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_udivdi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_umoddi3.c", cflags_sn_libgcc),
+            SnObject("sn/libc/stdio/vprintf.c"),
+            SnObject("sn/libc/string/memmove.c"),
         ],
     },
     {

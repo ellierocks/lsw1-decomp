@@ -321,7 +321,7 @@ auto/game/chris.c:
 
 auto/game/podrace.c:
 	.text       start:0x80146194 end:0x801503A0
-	.rodata     start:0x801AF668 end:0x801B0460
+	.rodata     start:0x801AF668 end:0x801AFF78
 
 dolphin/TRK_MINNOW_DOLPHIN/ppcdown.c:
 	.text       start:0x801503A0 end:0x80151724
@@ -344,8 +344,32 @@ sn/libc/ctype/tolower.c:
 sn/libc/ctype/toupper.c:
 	.text       start:0x80154198 end:0x801541B4
 
+sn/libc/stdio/sprintf.c:
+	.text       start:0x801541B4 end:0x8015428C
+
+sn/libc/stdio/sscanf.c:
+	.text       start:0x8015428C end:0x80154384
+
+sn/libc/stdio/vfscanf.c:
+	.text       start:0x80154384 end:0x8015525C
+	.rodata     start:0x801AFF98 end:0x801AFFBC
+
+sn/libc/stdio/vsprintf.c:
+	.text       start:0x8015525C end:0x801552B8
+
+sn/libc/stdlib/atof.c:
+	.text       start:0x801552B8 end:0x801552DC
+
 sn/libc/stdlib/exit.c:
 	.text       start:0x801552DC end:0x8015535C
+
+sn/libc/stdlib/mbtowc_r.c:
+	.text       start:0x8015535C end:0x80155678
+	.rodata     start:0x801AFFBC end:0x801AFFD4
+	.data       start:0x801E1C88 end:0x801E1FE8
+
+sn/libc/stdlib/rand.c:
+	.text       start:0x80155678 end:0x801556A8
 
 sn/libc/stdlib/strtoul.c:
 	.text       start:0x80155A50 end:0x80155C20
@@ -389,8 +413,59 @@ sn/libc/stdlib/strtol.c:
 sn/libc/ctype/isspace.c:
 	.text       start:0x80159464 end:0x80159478
 
+sn/libc/errno/errno.c:
+	.text       start:0x80159478 end:0x80159480
+
+sn/libc/locale/locale.c:
+	.text       start:0x80159480 end:0x801594B0
+	.rodata     start:0x801B0430 end:0x801B0488
+	.sdata      start:0x80409FBC end:0x80409FC0
+
+sn/libm/math/s_floor.c:
+	.text       start:0x801594B0 end:0x80159624
+	.rodata     start:0x801B0488 end:0x801B0498
+
+sn/libm/fmod.c:
+	.text       start:0x80159624 end:0x80159980
+	.rodata     start:0x801B0498 end:0x801B04A8
+
+sn/libm/log.c:
+	.text       start:0x80159980 end:0x80159C7C
+	.rodata     start:0x801B04A8 end:0x801B0530
+
+sn/libm/log10.c:
+	.text       start:0x80159C7C end:0x80159DC4
+	.rodata     start:0x801B0530 end:0x801B0568
+
+sn/libc/stdio/fread.c:
+	.text       start:0x80159DC4 end:0x80159ED0
+
+sn/libc/stdio/refill.c:
+	.text       start:0x80159ED0 end:0x8015A064
+
+sn/libc/stdio/ungetc.c:
+	.text       start:0x8015A064 end:0x8015A1E8
+	.rodata     start:0x801B056C end:0x801B05B0
+
 sn/libc/string/memchr.c:
 	.text       start:0x8015A1E8 end:0x8015A2A8
+
+sn/libc/stdio/fflush.c:
+	.text       start:0x8015A2A8 end:0x8015A39C
+
+sn/libc/stdio/findfp.c:
+	.text       start:0x8015A39C end:0x8015A4D0
+	.rodata     start:0x801B05B0 end:0x801B05E0
+	.bss        start:0x802F3704 end:0x802F3AD0
+
+sn/libc/stdio/fwalk.c:
+	.text       start:0x8015A4D0 end:0x8015A550
+
+sn/libc/stdio/makebuf.c:
+	.text       start:0x8015A550 end:0x8015A628
+
+sn/libc/stdio/stdio.c:
+	.text       start:0x8015A628 end:0x8015A788
 
 sn/libc/reent/closer.c:
 	.text       start:0x8015A788 end:0x8015A7D8
@@ -406,6 +481,10 @@ sn/libc/reent/readr.c:
 
 sn/libc/reent/writer.c:
 	.text       start:0x8015A8E0 end:0x8015A938
+
+sn/libgcc/__main.c:
+	.text       start:0x8015A938 end:0x8015AA00
+	.bss        start:0x802F3AD0 end:0x802F3AD4
 
 sn/libgcc/_ashldi3.c:
 	.text       start:0x8015AA00 end:0x8015AA40

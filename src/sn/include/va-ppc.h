@@ -17,7 +17,9 @@
 /* Note that the names in this structure are in the user's namespace, but
    that the V.4 abi explicitly states that these names should be used.  */
 typedef struct __va_list_tag {
-  unsigned char gpr;		/* index into the array of 8 GPRs stored in the
+  /* SN Systems: gpr is a plain (signed) char; retail __svfscanf
+     sign-extends it with extsb.  See docs/sn_runtime.md.  */
+  char gpr;		/* index into the array of 8 GPRs stored in the
 				   register save area gpr=0 corresponds to r3,
 				   gpr=1 to r4, etc. */
   unsigned char fpr;		/* index into the array of 8 FPRs stored in the
@@ -169,11 +171,20 @@ __extension__ (*({							   \
 	}								   \
       else if (sizeof (TYPE) == 4)					   \
 	{								   \
-	  unsigned char __gpr = (AP)->gpr;				   \
-	  if (__gpr < 8)						   \
+	  /* SN Systems: reconstructed from retail __svfscanf, not	   \
+	     upstream: an unsigned fit test, and an overflowing	   \
+	     argument clamps gpr to 8.  */				   \
+	  int __gpr = (AP)->gpr;					   \
+	  if (__gpr + (sizeof (TYPE) + 3) / 4 <= 8)			   \
 	    {								   \
 	      __ptr = __VA_GP_REGSAVE (AP, __gpr, TYPE);		   \
-	      (AP)->gpr = __gpr + 1;					   \
+	      (AP)->gpr += (sizeof (TYPE) + 3) / 4;			   \
+	    }								   \
+	  else if (__gpr < 8)						   \
+	    {								   \
+	      __ptr = (TYPE *) __va_overflow (AP);			   \
+	      (AP)->gpr = 8;						   \
+	      __va_overflow (AP) = (char *)(__ptr + 1);			   \
 	    }								   \
 	  else								   \
 	    {								   \

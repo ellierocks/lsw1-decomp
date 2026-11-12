@@ -259,11 +259,11 @@ u16 fn_800B9ED4(void) {
 
 s32 NuRandSetSeed(s32, s32);
 s32 fn_80064BEC(s32);
-s32 lbl_80155678(s32);
+s32 srand(s32);
 extern s32 lbl_80409134;
 
 void fn_800B9EF0(void) {
-    lbl_80155678(0);
+    srand(0);
     lbl_80409134 = 0x3039;
     NuRandSeed(0);
     fn_80064BEC(0);

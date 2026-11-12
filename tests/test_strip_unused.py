@@ -11,8 +11,8 @@ from tools.strip_unused import Elf
 SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "strip_unused.py"
 
 
-def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data", data_type=1):
-    """Build a minimal big-endian ELF32 with text, data, RELA, and MWCC comments."""
+def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data", data_type=1, comment=None):
+    """Build a minimal big-endian ELF32 with text, data, RELA, and MWCC comments (or COMMENT)."""
     names = ["", ".text", data_name, ".rela.text", ".symtab", ".strtab", ".comment", ".shstrtab"]
     shstr = b"\0"
     name_offsets = [0]
@@ -21,14 +21,15 @@ def make_elf(path, symbols, text=b"", data=b"", relocations=(), data_name=".data
         shstr += name.encode() + b"\0"
     strings = b"\0"
     entries = [struct.pack(">IIIBBH", 0, 0, 0, 0, 0, 0)]
-    for name, value, size, kind, section in symbols:
+    for name, value, size, kind, section, *bind in symbols:
         offset = len(strings)
         strings += name.encode() + b"\0"
-        entries.append(struct.pack(">IIIBBH", offset, value, size, 0x10 | kind, 0, section))
+        entries.append(struct.pack(">IIIBBH", offset, value, size, (bind[0] if bind else 1) << 4 | kind, 0, section))
     symtab = b"".join(entries)
     rela = b"".join(struct.pack(">IIi", off, sym << 8 | 1, addend)
                     for off, sym, addend in relocations)
-    comment = b"HEADER!!" + b"".join(bytes([i]) * 8 for i in range(len(entries)))
+    if comment is None:
+        comment = b"HEADER!!" + b"".join(bytes([i]) * 8 for i in range(len(entries)))
     contents = [b"", text, data, rela, symtab, strings, comment, shstr]
     types = [0, 1, data_type, 4, 2, 3, 1, 3]
     links = [0, 0, 0, 4, 5, 0, 0, 0]
@@ -85,6 +86,19 @@ class StripUnusedTests(unittest.TestCase):
         self.assertEqual(struct.unpack(">IIi", elf.contents[elf.index(".rela.text")]), (0, 2 << 8 | 1, 0))
         self.assertEqual(elf.contents[elf.index(".comment")], b"HEADER!!" + bytes(8) + bytes([2]) * 8 + bytes([3]) * 8)
 
+    def test_prodg_gcc_ident_comment_is_kept(self):
+        # A ProDG (GCC) object's .comment is the compiler ident, not MWCC per-symbol records;
+        # with eight symbols its 0x38 bytes would otherwise pass for a header plus records.
+        ident = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+        source = [("dead", 0, 4, 2, 1), ("kept", 4, 4, 2, 1)]
+        make_elf(self.obj, source, text=b"DEADKEEP", comment=ident)
+        make_elf(self.target, [("kept", 0, 4, 2, 1)], text=b"KEEP")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        self.assertEqual(elf.contents[elf.index(".text")], b"KEEP")
+        self.assertEqual(elf.contents[elf.index(".comment")], ident)
+
     def test_removed_data_leaves_remainder(self):
         source = [("dead_data", 0, 12, 1, 2), ("kept_data", 12, 4, 1, 2)]
         make_elf(self.obj, source, data=b"abcdefghijklKEEP")
@@ -94,6 +108,68 @@ class StripUnusedTests(unittest.TestCase):
         elf = Elf(self.obj.read_bytes())
         self.assertEqual(elf.contents[elf.index(".data")], b"ijklKEEP")
         self.assertEqual([(s[0], s[1]) for s in symbols(elf)], [("", 0), ("kept_data", 4)])
+
+    DEAD_STATIC_SOURCE = [("dead", 0, 4, 2, 1), ("kept", 4, 4, 2, 1),
+                          ("dead_static", 0, 8, 1, 2, 0), ("live_static", 8, 8, 1, 2, 0)]
+
+    def strip_dead_static(self, comment):
+        make_elf(self.obj, self.DEAD_STATIC_SOURCE, text=b"DEADKEEP", data=b"deadstatLIVESTAT",
+                 relocations=[(0, 3, 0), (4, 4, 0)], comment=comment)
+        make_elf(self.target, [("kept", 0, 4, 2, 1)], text=b"KEEP")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        return elf.contents[elf.index(".data")], [s[0] for s in symbols(elf)]
+
+    def test_prodg_static_used_only_by_removed_function_is_dropped(self):
+        # locale.c: `lc_ctype` is only read by the stripped `_setlocale_r`.
+        ident = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+        data, names = self.strip_dead_static(ident)
+        self.assertEqual(data, b"LIVESTAT")
+        self.assertEqual(names, ["", "kept", "live_static"])
+
+    def test_prodg_dead_static_smaller_than_a_granule_is_dropped_whole(self):
+        # __main.o: retail keeps none of `__do_global_dtors`'s 4-byte list pointer.
+        ident = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+        source = [("dead", 0, 4, 2, 1), ("kept", 4, 4, 2, 1), ("pointer", 0, 4, 1, 2, 0)]
+        make_elf(self.obj, source, text=b"DEADKEEP", data=b"PTR!", relocations=[(0, 3, 0)], comment=ident)
+        make_elf(self.target, [("kept", 0, 4, 2, 1)], text=b"KEEP")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        self.assertEqual(elf.contents[elf.index(".data")], b"")
+        self.assertEqual([s[0] for s in symbols(elf)], ["", "kept"])
+
+    def test_mwcc_static_used_only_by_removed_function_is_kept(self):
+        # OSThread.c keeps such statics in retail.
+        data, names = self.strip_dead_static(None)
+        self.assertEqual(data, b"deadstatLIVESTAT")
+        self.assertEqual(names, ["", "kept", "dead_static", "live_static"])
+
+    GCC_IDENT = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+    BLR = struct.pack(">I", 0x4E800020)
+
+    def test_assembler_resolved_call_across_removed_function_is_reencoded(self):
+        # findfp.c: GCC's assembler resolves `__sinit`'s `bl std` with no relocation,
+        # so removing `__sfp` between them must shorten the displacement.
+        source = [("helper", 0, 4, 2, 1, 0), ("dead", 4, 4, 2, 1), ("caller", 8, 4, 2, 1)]
+        bl_back_8 = struct.pack(">I", 0x48000001 | (-8 & 0x03FFFFFC))
+        make_elf(self.obj, source, text=self.BLR + b"DEAD" + bl_back_8, comment=self.GCC_IDENT)
+        make_elf(self.target, [("helper", 0, 4, 2, 1, 0), ("caller", 4, 4, 2, 1)], text=bytes(8))
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        bl_back_4 = struct.pack(">I", 0x48000001 | (-4 & 0x03FFFFFC))
+        self.assertEqual(elf.contents[elf.index(".text")], self.BLR + bl_back_4)
+
+    def test_assembler_resolved_call_into_removed_function_fails(self):
+        source = [("dead", 0, 4, 2, 1, 0), ("caller", 4, 4, 2, 1)]
+        bl_back_4 = struct.pack(">I", 0x48000001 | (-4 & 0x03FFFFFC))
+        make_elf(self.obj, source, text=self.BLR + bl_back_4, comment=self.GCC_IDENT)
+        make_elf(self.target, [("caller", 0, 4, 2, 1)], text=bytes(4))
+        result = self.run_strip()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("branches into a removed function", result.stderr)
 
     def test_small_constants_are_readonly_even_without_stripping(self):
         definitions = [("constant", 0, 4, 1, 2)]
