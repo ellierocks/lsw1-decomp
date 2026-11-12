@@ -38,6 +38,26 @@ class ScoreFnSnFlags(unittest.TestCase):
         self.assertEqual(score_fn.default_compiler(ROOT / "src/auto/game/levels.c"), "prodg")
         self.assertEqual(score_fn.default_compiler(Path("/tmp/scratch.c")), "prodg")
 
+    def test_unit_prodg_flags_reads_the_edge(self):
+        import tempfile
+        ninja = (
+            "build build/GL5E4F/src/sn/libsn/FSasync.o: prodg src/sn/libsn/FSasync.c | $\n"
+            "    tools/prodg_cc.py\n"
+            "  mw_version = ProDG/3.9.3\n"
+            "  cflags = -O2 -G 0 -I src/sn/include\n"
+            "build build/GL5E4F/src/sn/libsn/sndvd.o: prodg src/sn/libsn/sndvd.c\n"
+            "  cflags = -O2 -G 8\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "build.ninja"
+            path.write_text(ninja)
+            self.assertEqual(score_fn.unit_prodg_flags(ROOT / "src/sn/libsn/FSasync.c", path),
+                             ["-O2", "-G", "0", "-I", "src/sn/include"])
+            self.assertEqual(score_fn.unit_prodg_flags(ROOT / "src/sn/libsn/sndvd.c", path),
+                             ["-O2", "-G", "8"])
+            self.assertIsNone(score_fn.unit_prodg_flags(ROOT / "src/sn/libc/stdio/sprintf.c", path))
+            self.assertIsNone(score_fn.unit_prodg_flags(Path("/tmp/scratch.c"), path))
+
 
 if __name__ == "__main__":
     unittest.main()

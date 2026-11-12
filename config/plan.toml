@@ -130,14 +130,14 @@ note = "PR 140 (2026-11-11): HVQM4PlayerEx (MK:DA donor) and glutils promoted (9
 
 [[stage.item]]
 id = "newlib"
-units = ["auto_01_801556A8_text", "auto_01_801562B8_text"]
-note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Left: SN-written malloc/free/strtod (OSPanic stubs, no _dtoa) and the SN vfprintf rewrite (_write output, floor/fmod/log10 cvt, vfprintf dispatching to _vfiprintf_r). No upstream source: hand-match. See docs/sn_runtime.md#not-imported. PR 138 (2026-11-11) imported 22 units (+34 functions / 10,124 B); the 12 functions left are unattempted hand-match work and stay open."
+units = ["sn/libc/stdlib/sn_stdlib", "sn/libc/stdio/sn_vfprintf"]
+note = "Hand-match pass: 11 strictly verified functions / 11,908 B, no unit promoted (generated .rodata has no owned split range). fn_801563DC parked at 306/314; strtod and both formatter cores are strict-only pool-layout follow-ups. SN varargs reconstruction unlocks both formatter cores. See docs/sn_runtime.md#newlib-hand-match-results. Original fallback text extents are now named sn_stdlib and sn_vfprintf comparison units; no boundary moved."
 # at revision 3: 7 functions (pad blocks), 13,036 bytes left
 
 [[stage.item]]
 id = "sn-tail"
-functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "__kernel_cosf", "__kernel_sinf", "__ieee754_rem_pio2f", "fabsf", "__kernel_rem_pio2f", "floorf", "scalbnf", "copysignf", "pad_01_8018CAFC_text", "_exit", "pad_01_801531E8_text"]
-note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. Remaining: pad_01_801531E8_text (801531E8..80154168, 3,968 B), pad_01_8018CAFC_text (8018CAFC..8018CB9C, 160 B) and _exit (8015AFFC..8015B004, 8 B), unattempted and open. __ieee754_rem_pio2f and __kernel_rem_pio2f are parked at 200/212 (two_over_pi SDA addressing)."
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "__kernel_cosf", "__kernel_sinf", "__ieee754_rem_pio2f", "fabsf", "__kernel_rem_pio2f", "floorf", "scalbnf", "copysignf", "pad_01_8018CAFC_text", "_exit", "__va_arg", "PCwriteAsyncInit", "DoFSReadHeader", "InitReadCounts", "PCreadAsyncNext", "PCreadAsyncInit", "ReadSyncNext", "CompletePCreadAsync", "PCrwAsyncFSACK", "PCrwSyncFSACK", "CompleteAsync", "PCrwAsyncNextPh", "EXI2TCHandler", "SNInitEXI2TCHandler", "DisDvdBP", "EnaDvdBP", "ForceDvdTcIrq", "ForceDvdDeIrq", "DvdCallback", "CheckSeekOffset", "DSIExcHandler", "DSIHandler", "SNDVDEmuInit", "SNDVDEmuInitDSIHandler", "SNDVDEmuControl", "nan"]
+note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. The old pad_01_801531E8_text block (3,968 B) is split into dolphin/Runtime/__va_arg (CW, promoted, 244 B), sn/libsn/FSasync (13 functions, promoted with .data/.bss, 2,104 B), sn/libsn/sndvd (10 of 11 functions match, 956 B; NonMatching on DSIHandler) and sn/libm/common/s_nan (nan, promoted, 36 B); _exit (8 B) is promoted as sn/libgcc/_exit. pad_01_8018CAFC_text is 4 bytes of .text end padding, parked. __ieee754_rem_pio2f and __kernel_rem_pio2f are parked at 200/212 (two_over_pi SDA addressing); DSIHandler at 146/157."
 # at revision 3: 18 functions, 4,556 bytes left
 
 [[stage]]
@@ -1934,3 +1934,27 @@ reason = "Best 200/212 (sn-tail, PR 139; docs/sn_runtime.md): exact newlib 1.8.2
 [[parked]]
 function = "__kernel_rem_pio2f"
 reason = "Best 200/212 (sn-tail, PR 139; docs/sn_runtime.md): exact newlib 1.8.2 source, but ours forms two_over_pi's address with lis/addi where retail uses @sda21. Next: find the cc1 option or declaration (small-data size/section attribute) that puts two_over_pi in .sdata, then split the .sdata2 literals so the float units promote."
+
+[[parked]]
+function = "DSIHandler"
+reason = "Best 146/157 (sn-tail; docs/sn_runtime.md#libsn-pc-file-server-and-dvd-emulation): logic and switch layout match; ours swaps ctx/offset between r28 and r29, and retail threads the CheckSeekOffset != 0 branch straight to ForceDvdDeIrq where ours reloads g_nDvdError first. Next: a 180 s permuter burst on the CheckSeekOffset block and the ctx/offset declarations; its .rodata/.data/.bss splits are in place, but sndvd.o's .bss is 0x52 bytes against the 0x60 split (dtk refuses a split end at 0x802F3552; 0x802F3552..0x802F3560 is the next object's alignment), so promotion also needs verify_unit to accept trailing linker alignment."
+
+[[parked]]
+function = "pad_01_8018CAFC_text"
+reason = "Score N/A (0 executable instructions): 4 zero bytes of .text end padding after fn_8018CAAC (8018CAFC..8018CB00), not a function. Keep the retail fallback."
+
+[[parked]]
+function = "fn_801563DC"
+reason = "Best 306/314, score [1,13,0,-306,0] (newlib; docs/sn_runtime.md): double-word extraction and decimal-insertion scheduling/register allocation, plus positive-Inf high-half relocation. Next: reconstruct original union/bitfield access and special-value destination expression. No OpenSaga hit or JP PC pair; RE4 read-only evidence, not imported source."
+
+[[parked]]
+function = "strtod"
+reason = "Strict VERIFIED 204/204 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
+
+[[parked]]
+function = "_vfprintf_r"
+reason = "Strict VERIFIED 1297/1297 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
+
+[[parked]]
+function = "_vfiprintf_r"
+reason = "Strict VERIFIED 1213/1213 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."

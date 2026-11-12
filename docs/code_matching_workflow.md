@@ -569,7 +569,7 @@ references are only mapped by consistency (`--strict-symbols`). Verdicts:
 | Verdict | Meaning |
 |---------|---------|
 | `MATCH` | Code identical; every reference verified by name, same `symbols.txt` address, or data bytes. |
-| `MATCH (unverified references)` | Code identical, but some referenced symbols differ by name (for example `fseed` vs `lbl_80407B40`) and could only be mapped consistently. Lines under `references:` say why. |
+| `MATCH (unverified references)` | Code identical, but some referenced symbols differ by name (for example `fseed` vs `lbl_80407B40`) and could only be mapped consistently. Lines under `references:` say why. BSS objects have no bytes to compare, but a data symbol mine defines under a name that `symbols.txt` places inside the unit's own split ranges must be the one retail references, or the verdict is `MISMATCH` (two swapped `.bss` globals no longer pass). |
 | `MISMATCH` | Any word, relocation, length or constant differs. |
 
 Staleness: without `--object`, the compiled object must be up to date

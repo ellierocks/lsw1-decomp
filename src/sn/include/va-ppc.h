@@ -22,7 +22,9 @@ typedef struct __va_list_tag {
   char gpr;		/* index into the array of 8 GPRs stored in the
 				   register save area gpr=0 corresponds to r3,
 				   gpr=1 to r4, etc. */
-  unsigned char fpr;		/* index into the array of 8 FPRs stored in the
+  /* SN Systems: _vfprintf_r sign-extends fpr and uses the overflow
+     pointer directly, without rounding it to an 8-byte boundary.  */
+  char fpr;		/* index into the array of 8 FPRs stored in the
 				   register save area fpr=0 corresponds to f1,
 				   fpr=1 to f2, etc. */
   char *overflow_arg_area;	/* location on stack that holds the next
@@ -112,16 +114,15 @@ __extension__ (*({							   \
 									   \
   if (__va_float_p (TYPE) && sizeof (TYPE) < 16)			   \
     {									   \
-      unsigned char __fpr = (AP)->fpr;					   \
+      int __fpr = (AP)->fpr;					   \
       if (__fpr < 8)							   \
 	{								   \
 	  __ptr = __VA_FP_REGSAVE (AP, __fpr, TYPE);			   \
-	  (AP)->fpr = __fpr + 1;					   \
+	  (AP)->fpr += 1;					   \
 	}								   \
       else if (sizeof (TYPE) == 8)					   \
 	{								   \
-	  unsigned long __addr = (unsigned long) (__va_overflow (AP));	   \
-	  __ptr = (TYPE *)((__addr + 7) & -8);				   \
+	  __ptr = (TYPE *) __va_overflow (AP);				   \
 	  __va_overflow (AP) = (char *)(__ptr + 1);			   \
 	}								   \
       else								   \
@@ -151,24 +152,30 @@ __extension__ (*({							   \
   /* Only integrals remaining.  */					   \
   else									   \
     {									   \
-      /* longlong is aligned.  */					   \
-      if (sizeof (TYPE) == 8)						   \
-	{								   \
-	  unsigned char __gpr = (AP)->gpr;				   \
-	  if (__gpr < 7)						   \
-	    {								   \
-	      __gpr += __gpr & 1;					   \
-	      __ptr = __VA_GP_REGSAVE (AP, __gpr, TYPE);		   \
-	      (AP)->gpr = __gpr + 2;					   \
-	    }								   \
-	  else								   \
-	    {								   \
-	      unsigned long __addr = (unsigned long) (__va_overflow (AP)); \
-	      __ptr = (TYPE *)((__addr + 7) & -8);			   \
-	      (AP)->gpr = 8;						   \
-	      __va_overflow (AP) = (char *)(__ptr + 1);			   \
-	    }								   \
-	}								   \
+      /* SN Systems: _vfiprintf_r aligns the register index, uses a     \
+         signed gpr with an unsigned fit test, and does not realign    \
+         overflowing 64-bit arguments on the stack.  */               \
+      if (sizeof (TYPE) == 8)                                        \
+        {                                                           \
+          int __gpr = (AP)->gpr;                                     \
+          if (__gpr + (sizeof (TYPE) + 3) / 4 <= 8)                   \
+            {                                                       \
+              if ((AP)->gpr & 1) (AP)->gpr += 1;                     \
+              __ptr = __VA_GP_REGSAVE (AP, (AP)->gpr, TYPE);           \
+              (AP)->gpr += 2;                                        \
+            }                                                       \
+          else if (__gpr < 8)                                       \
+            {                                                       \
+              __ptr = (TYPE *) __va_overflow (AP);                    \
+              (AP)->gpr = 8;                                         \
+              __va_overflow (AP) = (char *)(__ptr + 1);               \
+            }                                                       \
+          else                                                      \
+            {                                                       \
+              __ptr = (TYPE *) __va_overflow (AP);                    \
+              __va_overflow (AP) = (char *)(__ptr + 1);               \
+            }                                                       \
+        }                                                           \
       else if (sizeof (TYPE) == 4)					   \
 	{								   \
 	  /* SN Systems: reconstructed from retail __svfscanf, not	   \
