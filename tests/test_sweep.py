@@ -108,6 +108,39 @@ class SweepRewriteTest(unittest.TestCase):
         asm = "\taddi r3, r1, 0x8\n/* x */\tcrclr cr1eq\n/* y */\tbl sprintf\n\tbl g\n"
         self.assertEqual(sweep.variadic_calls(asm), {"sprintf"})
 
+    def test_gx_matrix_array_prototypes_use_pointers(self):
+        # GXTransform.h: these used to become f32 and fail on ngc_mtl drafts.
+        self.assertEqual(sweep.plain_type("const f32 mtx[3][4]", True), "void *")
+        self.assertEqual(sweep.plain_type("const f32 mtx[][4]", True), "void *")
+        self.assertEqual(sweep.parse_proto("void", "const f32 mtx[3][4], u32 id"),
+                         ("void", ["void *", "u32"]))
+
+    def test_float_pointer_call_arguments_use_gprs(self):
+        # m2c guessed GXInitLightAttn's first coefficient as a float pointer.
+        # It must stay in the integer class when reordering the guessed call.
+        args = ["obj", "coefficient", "a0", "a1"]
+        kinds = ["void *", "f32 *", "f32", "f32"]
+        self.assertEqual(sweep.place_args(args, kinds,
+                         ["void *", "f32", "f32", "void *"], ""),
+                         (["obj", "a0", "a1", "coefficient"], None))
+
+    def test_float_constant_casts_follow_known_scalar_prototype(self):
+        body = ("void g(void *, f32, f32);\nextern f32 lbl_C[];\n"
+                "void f(void) {\n    g(obj, ((f32 *)(lbl_C[0])), ((f32)(lbl_C)));\n}\n")
+        old = prototypes._PROTOS
+        prototypes._PROTOS = {"g": ("void", ["void *", "f32", "f32"])}
+        try:
+            out = sweep.fix_prototypes(body, "f", "\tbl g\n", "")
+            self.assertIn("g(obj, lbl_C[0], lbl_C[0]);", out)
+            self.assertIn("g(obj, ((f32 *)(other[0])),", sweep.fix_prototypes(
+                body.replace("lbl_C[0]", "other[0]"), "f", "", ""))
+            prototypes._PROTOS = {"g": ("void", ["void *", "void *", "f32"])}
+            self.assertIn("g(obj, ((f32 *)(lbl_C[0])),", sweep.fix_prototypes(
+                body.replace("void g(void *, f32, f32);",
+                             "void g(void *, void *, f32);"), "f", "", ""))
+        finally:
+            prototypes._PROTOS = old
+
     def test_plain_type(self):
         self.assertEqual(sweep.plain_type("struct nuvec_s* dest", True), "void *")
         self.assertEqual(sweep.plain_type("const u16 n", True), "u16")
