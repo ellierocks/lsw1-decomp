@@ -10,6 +10,7 @@ the ninja `prodg` rule:
 
     CPP  (preprocess, + -M depfile)  ->  cc1 (.i -> GNU .s)
       ->  powerpc-eabi-as (.s -> .o) ->  dtk elf fixup (.o)
+      ->  REL24 for calls the assembler resolved (tools/prodg_branch_relocs.py)
 
 Preprocessor flags (-I/-D/-U/-include) are routed to CPP; codegen flags
 (-O*, -f*, -m*, -g) to cc1. Everything else is ignored so mwcc-style flags can
@@ -23,6 +24,10 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from prodg_branch_relocs import add_branch_relocs  # noqa: E402
+from strip_unused import Elf  # noqa: E402
 
 # Routing prefixes
 CPP_FLAG_PREFIXES = ("-I", "-D", "-U", "-include", "-nostdinc", "-i")
@@ -167,6 +172,10 @@ def compile_c(argv: list[str], cwd: Path | None = None) -> None:
     run([str(args.as_bin)] + args.asflags.split() + ["-o", str(out), str(asm)], "assemble", diagnostics, base_dir)
     # 5. dtk fixup (normalize ELF for the dtk link/diff flow)
     run([str(args.dtk), "elf", "fixup", str(out), str(out)], "elf fixup", diagnostics, base_dir)
+    # 6. Relocations for calls GNU as resolved to static functions, as DTK's target has
+    elf = Elf(out.read_bytes())
+    if add_branch_relocs(elf):
+        elf.write(out)
 
 
 def main() -> None:

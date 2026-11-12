@@ -134,6 +134,31 @@ class StripUnusedTests(unittest.TestCase):
         self.assertEqual(data, b"deadstatLIVESTAT")
         self.assertEqual(names, ["", "kept", "dead_static", "live_static"])
 
+    GCC_IDENT = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+    BLR = struct.pack(">I", 0x4E800020)
+
+    def test_assembler_resolved_call_across_removed_function_is_reencoded(self):
+        # findfp.c: GCC's assembler resolves `__sinit`'s `bl std` with no relocation,
+        # so removing `__sfp` between them must shorten the displacement.
+        source = [("helper", 0, 4, 2, 1, 0), ("dead", 4, 4, 2, 1), ("caller", 8, 4, 2, 1)]
+        bl_back_8 = struct.pack(">I", 0x48000001 | (-8 & 0x03FFFFFC))
+        make_elf(self.obj, source, text=self.BLR + b"DEAD" + bl_back_8, comment=self.GCC_IDENT)
+        make_elf(self.target, [("helper", 0, 4, 2, 1, 0), ("caller", 4, 4, 2, 1)], text=bytes(8))
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        bl_back_4 = struct.pack(">I", 0x48000001 | (-4 & 0x03FFFFFC))
+        self.assertEqual(elf.contents[elf.index(".text")], self.BLR + bl_back_4)
+
+    def test_assembler_resolved_call_into_removed_function_fails(self):
+        source = [("dead", 0, 4, 2, 1, 0), ("caller", 4, 4, 2, 1)]
+        bl_back_4 = struct.pack(">I", 0x48000001 | (-4 & 0x03FFFFFC))
+        make_elf(self.obj, source, text=self.BLR + bl_back_4, comment=self.GCC_IDENT)
+        make_elf(self.target, [("caller", 0, 4, 2, 1)], text=bytes(4))
+        result = self.run_strip()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("branches into a removed function", result.stderr)
+
     def test_small_constants_are_readonly_even_without_stripping(self):
         definitions = [("constant", 0, 4, 1, 2)]
         make_elf(self.obj, definitions, data=b"KEEP", data_name=".sdata2")

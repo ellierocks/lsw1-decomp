@@ -18,6 +18,7 @@ SHT_RELA = 4
 SHT_NOBITS = 8
 STT_OBJECT = 1
 STT_FUNC = 2
+SHF_EXECINSTR = 4
 STT_SECTION = 3
 STB_LOCAL = 0
 STB_GLOBAL = 1
@@ -294,6 +295,42 @@ def globalize_bss(elf, target_bind):
             elf.contents[ci] = bytearray(body[:hdr]) + bytearray().join(recs[i] for i in order)
 
 
+def relocate_resolved_branches(elf, removed, dead, shift):
+    """Re-encode `b`/`bl` displacements the assembler resolved across a removed range.
+
+    GCC's assembler resolves a call to a static function in the same section and
+    emits no relocation (findfp.c `__sinit` calling `std` past the stripped
+    `__sfp`). MWCC emits a relocation for every call, so its objects skip this.
+    """
+    relocated = {}
+    for i, sh in enumerate(elf.sections):
+        if sh[1] == SHT_RELA:
+            relocated.setdefault(sh[7], set()).update(
+                struct.unpack('>I', elf.contents[i][o:o + 4])[0] & ~3
+                for o in range(0, len(elf.contents[i]), 12))
+    for shndx in removed:
+        if not elf.sections[shndx][2] & SHF_EXECINSTR:
+            continue
+        body = elf.contents[shndx]
+        for off in range(0, len(body) - 3, 4):
+            if off in relocated.get(shndx, ()) or any(a <= off < b for a, b in dead.get(shndx, ())):
+                continue
+            word, = struct.unpack('>I', body[off:off + 4])
+            if word >> 26 != 18 or word & 2:
+                continue
+            disp = word & 0x03FFFFFC
+            disp -= (disp & 0x02000000) << 1
+            dest = off + disp
+            if not 0 <= dest < len(body):
+                continue
+            if any(a <= dest < b for a, b in dead.get(shndx, ())):
+                sys.exit(f'strip_unused: {elf.names[shndx]}+{off:#x} branches into a removed function')
+            new = shift(shndx, dest) - shift(shndx, off)
+            if new != disp:
+                word = word & 0xFC000003 | new & 0x03FFFFFC
+                body[off:off + 4] = struct.pack('>I', word)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--target', required=True, type=Path)
@@ -399,6 +436,8 @@ def main():
             if end <= off:
                 d += end - start
         return off - d
+    if not has_mwcc_comment(elf):
+        relocate_resolved_branches(elf, removed, dead, shift)
     for shndx, ranges in removed.items():
         old = elf.contents[shndx]
         new = bytearray()

@@ -129,7 +129,7 @@ note = "HVQM4PlayerEx has no source file yet."
 
 [[stage.item]]
 id = "newlib"
-units = ["auto_01_80154384_text", "auto_01_801556A8_text", "auto_01_801562B8_text", "auto_01_801594B0_text", "auto_01_8015A064_text", "auto_01_8015A39C_text", "auto_01_8015A550_text", "auto_01_8015A938_text"]
+units = ["auto_01_80154384_text", "auto_01_801556A8_text", "auto_01_801562B8_text", "auto_01_801594B0_text", "auto_01_8015A550_text", "auto_01_8015A938_text"]
 note = "newlib 1.8.2 stdio/stdlib in unnamed pad blocks (sprintf at 801541B4, vfprintf, ...): name the functions inside the blocks without moving split ends, then import from newlib with the src/sn flags. Known failures: docs/sn_runtime.md#not-imported."
 # at revision 3: 7 functions (pad blocks), 13,036 bytes left
 
