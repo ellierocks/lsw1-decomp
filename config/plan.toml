@@ -113,7 +113,7 @@ note = "All 43 functions strict-match; nugraph_2, numtx and nu_asm promoted by t
 [[stage.item]]
 id = "rtl"
 units = ["auto/rtl/rtl"]
-note = "PR 136 (2026-11-11) matched 12 functions / 2,816 B; no unit promoted. The 7 plateaus are parked with scores. fn_8006F28C and fn_8006F37C stay open under hubs, which owns them."
+note = "PR 136 (2026-11-11) matched 12 functions / 2,816 B; no unit promoted. The 7 plateaus are parked with scores. The rtl-2 run (2026-11-12) matched fn_8006F28C and fn_8006F37C (480 B), the float and int buffered readers, which also closes them for hubs."
 # at revision 1: 21 functions, 10,748 bytes left
 
 [[stage.item]]

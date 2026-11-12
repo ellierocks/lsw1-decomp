@@ -76,6 +76,70 @@ extern s32 lbl_804087CC;
 extern void* memcpy(void*, const void*, ...);
 extern s32 NuFileRead(s32, void*, s32);
 
+f32 fn_8006F28C(void)
+{
+    f32 value;
+    u8* dest = (u8*)&value;
+    s32 remaining = 4;
+    u8* bytes = dest;
+    do {
+        s32 n = 0x1000 - lbl_8040AEF8;
+        if (n > remaining) n = remaining;
+        memcpy(dest, lbl_803D4680 + lbl_8040AEF8, n);
+        dest += n;
+        remaining -= n;
+        lbl_8040AEF8 += n;
+        if (lbl_8040AEF8 == 0x1000 && lbl_804087CC != -1) {
+            switch (lbl_804087C8) {
+            case 0: break;
+            case 1: NuFileRead(lbl_804087CC, lbl_803D4680, 0x1000);
+            case 2: lbl_8040AEF8 = 0; break;
+            }
+        }
+    } while (remaining > 0);
+    if (lbl_804087D4) {
+        u8 t = *(u8*)&value;
+        *(u8*)&value = bytes[3];
+        bytes[3] = t;
+        t = bytes[1];
+        bytes[1] = bytes[2];
+        bytes[2] = t;
+    }
+    return value;
+}
+
+s32 fn_8006F37C(void)
+{
+    s32 value;
+    u8* dest = (u8*)&value;
+    s32 remaining = 4;
+    u8* bytes = dest;
+    do {
+        s32 n = 0x1000 - lbl_8040AEF8;
+        if (n > remaining) n = remaining;
+        memcpy(dest, lbl_803D4680 + lbl_8040AEF8, n);
+        dest += n;
+        remaining -= n;
+        lbl_8040AEF8 += n;
+        if (lbl_8040AEF8 == 0x1000 && lbl_804087CC != -1) {
+            switch (lbl_804087C8) {
+            case 0: break;
+            case 1: NuFileRead(lbl_804087CC, lbl_803D4680, 0x1000);
+            case 2: lbl_8040AEF8 = 0; break;
+            }
+        }
+    } while (remaining > 0);
+    if (lbl_804087D4) {
+        u8 t = *(u8*)&value;
+        *(u8*)&value = bytes[3];
+        bytes[3] = t;
+        t = bytes[1];
+        bytes[1] = bytes[2];
+        bytes[2] = t;
+    }
+    return value;
+}
+
 s16 fn_8006F55C(void)
 {
     s16 value;
