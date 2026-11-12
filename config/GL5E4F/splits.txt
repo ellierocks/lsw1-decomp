@@ -421,6 +421,22 @@ sn/libc/locale/locale.c:
 	.rodata     start:0x801B0430 end:0x801B0488
 	.sdata      start:0x80409FBC end:0x80409FC0
 
+sn/libm/math/s_floor.c:
+	.text       start:0x801594B0 end:0x80159624
+	.rodata     start:0x801B0488 end:0x801B0498
+
+sn/libm/fmod.c:
+	.text       start:0x80159624 end:0x80159980
+	.rodata     start:0x801B0498 end:0x801B04A8
+
+sn/libm/log.c:
+	.text       start:0x80159980 end:0x80159C7C
+	.rodata     start:0x801B04A8 end:0x801B0530
+
+sn/libm/log10.c:
+	.text       start:0x80159C7C end:0x80159DC4
+	.rodata     start:0x801B0530 end:0x801B0568
+
 sn/libc/stdio/fread.c:
 	.text       start:0x80159DC4 end:0x80159ED0
 
