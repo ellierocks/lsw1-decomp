@@ -29,6 +29,8 @@ _PROTO_LOCK = threading.Lock()
 
 def plain_type(decl: str, named: bool) -> str | None:
     """DECL's type with any parameter name dropped, pointers as `void *`; None if not builtin."""
+    if "[" in decl:
+        return "void *"
     words = decl.replace("*", " * ").replace("const ", " ").split()
     if named and len(words) > 1 and words[-1] not in BUILTIN and words[-1] != "*":
         words = words[:-1]
@@ -98,6 +100,11 @@ def raw_protos(text: str) -> dict[str, list[str]]:
 FLOATS = ("f32", "f64", "float", "double")
 
 
+def is_float_param(param: str) -> bool:
+    """Only scalar floating parameters use FPRs; float pointers use GPRs."""
+    return "*" not in param and "[" not in param and param.split()[0] in FLOATS
+
+
 def place_args(args: list[str], kinds: list[str] | None, params: list[str],
                before: str) -> tuple[list[str], tuple[int, int] | None] | None:
     """ARGS (one m2c call whose parameter kinds are KINDS) rearranged for PARAMS by register
@@ -111,11 +118,11 @@ def place_args(args: list[str], kinds: list[str] | None, params: list[str],
     if not kinds or len(kinds) < len(args) or "..." in kinds:
         return None
     kinds = kinds[:len(args)]
-    ints = [a for a, k in zip(args, kinds) if k.split()[0] not in FLOATS]
-    flts = [a for a, k in zip(args, kinds) if k.split()[0] in FLOATS]
+    ints = [a for a, k in zip(args, kinds) if not is_float_param(k)]
+    flts = [a for a, k in zip(args, kinds) if is_float_param(k)]
     out, gpr, stack, end = [], 0, [], before.rfind("\n") + 1
     for p in params:
-        if p.split()[0] in FLOATS:
+        if is_float_param(p):
             out.append(flts.pop(0) if flts else "0")
         elif gpr < 8:
             gpr += 1
@@ -219,8 +226,17 @@ def fix_prototypes(body: str, name: str, asm: str, unit_text: str, mac: bool = F
                 fixed = args[:n] if not var else args
                 fixed = fixed + ["0"] * (n - len(fixed))
             # m2c passes a float constant's array by name where the value is meant.
-            fixed = [f"{a}[0]" if a in arrays and i < n and params[i] in ("f32", "f64") else a
-                     for i, a in enumerate(fixed)]
+            for i, a in enumerate(fixed):
+                if i >= n or params[i] not in ("f32", "f64"):
+                    continue
+                if a in arrays:
+                    fixed[i] = f"{a}[0]"
+                    continue
+                # Guessed float-pointer parameters also leave casts around known
+                # floating constants. Only unwrap these two literal-array forms.
+                cast = re.fullmatch(r"\(\(f(?:32|64)\s*\*?\)\((\w+)(\[0\])?\)\)", a)
+                if cast and cast[1] in arrays:
+                    fixed[i] = f"{cast[1]}[0]"
             if live:
                 fixed = passthrough(fixed, params, live, extra)
             if fixed != args:
@@ -247,10 +263,10 @@ def expand_by_register(args: list[str], kinds: list[str] | None, params: list[st
     if kinds is None or len(kinds) < len(args) or "..." in kinds:
         return None
     kinds = kinds[:len(args)]
-    ints = [a for a, k in zip(args, kinds) if k.split()[0] not in FLOATS]
-    flts = [a for a, k in zip(args, kinds) if k.split()[0] in FLOATS]
-    n_r = min(8, sum(p.split()[0] not in FLOATS for p in params))
-    n_f = min(8, sum(p.split()[0] in FLOATS for p in params))
+    ints = [a for a, k in zip(args, kinds) if not is_float_param(k)]
+    flts = [a for a, k in zip(args, kinds) if is_float_param(k)]
+    n_r = min(8, sum(not is_float_param(p) for p in params))
+    n_f = min(8, sum(is_float_param(p) for p in params))
     out = {}
     for cls, n, have, regs, prefix in (("r", n_r, ints, live[0], "arg"), ("f", n_f, flts, live[1], "farg")):
         gaps = [k for k in range(n) if k in regs]
@@ -265,8 +281,8 @@ def expand_by_register(args: list[str], kinds: list[str] | None, params: list[st
         out["r"] = ints
     if out["f"] is None:
         out["f"] = flts
-    cls_params = {"r": [p for p in params if p.split()[0] not in FLOATS][:8],
-                  "f": [p for p in params if p.split()[0] in FLOATS][:8]}
+    cls_params = {"r": [p for p in params if not is_float_param(p)][:8],
+                  "f": [p for p in params if is_float_param(p)][:8]}
     for cls, prefix in (("r", "arg"), ("f", "farg")):
         for k, a in enumerate(out[cls]):
             if a == f"{prefix}{k}" and k < len(cls_params[cls]):
@@ -287,7 +303,7 @@ def passthrough(fixed: list[str], params: list[str], live: tuple[set[int], set[i
     for i, p in enumerate(params):
         if i >= len(out):
             break
-        cls = "f" if p.split()[0] in FLOATS else "r"
+        cls = "f" if is_float_param(p) else "r"
         k = idx[cls]
         idx[cls] += 1
         if out[i] != "0" or k >= 8 or k not in live[0 if cls == "r" else 1]:
@@ -345,7 +361,7 @@ def float_positions(body: str, limit: int = 40) -> list[str]:
         params = [p.strip() for p in d[3].split(",") if p.strip() not in ("", "void")]
         if end != ";" or fn in NOT_FUNCS or "..." in params:
             continue
-        isf = [p.split()[0] in FLOATS for p in params]
+        isf = [is_float_param(p) for p in params]
         nf = sum(isf)
         if not nf or nf == len(params) or isf != [False] * (len(params) - nf) + [True] * nf:
             continue
