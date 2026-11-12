@@ -130,8 +130,8 @@ note = "PR 140 (2026-11-11): HVQM4PlayerEx (MK:DA donor) and glutils promoted (9
 
 [[stage.item]]
 id = "newlib"
-units = ["auto_01_801556A8_text", "auto_01_801562B8_text"]
-note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Left: SN-written malloc/free/strtod (OSPanic stubs, no _dtoa) and the SN vfprintf rewrite (_write output, floor/fmod/log10 cvt, vfprintf dispatching to _vfiprintf_r). No upstream source: hand-match. See docs/sn_runtime.md#not-imported. PR 138 (2026-11-11) imported 22 units (+34 functions / 10,124 B); the 12 functions left are unattempted hand-match work and stay open."
+units = ["sn/libc/stdlib/sn_stdlib", "sn/libc/stdio/sn_vfprintf"]
+note = "Hand-match pass: 11 strictly verified functions / 11,908 B, no unit promoted (generated .rodata has no owned split range). fn_801563DC parked at 306/314; strtod and both formatter cores are strict-only pool-layout follow-ups. SN varargs reconstruction unlocks both formatter cores. See docs/sn_runtime.md#newlib-hand-match-results. Original fallback text extents are now named sn_stdlib and sn_vfprintf comparison units; no boundary moved."
 # at revision 3: 7 functions (pad blocks), 13,036 bytes left
 
 [[stage.item]]
@@ -1942,3 +1942,19 @@ reason = "Best 146/157 (sn-tail; docs/sn_runtime.md#libsn-pc-file-server-and-dvd
 [[parked]]
 function = "pad_01_8018CAFC_text"
 reason = "Score N/A (0 executable instructions): 4 zero bytes of .text end padding after fn_8018CAAC (8018CAFC..8018CB00), not a function. Keep the retail fallback."
+
+[[parked]]
+function = "fn_801563DC"
+reason = "Best 306/314, score [1,13,0,-306,0] (newlib; docs/sn_runtime.md): double-word extraction and decimal-insertion scheduling/register allocation, plus positive-Inf high-half relocation. Next: reconstruct original union/bitfield access and special-value destination expression. No OpenSaga hit or JP PC pair; RE4 read-only evidence, not imported source."
+
+[[parked]]
+function = "strtod"
+reason = "Strict VERIFIED 204/204 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
+
+[[parked]]
+function = "_vfprintf_r"
+reason = "Strict VERIFIED 1297/1297 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
+
+[[parked]]
+function = "_vfiprintf_r"
+reason = "Strict VERIFIED 1213/1213 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
