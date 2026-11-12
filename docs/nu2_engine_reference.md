@@ -237,6 +237,33 @@ struct NuSndLoopInfo_s { nuvec_s* pos; s16 playing, channel, timer, pad, vol_l, 
 ```
 
 
+## GameCube video and frame layer
+
+The comparison unit [`ngc_video.c`](../src/auto/nu3d/ngc/ngc_video.c) keeps local
+SDK layout views confirmed by strict ProDG matches. The render-mode object at
+`lbl_803404D4` has size `0x3C`: framebuffer width/height at `+4/+6`, XFB height
+at `+8`, field rendering/AA at `+0x18/+0x19`, sample pattern at `+0x1A` and
+vertical filter at `+0x32`. `fn_800350B8` copies the full object or calls
+`GXAdjustForOverscan`, aligns the framebuffer to 32 bytes, then configures
+VI and GX copy/viewport state. Its `lbl_80407F8C+2` halfword access aliases
+the low half of the height word; treating those labels as unrelated objects
+changes load/store scheduling.
+
+The PAD status view has stride 12, with button bits at `+0`, four signed stick
+bytes at `+2..+5`, triggers/analog buttons at `+6..+9` and signed error at
+`+0xA`. The four-byte GX color is passed by value. The display-list cursor
+uses byte, halfword, word and float pointer views; vertex emitters advance by
+those actual widths. Quad writers use volatile FIFO stores at `0xCC008000`.
+The matched matrix adapter reserves `0x30` unused local bytes; two matched
+quad routines reserve `0x40`, retained as matrix arrays to reproduce their frames.
+
+CrashWOC `9ab3fa7` (`system/gs`, `system/gc/DEMOInit.c` and DWARF type dump)
+corroborates SDK initialization/copy ordering. Its double-buffer flip and engine
+record layouts do not establish LSW1 behavior. OpenSaga `7bb2402`'s
+`nu2api/nucore/nuvideo.h` supplies later video names but no GC implementation;
+its swap-mode enum is not transferred. These unnamed targets have no direct
+OpenSaga name hit; the reviewed task packs have no Japanese PC pair.
+
 ## Library Boundaries
 
 A first-pass map of likely game, runtime, and SDK regions for `GL5E4F`. The analysis is based on lightweight checks: `strings`, generated symbols, and section layout. Treat ranges as working hypotheses until validated against target code and split/link evidence.

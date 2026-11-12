@@ -165,6 +165,7 @@ units = ["auto/nu3d/nutexanm", "auto/nu3d/ngc/nutex"]
 [[stage.item]]
 id = "ngc_video"
 units = ["auto/nu3d/ngc/ngc_video"]
+note = "Strict VERIFIED 29 functions / 8,276 B (15 / 3,616 B in objdiff; 14 / 4,660 B use equivalent literal-pool relocations). Unit stays NonMatching; four functions / 6,408 B parked: controller state machine, debug FIFO renderer, bitmap selection/copy and display-list begin. SDK mode/PAD/color and cursor views confirmed against GC; donor limits in docs/nu2_engine_reference.md#gamecube-video-and-frame-layer."
 # at revision 1: 33 functions, 14,684 bytes left
 
 [[stage.item]]
@@ -2055,3 +2056,75 @@ reason = "Best 79/157 (ngc_mtl); misleading name: GC submits a GX quad; generate
 [[parked]]
 function = "fn_80032768"
 reason = "Strict VERIFIED 121/121, 484 B (ngc_mtl); objdiff remains below 100% because generated .rodata literals use pool relocations. Next: complete the unit and reproduce its owned literal range; keep NonMatching until section, relocation and linked-range checks pass."
+
+[[parked]]
+function = "fn_800340E0"
+reason = "Best 276/623 (ngc_video); repaired duplicate m2c case compiles, but nested controller branches retain guessed saved-register identities, integer views of float state and a GPR boolean instead of CR4. Next: reconstruct the controller state machine using PADStatus and float arrays, then replace the reused equality temporary with the original condition; keep gameplay names unassigned."
+
+[[parked]]
+function = "fn_80035C10"
+reason = "Best 189/630 (ngc_video); all 224 FIFO writes have assembly-confirmed widths and volatile scratch stores, but repeated color values, register lifetimes and the 0x80-byte frame still differ. Next: reconstruct the quad helper and typed color/matrix locals, retaining the exact FIFO write order and signed -0x8000 addressing."
+
+[[parked]]
+function = "fn_800369C0"
+reason = "Best 144/228 (ngc_video); repaired byte/halfword bitmap accesses compile, but language/image switches and the framebuffer copy loops retain raw pointer views and five extra instructions. Next: type the bitmap header and payload against GC accesses, then rewrite the switch/copy loops without speculative gameplay names."
+
+[[parked]]
+function = "fn_800374C8"
+reason = "Best 77/121 (ngc_video); unsigned primitive switch and byte dirty-bit repair compile, but allocator/cursor aliasing, owner offsets and an inlined helper argument move differ. Next: recover the owner/dirty-table and allocation-cursor views, then reconstruct the inline helper that moves arg2 into r4."
+
+[[parked]]
+function = "fn_80034C5C"
+reason = "Strict VERIFIED 42/42, 168 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80034D04"
+reason = "Strict VERIFIED 42/42, 168 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80034DAC"
+reason = "Strict VERIFIED 42/42, 168 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80034E54"
+reason = "Strict VERIFIED 42/42, 168 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80034EFC"
+reason = "Strict VERIFIED 27/27, 108 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80034F68"
+reason = "Strict VERIFIED 27/27, 108 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_800350B8"
+reason = "Strict VERIFIED 238/238, 952 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_800356FC"
+reason = "Strict VERIFIED 202/202, 808 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80035A24"
+reason = "Strict VERIFIED 123/123, 492 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_800365E8"
+reason = "Strict VERIFIED 156/156, 624 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_80036858"
+reason = "Strict VERIFIED 90/90, 360 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_800376AC"
+reason = "Strict VERIFIED 48/48, 192 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_800378F4"
+reason = "Strict VERIFIED 43/43, 172 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
+
+[[parked]]
+function = "fn_800379A0"
+reason = "Strict VERIFIED 43/43, 172 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
