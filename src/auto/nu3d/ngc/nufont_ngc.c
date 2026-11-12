@@ -34,7 +34,10 @@ void fn_80027DC8(void)
     NUCAMERA cam;
     NUMTX* p = NuCameraGetProjectionMtx();
     NUMTX* d = &lbl_8021F9A4;
-    d->m[0][0] = -p->m[0][0];
+    s32 row;
+
+    row = 0;
+    d->m[row][0] = -p->m[0][0];
     d->m[1][0] = p->m[0][1];
     d->m[2][0] = p->m[0][2];
     d->m[0][1] = -p->m[1][0];
@@ -43,10 +46,11 @@ void fn_80027DC8(void)
     d->m[0][2] = -p->m[2][0];
     d->m[1][2] = p->m[2][1];
     d->m[2][2] = p->m[2][2];
-    d->m[2][3] = lbl_80191628[0];
-    d->m[1][3] = lbl_80191628[0];
-    d->m[0][3] = lbl_80191628[0];
-    d->m[3][3] = lbl_8019162C[0];
+    d->m[2][3] = 0.0f;
+    d->m[1][3] = 0.0f;
+    d->m[0][3] = 0.0f;
+    d->m[3][3] = 1.0f;
+
     NuCameraGet(&cam);
     lbl_8040AD74 = cam.mtx.m[2][0];
     lbl_8040AD70 = cam.mtx.m[2][1];
