@@ -136,8 +136,8 @@ note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Le
 
 [[stage.item]]
 id = "sn-tail"
-functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "__kernel_cosf", "__kernel_sinf", "__ieee754_rem_pio2f", "fabsf", "__kernel_rem_pio2f", "floorf", "scalbnf", "copysignf", "pad_01_8018CAFC_text", "_exit", "pad_01_801531E8_text"]
-note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. Remaining: pad_01_801531E8_text (801531E8..80154168, 3,968 B), pad_01_8018CAFC_text (8018CAFC..8018CB9C, 160 B) and _exit (8015AFFC..8015B004, 8 B), unattempted and open. __ieee754_rem_pio2f and __kernel_rem_pio2f are parked at 200/212 (two_over_pi SDA addressing)."
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "__kernel_cosf", "__kernel_sinf", "__ieee754_rem_pio2f", "fabsf", "__kernel_rem_pio2f", "floorf", "scalbnf", "copysignf", "pad_01_8018CAFC_text", "_exit", "__va_arg", "PCwriteAsyncInit", "DoFSReadHeader", "InitReadCounts", "PCreadAsyncNext", "PCreadAsyncInit", "ReadSyncNext", "CompletePCreadAsync", "PCrwAsyncFSACK", "PCrwSyncFSACK", "CompleteAsync", "PCrwAsyncNextPh", "EXI2TCHandler", "SNInitEXI2TCHandler", "DisDvdBP", "EnaDvdBP", "ForceDvdTcIrq", "ForceDvdDeIrq", "DvdCallback", "CheckSeekOffset", "DSIExcHandler", "DSIHandler", "SNDVDEmuInit", "SNDVDEmuInitDSIHandler", "SNDVDEmuControl", "nan"]
+note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. The old pad_01_801531E8_text block (3,968 B) is split into dolphin/Runtime/__va_arg (CW, promoted, 244 B), sn/libsn/FSasync (13 functions, promoted with .data/.bss, 2,104 B), sn/libsn/sndvd (10 of 11 functions match, 956 B; NonMatching on DSIHandler) and sn/libm/common/s_nan (nan, promoted, 36 B); _exit (8 B) is promoted as sn/libgcc/_exit. pad_01_8018CAFC_text is 4 bytes of .text end padding, parked. __ieee754_rem_pio2f and __kernel_rem_pio2f are parked at 200/212 (two_over_pi SDA addressing); DSIHandler at 146/157."
 # at revision 3: 18 functions, 4,556 bytes left
 
 [[stage]]
@@ -1934,3 +1934,11 @@ reason = "Best 200/212 (sn-tail, PR 139; docs/sn_runtime.md): exact newlib 1.8.2
 [[parked]]
 function = "__kernel_rem_pio2f"
 reason = "Best 200/212 (sn-tail, PR 139; docs/sn_runtime.md): exact newlib 1.8.2 source, but ours forms two_over_pi's address with lis/addi where retail uses @sda21. Next: find the cc1 option or declaration (small-data size/section attribute) that puts two_over_pi in .sdata, then split the .sdata2 literals so the float units promote."
+
+[[parked]]
+function = "DSIHandler"
+reason = "Best 146/157 (sn-tail; docs/sn_runtime.md#libsn-pc-file-server-and-dvd-emulation): logic and switch layout match; ours swaps ctx/offset between r28 and r29, and retail threads the CheckSeekOffset != 0 branch straight to ForceDvdDeIrq where ours reloads g_nDvdError first. Next: a 180 s permuter burst on the CheckSeekOffset block and the ctx/offset declarations; its .rodata/.data/.bss splits are in place, but sndvd.o's .bss is 0x52 bytes against the 0x60 split (dtk refuses a split end at 0x802F3552; 0x802F3552..0x802F3560 is the next object's alignment), so promotion also needs verify_unit to accept trailing linker alignment."
+
+[[parked]]
+function = "pad_01_8018CAFC_text"
+reason = "Score N/A (0 executable instructions): 4 zero bytes of .text end padding after fn_8018CAAC (8018CAFC..8018CB00), not a function. Keep the retail fallback."

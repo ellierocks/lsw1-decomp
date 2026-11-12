@@ -92,9 +92,9 @@ extern void lbl_80152984(void);
 extern void lbl_80152B40(void);
 extern void lbl_80152CD8(void);
 extern void lbl_80152CDC(void);
-extern void lbl_801532DC(void);
-extern void lbl_80153458(void);
-extern void lbl_801538A0(void);
+extern void PCwriteAsyncInit(void);
+extern void PCreadAsyncInit(void);
+extern void CompleteAsync(void);
 extern void lbl_802F3368(void);
 
 asm void fn_80151724(void)
@@ -275,7 +275,7 @@ L_8015196C:
     stw r4, 0x6c0(r31)
     b L_80151AC4
 L_8015199C:
-    bl lbl_801538A0
+    bl CompleteAsync
     lwz r8, 0x580(r31)
     cmpwi r8, 0x7
     bne L_80151A6C
@@ -1182,13 +1182,13 @@ asm void fn_801525A8(void)
     cmpwi r30, 0x8
     bne L_801525F0
 L_801525E8:
-    bl lbl_80153458
+    bl PCreadAsyncInit
     b L_801525FC
 L_801525F0:
-    bl lbl_801532DC
+    bl PCwriteAsyncInit
     b L_801525FC
 L_801525F8:
-    bl lbl_801538A0
+    bl CompleteAsync
 L_801525FC:
     stw r3, 0x18(r31)
     lwz r3, 0x370(r31)

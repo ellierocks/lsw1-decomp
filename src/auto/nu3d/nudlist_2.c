@@ -29,7 +29,7 @@ void fn_8000EFE0(struct numtx_s*, struct numtx_s*, struct numtx_s*);
 s32 fn_8000F65C(s32, s32, s32);
 extern s32 lbl_80407B84;
 
-extern f64 lbl_80154144();
+extern f64 nan();
 
 void NuVec4MtxTransformVU0x3(struct nuvec4_s* dst, struct nuvec4_s* src, struct numtx_s* m)
 {
@@ -155,7 +155,7 @@ f32 NuFsqrt(f32 x) {
     if (x == 0.0f) {
         return 0.0f;
     }
-    return lbl_80154144();
+    return nan();
 }
 
 static const u32 unk_8018F144[2] __attribute__((section(".rodata"))) = { 0, 0x3F800000 };

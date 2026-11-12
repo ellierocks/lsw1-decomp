@@ -24,7 +24,10 @@ the Free Software Foundation, 59 Temple Place - Suite 330,
    Only the routines that are linked into the game are kept: the 64-bit
    shifts, divide/modulo (with __udivmoddi4 and __clz_tab), the 64-bit
    compares and the L__main constructor runner (with the upstream block that
-   restores the normal C types before it). The SN revision-history banner,
+   restores the normal C types before it) and SN's L_exit `_exit`, a
+   `.long 0` trap (the block's `exit` and atexit code are not linked; newlib
+   provides `exit`, and SN's `exit` does not compile against the block's own
+   `void _exit (void)`). The SN revision-history banner,
    the host/target configuration headers and every other libgcc2 routine are
    removed; "libgcc_config.h" supplies the PowerPC EABI values. Each routine
    is built as its own object by defining one L_* macro (see
@@ -686,3 +689,16 @@ SYMBOL__MAIN ()
 #endif /* no HAS_INIT_SECTION or INVOKE__main */
 
 #endif /* L__main */
+
+#ifdef L_exit
+
+#include "gbl-ctors.h"
+
+void _exit () __attribute__ ((noreturn));
+
+void _exit(void) 
+{
+	asm (".long 0");
+}
+
+#endif /* L_exit */

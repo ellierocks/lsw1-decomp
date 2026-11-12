@@ -55,11 +55,11 @@ extern void lbl_80151DE4(void);
 extern void lbl_80151F0C(void);
 extern void lbl_80152610(void);
 extern void lbl_80152700(void);
-extern void lbl_801538F4(void);
-extern void lbl_80153AA4(void);
-extern void lbl_80153FEC(void);
-extern void lbl_8015400C(void);
-extern void lbl_80154088(void);
+extern void PCrwAsyncNextPh(void);
+extern void SNInitEXI2TCHandler(void);
+extern void SNDVDEmuInit(void);
+extern void SNDVDEmuInitDSIHandler(void);
+extern void SNDVDEmuControl(void);
 extern unsigned char lbl_801E19C0[];
 extern unsigned char lbl_801E19C8[];
 extern unsigned char lbl_801E19CC[];
@@ -76,7 +76,7 @@ extern unsigned char lbl_801E1AA8[];
 extern unsigned char lbl_801E1ABC[];
 extern unsigned char lbl_801E1AD5[];
 extern unsigned char lbl_801E1B32[];
-extern unsigned char lbl_801E1C70[];
+extern int g_nRWasyncPhase;
 extern unsigned char lbl_802EAC60[];
 extern unsigned char lbl_802F3480[];
 
@@ -140,12 +140,12 @@ asm void fn_80150428(void)
     lwz r5, 0x0(r6)
     cmpwi r5, 0x0
     bne L_80150504
-    lis r3, lbl_801E1C70@h
-    ori r3, r3, lbl_801E1C70@l
+    lis r3, g_nRWasyncPhase@h
+    ori r3, r3, g_nRWasyncPhase@l
     lwz r3, 0x0(r3)
     cmpwi r3, 0x0
     beq L_8015046C
-    bl lbl_801538F4
+    bl PCrwAsyncNextPh
     b L_80150504
 L_8015046C:
     lis r31, lbl_802EAC60@h
@@ -217,8 +217,8 @@ asm void EnableMetroTRKInterrupts(void)
     lwz r3, 0x6cc(r31)
     cmpwi r3, 0x4
     bne L_80150568
-    bl lbl_80153AA4
-    bl lbl_8015400C
+    bl SNInitEXI2TCHandler
+    bl SNDVDEmuInitDSIHandler
 L_80150568:
     lwz r31, 0x8(r1)
     addi r1, r1, 0x10
@@ -272,7 +272,7 @@ asm void fn_8015057C(void)
     lwz r3, 0x0(r3)
     subi r3, r3, 0x4
     lwz r3, 0x0(r3)
-    bl lbl_80153FEC
+    bl SNDVDEmuInit
     b L_80150640
 L_8015062C:
     li r3, 0x1
@@ -952,7 +952,7 @@ asm void fn_80150EAC(void)
     nofralloc
     mflr r30
     lbz r3, 0x701(r31)
-    bl lbl_80154088
+    bl SNDVDEmuControl
     sth r3, 0x708(r31)
     clrrwi. r3, r3, 31
     beq L_80150ED4
