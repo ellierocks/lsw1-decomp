@@ -137,6 +137,11 @@ def ensure_asm(name: str, out_root: Path, make: bool = True, *, asm_only: bool =
         else:
             create(name, Path(out_root))
         if not asm.is_file():
+            # Ghidra can create the directory before a task pack exists. The
+            # pack generator correctly refuses to overwrite it; recover only
+            # the missing assembly, preserving all research and notes.
+            if task.is_dir() and not asm_only:
+                return ensure_asm(name, out_root, asm_only=True)
             return asm
     if not stamp_current(task):
         refresh(name, task)

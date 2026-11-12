@@ -78,6 +78,21 @@ class PackAsmTest(unittest.TestCase):
         self.assertTrue(pack_asm.stamp_current(asm.parent))
         self.assertFalse(missing.parent.exists())
 
+    def test_ghidra_directory_without_asm_is_completed(self):
+        task = self.out / "Foo"
+        task.mkdir(parents=True)
+        (task / "ghidra.c").write_text("reference output\n")
+        (task / "status.md").write_text("research notes\n")
+        # ls1_task_pack refuses a populated directory without writing asm.s.
+        with mock.patch.object(pack_asm, "create") as create:
+            asm, err = self.ensure()
+        create.assert_called_once()
+        self.assertEqual(asm.read_text(), OLD)
+        self.assertTrue(pack_asm.stamp_current(task))
+        self.assertEqual((task / "ghidra.c").read_text(), "reference output\n")
+        self.assertEqual((task / "status.md").read_text(), "research notes\n")
+        self.assertEqual(err, "")
+
     def test_unchanged_pack_is_not_reextracted(self):
         task = self.pack()
         self.ensure()  # first sight of a stampless pack: validated once
