@@ -11,6 +11,7 @@ that reproduce retail and what is still assembly fallback.
 |---|---|---|
 | `src/sn/libc/**/*.c`, `src/sn/libc/**/*.h` | newlib 1.8.2 (`newlib/libc/{ctype,errno,locale,reent,stdio,stdlib,string}`); upstream text except the edits marked `SN Systems:` ([SN edits](#sn-edits)) | BSD-style per file; see `src/sn/COPYING.NEWLIB` |
 | `src/sn/libm/math/` | newlib 1.8.2 fdlibm: `libm/math/{s_floor,e_fmod,e_log,e_log10}.c` and `libm/common/fdlibm.h`, unmodified | SunPro's permissive notice, kept in each file |
+| `src/sn/libm/common/`, `src/sn/libm/math/{sf,kf,ef}_*.c` | newlib 1.8.2 fdlibm float kernels (`libm/{common,math}`), each `.c` with a one-line provenance comment; `libm/common/fdlibm.h` adds a `#ifdef __PRODG__` block that declares the sizes of `two_over_pi[198]`, `npio2_hw[32]`, `init_jk[3]` and `PIo2[11]` | SunPro's permissive notice, kept in each file |
 | `src/sn/libm/{fmod,log,log10}.c` | written for this project: the `__ieee754_*` renames, then `#include "math/e_*.c"` | project |
 | `src/sn/include/` | newlib 1.8.2 `newlib/libc/include`, plus gcc `ginclude` headers (`stddef.h`, `stdarg.h`, `va-ppc.h`, `stdbool.h`, `iso646.h`, `limits.h`). `sys/reent.h` and `va-ppc.h` carry `SN Systems:` edits | newlib: as above; gcc headers: GPL-2+ with the runtime exception |
 | `src/sn/libgcc/libgcc2.c` | SN Systems' GPL source release of GCC 2.95 (`NGC_GNU_SRC/NGC/gcc/libgcc2.c`), trimmed to the matched `L_*` sections, with the upstream block that restores the normal C types before `L__main` | GPL-2+ with the libgcc exception |
@@ -18,6 +19,7 @@ that reproduce retail and what is still assembly fallback.
 | `src/sn/libgcc/longlong.h` | same release, unmodified | GPL-2+ **without** the exception; macro expansions land in the objects |
 | `src/sn/libgcc/libgcc_config.h` | written for this project: `BITS_PER_UNIT`, `WORDS_BIG_ENDIAN`, `LONG_DOUBLE_TYPE_SIZE` and the `LIBGCC2_*` equivalents that the GCC build normally generates | project |
 | `src/sn/libgcc/_*.c`, `src/sn/libgcc/__main.c` | one-line wrappers: `#define L_<name>` then `#include "libgcc2.c"` | project |
+| `src/sn/libsn/dummy.c` | reconstructed ProDG C console/syscall stubs (`0x8018AB8C..0x8018ACC8`) | project |
 
 The newlib text is the `newlib-1.8.2.tar.gz` release from
 `sourceware.org/pub/newlib` (sha256
@@ -31,6 +33,11 @@ SN's GPL release. Nothing here ships retail bytes.
 
 Match edits are limited to what the compiler needs and what retail code proves:
 the `#define` wrappers, the trimmed `libgcc2.c` and the `SN Systems:` edits below.
+The float libm kernels also need the `#ifdef __PRODG__` size declarations in
+`src/sn/libm/common/fdlibm.h`: `cc1.exe` must know the sizes of `two_over_pi`,
+`npio2_hw`, `init_jk` and `PIo2` before `make_decl_rtl` runs on their initializers,
+which places them in `.sdata2` as retail has them. `ef_rem_pio2` and
+`kf_rem_pio2` still address `two_over_pi` with `lis`/`addi`, not retail's `@sda21`.
 Every other newlib and fdlibm file is byte-for-byte upstream. `.gitattributes` marks the upstream trees `-whitespace` so `git diff --check` leaves their trailing blanks alone.
 
 ## SN edits
@@ -62,8 +69,8 @@ and `__ieee754_log10` to the plain names. `floor` is `s_floor.c` unchanged.
 
 ## Flags
 
-`configure.py` defines `cflags_sn_libc`, `cflags_sn_libgcc` and
-`cflags_sn_libgcc_main`. Retail uses `-O2 -mfast-cast -fno-common -DNDEBUG=1`
+`configure.py` defines `cflags_sn_libc`, `cflags_sn_libgcc`,
+`cflags_sn_libgcc_main`, `cflags_sn_libsn` and `cflags_sn_libm`. Retail uses `-O2 -mfast-cast -fno-common -DNDEBUG=1`
 with a per-library small-data threshold. These details matter:
 
 - The production `prodg` ninja rule does not add the target defines that the
@@ -80,6 +87,15 @@ with a per-library small-data threshold. These details matter:
   `initialized` flag with `lis/lwz` from `.bss`, not r13-relative `.sbss`, so it
   was built below `-G 4`; `cflags_sn_libgcc_main` uses `-G 0`, which emits it
   with `.lcomm` as retail has it.
+- `libsn/dummy.c` uses `cflags_sn_libsn` (`cflags_sn_libc` with `-G 0`): the
+  static UART init flag at `.data:0x801FD048` is addressed with `@ha`/`@l`, not
+  small data.
+- The fdlibm float kernels (`sf_*`, `kf_*`, `ef_*`) use `cflags_sn_libm`: `-O2
+  -msafe-sda -G 1024 -fno-builtin -mstrict-align -D__PRODG__`, without
+  `-mfast-cast`, so the `int`-to-`float` conversions in `ef_rem_pio2` and
+  `kf_rem_pio2` use the IEEE `xoris`/`stw`/`lfd`/`fsubs` sequence and pool their
+  literals in `.sdata`. The double-precision objects (`floor`, `fmod`, `log`,
+  `log10`) keep `cflags_sn_libc`.
 
 `SnObject(path, cflags, strip=False)` wraps each entry. `strip=True` runs
 `tools/strip_unused.py` as a post-build step: it keeps only the functions the
@@ -107,7 +123,7 @@ instruction are left alone.
 ## Imported units (55 objects, all promoted)
 
 Strict `verify_fn.py --strict-symbols` and `verify_unit.py --functions` pass for
-every function; the whole image stays at 0 differing bytes.
+every promoted unit; the whole image stays at 0 differing bytes.
 
 | Group | Units |
 |---|---|
@@ -117,7 +133,8 @@ every function; the whole image stays at 0 differing bytes.
 | string | `memchr`, `memcmp`, `memcpy`, `memmove`, `memset`, `strcasecmp`, `strcat`, `strcmp`, `strcpy`, `strlen`, `strncmp`, `strncpy`, `strstr` |
 | reent | `_close_r`, `_fstat_r`, `_lseek_r`, `_read_r`, `_write_r` |
 | stdio | `fflush`, `findfp` (`std`, `__sinit`, `_cleanup_r`), `fread` (`fread_copy`, `fread`), `fwalk`, `makebuf`, `refill` (`lflush`, `__srefill`), `sprintf`, `sscanf` (`eofread`, `sscanf`), `stdio` (`__sread`, `__swrite`, `__sseek`, `__sclose`), `ungetc`, `vfscanf` (`__svfscanf`, `__sccl`), `vprintf`, `vsprintf` |
-| libm | `floor`, `fmod`, `log`, `log10` |
+| libm | `floor`, `fmod`, `log`, `log10`; float: `sf_fabs` (`fabsf`), `sf_copysign` (`copysignf`). `NonMatching`: `sf_cos` (`cosf`), `kf_cos` (`__kernel_cosf`), `kf_sin` (`__kernel_sinf`), `sf_floor` (`floorf`) and `sf_scalbn` (`scalbnf`) strictly match but have no split range for their `.sdata2` literals yet; `ef_rem_pio2` (`__ieee754_rem_pio2f`) and `kf_rem_pio2` (`__kernel_rem_pio2f`) are at 200/212 exact instructions because ours forms `two_over_pi`'s address with `lis`/`addi` where retail uses `@sda21` |
+| libsn | `dummy` (`fn_8018AB8C`, `fn_8018ABE8`, `_write`, `_close`, `_fstat`, `_lseek`, `_read`) |
 | libgcc | `__main` (`__do_global_ctors`, `__main`), `__ashldi3`, `__ashrdi3`, `__divdi3`, `__lshrdi3`, `__moddi3`, `__udivdi3`, `__umoddi3` |
 
 `sprintf`, `vsprintf`, `findfp`, `__main` and the libm objects build with
@@ -127,6 +144,13 @@ The four libgcc division objects each own a 256-byte `__clz_tab` copy in
 `.sdata2` (`0x8040B308`, `0x8040B408`, `0x8040B508`, `0x8040B608`), split out of
 the former `lbl_8040B300` object. The first 8 bytes at `0x8040B300` stay with the
 auto-generated unit.
+
+The seven `NonMatching` `libm` units define file-scope `static const float`
+scalars (`one`, `C1..C6`, `half`, `S1..S6`, `zero`, `two8`, `invpio2`, `pio2_*`,
+`huge`, `two25`, `twom25`, `tiny`) that `cc1.exe` folds into `.sdata` literal pools
+while also emitting unreferenced `.sdata2` symbols that the retail SN linker
+stripped; `verify_unit.py` therefore keeps those seven units `NonMatching` while
+`sf_fabs` and `sf_copysign` (which have only `.text`) are promoted.
 
 `vprintf` and `memmove` sit at `0x8018BD4C..0x8018BE6C`, far from the rest of the
 runtime, because retail links them with the libm tail.
@@ -172,6 +196,11 @@ bodies prove. No boundary was moved to raise a score.
   `_fstat`, `0x8018AC88` `_lseek`, `0x8018ACA8` `_read`. The former `_write` at
   `0x8018ABE8` is `fn_8018ABE8`: the `_write` stub calls it, so it is the lower
   layer, not newlib's `_write`.
+- newlib float libm (`0x8018ACC8..0x8018BD4C`): `0x8018ADA4` is `__kernel_cosf`,
+  `0x8018AE90` `__kernel_sinf`, `0x8018AF3C` `__ieee754_rem_pio2f`, `0x8018B2B0`
+  `__kernel_rem_pio2f`, `0x8018BB34` `floorf` and `0x8018BBFC` `scalbnf`,
+  named from the matching fdlibm bodies (formerly `fn_` labels). In `.sdata2`, `0x8040B91C` is `two_over_pi`,
+  `0x8040BC34` `npio2_hw`, `0x8040BCB4` `init_jk` and `0x8040BCC0` `PIo2`.
 - Externs the units need: `_ctype_` (`0x801B032C`, split out of `lbl_801AFF70`),
   `_impure_ptr` (`0x80409FC0`, `.sdata`), `errno` (`0x8040B2E0`, `.sbss`),
   `_exit`, and `vfprintf` (`0x80156998`).
@@ -180,7 +209,7 @@ bodies prove. No boundary was moved to raise a score.
 
 | Item | Cause |
 |---|---|
-| libsn `dummy`, `FSasync`, `sndvd` and asm-body units | no upstream source; the console and syscall stubs are ProDG C and `_exit` is a crt word, worked as plan item `sn-tail` ([plan](strategy.md#runtime-and-sdk-routes)) |
+| libsn `FSasync`, `sndvd` and asm-body units (`pad_01_801531E8_text`, `pad_01_8018CAFC_text`, `_exit`) | no upstream source; `sn/libsn/dummy.c` (`0x8018AB8C..0x8018ACC8`) is promoted, while `pad_01_801531E8_text`, `pad_01_8018CAFC_text` and `_exit` remain in plan item `sn-tail` ([plan](strategy.md#runtime-and-sdk-routes)) |
 | Debugger driver `0x8018A10C..0x8018AB8C` | CodeWarrior SDK code, not libsn; promoted from the CC0 MSSB `DebuggerDriver.c` in #120 ([plan](strategy.md#runtime-and-sdk-routes), [range](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)) |
 | `malloc`, `free`, `strtod` (`0x801556A8..0x80155A50`) | SN-written, no upstream source: `malloc` and `free` are `OSPanic` stubs that also pass their call site (`mflr; subi 4`); `strtod` is a short `isspace`/`isdigit` scanner, not newlib's Bigint `_strtod_r`. Hand-match |
 | vfprintf block (`0x801562B8..0x8015927C`: five statics, `vfprintf`, `_vfprintf_r`, a static, `_vfiprintf_r`) | SN rewrite of newlib's `vfprintf.c`/`vfiprintf.c`: output goes through a static that calls `_write` (no `__sprint`/`__sfvwrite`), the float `cvt` is replaced by code calling `floor`, `fmod` and `log10` (no `_dtoa_r`), and `vfprintf` dispatches to `_vfiprintf_r` or `_vfprintf_r`. Hand-match, now with SN's `va_arg` |

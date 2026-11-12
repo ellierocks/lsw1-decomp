@@ -325,6 +325,19 @@ cflags_sn_libgcc = [
 # `__main` reads its 4-byte `initialized` with lis/lwz from .bss, not r13-relative .sbss, so
 # that object was built below `-G 4`; `-G 0` emits it with .lcomm as retail has it.
 cflags_sn_libgcc_main = ["-G 0" if flag == "-G 1024" else flag for flag in cflags_sn_libgcc]
+cflags_sn_libsn = [*cflags_sn_libc, "-G 0"]
+cflags_sn_libm = [
+    "-O2",
+    "-msafe-sda",
+    "-G 1024",
+    "-fno-builtin",
+    "-mstrict-align",
+    "-I src/sn/include",
+    "-I src/sn/libm/common",
+    "-DNDEBUG=1",
+    "-D__PRODG__",
+    *cflags_sn_target_defs,
+]
 
 config.linker_version = "GC/1.3.2"
 # Use the retail SN linker; MWLD remains the fallback for template REL support.
@@ -683,6 +696,16 @@ config.libs = [
             SnObject("sn/libgcc/_umoddi3.c", cflags_sn_libgcc),
             SnObject("sn/libc/stdio/vprintf.c"),
             SnObject("sn/libc/string/memmove.c"),
+            SnObject("sn/libsn/dummy.c", cflags_sn_libsn),
+            Object(NonMatching, "sn/libm/math/sf_cos.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            Object(NonMatching, "sn/libm/math/kf_cos.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            Object(NonMatching, "sn/libm/math/kf_sin.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            Object(NonMatching, "sn/libm/math/ef_rem_pio2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            SnObject("sn/libm/math/sf_fabs.c", cflags_sn_libm),
+            Object(NonMatching, "sn/libm/math/kf_rem_pio2.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            Object(NonMatching, "sn/libm/math/sf_floor.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            Object(NonMatching, "sn/libm/common/sf_scalbn.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
+            SnObject("sn/libm/common/sf_copysign.c", cflags_sn_libm),
         ],
     },
     {

@@ -135,8 +135,8 @@ note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Le
 
 [[stage.item]]
 id = "sn-tail"
-functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "fn_8018ADA4", "fn_8018AE90", "fn_8018AF3C", "fabsf", "fn_8018B2B0", "fn_8018BB34", "fn_8018BBFC", "copysignf", "pad_01_8018CAFC_text", "_exit", "pad_01_801531E8_text"]
-note = "SN libsn console/syscall stubs (ProDG C: normal prologues, call InitializeUART/WriteUARTN) and newlib libm (cosf, fabsf, copysignf; fdlibm sf_*). pad_01_801531E8_text (801531E8..80154168, 3,968 B, split out by #122) starts with an SN __va_arg-style routine and has no function symbols yet: discover entries first. _exit is the crt word .long 0; blr: an assembly body is acceptable only where retail bytes show the original was assembly (non-ABI register use, data words); record that evidence per function."
+functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "__kernel_cosf", "__kernel_sinf", "__ieee754_rem_pio2f", "fabsf", "__kernel_rem_pio2f", "floorf", "scalbnf", "copysignf", "pad_01_8018CAFC_text", "_exit", "pad_01_801531E8_text"]
+note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. Remaining: pad_01_801531E8_text (801531E8..80154168, 3,968 B), pad_01_8018CAFC_text (8018CAFC..8018CB9C, 160 B) and _exit (8015AFFC..8015B004, 8 B)."
 # at revision 3: 18 functions, 4,556 bytes left
 
 [[stage]]
