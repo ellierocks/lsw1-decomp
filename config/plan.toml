@@ -159,6 +159,7 @@ units = ["auto/nu3d/ngc/ngc_mtl"]
 [[stage.item]]
 id = "nutexanm"
 units = ["auto/nu3d/nutexanm", "auto/nu3d/ngc/nutex"]
+note = "The nutexanm run (2026-11-12) strictly matched 26 functions / 5,624 B and promoted ngc/nutex (504 B: .text plus .rodata, with the VuMath.h stub strings). Five nutexanm plateaus and three strict-only float-pool handlers are parked below. Layouts come from CrashWOC nutexanm.c and OpenSaga nutexanm.h, with LSW1 offsets and opcodes confirmed in asm; the text-metric/glyph functions have no donor."
 # at revision 1: 32 functions, 10,740 bytes left
 
 [[stage.item]]
@@ -1958,3 +1959,35 @@ reason = "Strict VERIFIED 1297/1297 (newlib; docs/sn_runtime.md); objdiff remain
 [[parked]]
 function = "_vfiprintf_r"
 reason = "Strict VERIFIED 1213/1213 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
+
+[[parked]]
+function = "fn_80013B28"
+reason = "Best 90/109, score [1,24,2,-90,0] (glyph draw; NONMATCHING draft in src/auto/nu3d/nutexanm.c). The target loads colour word 0 of lbl_801B14D8 with lwz+clrlwi while the other three use lbz, and it keeps a copy of the font pointer in r27 across the call. A 180 s permuter burst (best 430) did not improve the exact count. Next: read the colour through a struct or an inline packer taking u32 fields, and try a font local declared before the NULL check."
+
+[[parked]]
+function = "fn_80014180"
+reason = "Best 9/37 clean draft (permuter 19/37 only with unnatural forms). This is the scale setter paired with fn_800140EC: GCC schedules the BD4/BD8 divides and the AD18-first store order differently. Next: apply fn_800140EC's fix (one product hoisted into a temp before the font store) to each scaled store in turn, then a permuter burst with a lineswap focus on the six stores."
+
+[[parked]]
+function = "fn_80013CDC"
+reason = "Not attempted beyond the sweep draft (95/260 exact). It is the 0x410 text print loop around the fn_80013B28 glyph draw and the fn_8001394C '#' code parser. Next: write it after fn_80013B28 matches, reusing the nutxtfont_s/nutxtglyph_s layout and the '#h/#d/digits#' parsing shape from fn_8001394C."
+
+[[parked]]
+function = "fn_80014EC0"
+reason = "Not attempted (ReadScript, 0x30C; the sweep draft fails to compile). Next: port CrashWOC NuTexAnimReadScript's parse loop with the LSW1 nufpar offsets (word 0x30A, line 0x50C) and the fn_80009948 error idiom used by the label handlers."
+
+[[parked]]
+function = "NuTexAnimEnvProc"
+reason = "Not attempted (the 0xA04 interpreter; sweep draft 243/641 exact). Next: write it from CrashWOC NuTexAnimEnvProc with the LSW1 opcode numbering recorded in fn_80014274 (AssembleEnd), keeping one switch label per opcode as AssembleEnd needed."
+
+[[parked]]
+function = "fn_8001448C"
+reason = "Strict VERIFIED 68/68; fuzzy 99.6% from the per-function .rodata float pool (0.016666668f, 4096.0f), which the unit cannot own while nutexanm stays NonMatching. Next: promote nutexanm once its remaining functions and string pools are reproduced."
+
+[[parked]]
+function = "fn_8001459C"
+reason = "Strict VERIFIED 68/68; fuzzy 99.6% from the per-function .rodata float pool (same as fn_8001448C). Next: unit promotion with owned pools."
+
+[[parked]]
+function = "fn_80015EFC"
+reason = "Strict VERIFIED 32/32; fuzzy 99.7% from the 0.016666668f .rodata literal pool. Next: unit promotion with owned pools."

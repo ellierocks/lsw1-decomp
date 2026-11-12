@@ -492,7 +492,7 @@ config.libs = [
             Object(NonMatching, "auto/nusound3/ngc/nusound.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/ngc_video.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(Matching, "auto/nu3d/ngc/nugobj.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
-            Object(NonMatching, "auto/nu3d/ngc/nutex.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
+            Object(Matching, "auto/nu3d/ngc/nutex.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/nuqfnt.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nusound3/ngc/NGCSound.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
             Object(NonMatching, "auto/nu3d/ngc/nudlistngc.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_prodg),
