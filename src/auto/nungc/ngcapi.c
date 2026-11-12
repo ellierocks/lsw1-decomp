@@ -76,3 +76,74 @@ void fn_80037FEC(void) {
     fn_80027564();
     NuRndrFootPrints(0);
 }
+
+typedef struct nuroom_s {
+    s16* instanceIndices;
+    u8 unknown4[8];
+    s16 instanceCount;
+} nuroom_s;
+
+void fn_80037D3C(nuroom_s* room)
+{
+    s32 i;
+    s16 instance;
+
+    for (i = 0; i < room->instanceCount; i++) {
+        instance = room->instanceIndices[i];
+        lbl_80340588[instance >> 3] |= 1 << (s16)(instance % 8);
+    }
+}
+
+typedef struct nuportalscene_s {
+    u8 unknown0[0x188];
+    u8* spheres;
+    u8* boxes;
+    u8 unknown190[0x10];
+    struct nuportaldisplay_s* display;
+} nuportalscene_s;
+
+typedef struct nuportaldisplay_s {
+    u8 unknown0[0x88];
+    u8* overrides;
+} nuportaldisplay_s;
+
+typedef struct nufrustum_s {
+    u8 unknown0[0x80];
+    void* planes;
+    u8 unknown84[0x18];
+    s16 planeCount;
+} nufrustum_s;
+
+extern s32 clipTestSphere(void* sphere, nufrustum_s* frustum);
+extern s32 clipTestBox(void* first, void* second, void* planes, s32 count);
+
+void clipRoomAgainstFrustrum(nuportalscene_s* scene, nuroom_s* room, nufrustum_s* frustum)
+{
+    /* Retail reserves this unused local area. */
+    volatile u8 scratch[0x30];
+    u32 i;
+    u32 instance;
+    s32 result;
+
+    for (i = 0; i < (u32)room->instanceCount; i++) {
+        instance = room->instanceIndices[i];
+        if ((scene->display->overrides[instance >> 3] >> (instance & 7)) & 1) {
+            lbl_80340588[instance >> 3] |= 1 << (instance & 7);
+        } else if (!((lbl_80340588[instance >> 3] >> (instance & 7)) & 1)) {
+            result = clipTestSphere(scene->spheres + instance * 16, frustum);
+            switch (result) {
+            case 0:
+                break;
+            case 1:
+                lbl_80340588[instance >> 3] |= 1 << (instance & 7);
+                break;
+            case 2:
+                if (clipTestBox(scene->boxes + instance * 32, scene->boxes + instance * 32 + 16,
+                                frustum->planes, frustum->planeCount) != 0) {
+                    lbl_80340588[instance >> 3] |= 1 << (instance & 7);
+                }
+                break;
+            }
+        }
+    }
+}
