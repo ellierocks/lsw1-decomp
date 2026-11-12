@@ -3,7 +3,7 @@
 
 #include "numath/numath.h"
 
-f32 NuASin(s32 angle);
-f32 NuAngDiff(s32 angle);
+f32 NuCosApprox(s32 angle);
+f32 NuSinApprox(s32 angle);
 
 #endif

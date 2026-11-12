@@ -243,8 +243,8 @@ void fn_8004BDD0(void *arg0) {
     }
 }
 
-f32 NuASin(s32);
-f32 NuAngDiff(s32);
+f32 NuCosApprox(s32);
+f32 NuSinApprox(s32);
 extern void *lbl_8040AE5C;
 
 void fn_8004F590(void *arg0)
@@ -261,10 +261,10 @@ void fn_8004F590(void *arg0)
   f32 temp_f30;
   f32 temp_f31;
   new_var2 = (s8 *) arg0;
-  temp_f29 = NuAngDiff((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x44)))));
-  temp_f30 = NuASin((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x44)))));
-  temp_f31 = NuAngDiff((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x48)))));
-  temp_f1 = NuASin((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x48)))));
+  temp_f29 = NuSinApprox((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x44)))));
+  temp_f30 = NuCosApprox((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x44)))));
+  temp_f31 = NuSinApprox((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x48)))));
+  temp_f1 = NuCosApprox((s32) (-(*((f32 *) (((s8 *) lbl_8040AE5C) + 0x48)))));
   temp_f11 = (*((f32 *) (((s8 *) arg0) + 0))) - (*((f32 *) (((s8 *) lbl_8040AE5C) + 0x1C)));
   temp_f12 = *((f32 *) (new_var2 + 4));
   temp_f13 = (*((f32 *) (new_var2 + 8))) - (*((f32 *) (((s8 *) lbl_8040AE5C) + 0x24)));

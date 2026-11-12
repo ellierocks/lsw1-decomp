@@ -416,9 +416,8 @@ static inline s32 ParGetCCInline(void *fp)
     return cc;
 }
 
-/* symbols.txt calls this ParGetCC; it is the untiltex-style handler (opcode 0xF) with
- * ParGetCC inlined. */
-void ParGetCC(void *fp)
+/* pftaUntiltex (opcode 0xF: condition, value) with ParGetCC inlined. */
+void pftaUntiltex(void *fp)
 {
     s32 cc = ParGetCCInline(fp);
     s32 val = NuFParGetInt(fp);
@@ -648,9 +647,8 @@ void fn_800148F4(void *fp)
     lbl_8040A2F8->code[lbl_8040A2F8->eop++] = idx;
 }
 
-/* symbols.txt calls this NuRndrGobjSkin2; it is the btex-style handler (opcode 0xB:
- * condition, value, label). */
-void NuRndrGobjSkin2(void *fp)
+/* pftaBtex (opcode 0xB: condition, value, label) with ParGetCC inlined. */
+void pftaBtex(void *fp)
 {
     s32 cc;
     s32 val;

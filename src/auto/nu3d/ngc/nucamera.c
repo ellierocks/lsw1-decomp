@@ -16,7 +16,7 @@ struct nucam_s {
     struct nuvec_s scale;
 };
 
-/* Viewport (CrashWOC nuviewport_s order, confirmed by NuGlassProcessScene/NuGlassLoad). */
+/* Viewport (CrashWOC nuviewport_s order, confirmed by NuVpInit/NuVpUpdate). */
 struct nuvp_s {
     u32 x;
     u32 y;
@@ -39,8 +39,8 @@ extern struct nuvp_s lbl_8020E8F4;    /* device viewport */
 extern struct nuvp_s lbl_8020E934;    /* current viewport */
 extern s32 lbl_8040A338;              /* viewport invalid */
 void fn_80039BE4(struct nuvp_s* vp);
-void NuGlassInit(void);
-void NuGlassLoad(void);
+void NuVpSetScalingMtx(void);
+void NuVpUpdate(void);
 
 struct nuanimdata2_s {
     s32 magic;
@@ -48,9 +48,9 @@ struct nuanimdata2_s {
 };
 
 void* NuMemAlloc(s32 size, char* file, s32 line);
-void fn_8000DC10(struct numtx_s* m);
+void NuMtxSetIdentity(struct numtx_s* m);
 void fn_8000CD08(s32 a, u8* b, s32 c);
-void NuTexSetTexture(struct nuvec4_s* dst, struct nuvec_s* src, struct numtx_s* m);
+void NuVec4MtxTransform(struct nuvec4_s* dst, struct nuvec_s* src, struct numtx_s* m);
 s32 NuAnimCurveSetApplyBlendToJoint2(struct nucam_s* cam, s32 fast);
 
 extern struct nucam_s lbl_80313268;   /* global camera */
@@ -126,8 +126,8 @@ void fn_80021738(void *arg0, void *arg1, s32 arg2) {
     (*(void **)((s8 *)(arg0) + (8))) = temp_r11;
 }
 
-f32 NuASin(s32 a);
-f32 NuAngDiff(s32 a);
+f32 NuCosApprox(s32 a);
+f32 NuSinApprox(s32 a);
 void* memset();
 extern struct numtx_s lbl_8033EA8C;
 extern f32 lbl_8040AD58;
@@ -140,11 +140,11 @@ static inline void rot_xy(struct nuvec_s* v, f32 pitch, f32 yaw)
     f32 s, c, s2, c2, t, x, y, z;
     s32 i;
     i = (s32)pitch;
-    s = NuAngDiff(i);
-    c = NuASin(i);
+    s = NuSinApprox(i);
+    c = NuCosApprox(i);
     i = (s32)yaw;
-    s2 = NuAngDiff(i);
-    c2 = NuASin(i);
+    s2 = NuSinApprox(i);
+    c2 = NuCosApprox(i);
     z = v->z;
     y = v->y;
     x = v->x;
@@ -175,8 +175,8 @@ void fn_80022DE8(struct nuvec_s* p)
     a = 0;
     for (i = 0; i < 8; i++) {
         p = &lbl_80337860[i];
-        p->x = NuASin(a);
-        p->y = -NuAngDiff(a);
+        p->x = NuCosApprox(a);
+        p->y = -NuSinApprox(a);
         a += 0x2000;
         p->z = 0.0f;
         rot_xy(p, ang.x, ang.y);
@@ -186,7 +186,7 @@ void fn_80022DE8(struct nuvec_s* p)
 static inline f32 cotan(f32 fov)
 {
     s32 angle = (s32)(fov * 0.5f * 10430.378f);
-    return NuASin(angle) / NuAngDiff(angle);
+    return NuCosApprox(angle) / NuSinApprox(angle);
 }
 void fn_800234A8(struct numtx_s* mtx, f32 fov, f32 aspect, f32 nearclip, f32 farclip)
 {
@@ -357,7 +357,7 @@ void NuCameraGet(struct nucam_s* cam)
 struct nucam_s* NuCameraCreate(void)
 {
     struct nucam_s* cam = NuMemAlloc(0x68, "../nu2api.legogc/nu3d/ngc/ngc_obj/../nucamera.c", 0x49);
-    fn_8000DC10(&cam->mtx);
+    NuMtxSetIdentity(&cam->mtx);
     cam->fov = 0.75f;
     cam->nearclip = 0.15f;
     cam->portalnearclip = 0.0f;
@@ -432,7 +432,7 @@ s32 NuCameraClipTestBoundingSphere(struct nuvec_s* c, struct numtx_s* wm, f32 r)
     if (v.z - cam->nearclip + r < 0.0f || cam->farclip - v.z + r < 0.0f) {
         return 1;
     }
-    NuTexSetTexture(&d, &v, &lbl_801B1878);
+    NuVec4MtxTransform(&d, &v, &lbl_801B1878);
     if (d.x < -r) return 1;
     if (d.y < -r) return 1;
     if (d.z < -r) return 1;
@@ -466,7 +466,7 @@ void NuPs2CreateSkin(void)
     }
 }
 
-void NuGlassProcessScene(void)
+void NuVpInit(void)
 {
     fn_80039BE4(&lbl_8020E8F4);
     lbl_8020E8F4.centre_x = 0.5f;
@@ -477,17 +477,17 @@ void NuGlassProcessScene(void)
     lbl_8020E8F4.clipmax_y = 1.0f;
     lbl_8020E934 = lbl_8020E8F4;
     lbl_8040A338 = 1;
-    NuGlassLoad();
+    NuVpUpdate();
 }
 
 void fn_80039BE4(struct nuvp_s* vp);
-void NuGlassInit(void);
-void NuGlassLoad(void);
-void NuGlassLoad(void)
+void NuVpSetScalingMtx(void);
+void NuVpUpdate(void);
+void NuVpUpdate(void)
 {
     if (lbl_8040A338 != 0) {
         lbl_8040A338 = 0;
-        NuGlassInit();
+        NuVpSetScalingMtx();
         if (lbl_8020E934.clipmin_x == 0.0f && lbl_8020E934.clipmax_x == 1.0f) {
             lbl_8020E934.clip_w = 1.0f;
             lbl_8020E934.scis_w = (f32)lbl_8020E934.width * (1.0f / 65536.0f);
@@ -504,7 +504,7 @@ void NuGlassLoad(void)
 }
 
 extern struct numtx_s lbl_8020E974;
-void NuGlassInit(void)
+void NuVpSetScalingMtx(void)
 {
     f32 x = (f32)lbl_8020E934.x;
     f32 y = (f32)lbl_8020E934.y;

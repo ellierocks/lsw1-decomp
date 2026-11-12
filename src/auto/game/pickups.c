@@ -129,7 +129,7 @@ extern f32 lbl_801AEE08[];
 extern f32 lbl_80409A28;
 extern char str_Pickup_LegoSingle[];
 f32 fn_8000CB50(void* pos);
-void NuASin(s32 value);
+void NuCosApprox(s32 value);
 void fn_8006DD1C(char* name, void* pos);
 
 void fn_8013F24C(struct NUPICKUPVISUAL_s* visual)
@@ -144,7 +144,7 @@ void fn_8013F24C(struct NUPICKUPVISUAL_s* visual)
             if (dist > minDist) {
                 if (dist > lbl_801AEE00[0])
                     dist = lbl_801AEE00[0];
-                NuASin((s32)((lbl_801AEE00[0] - dist) * lbl_801AEE04[0]));
+                NuCosApprox((s32)((lbl_801AEE00[0] - dist) * lbl_801AEE04[0]));
                 fn_8006DD1C(str_Pickup_LegoSingle, visual->unk0 + 0x30);
                 lbl_80409A28 = lbl_801AEE08[0];
             }

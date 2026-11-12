@@ -5,8 +5,8 @@
 
 void fn_8000E250(struct numtx_s* m, s32 a)
 {
-    f32 s = NuASin(a);
-    f32 c = NuAngDiff(a);
+    f32 s = NuCosApprox(a);
+    f32 c = NuSinApprox(a);
     f32 m01 = m->_01, m02 = m->_02;
     f32 m11 = m->_11, m12 = m->_12;
     f32 m21 = m->_21, m22 = m->_22;
@@ -23,8 +23,8 @@ void fn_8000E250(struct numtx_s* m, s32 a)
 
 void fn_8000E318(struct numtx_s* m, s32 a)
 {
-    f32 s = NuASin(a);
-    f32 c = NuAngDiff(a);
+    f32 s = NuCosApprox(a);
+    f32 c = NuSinApprox(a);
     f32 m10 = m->_10, m11 = m->_11, m12 = m->_12;
     f32 m20 = m->_20, m21 = m->_21, m22 = m->_22;
     m->_10 = s * m10 + c * m20;
@@ -37,8 +37,8 @@ void fn_8000E318(struct numtx_s* m, s32 a)
 
 void fn_8000E3C0(struct numtx_s* m, s32 a)
 {
-    f32 s = NuASin(a);
-    f32 c = NuAngDiff(a);
+    f32 s = NuCosApprox(a);
+    f32 c = NuSinApprox(a);
     f32 m00 = m->_00, m10 = m->_10, m20 = m->_20, m30 = m->_30;
     f32 m02 = m->_02, m12 = m->_12, m22 = m->_22, m32 = m->_32;
     m->_00 = m00 * s + m02 * c;
@@ -53,8 +53,8 @@ void fn_8000E3C0(struct numtx_s* m, s32 a)
 
 void fn_8000E498(struct numtx_s* m, s32 a)
 {
-    f32 s = NuASin(a);
-    f32 c = NuAngDiff(a);
+    f32 s = NuCosApprox(a);
+    f32 c = NuSinApprox(a);
     f32 m00 = m->_00, m01 = m->_01, m02 = m->_02;
     f32 m20 = m->_20, m21 = m->_21, m22 = m->_22;
     m->_00 = s * m00 - c * m20;
@@ -67,8 +67,8 @@ void fn_8000E498(struct numtx_s* m, s32 a)
 
 void fn_8000E540(struct numtx_s* m, s32 a)
 {
-    f32 s = NuASin(a);
-    f32 c = NuAngDiff(a);
+    f32 s = NuCosApprox(a);
+    f32 c = NuSinApprox(a);
     f32 m00 = m->_00, m01 = m->_01;
     f32 m10 = m->_10, m11 = m->_11;
     f32 m20 = m->_20, m21 = m->_21;
@@ -85,8 +85,8 @@ void fn_8000E540(struct numtx_s* m, s32 a)
 
 void fn_8000E608(struct numtx_s* m, s32 a)
 {
-    f32 s = NuASin(a);
-    f32 c = NuAngDiff(a);
+    f32 s = NuCosApprox(a);
+    f32 c = NuSinApprox(a);
     f32 m00 = m->_00, m01 = m->_01, m02 = m->_02;
     f32 m10 = m->_10, m11 = m->_11, m12 = m->_12;
     m->_00 = s * m00 + c * m10;

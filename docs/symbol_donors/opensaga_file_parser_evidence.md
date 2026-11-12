@@ -125,7 +125,7 @@ file-buffer pool. The `fpars` name at `lbl_802015C8` fits the code.
   decoder. It asserts `UTF8 character out of unicode range` at line 1493. It
   is not the donor byte reader. Renamed to `fn_800081CC`.
 - `0x800D8038` (formerly `NuFileGetEndianSwap`, 0x62C) is game-side code. It
-  calls `NuAngDiff` and game helpers. Renamed to `fn_800D8038`.
+  calls `NuAngDiff` (now `NuSinApprox`) and game helpers. Renamed to `fn_800D8038`.
 - Other lanes (`feat-animation-symbol-recovery`, `feat-sdk-import`,
   `feat-opensaga-ai-script-recovery`, `t3-68116529`) carry the same baseline
   names at `0x80006B14`, `0x80006C78`, `0x800081CC` in their `symbols.txt`

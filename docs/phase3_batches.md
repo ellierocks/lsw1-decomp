@@ -64,7 +64,7 @@ New failure modes seen:
 - **Float bit tricks.** A pointer cast `*(f32*)&bits` allocates `f0`/`f1` the wrong
   way round; a `union { s32 i; f32 f; }` reproduces retail (`NuRandIntSeeded`).
 - **Rodata constants.** A guessed float literal passes the instruction compare but
-  fails the data compare; read the real value from `build/GL5E4F/main.elf` (`NuASin`).
+  fails the data compare; read the real value from `build/GL5E4F/main.elf` (`NuCosApprox`, then named `NuASin`).
 - **Struct-copy size.** A global-to-pointer struct assignment is a 3-stage unrolled
   loop; size the struct from the tail copy (`fn_8000DBA0`, 0x40 bytes).
 
@@ -437,7 +437,9 @@ Useful observations:
   indexing reproduces retail address arithmetic where `[i][j]` does not.
 - **Misnamed symbols.** `NuASin` computes cos, `NuAngDiff` sin, `NuMtxMulR` matrix
   to quaternion, `NuMtlGet3dBuffer` closest points between lines, and
-  `NuTexSetTexture` a vec4 by matrix product. Names were left unchanged.
+  `NuTexSetTexture` a vec4 by matrix product. Names were left unchanged at the time;
+  `NuASin`, `NuAngDiff` and `NuTexSetTexture` are now `NuCosApprox`, `NuSinApprox` and
+  `NuVec4MtxTransform`.
 
 ## Levels sprint 3
 

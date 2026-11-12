@@ -461,7 +461,7 @@ void NuAnimCurve2SetApplyBlendToJoint2(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f,
 
 extern void fn_8000EB24(struct numtx_s* m, s32* ang);
 extern void fn_8000EA94(struct numtx_s* m, struct nuvec_s* s);
-extern void fn_8000DC10(struct numtx_s* m);
+extern void NuMtxSetIdentity(struct numtx_s* m);
 
 void NuAnimCurve2SetApplyToMatrix(struct nuanimcurve2_s* curves, char* flags, u32 mask, struct nuanimtime_s* time,
                                   struct numtx_s* mtx)
@@ -480,7 +480,7 @@ void NuAnimCurve2SetApplyToMatrix(struct nuanimcurve2_s* curves, char* flags, u3
         ang[2] = (s32)(r.z * 10430.378f);
         fn_8000EB24(mtx, ang);
     } else {
-        fn_8000DC10(mtx);
+        NuMtxSetIdentity(mtx);
     }
     if (mask & 8) {
         s.x = flags[6] == 0 ? curves[6].data.constant : NuAnimCurve2CalcVal(&curves[6], time, flags[6]);
@@ -530,7 +530,7 @@ void NuAnimCurveSetApplyToMatrix(struct nuanimcurveset_s* cs, struct nuanimtime_
         ang[2] = (s32)(r.z * 10430.378f);
         fn_8000EB24(mtx, ang);
     } else {
-        fn_8000DC10(mtx);
+        NuMtxSetIdentity(mtx);
     }
     if (cs->flags & 8) {
         if (cs->set[6]) {
