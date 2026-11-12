@@ -68,7 +68,7 @@ void NuTexSetTextureDirect(void)
 {
 }
 
-void NuTexSetTexture(f32* d, struct nuvec_s* v, struct numtx_s* m)
+void NuVec4MtxTransform(f32* d, struct nuvec_s* v, struct numtx_s* m)
 {
     f32 a, b, c, e;
     b = v->x * m->_01 + v->y * m->_11 + v->z * m->_21 + m->_31;
@@ -244,7 +244,7 @@ s32 NuAng2AltSol(s32 a, s32 b)
     return diff;
 }
 
-f32 NuAngDiff(s32 ang)
+f32 NuSinApprox(s32 ang)
 {
     f32 x = (f32)(ang & 0xffff) * 9.58738019e-05f;
     f32 sign = 1.0f;
@@ -260,7 +260,7 @@ f32 NuAngDiff(s32 ang)
     return ((((((-2.39000002e-08f * x2 + 2.75260004e-06f) * x2 - 0.000198409005f) * x2 + 0.00833333191f) * x2 - 0.166666672f) * x2 + 1.0f) * x) * sign;
 }
 
-f32 NuASin(s32 ang)
+f32 NuCosApprox(s32 ang)
 {
     f32 x = (f32)(ang & 0xffff) * 9.58738019e-05f;
     f32 sign = 1.0f;
@@ -430,9 +430,9 @@ void fn_8000BAFC(f32* out, f32* a, f32* b, f32 t)
     }
     if (1.0f - cosom > 0.0f) {
         omega = NuACos(cosom);
-        sinom = NuAngDiff(omega);
-        s0 = NuAngDiff((1.0f - t) * omega) / sinom;
-        s1 = NuAngDiff(t * omega) / sinom;
+        sinom = NuSinApprox(omega);
+        s0 = NuSinApprox((1.0f - t) * omega) / sinom;
+        s1 = NuSinApprox(t * omega) / sinom;
     } else {
         s0 = 1.0f - t;
         s1 = t;

@@ -147,12 +147,12 @@ s32 NuMtlGet3dBuffer(struct nuvec_s* p1, struct nuvec_s* d1, struct nuvec_s* p2,
 
 void fn_8000D010(struct numtx_s* m, struct nuivec_s* r)
 {
-    f32 cx = NuASin(r->x);
-    f32 sx = NuAngDiff(r->x);
-    f32 cy = NuASin(r->y);
-    f32 sy = NuAngDiff(r->y);
-    f32 cz = NuASin(r->z);
-    f32 sz = NuAngDiff(r->z);
+    f32 cx = NuCosApprox(r->x);
+    f32 sx = NuSinApprox(r->x);
+    f32 cy = NuCosApprox(r->y);
+    f32 sy = NuSinApprox(r->y);
+    f32 cz = NuCosApprox(r->z);
+    f32 sz = NuSinApprox(r->z);
     m->_00 = cy * cz;
     m->_01 = cy * sz;
     m->_02 = -sy;
@@ -385,9 +385,9 @@ void fn_8000DBA0(struct nugraph3_blk_s* dst)
     *dst = lbl_801B0F48;
 }
 
-void fn_8000DC10(struct nugraph3_blk_s* dst)
+void NuMtxSetIdentity(struct numtx_s* dst)
 {
-    *dst = lbl_801B0F08;
+    *(struct nugraph3_blk_s*)dst = lbl_801B0F08;
 }
 
 void fn_8000DC80(struct numtx_s* m, struct nuvec_s* p)
@@ -414,10 +414,10 @@ void fn_8000DD40(struct numtx_s* m, s32 a)
 {
     f32 c;
     f32 s;
-    c = NuASin(a);
+    c = NuCosApprox(a);
     m->_22 = c;
     m->_11 = c;
-    s = NuAngDiff(a);
+    s = NuSinApprox(a);
     m->_12 = s;
     m->_21 = -s;
     m->_00 = 1.0f;
@@ -429,10 +429,10 @@ void fn_8000DDD0(struct numtx_s* m, s32 a)
 {
     f32 c;
     f32 s;
-    c = NuASin(a);
+    c = NuCosApprox(a);
     m->_22 = c;
     m->_00 = c;
-    s = NuAngDiff(a);
+    s = NuSinApprox(a);
     m->_20 = s;
     m->_02 = -s;
     m->_11 = 1.0f;
@@ -444,10 +444,10 @@ void NuMtxTranslateNeg(struct numtx_s* m, s32 a)
 {
     f32 c;
     f32 s;
-    c = NuASin(a);
+    c = NuCosApprox(a);
     m->_11 = c;
     m->_00 = c;
-    s = NuAngDiff(a);
+    s = NuSinApprox(a);
     m->_01 = s;
     m->_10 = -s;
     m->_22 = 1.0f;

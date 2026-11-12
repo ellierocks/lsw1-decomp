@@ -1094,7 +1094,7 @@ void instNuGCutLocatorUpdate(u32 axis, gcut_matrix* matrix, f32* vector)
 }
 
 extern void fn_8000D010(gcut_matrix*, s32*);
-extern void fn_8000DC10(gcut_matrix*);
+extern void NuMtxSetIdentity(gcut_matrix*);
 extern void NuMtxPreScale(gcut_matrix*, f32*);
 extern void NuMtxTranslate(gcut_matrix*, f32*);
 void instNuGCutRigidSysReset(gcut_rigid_view* rigid, gcut_matrix* matrix)
@@ -1114,7 +1114,7 @@ void instNuGCutRigidSysReset(gcut_rigid_view* rigid, gcut_matrix* matrix)
         rotation[2] = (s32)(angles[2] * 10430.3779296875f);
         fn_8000D010(matrix, rotation);
     } else {
-        fn_8000DC10(matrix);
+        NuMtxSetIdentity(matrix);
     }
     if (flags & 8) {
         scale[0] = values[6];
@@ -1451,7 +1451,7 @@ void fn_8003E6EC(u8* object, gcut_matrix* matrix, s32* visible, s32* id, f32* x,
             rotation[8] = (s32)(values[5] * 10430.3779296875f);
             fn_8000D010(matrix, &rotation[6]);
         } else {
-            fn_8000DC10(matrix);
+            NuMtxSetIdentity(matrix);
         }
         NuMtxTranslate(matrix, values);
         matrix->m[2] = -matrix->m[2];
@@ -1504,7 +1504,7 @@ void instNuGCutRigidSysEnd(gcut_rigid_view* rigid, f32 frame, gcut_matrix* matri
                 rotation[2] = (s32)(angles[2] * 10430.3779296875f);
                 fn_8000D010(matrix, rotation);
             } else {
-                fn_8000DC10(matrix);
+                NuMtxSetIdentity(matrix);
             }
             if (flags & 8) {
                 GCUT_SAMPLE(scale[0], 6);

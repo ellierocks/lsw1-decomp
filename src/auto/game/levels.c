@@ -3183,7 +3183,7 @@ void KaminoDInit(void) {
     lbl_803EAE44[0] = FindObstacle(lbl_80409410, lbl_801A2460);
 }
 
-f32 NuAngDiff(s32);
+f32 NuSinApprox(s32);
 void fn_800769B4(void *, s32, s32);
 extern f32 NuRndrHackWaterLevel[];
 extern f32 lbl_801A0178[];
@@ -3212,7 +3212,7 @@ void Menu_Unknown1_BuildOptions(void *arg0)
     else
       if (NuRndrHackWaterLevel[0] < lbl_801A0180[0])
     {
-      var_f1 = NuAngDiff((s32) (2.0f * ((NuRndrHackWaterLevel[0] - lbl_801A0178[0]) * lbl_801A0184[0])));
+      var_f1 = NuSinApprox((s32) (2.0f * ((NuRndrHackWaterLevel[0] - lbl_801A0178[0]) * lbl_801A0184[0])));
     }
     else
     {
@@ -3762,7 +3762,7 @@ void PartKill(void *arg0, s32 arg1) {
     }
 }
 
-f32 NuASin(s32);
+f32 NuCosApprox(s32);
 f32 fn_8000CD08(void *, s32, struct nuvec_s *);
 extern s32 PartKill_ForceThrow[];
 extern s32 fn_800C5640[];
@@ -3797,7 +3797,7 @@ void *fn_800B9BE0(s32 arg0, struct nuvec_s *arg1, f32 farg0) {
                 } else {
                     ang = 0xE38;
                 }
-                if (dot > NuASin(ang) && d < best) {
+                if (dot > NuCosApprox(ang) && d < best) {
                     best = d;
                     found = o;
                 }
@@ -4927,7 +4927,7 @@ void fn_800D2E44(void *arg0, s32 arg1) {
         (*(u16 *)((s8 *)(arg0) + (0x106A))) = (u16) (*(s16 *)((s8 *)(arg0) + (0x106E)));
         (*(u16 *)((s8 *)(arg0) + (0x106C))) = (u16) (*(s16 *)((s8 *)(arg0) + (0x1070)));
         if (var_r30 != 0) {
-            if ((*(f32 *)((s8 *)(arg0) + (0xF4C))) > NuASin(0x2000)) {
+            if ((*(f32 *)((s8 *)(arg0) + (0xF4C))) > NuCosApprox(0x2000)) {
                 (*(u16 *)((s8 *)(arg0) + (0x27C))) = (u16) (*(s16 *)((s8 *)(arg0) + (0x106E)));
                 (*(u16 *)((s8 *)(arg0) + (0x280))) = (u16) (*(s16 *)((s8 *)(arg0) + (0x1070)));
                 return;
@@ -4951,7 +4951,7 @@ void fn_800D2E44(void *arg0, s32 arg1) {
             (*(u16 *)((s8 *)(arg0) + (0x106C))) = SeekRot((s32) temp_r3_2, (s32) temp_r4_2, lbl_801A50F8[0]);
         }
         if (((s32) (*(u8 *)((s8 *)((*(void **)((s8 *)(arg0) + (0xEEC)))) + (0x7E5))) != 1) && ((s32) (*(u8 *)((s8 *)(arg0) + (0x107E))) == 2)) {
-            if ((var_r30 != 0) && ((*(f32 *)((s8 *)(arg0) + (0xF4C))) > NuASin(0x2000))) {
+            if ((var_r30 != 0) && ((*(f32 *)((s8 *)(arg0) + (0xF4C))) > NuCosApprox(0x2000))) {
                 var_r4 = (u16) (*(s16 *)((s8 *)(arg0) + (0x106E)));
                 var_r30_2 = (u16) (*(s16 *)((s8 *)(arg0) + (0x1070)));
             } else {

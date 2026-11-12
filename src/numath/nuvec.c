@@ -51,8 +51,8 @@ void NuVecInvMtxRotate(struct nuvec_s* dest, struct nuvec_s* a, struct numtx_s* 
 
 void NuVecRotateX(struct nuvec_s* dest, struct nuvec_s* v, s32 angle)
 {
-    f32 c = NuASin(angle);
-    f32 s = NuAngDiff(angle);
+    f32 c = NuCosApprox(angle);
+    f32 s = NuSinApprox(angle);
     f32 y = v->y;
     dest->x = v->x;
     dest->y = y * c - v->z * s;
@@ -61,8 +61,8 @@ void NuVecRotateX(struct nuvec_s* dest, struct nuvec_s* v, s32 angle)
 
 void NuVecRotateY(struct nuvec_s* dest, struct nuvec_s* v, s32 angle)
 {
-    f32 c = NuASin(angle);
-    f32 s = NuAngDiff(angle);
+    f32 c = NuCosApprox(angle);
+    f32 s = NuSinApprox(angle);
     f32 x = v->x;
     dest->x = x * c + v->z * s;
     dest->y = v->y;
@@ -71,8 +71,8 @@ void NuVecRotateY(struct nuvec_s* dest, struct nuvec_s* v, s32 angle)
 
 void NuVecRotateZ(struct nuvec_s* dest, struct nuvec_s* v, s32 angle)
 {
-    f32 c = NuASin(angle);
-    f32 s = NuAngDiff(angle);
+    f32 c = NuCosApprox(angle);
+    f32 s = NuSinApprox(angle);
     f32 x = v->x;
     dest->x = x * c - v->y * s;
     dest->y = x * s + v->y * c;
@@ -81,8 +81,8 @@ void NuVecRotateZ(struct nuvec_s* dest, struct nuvec_s* v, s32 angle)
 
 void NuVecRotateAxis(struct nuvec_s* dest, s32 angle, f32 scale)
 {
-    f32 c = NuASin(angle);
-    f32 s = NuAngDiff(angle);
+    f32 c = NuCosApprox(angle);
+    f32 s = NuSinApprox(angle);
     dest->x = scale * s;
     dest->y = 0.0f;
     dest->z = scale * c;
