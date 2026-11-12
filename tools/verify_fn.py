@@ -572,6 +572,15 @@ class Comparer:
             if taddr is None:
                 return "diff", (f"target references {t.describe()} which is not in "
                                 f"symbols.txt; cannot map mine {m.describe()}")
+            # A name symbols.txt places inside this unit's own split ranges must be the
+            # object retail references: BSS has no bytes to compare, so without this two
+            # swapped `.bss` globals would pass as "unverified" instead of failing.
+            mown = None if m.is_section else self.symbols.addr(m.name, self.ranges)
+            if (mown is not None and self.ranges
+                    and any(a <= mown < b for a, b in self.ranges.values())
+                    and mown + m.addend != taddr + t.addend):
+                return "diff", (f"references {m.describe()} (0x{mown + m.addend:08X} in symbols.txt) "
+                                f"but target references {t.describe()} (0x{taddr + t.addend:08X})")
             return self._bind(("loc",) + m.loc, taddr + t.addend,
                               m.describe(False), f"{t.name}{t.addend:+#x}", m.loc)
         maddr = None if m.is_section else self.symbols.addr(m.name)

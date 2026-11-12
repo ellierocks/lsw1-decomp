@@ -455,6 +455,39 @@ class SymbolScopeTests(unittest.TestCase):
         self.assertIsNone(t.addr("OnReset", {".text": (0x80160000, 0x80161000)}))
 
 
+class OwnDataNameTests(unittest.TestCase):
+    """A data symbol mine defines under a name symbols.txt places in the unit must be the one
+    retail references; BSS has no bytes, so a swap would otherwise pass as unverified."""
+
+    def comparer(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "symbols.txt"
+            path.write_text("s_dvdPassthru = .bss:0x802F3500; // type:object size:0x20\n"
+                            "s_dvdError = .bss:0x802F3540; // type:object size:0x4\n"
+                            "elsewhere = .bss:0x80300000; // type:object size:0x4\n")
+            symbols = vf.SymbolTable(path)
+        return vf.Comparer(symbols, None, None, {".bss": (0x802F3500, 0x802F3560)})
+
+    def ref(self, name, off):
+        return vf.Ref(6, name, 0, False, (".bss", off))
+
+    def test_swapped_own_bss_names_differ(self):
+        status, detail = self.comparer().ref_status(self.ref("s_dvdError", 0x40),
+                                                    self.ref("s_dvdPassthru", 0), None)
+        self.assertEqual(status, "diff")
+        self.assertIn("s_dvdPassthru", detail)
+
+    def test_same_own_bss_name_maps(self):
+        status, _ = self.comparer().ref_status(self.ref("s_dvdError", 0x40),
+                                               vf.Ref(6, "s_dvdError", 0, False, (".bss", 0x40)), None)
+        self.assertEqual(status, "mapped")
+
+    def test_names_outside_the_unit_still_map_by_consistency(self):
+        status, _ = self.comparer().ref_status(self.ref("s_dvdError", 0x40),
+                                               self.ref("elsewhere", 0), None)
+        self.assertEqual(status, "mapped")
+
+
 class UnitProofCoverageTests(unittest.TestCase):
     def comparer(self, proof):
         return vf.Comparer(None, None, proof)

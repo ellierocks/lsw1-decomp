@@ -77,6 +77,7 @@ SN_FLAGS = ["-O2", "-mfast-cast", "-fno-common", "-G", "8", "-I", "src/sn/includ
             "-D__SIZE_TYPE__=unsigned", "-D_CALL_SYSV", "-D__SN__", "-DSN_TARGET_NGC",
             "-D__NOASMPP__", "-D_LANGUAGE_C", "-D__LANGUAGE_C", "-DLANGUAGE_C"]
 SN_SOURCE_DIR = ROOT / "src" / "sn"
+SN_UNIT_FLAGS: list[str] | None = None  # main(): the scored unit's build.ninja cflags
 
 
 def default_compiler(source: Path) -> str:
@@ -95,6 +96,32 @@ def missing_toolchain(compiler: str) -> list[Path]:
     else:
         needed += [BUILD / "compilers" / "GC" / MW_VERSION / "mwcceppc.exe"]
     return [p for p in needed if not p.exists()]
+
+
+def unit_prodg_flags(source: Path, ninja: Path | None = None) -> list[str] | None:
+    """cflags of SOURCE's ProDG build edge in build.ninja, or None.
+
+    SN runtime units add per-library flags to cflags_sn_libc (libsn's `-G 0`, libm's
+    `-msafe-sda`), and `-G` alone moves every global between sda21 and lis/addi
+    addressing, so `--compiler sn` scores with the unit's own flags when it has an edge.
+    """
+    import shlex
+    ninja = ninja or ROOT / "build.ninja"
+    try:
+        rel = source.resolve().relative_to(ROOT).as_posix()
+        lines = ninja.read_text().replace("$\n", "").splitlines()
+    except (OSError, ValueError):
+        return None
+    for i, line in enumerate(lines):
+        if not (line.startswith("build ") and ": prodg " in line and f" {rel} " in line + " "):
+            continue
+        for var in lines[i + 1:]:
+            if not var.startswith("  "):
+                break
+            key, _, value = var.strip().partition(" = ")
+            if key == "cflags":
+                return shlex.split(value)
+    return None
 
 
 def unit_mw_settings(source: Path, ninja: Path | None = None) -> tuple[str, list[str]] | None:
@@ -163,7 +190,7 @@ def compile_source(source: Path, out: Path, compiler: str, extra: list[str],
                 "--as-bin", str(BUILD / "binutils" / "powerpc-eabi-as"),
                 "--dtk", str(BUILD / "tools" / "dtk_patched"),
                 "--wibo", str(BUILD / "tools" / "wibo"),
-                *diagnostic_args, *(SN_FLAGS if compiler == "sn" else PRODG_FLAGS), *extra, "-c", str(source), "-o", str(out)], cwd=ROOT)
+                *diagnostic_args, *(SN_UNIT_FLAGS or SN_FLAGS if compiler == "sn" else PRODG_FLAGS), *extra, "-c", str(source), "-o", str(out)], cwd=ROOT)
         except prodg_cc.CompileError as e:
             return error_tail(str(e).strip())
         return ""
@@ -311,13 +338,14 @@ def main(argv=None) -> int:
                     help="evaluate a source-built cc1 (tools/sn-gcc/build.sh); with GDBG=1/LADBG=1 and "
                          "a diagnostics build its allocation trace lands in compiler.log")
     args = ap.parse_args(argv)
-    global MW_VERSION, MW_FLAGS
+    global MW_VERSION, MW_FLAGS, SN_UNIT_FLAGS
     import shlex
     unit = unit_mw_settings(args.source) if args.compiler in (None, "sdk") else None
     if args.compiler is None:  # sweep.py and other callers pass no --compiler for SDK units
         args.compiler = "sdk" if unit else default_compiler(args.source)
     MW_VERSION = args.mw_version or (unit[0] if unit else "1.2.5n")
     MW_FLAGS = shlex.split(args.mw_flags) if args.mw_flags else (unit[1] if unit else SDK_FLAGS)
+    SN_UNIT_FLAGS = unit_prodg_flags(args.source) if args.compiler == "sn" else None
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]
     if args.compile_only and not args.o:
         ap.error("--compile-only needs -o")

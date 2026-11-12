@@ -532,6 +532,7 @@ config.libs = [
         SDKObject("Runtime/__start", Matching),
         SDKObject("Runtime/__init_fpu", Matching),
         SDKObject("Runtime/tealeaf", Matching),
+        SDKObject("Runtime/__va_arg", Matching),
         SDKObject("Runtime/__init_cpp", Matching),
     ]),
     DolphinLib("mtx", [
@@ -696,6 +697,7 @@ config.libs = [
             SnObject("sn/libgcc/_ashldi3.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_ashrdi3.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_divdi3.c", cflags_sn_libgcc),
+            SnObject("sn/libgcc/_exit.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_lshrdi3.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_moddi3.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_udivdi3.c", cflags_sn_libgcc),
@@ -703,6 +705,8 @@ config.libs = [
             SnObject("sn/libc/stdio/vprintf.c"),
             SnObject("sn/libc/string/memmove.c"),
             SnObject("sn/libsn/dummy.c", cflags_sn_libsn),
+            SnObject("sn/libsn/FSasync.c", cflags_sn_libsn),
+            Object(NonMatching, "sn/libsn/sndvd.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libsn),
             Object(NonMatching, "sn/libm/math/sf_cos.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
             Object(NonMatching, "sn/libm/math/kf_cos.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
             Object(NonMatching, "sn/libm/math/kf_sin.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
@@ -712,6 +716,7 @@ config.libs = [
             Object(NonMatching, "sn/libm/math/sf_floor.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
             Object(NonMatching, "sn/libm/common/sf_scalbn.c", compiler="prodg", compiler_version=PRODG_VERSION, cflags=cflags_sn_libm),
             SnObject("sn/libm/common/sf_copysign.c", cflags_sn_libm),
+            SnObject("sn/libm/common/s_nan.c"),
         ],
     },
     {

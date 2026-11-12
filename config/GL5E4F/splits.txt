@@ -335,6 +335,23 @@ dolphin/Runtime/cvt_fp2unsigned.c:
 dolphin/Runtime/tealeaf.c:
 	.text       start:0x801531CC end:0x801531E8
 
+dolphin/Runtime/__va_arg.c:
+	.text       start:0x801531E8 end:0x801532DC
+
+sn/libsn/FSasync.c:
+	.text       start:0x801532DC end:0x80153B14
+	.data       start:0x801E1C70 end:0x801E1C80
+	.bss        start:0x802F34C0 end:0x802F3500
+
+sn/libsn/sndvd.c:
+	.text       start:0x80153B14 end:0x80154144
+	.rodata     start:0x801AFF80 end:0x801AFF98
+	.data       start:0x801E1C80 end:0x801E1C88
+	.bss        start:0x802F3500 end:0x802F3560
+
+sn/libm/common/s_nan.c:
+	.text       start:0x80154144 end:0x80154168
+
 sn/libc/ctype/isdigit.c:
 	.text       start:0x80154168 end:0x8015417C
 
@@ -501,6 +518,9 @@ sn/libgcc/_ashrdi3.c:
 sn/libgcc/_divdi3.c:
 	.text       start:0x8015AA80 end:0x8015AFFC
 	.sdata2     start:0x8040B308 end:0x8040B408
+
+sn/libgcc/_exit.c:
+	.text       start:0x8015AFFC end:0x8015B004
 
 sn/libgcc/_lshrdi3.c:
 	.text       start:0x8015B004 end:0x8015B044
