@@ -371,7 +371,11 @@ def main():
     # In a ProDG object only references from surviving code keep a local static: retail
     # drops locale.c `lc_ctype`, used only by the removed `_setlocale_r`. MWCC SDK objects
     # keep such statics (OSThread.c .data). See docs/sn_runtime.md.
-    dead_code = {} if has_mwcc_comment(elf) else dead_function_ranges(elf, keep)
+    mwcc = has_mwcc_comment(elf)
+    dead_code = {} if mwcc else dead_function_ranges(elf, keep)
+    # MWCC data is cut in the reference's eight-byte granules; a ProDG object loses the
+    # whole object: retail keeps none of __main.o's 4-byte `__do_global_dtors` pointer.
+    granule = DATA_GRANULE if mwcc else 1
     refcount = [0] * len(syms)
     pooled_sections = set()
     for i, sh in enumerate(elf.sections):
@@ -406,7 +410,7 @@ def main():
         if stype == STT_FUNC:
             removed.setdefault(shndx, []).append((s[1], s[1] + s[2]))
         elif bind != STB_LOCAL or (refcount[i] == 0 and shndx not in pooled_sections):
-            cut = s[2] - s[2] % DATA_GRANULE
+            cut = s[2] - s[2] % granule
             if cut:
                 removed.setdefault(shndx, []).append((s[1], s[1] + cut))
         else:
@@ -436,7 +440,7 @@ def main():
             if end <= off:
                 d += end - start
         return off - d
-    if not has_mwcc_comment(elf):
+    if not mwcc:
         relocate_resolved_branches(elf, removed, dead, shift)
     for shndx, ranges in removed.items():
         old = elf.contents[shndx]

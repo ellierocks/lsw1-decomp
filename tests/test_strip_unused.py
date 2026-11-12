@@ -128,6 +128,18 @@ class StripUnusedTests(unittest.TestCase):
         self.assertEqual(data, b"LIVESTAT")
         self.assertEqual(names, ["", "kept", "live_static"])
 
+    def test_prodg_dead_static_smaller_than_a_granule_is_dropped_whole(self):
+        # __main.o: retail keeps none of `__do_global_dtors`'s 4-byte list pointer.
+        ident = b"\0GCC: (GNU) 2.95.3 SN BUILD v1.76 for Nintendo Gamecube\0"
+        source = [("dead", 0, 4, 2, 1), ("kept", 4, 4, 2, 1), ("pointer", 0, 4, 1, 2, 0)]
+        make_elf(self.obj, source, text=b"DEADKEEP", data=b"PTR!", relocations=[(0, 3, 0)], comment=ident)
+        make_elf(self.target, [("kept", 0, 4, 2, 1)], text=b"KEEP")
+        result = self.run_strip()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        elf = Elf(self.obj.read_bytes())
+        self.assertEqual(elf.contents[elf.index(".data")], b"")
+        self.assertEqual([s[0] for s in symbols(elf)], ["", "kept"])
+
     def test_mwcc_static_used_only_by_removed_function_is_kept(self):
         # OSThread.c keeps such statics in retail.
         data, names = self.strip_dead_static(None)

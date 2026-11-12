@@ -322,6 +322,9 @@ cflags_sn_libc = [
 cflags_sn_libgcc = [
     "-G 1024" if flag == "-G 8" else flag for flag in cflags_sn_libc if flag != "-DMB_CAPABLE"
 ] + ["-I src/sn/libgcc"]
+# `__main` reads its 4-byte `initialized` with lis/lwz from .bss, not r13-relative .sbss, so
+# that object was built below `-G 4`; `-G 0` emits it with .lcomm as retail has it.
+cflags_sn_libgcc_main = ["-G 0" if flag == "-G 1024" else flag for flag in cflags_sn_libgcc]
 
 config.linker_version = "GC/1.3.2"
 # Use the retail SN linker; MWLD remains the fallback for template REL support.
@@ -665,6 +668,7 @@ config.libs = [
             SnObject("sn/libc/reent/lseekr.c"),
             SnObject("sn/libc/reent/readr.c"),
             SnObject("sn/libc/reent/writer.c"),
+            SnObject("sn/libgcc/__main.c", cflags_sn_libgcc_main, strip=True),
             SnObject("sn/libgcc/_ashldi3.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_ashrdi3.c", cflags_sn_libgcc),
             SnObject("sn/libgcc/_divdi3.c", cflags_sn_libgcc),
