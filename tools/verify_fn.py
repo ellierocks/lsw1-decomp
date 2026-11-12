@@ -629,6 +629,8 @@ class Comparer:
                     if s.shndx == sec.index and s.value == off and s.size
                     and s.sym_type == STT_OBJECT), None)
         target = self.symbols.object_at(taddr)
+        if obj is None and target is not None and sec.sh_type != SHT_NOBITS and self.dol is not None:
+            return self._literal_status(elf, sec, off, taddr, target.size) or unverified
         if obj is None or target is None or sec.sh_type == SHT_NOBITS or self.dol is None:
             return unverified
         if obj.size != target.size:
@@ -670,6 +672,29 @@ class Comparer:
             return f"MISMATCH: address-taken object {bytes(mine_bytes).hex()} != retail {target_bytes.hex()}"
         how = f", {pointers} pointer(s) and their pointees verified" if pointers else ", no relocations"
         return f"verified: whole {obj.size}-byte object identical to retail{how}"
+
+    def _literal_status(self, elf: Elf, sec: Section, off: int, taddr: int,
+                        size: int) -> Optional[str]:
+        """Status of an unnamed string literal (GCC emits no symbol for it).
+
+        Verified only when retail's sized object at TADDR is one NUL-terminated string
+        followed by zero padding, and mine holds the same string (terminator included) at
+        OFF with no relocation inside it. Returns None when retail is not such a string."""
+        target_bytes = self.dol.read(taddr, size)
+        if not target_bytes or 0 not in target_bytes:
+            return None
+        end = target_bytes.index(0) + 1
+        text = target_bytes[: end - 1]
+        if not text or any(b < 0x20 and b not in (9, 10, 13) for b in text) \
+                or any(target_bytes[end:]):
+            return None
+        mine_bytes = elf.section_bytes(sec)[off: off + end]
+        if any(off <= r.offset < off + end for r in elf.relocs.get(sec.index, [])):
+            return "unverified: string literal holds relocations"
+        if mine_bytes != target_bytes[:end]:
+            return (f"MISMATCH: string literal {bytes(mine_bytes)!r} != retail "
+                    f"{bytes(target_bytes[:end])!r}")
+        return f"verified: {end}-byte string literal identical to retail"
 
     def verify_data(self, mine: Func, report: Report) -> None:
         for (key, mloc, taddr), _ in list(self.pending_data.items()):
