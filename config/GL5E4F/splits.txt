@@ -350,6 +350,10 @@ sn/libc/stdio/sprintf.c:
 sn/libc/stdio/sscanf.c:
 	.text       start:0x8015428C end:0x80154384
 
+sn/libc/stdio/vfscanf.c:
+	.text       start:0x80154384 end:0x8015525C
+	.rodata     start:0x801AFF98 end:0x801AFFBC
+
 sn/libc/stdio/vsprintf.c:
 	.text       start:0x8015525C end:0x801552B8
 

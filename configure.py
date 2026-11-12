@@ -633,6 +633,7 @@ config.libs = [
             SnObject("sn/libc/ctype/toupper.c"),
             SnObject("sn/libc/stdio/sprintf.c", strip=True),
             SnObject("sn/libc/stdio/sscanf.c"),
+            SnObject("sn/libc/stdio/vfscanf.c"),
             SnObject("sn/libc/stdio/vsprintf.c", strip=True),
             SnObject("sn/libc/stdlib/atof.c"),
             SnObject("sn/libc/stdlib/exit.c"),
