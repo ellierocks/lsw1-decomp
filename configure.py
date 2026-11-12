@@ -658,6 +658,7 @@ config.libs = [
             SnObject("sn/libc/stdio/fflush.c"),
             SnObject("sn/libc/stdio/findfp.c", strip=True),
             SnObject("sn/libc/stdio/fwalk.c"),
+            SnObject("sn/libc/stdio/makebuf.c"),
             SnObject("sn/libc/stdio/stdio.c"),
             SnObject("sn/libc/reent/closer.c"),
             SnObject("sn/libc/reent/fstatr.c"),
