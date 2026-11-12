@@ -172,7 +172,7 @@ note = "Strict VERIFIED 29 functions / 8,276 B (15 / 3,616 B in objdiff; 14 / 4,
 [[stage.item]]
 id = "nuqfnt"
 units = ["auto/nu3d/nuqfnt", "auto/nu3d/ngc/nuqfnt_ngc", "auto/nu3d/ngc/nufont_ngc"]
-note = "nuqfnt-1 (2026-11-12) matched 18 functions / 4,004 B; no unit promoted; fn_8002BB60 and fn_80027DC8 parked. The nuqfnt unit is mostly portal visibility and NuAnimData2, not quick-font: open are clipPortal, createPortalFrustrum, roomRecursive and NuPortalVisibility (OpenSaga nu3d_includes.cpp roomRecursive ~15346 and NuPortalVisibility ~15528), NuAnimData2Init/Clone/Apply/CalcMatrix (CalcMatrix lead ~8482) and fn_8001FD98. Its .rodata split starts at 0x80190A3C, so float constants are literals."
+note = "nuqfnt-2 (2026-11-12) strictly VERIFIED createPortalFrustrum (756 B) and roomRecursive (700 B), 1,456 B total; no unit promoted. Objdiff counts roomRecursive only (+700 B); createPortalFrustrum and two #151 functions retain equivalent literal-pool references. All nine previously unattempted targets and both old plateaus attempted; none unattempted. Portal candidates remain in source at clipPortal 141/172 and NuPortalVisibility 172/173; nufont_ngc improves to 52/55. Animation/text drafts and searches stay in local work/; parked entries record next steps. OpenSaga portal helpers transfer; animation names instead lead to CalcValue1648, generic ANI3 sampling and scalar Euler/blend players, not the same-named matrix wrapper. CrashWOC legacy animation layout rejected. See docs/nu2_engine_reference.md#portal-and-packed-animation-evidence-nuqfnt. Unit-owned float constants remain literals; crclr callees remain unprototyped."
 # at revision 1: 29 functions, 13,592 bytes left
 
 [[stage.item]]
@@ -2200,9 +2200,49 @@ function = "fn_800379A0"
 reason = "Strict VERIFIED 43/43, 172 B (ngc_video); objdiff remains below 100% on equivalent literal-pool relocations. Next: complete the four remaining functions and reproduce the unit-owned literal range; keep NonMatching until sections, relocations and linked ranges match."
 
 [[parked]]
+function = "clipPortal"
+reason = "Best 141/172 (nuqfnt, candidate in source), 170 emitted instructions. Inline transformed extents and rectangle intersection confirmed; register allocation, explicit minimum-x store arms and shared rejection epilogue remain different. Variant search did not close it; keep the 32-bit room argument so roomRecursive stays strict. Next: model intersection inputs separately from output extents to preserve both minimum-x stores and the maximum-pointer lifetime."
+
+[[parked]]
+function = "NuPortalVisibility"
+reason = "Best 172/173 (nuqfnt, candidate in source), same instruction count and verified references. Order search and a final 180 s permuter burst leave only lbl_803145D0.y stored after the near-position locals instead of before them. Next: inspect the inline plane/vector construction shape and RTL scheduling dependencies around that one store; keep the GC debug scale literal 1.0f."
+
+[[parked]]
+function = "fn_8001FD98"
+reason = "Best viable draft 122/387 (nuqfnt, local work/fd98-unit.c). OpenSaga NuQFntPrintJustifiedRSW confirms word fitting and spacing; repaired seven FPR arguments, f32 scale loads and UTF16 scratch storage. An earlier 152/387 draft had incorrect integer scale loads and is rejected. Next: replace raw font accesses with the existing GC font view and aligned u16 line[256]/space[2], then reproduce the target 0x2d8 frame and retain the matched forwarding wrapper."
+
+[[parked]]
+function = "NuAnimData2Init"
+reason = "Best viable draft 59/196 (nuqfnt, local work/nuqfnt-all-drafts.c); 193 emitted instructions. OpenSaga CalcValue1648 confirms four-quarter packed 12-bit decoding. The 62/196 unsigned variant changes signed differences and is rejected. Next: reproduce the signed integer-to-float temporaries and case-0/1 shared interpolation from GC RTL; preserve byte key stride and 4095.0f divisor."
+
+[[parked]]
+function = "NuAnimData2Clone"
+reason = "Best viable draft 94/272 (nuqfnt, local work/nuqfnt-all-drafts.c); 271 emitted instructions. Generic OpenSaga ANI3 sampler confirms packed types 6/7 and unsigned constant halfwords. A 102/272 unsigned whole-key variant removes target signed division and is not accepted. Next: inline the key-time mapping and decoder with target signed whole-key conversions; recover loop counter lifetimes before further permutation."
+
+[[parked]]
+function = "NuAnimData2Apply"
+reason = "Best 69/274 (nuqfnt, local work/variant_search/NuAnimData2Apply/best.c), same instruction count but 0x58 versus target 0x60 frame. OpenSaga Euler player informs masks/skip/decode order; GC uses scalar triples and reverse chained default stores. Next: reproduce packed decoder FPR lifetimes in the outer group loop and signed conversion temporaries; reject donor quaternion/four-float strides."
+
+[[parked]]
+function = "NuAnimData2CalcMatrix"
+reason = "Best 138/367 (nuqfnt, local work/variant_search/NuAnimData2CalcMatrix/best.c); 360 emitted instructions. GC is an ANI3 scalar blend player with root Z negation and 16-bit wrapped rotation delta, not the donor same-named matrix wrapper. Next: reproduce decoder signed/unsigned conversion temporaries and hoisted group constants to reach the 0xa0 frame; preserve key_count/frame_count mapping and 0.01f clamp."
+
+[[parked]]
+function = "createPortalFrustrum"
+reason = "Strict VERIFIED 189/189, 756 B (nuqfnt). Objdiff retains an equivalent .rodata literal-pool relocation to retail zero at 0x80190A44. Next: finish unit-owned data and all unmatched bodies, then compare sections, relocations and linked ranges before promotion."
+
+[[parked]]
+function = "fn_8001FBB0"
+reason = "Already strict VERIFIED in #151: 122/122, 488 B (nuqfnt), reconfirmed in pass 2; not new progress. Objdiff still differs on equivalent literal-pool references. Next: reproduce the complete unit-owned constant range and pass section/relocation/linked-range promotion gates."
+
+[[parked]]
+function = "fn_800203C8"
+reason = "Already strict VERIFIED in #151: 29/29, 116 B (nuqfnt), reconfirmed in pass 2; not new progress. Objdiff still differs on equivalent literal-pool references. Next: reproduce the complete unit-owned constant range and pass section/relocation/linked-range promotion gates."
+
+[[parked]]
 function = "fn_8002BB60"
-reason = "Best 120/137 (nuqfnt_ngc, candidate in source): the target computes g+0x50 then buf=r9+4, GCC folds both into g+0x54; r6/r7 swap in the 12-byte copy at 0x44. VARIPTR locals, explicit casts and &p[1] score the same; a 180 s permuter burst found only non-equivalent rewrites. Next: type the 0x44 field and the trailing s32 as a sub-struct or array so the +4 is a separate member address."
+reason = "Best 120/137 (nuqfnt_ngc, candidate in source). Second pass tested geom-plus-trailing-word allocation records, member/array address forms and all six scalar-copy orders; no improvement. The +0x50/+4 address folding and r6/r7 swap in the 0x44 copy remain. Next: inspect ProDG RTL for the two aggregate-copy lifetimes, then try a separately inlined allocation helper; keep the 0x50 geometry size fixed."
 
 [[parked]]
 function = "fn_80027DC8"
-reason = "Best 47/55 (nufont_ngc): the transposed projection copy and camera dot product match; only the scheduling of the lis/lfs constant prologue and the m[2][2]/constant stores differ. Order search over the five trailing stores and literal-versus-local constants did not close it. Next: try a Mtx44 struct assignment or a NuMtx helper-shaped copy, then permute the prologue."
+reason = "Best 52/55 (nufont_ngc, candidate in source), up from 47/55. Mtx44/full-copy and inline-helper shapes rejected; a 180 s permuter burst found a local zero row index plus literals that preserves all references. Only first destination address materialization differs: target lis r7, addi r9,r7 and stfs through r7; candidate folds it through r9. Next: recover the first-element lvalue/base lifetime with an array or union view, then strict-verify the complete unit."

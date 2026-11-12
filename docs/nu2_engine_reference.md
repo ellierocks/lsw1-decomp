@@ -153,6 +153,40 @@ pointer counted from NULL in 0xD0 steps when `displayScene` is set; the donor st
 NULL. Two `symbols.txt` names are wrong by body: `NuSpecialFindMultiWC` is DrawAt and
 `NuSpecialGetInstAnim` is GetName. They are not renamed yet.
 
+### Portal and packed-animation evidence (`nuqfnt`)
+
+The local views in [`auto/nu3d/nuqfnt.c`](../src/auto/nu3d/nuqfnt.c) extend the
+portal layouts with accesses from strictly verified `createPortalFrustrum`
+(`0x8001F254`, 756 B) and `roomRecursive` (`0x8001F548`, 700 B):
+
+| View | GC fields | Evidence |
+|---|---|---|
+| `NUFRUSTRUM` | minimum 0x84, maximum 0x90 (three floats each); planes 0x80; signed halfwords plane count 0x9C, room ID 0x9E; copy size 0xA0 | transformed/clamped portal extents and recursive frustum copy |
+| `NUROOM` | portal-index pointer 0x08 (`lha` elements), portal count 0x0F (`lbz`), flags 0x10 (`lwz`/`stw`), stride 0x18 | portal iteration and visited flag 0x20000000 |
+| scene portal block | portals 0x8C, rooms 0x94, maximum recursion depth 0x100 (`lwz`) | recursive portal lookup and depth limit |
+
+OpenSaga's `computePortalExtents`, portal-frustum builder and `roomRecursive`
+provide the algorithms; GC separates rejection, clipping and recursion into
+individual functions. Its debug-call signatures and recursion limit differ.
+The extent helper must remain inline to reproduce ProDG's register lifetimes.
+
+The current `NuAnimData2Init/Clone/Apply/CalcMatrix` names at
+`0x80020478..0x800215CB` identify packed ANI3 decoding/player bodies. They do
+**not** use the older `nuanimdata2_s` mask/curve layout documented above or in
+CrashWOC's `nuanim.c` and DWARF dump. Static assembly review confirms header
+halfwords at 0x04..0x0E, scalar minimum/scale at 0x1C/0x20 and pointers to
+scale/min pairs, unsigned-halfword constants, curve types, keys and node flags
+at 0x24/0x28/0x2C/0x30/0x34. These remain local research views; the animation
+candidates are not verified.
+
+Useful OpenSaga `nu3d_includes.cpp` leads are `CalcValue1648` (12-bit packed
+quarter decoder), the generic ANI3 scalar sampler near line 8300, and the simple
+Euler and blend players near lines 7635 and 8142. The same-named matrix wrapper
+is unrelated. GC uses scalar triples per group and a negated root-translation Z;
+modern quaternion output and four-float joint strides do not transfer. Retail
+literals distinguish the normal-player clamp (`1.0001f`) from the blend-player
+clamp (`0.01f`). No symbol renames follow from these donor leads.
+
 ### GameCube material state
 
 The local views in [`ngc_mtl.c`](../src/auto/nu3d/ngc/ngc_mtl.c) follow GC accesses,

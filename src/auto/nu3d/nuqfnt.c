@@ -41,7 +41,8 @@ typedef struct { f32 x, y, z, d; } NUPLANE;
 typedef struct NUFRUSTRUM {
     f32 transposed_planes[32]; /* 0x00 */
     NUPLANE* planes;           /* 0x80 */
-    u8 pad84[0x18];
+    NUVEC minimum;
+    NUVEC maximum;
     s16 plane_count;           /* 0x9c */
     s16 room_id;               /* 0x9e */
 } NUFRUSTRUM;
@@ -54,22 +55,32 @@ typedef struct nuportal_s {
     u8 pad1a[6];
 } NUPORTAL;
 typedef struct nuroom_s {
-    u8 pad[0x14];
+    u8 pad00[8];
+    s16* portalIndices;
+    u8 pad0c[3];
+    u8 portalCount;
+    u32 flags;
     u8 priority;       /* 0x14 */
     u8 pad15[3];
 } NUROOM;
 typedef struct nuportalinfo_s {
     s32 max_portals;      /* 0x00 */
-    u8 pad04[8];
+    NUPORTAL* portals;
+    s32 numRooms;
     NUROOM* rooms;        /* 0x0c */
     u8 pad10[0x20];
     NUFRUSTRUM* frusta[16]; /* 0x30 */
     s32 num_frusta;       /* 0x70 */
     s32 camera_room;      /* 0x74 */
+    s32 depth;
 } NUPORTALINFO;
 typedef struct nugscn_s {
     u8 pad[0x88];
     NUPORTALINFO portal;
+    u8 pad104[0x7c];
+    s32 sphereCount;
+    s32 portalInstanceCount;
+    NUPORTALSPHERE* spheres;
 } NUGSCN;
 extern NUVEC lbl_8020D8E8;
 
@@ -209,4 +220,242 @@ s32 fn_8001FBB0(u32 mode)
         break;
     }
     return old;
+}
+
+typedef struct { f32 m[4][4]; } NUMTX;
+extern NUMTX lbl_8020D818;
+extern NUMTX lbl_8020D858;
+extern NUMTX lbl_8020D898;
+extern NUPLANE lbl_803145D0;
+extern NUVEC lbl_801B0ED8;
+extern NUVEC lbl_801B0EE4;
+extern void NuCameraGetClipMtx(NUMTX*, s32);
+extern void fn_8000D4DC(NUMTX*, NUMTX*);
+extern f32 NuVecMtxTransformH(NUVEC*, NUVEC*, NUMTX*);
+extern void NuVecMax(NUVEC*, NUVEC*, NUVEC*);
+extern void NuVecMin(NUVEC*, NUVEC*, NUVEC*);
+extern void NuVecSub(NUVEC*, NUVEC*, NUVEC*);
+extern void NuVecCross(NUVEC*, NUVEC*, NUVEC*);
+extern f32 NuVecNorm(NUVEC*, NUVEC*);
+extern NUFRUSTRUM* NuFrustrumAlloc(s16);
+extern void transposeClipPlanes(NUFRUSTRUM*);
+extern void drawClippedPortal(NUPORTAL*, NUROOM*, NUVEC*, NUVEC*, s32);
+extern NUFRUSTRUM* buildFrustrum(NUVEC*, NUVEC*, s16);
+
+static inline void computePortalExtents(NUPORTAL* portal, NUVEC* maximum, NUVEC* minimum)
+{
+    NUVEC point;
+    s32 i;
+    NuCameraGetClipMtx(&lbl_8020D818, 0);
+    fn_8000D4DC(&lbl_8020D858, &lbl_8020D818);
+    NuVecMtxTransformH(maximum, portal->vertices, &lbl_8020D818);
+    *minimum = *maximum;
+    for (i = 1; i < portal->vertex_count; i++) {
+        NuVecMtxTransformH(&point, &portal->vertices[i], &lbl_8020D818);
+        NuVecMax(maximum, maximum, &point);
+        NuVecMin(minimum, minimum, &point);
+    }
+    NuVecMin(maximum, maximum, &lbl_801B0ED8);
+    NuVecMax(maximum, maximum, &lbl_801B0EE4);
+    NuVecMin(minimum, minimum, &lbl_801B0ED8);
+    NuVecMax(minimum, minimum, &lbl_801B0EE4);
+}
+
+static inline s32 clipPortalExtents(NUVEC* minimum, NUVEC* maximum, NUVEC* clip_min, NUVEC* clip_max)
+{
+    if (maximum->x <= clip_min->x || maximum->y <= clip_min->y || minimum->x >= clip_max->x || minimum->y >= clip_max->y) {
+        return 0;
+    } else {
+        if (minimum->x > clip_min->x) minimum->x = minimum->x;
+        else minimum->x = clip_min->x;
+        if (!(minimum->y > clip_min->y)) minimum->y = clip_min->y;
+        if (!(maximum->x < clip_max->x)) maximum->x = clip_max->x;
+        if (!(maximum->y < clip_max->y)) maximum->y = clip_max->y;
+        return 1;
+    }
+}
+
+s32 clipPortal(NUPORTAL* portal, NUROOM* room, s32 room_id, NUFRUSTRUM* frustum, NUFRUSTRUM** output)
+{
+    NUVEC maximum;
+    NUVEC minimum;
+    s32 count = 0;
+    s32 i;
+    s32 visible;
+    for (i = 0; i < portal->vertex_count; i++) {
+        if (lbl_803145D0.x * portal->vertices[i].x + lbl_803145D0.y * portal->vertices[i].y + lbl_803145D0.z * portal->vertices[i].z + lbl_803145D0.d > 0.0f) {
+            count++;
+        }
+    }
+    if (count == 0) return 0;
+    if (count != portal->vertex_count) return 4;
+    computePortalExtents(portal, &maximum, &minimum);
+    visible = clipPortalExtents(&minimum, &maximum, &frustum->minimum, &frustum->maximum);
+    if (visible) {
+        drawClippedPortal(portal, room, &minimum, &maximum, 0xFF00);
+        *output = buildFrustrum(&minimum, &maximum, room_id);
+        return 1;
+    }
+    return 0;
+}
+
+NUFRUSTRUM* createPortalFrustrum(NUPORTAL* portal, s16 room_id)
+{
+    NUVEC camera;
+    NUVEC first;
+    NUVEC second;
+    NUFRUSTRUM* frustum;
+    f32 side;
+    s32 i;
+    frustum = NuFrustrumAlloc(portal->vertex_count);
+    frustum->room_id = room_id;
+    camera.x = lbl_8020D898.m[3][0];
+    camera.y = lbl_8020D898.m[3][1];
+    camera.z = lbl_8020D898.m[3][2];
+    side = portal->plane.x * camera.x + portal->plane.y * camera.y + portal->plane.z * camera.z + portal->plane.d;
+    for (i = 0; i < portal->vertex_count; i++) {
+        NuVecSub(&first, &camera, &portal->vertices[i]);
+        NuVecSub(&second, &camera, &portal->vertices[(i + 1) % portal->vertex_count]);
+        NuVecCross(&first, &first, &second);
+        NuVecNorm(&first, &first);
+        if (side < 0.0f) {
+            frustum->planes[i].x = first.x;
+            frustum->planes[i].y = first.y;
+            frustum->planes[i].z = first.z;
+            frustum->planes[i].d = -(first.x * camera.x + first.y * camera.y + first.z * camera.z);
+        } else {
+            frustum->planes[i].x = -first.x;
+            frustum->planes[i].y = -first.y;
+            frustum->planes[i].z = -first.z;
+            frustum->planes[i].d = first.x * camera.x + first.y * camera.y + first.z * camera.z;
+        }
+    }
+    computePortalExtents(portal, &frustum->maximum, &frustum->minimum);
+    transposeClipPlanes(frustum);
+    return frustum;
+}
+
+extern s16 lbl_8040A31C;
+extern void fn_80037D3C(NUROOM*, NUGSCN*);
+extern void clipRoomAgainstFrustrum(NUGSCN*, NUROOM*, NUFRUSTRUM*);
+extern void drawPortal(NUPORTAL*, NUROOM*, s32);
+
+void roomRecursive(NUGSCN* scene, NUFRUSTRUM* frustum, s16 room_id, s16 previous_room, s32 depth)
+{
+    NUFRUSTRUM* next_frustum;
+    NUROOM* room = &scene->portal.rooms[room_id];
+    u32 i;
+    s16 next_room;
+    s32 j;
+    NUPORTAL* portal;
+    if (room_id == lbl_8040A31C) fn_80037D3C(room, scene);
+    else clipRoomAgainstFrustrum(scene, room, frustum);
+    room->flags |= 0x20000000;
+    if (depth >= scene->portal.depth) return;
+    for (i = 0; i < room->portalCount; i++) {
+        portal = &scene->portal.portals[room->portalIndices[i]];
+        if (portal->front_room != room_id) next_room = portal->front_room;
+        else next_room = portal->back_room;
+        if (next_room == previous_room) continue;
+        switch ((u32)checkPortalVisibility(portal, frustum, scene, room_id, next_room)) {
+        case 0:
+            break;
+        case 1:
+            drawPortal(portal, &scene->portal.rooms[next_room], 0xFFFF00FF);
+            next_frustum = createPortalFrustrum(portal, next_room);
+            roomRecursive(scene, next_frustum, next_room, room_id, depth + 1);
+            break;
+        case 2:
+            switch (clipPortal(portal, &scene->portal.rooms[next_room], next_room, frustum, &next_frustum)) {
+            case 0:
+                break;
+            case 1:
+                roomRecursive(scene, next_frustum, next_room, room_id, depth + 1);
+                break;
+            case 4:
+                {
+                    NUFRUSTRUM* copy = NuFrustrumAlloc(frustum->plane_count);
+                    *copy = *frustum;
+                    for (j = 0; j < frustum->plane_count; j++) copy->planes[j] = frustum->planes[j];
+                    next_frustum = copy;
+                    copy->room_id = next_room;
+                    roomRecursive(scene, next_frustum, next_room, room_id, depth + 1);
+                }
+                break;
+            }
+            break;
+        default:
+            roomRecursive(scene, frustum, next_room, room_id, depth + 1);
+            break;
+        }
+    }
+}
+
+extern void fn_80037DA8(void);
+extern void fn_80037DB8(NUGSCN*);
+extern void fn_80037DE8();
+extern void* NuCameraGetMtx(void);
+extern NUMTX* NuCameraGetViewMtx(void);
+extern s16 NuPortalWhichRoom(NUGSCN*, NUVEC*);
+extern void drawViewFrustrum(void);
+extern void fn_80027BE0(NUPORTALSPHERE*, s32, f32, f32);
+extern NUVEC* lbl_80407CA4;
+extern s32 lbl_80407C94;
+extern s32 lbl_80407C98;
+extern void* lbl_8040A320;
+extern s32* lbl_8040A330;
+extern NUFRUSTRUM** lbl_8040A334;
+extern NUVEC lbl_80313298;
+extern NUPLANE lbl_8020D8D8;
+
+s32 NuPortalVisibility(NUGSCN* scene)
+{
+    NUVEC near_position;
+    NUVEC* camera_position;
+    f32 near_clip;
+    f32 x, y, z;
+    NUFRUSTRUM* frustum;
+    u32 i;
+    fn_80037DA8();
+    if (lbl_80407CA4 != 0) camera_position = lbl_80407CA4;
+    else camera_position = &lbl_8020D8E8;
+    if (lbl_80407C94 == 0) {
+        fn_80037DB8(scene);
+        return 0;
+    }
+    if (scene->portal.max_portals == 0 || scene->portal.numRooms == 0 || scene->portalInstanceCount == 0) return 0;
+    lbl_8040A330 = &scene->portal.num_frusta;
+    scene->portal.num_frusta = 0;
+    lbl_8040A334 = scene->portal.frusta;
+    fn_80037DE8(scene);
+    lbl_8040A320 = NuCameraGetMtx();
+    lbl_8020D898 = *NuCameraGetViewMtx();
+    lbl_8020D8E8 = lbl_80313298;
+    near_clip = *(f32*)((u8*)lbl_8040A320 + 0x48);
+    lbl_8040A31C = NuPortalWhichRoom(scene, camera_position);
+    scene->portal.camera_room = lbl_8040A31C;
+    if (lbl_8040A31C == -1) return 0;
+    x = lbl_8020D898.m[2][0] * near_clip + lbl_8020D8E8.x;
+    y = lbl_8020D898.m[2][1] * near_clip + lbl_8020D8E8.y;
+    z = lbl_8020D898.m[2][2] * near_clip + lbl_8020D8E8.z;
+    lbl_8020D8D8.x = lbl_8020D898.m[2][0];
+    lbl_8020D8D8.y = lbl_8020D898.m[2][1];
+    lbl_8020D8D8.z = lbl_8020D898.m[2][2];
+    lbl_803145D0.z = lbl_8020D898.m[2][2];
+    near_position.x = x;
+    near_position.y = y;
+    near_position.z = z;
+    lbl_8020D8D8.d = -(x * lbl_8020D898.m[2][0] + y * lbl_8020D898.m[2][1] + z * lbl_8020D898.m[2][2]);
+    lbl_803145D0.x = lbl_8020D898.m[2][0];
+    lbl_803145D0.y = lbl_8020D898.m[2][1];
+    lbl_803145D0.d = -(lbl_8020D8E8.x * lbl_8020D898.m[2][0] + lbl_8020D8E8.y * lbl_8020D898.m[2][1] + lbl_8020D8E8.z * lbl_8020D898.m[2][2]);
+    frustum = buildFrustrum(&lbl_801B0EE4, &lbl_801B0ED8, -2);
+    drawViewFrustrum();
+    for (i = 0; i < (u32)scene->portal.numRooms; i++) scene->portal.rooms[i].flags &= ~0x20000000;
+    roomRecursive(scene, frustum, lbl_8040A31C, -1, 0);
+    if (lbl_80407C98 != -1 && lbl_80407C98 < scene->sphereCount) {
+        NUPORTALSPHERE* sphere = &scene->spheres[lbl_80407C98];
+        fn_80027BE0(sphere, 0x400000, sphere->radius, 1.0f);
+    }
+    return 1;
 }
