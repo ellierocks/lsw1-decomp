@@ -124,6 +124,8 @@ source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
   stdio and stdlib (`sprintf` at `801541B4`, `vfprintf`, ...) in unnamed pad blocks. Name
   the functions inside each block without moving its ends, then import them the way
   `src/sn/` was ([SN runtime](sn_runtime.md#not-imported) lists the known failures).
+  #138 imported 22 units this way. The 12 functions left (`malloc`, `free`, `strtod`
+  and the SN `vfprintf` rewrite) have no upstream source and are hand-match work.
 - **SN tail** (stage 1, 8,524 bytes): the libsn console and syscall stubs after the
   debugger driver are ordinary ProDG C (standard prologues, calls to `InitializeUART`
   and `WriteUARTN`); `cosf`, `fabsf` and `copysignf` are newlib libm. `_exit` is the crt
@@ -131,7 +133,10 @@ source or plain ProDG C. Stage 6 is gone, so the stage numbers skip from 5 to 7.
   the original was assembly (non-ABI register use, data words), with that evidence
   recorded per function. The item also holds `801531E8..80154168` (3,968 bytes,
   split out by #122), which opens with an SN `__va_arg`-style routine and needs its
-  entries found first.
+  entries found first. #139 promoted the libsn stubs, `fabsf` and `copysignf`; five
+  more float units match strictly but wait on `.sdata2` split ranges, and the two
+  `rem_pio2` functions are parked at 200/212 on `two_over_pi`'s SDA addressing.
+  `801531E8..80154168`, `8018CAFC..8018CB9C` and `_exit` are still unattempted.
 - **Data** (stage 7): most comes with promoting units. The rest needs data splits per
   section ([build configuration](build_config.md)); there is no data-matching lane yet.
 
@@ -149,6 +154,19 @@ are now exact `Runtime/__start`, `Runtime/__init_fpu`, `dvd/dvdlow_test` and
 `amcstubs/AmcExi2Stubs` units; existing split boundaries stay fixed. The two remaining
 `.init` pseudo-functions contain only constants or alignment and are parked,
 not counted as decompiled functions. See [SDK leftovers](sdk_import.md#sdk-leftovers).
+
+Revision 7 (2026-11-11) records the first parallel day of item runs: #135 (`hvqm4`),
+#136 (`rtl`), #137 (`nusound3`), #138 (`newlib`), #139 (`sn-tail`), #140
+(`nungc-nufmv`) and #141 (`nudlist`) took main from 406,596 to 436,008 matched code
+bytes and from 2,601 to 2,713 functions. Each run parked what it could not climb in its
+PR; revision 7 moves those 76 plateaus into `[[parked]]` with their best scores and next
+hypotheses, so `rtl`'s leftovers, `nusound3`, `nungc-nufmv` and `nudlist` stop counting
+as open work. Stage 1 is left with hand-match work that has no donor: newlib's 12
+functions, the three unattempted SN tail ranges and the two hub functions in `rtl`
+(`fn_8006F28C`, `fn_8006F37C`, owned by `hubs`; its claim record outlived #128 because
+the local branch was rebased, and goes with the next worktree cleanup). After that,
+stage 2 continues at `ngc_mtl`. Donor-led runs (`hvqm4`, `newlib`)
+matched the most bytes per hour, so look for a donor before climbing.
 
 ## Rules that do not change
 
