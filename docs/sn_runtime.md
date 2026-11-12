@@ -9,27 +9,62 @@ that reproduce retail and what is still assembly fallback.
 
 | Path | Source | Licence |
 |---|---|---|
-| `src/sn/libc/**/*.c` | newlib 1.8.2 (`newlib/libc/{ctype,stdlib,string,reent,stdio}`), unmodified | BSD-style per file; see `src/sn/COPYING.NEWLIB` |
-| `src/sn/include/` | newlib 1.8.2 `newlib/libc/include`, plus gcc `ginclude` headers (`stddef.h`, `stdarg.h`, `va-ppc.h`, `stdbool.h`, `iso646.h`, `limits.h`) | newlib: as above; gcc headers: GPL-2+ with the runtime exception |
-| `src/sn/libgcc/libgcc2.c` | SN Systems' GPL source release of GCC 2.95 (`NGC_GNU_SRC/NGC/gcc/libgcc2.c`), trimmed to the matched `L_*` sections | GPL-2+ with the libgcc exception |
+| `src/sn/libc/**/*.c`, `src/sn/libc/**/*.h` | newlib 1.8.2 (`newlib/libc/{ctype,errno,locale,reent,stdio,stdlib,string}`); upstream text except the edits marked `SN Systems:` ([SN edits](#sn-edits)) | BSD-style per file; see `src/sn/COPYING.NEWLIB` |
+| `src/sn/libm/math/` | newlib 1.8.2 fdlibm: `libm/math/{s_floor,e_fmod,e_log,e_log10}.c` and `libm/common/fdlibm.h`, unmodified | SunPro's permissive notice, kept in each file |
+| `src/sn/libm/{fmod,log,log10}.c` | written for this project: the `__ieee754_*` renames, then `#include "math/e_*.c"` | project |
+| `src/sn/include/` | newlib 1.8.2 `newlib/libc/include`, plus gcc `ginclude` headers (`stddef.h`, `stdarg.h`, `va-ppc.h`, `stdbool.h`, `iso646.h`, `limits.h`). `sys/reent.h` and `va-ppc.h` carry `SN Systems:` edits | newlib: as above; gcc headers: GPL-2+ with the runtime exception |
+| `src/sn/libgcc/libgcc2.c` | SN Systems' GPL source release of GCC 2.95 (`NGC_GNU_SRC/NGC/gcc/libgcc2.c`), trimmed to the matched `L_*` sections, with the upstream block that restores the normal C types before `L__main` | GPL-2+ with the libgcc exception |
+| `src/sn/libgcc/gbl-ctors.h` | same release, unmodified apart from CRLF line ends | GPL-2+ with the libgcc exception |
 | `src/sn/libgcc/longlong.h` | same release, unmodified | GPL-2+ **without** the exception; macro expansions land in the objects |
 | `src/sn/libgcc/libgcc_config.h` | written for this project: `BITS_PER_UNIT`, `WORDS_BIG_ENDIAN`, `LONG_DOUBLE_TYPE_SIZE` and the `LIBGCC2_*` equivalents that the GCC build normally generates | project |
-| `src/sn/libgcc/_*.c` | one-line wrappers: `#define L_<name>` then `#include "libgcc2.c"` | project |
+| `src/sn/libgcc/_*.c`, `src/sn/libgcc/__main.c` | one-line wrappers: `#define L_<name>` then `#include "libgcc2.c"` | project |
 
-Every file was taken from upstream text. The RE4 GameCube decomp
-(`adonis-singh/re4`) was used only as read-only evidence for object lists, flags
-and structure: its licence covers tools, config and docs, not `src/` or `include/`,
-so none of its sources are copied. Nothing here ships retail bytes.
+The newlib text is the `newlib-1.8.2.tar.gz` release from
+`sourceware.org/pub/newlib` (sha256
+`e52667ed78595dd1919f4a303f8b658b1d57b926e085e8021851b279143cf3ef`). The SN files
+come from `NGC_GNU_SRC.zip` in SN's *ProDG for NGC v3.9.3 Source Code* release.
+The RE4 GameCube decomp (`adonis-singh/re4`) was used only as read-only evidence
+for object lists, flags and structure: its licence covers tools, config and docs,
+not `src/` or `include/`, so none of its sources are copied. That includes its
+SN `include/prodg/va-ppc.h`, which is marked "All Rights Reserved" and is not in
+SN's GPL release. Nothing here ships retail bytes.
 
-Match edits are limited to what the compiler needs: the `#define L_...` wrapper
-for libgcc and the trimmed `libgcc2.c`. The newlib files are byte-for-byte
-upstream. (An `fdlibm` unit would be the other permissive source; no libm unit
-is imported yet.)
+Match edits are limited to what the compiler needs and what retail code proves:
+the `#define` wrappers, the trimmed `libgcc2.c` and the `SN Systems:` edits below.
+Every other newlib and fdlibm file is byte-for-byte upstream.
+
+## SN edits
+
+SN built newlib with changes that retail code shows. Each edit is marked
+`SN Systems:` in the source and is the smallest change that reproduces the
+retail body:
+
+| File | Edit | Retail evidence |
+|---|---|---|
+| `include/sys/reent.h` | `FILE._ubuf` is 10 bytes, not 3 | `ungetc` stores `_ubuf[9]` at `FILE+0x49`; `_nbuf` is at `FILE+0x4A` |
+| `libc/stdio/local.h` | `__sinit` has no prototype | `crclr cr1eq` before each `CHECK_INIT` call in `fflush`, `__srefill` and `ungetc` |
+| `libc/stdio/local.h` | `FREEUB` is a no-op | `__srefill` neither frees nor clears `_ub._base`; `malloc` and `free` are `OSPanic` stubs |
+| `libc/stdio/ungetc.c` | buffer overflow writes a message with `_write` instead of calling `__submore` | `ungetc` calls `_write` with the string at `0x801B056C` |
+| `libc/stdio/fread.c` | a local byte loop (`fread_copy`, `0x80159DC4`) replaces `memcpy` | `fread` calls the static copier |
+| `libc/stdio/findfp.c` | `__sinit` links a static glue of ten more `FILE`s; `std` is prototyped and does not store `_bf._size`; `__sinit` comes before `_cleanup_r` | the `.bss` glue at `0x802F3704..0x802F3AD0`; retail `std` and function order. Retail strips `__sfp`, so its loop is a reconstruction |
+| `libc/stdio/makebuf.c` | no `_malloc_r` path: every stream is unbuffered on its one-byte `_nbuf` | `__smakebuf` ends after the `fstat` block with the `__SNBF` store |
+| `include/va-ppc.h` | `va_list.gpr` is a plain (signed) `char`; the 4-byte integral `va_arg` tests the fit unsigned and clamps `gpr` to 8 when an argument overflows | every `__svfscanf` `va_arg`: `extsb`, `addi r0,r9,1; cmplwi r0,8`, then `cmpwi r9,7` and `stb` of 8 on the overflow path |
+
+The `va-ppc.h` path is rebuilt from those instruction sequences. SN's own
+header is not in its GPL release (see above), so only what `__svfscanf`
+exercises is changed: the floating, aggregate and `long long` paths stay
+upstream, with `fpr` still `unsigned char`.
+
+SN's libm is fdlibm with the `__ieee754_*` kernels exported under the plain
+names: `log10` calls `log` directly, and no `w_*.c` wrapper exists in retail.
+The wrappers in `src/sn/libm/` therefore define `__ieee754_fmod`, `__ieee754_log`
+and `__ieee754_log10` to the plain names. `floor` is `s_floor.c` unchanged.
 
 ## Flags
 
-`configure.py` defines `cflags_sn_libc` and `cflags_sn_libgcc`. Retail uses
-`-O2 -mfast-cast -fno-common -G 1024 -DNDEBUG=1`. Two details matter:
+`configure.py` defines `cflags_sn_libc`, `cflags_sn_libgcc` and
+`cflags_sn_libgcc_main`. Retail uses `-O2 -mfast-cast -fno-common -DNDEBUG=1`
+with a per-library small-data threshold. These details matter:
 
 - The production `prodg` ninja rule does not add the target defines that the
   `ngccc` driver injects before `cc1`. The runtime flags therefore pass them
@@ -38,10 +73,38 @@ is imported yet.)
   -D__SIZE_TYPE__=unsigned -D_CALL_SYSV -D__SN__ -DSN_TARGET_NGC -D__NOASMPP__
   -D_LANGUAGE_C -D__LANGUAGE_C -DLANGUAGE_C`. Without `__GNUC__=2` the libgcc
   `mode(DI)` types produce the wrong sizes.
-- The reent wrappers (`closer`, `fstatr`, `lseekr`, `readr`, `writer`) match only
-  with `-G 1024`, which puts `errno` in small data.
+- newlib and libm use `-G 8` and `-DMB_CAPABLE`. The reent wrappers (`closer`,
+  `fstatr`, `lseekr`, `readr`, `writer`) need `errno` in small data, which
+  `-G 8` keeps; `_mbtowc_r` needs `MB_CAPABLE`.
+- libgcc uses `-G 1024`, except `__main.o`. That object reads its 4-byte
+  `initialized` flag with `lis/lwz` from `.bss`, not r13-relative `.sbss`, so it
+  was built below `-G 4`; `cflags_sn_libgcc_main` uses `-G 0`, which emits it
+  with `.lcomm` as retail has it.
 
-## Imported units (33 objects, all promoted)
+`SnObject(path, cflags, strip=False)` wraps each entry. `strip=True` runs
+`tools/strip_unused.py` as a post-build step: it keeps only the functions the
+unit's split target has, reproducing the SN linker's dead-stripping
+(`_sprintf_r`, `_setlocale_r`, `__sfp`, `__do_global_dtors`, ...). For ProDG
+objects it also:
+
+- drops a local static whose references all come from removed functions, or
+  that nothing references (`lc_ctype` in locale; fdlibm's named constants,
+  whose code loads `.LC` literals instead);
+- cuts dead data as a whole object, with no 8-byte granule: retail keeps none
+  of `__main.o`'s 4-byte `__do_global_dtors` pointer. MWCC objects keep the
+  reference's 8-byte granules;
+- re-encodes an assembler-resolved branch (see below) that crosses a removed
+  function, and fails if one lands inside a removed function.
+
+GNU as resolves a `bl` or tail `b` to a static function in the same section and
+emits no relocation, while DTK's split target has an `R_PPC_REL24`. Step 6 of
+`tools/prodg_cc.py` runs `tools/prodg_branch_relocs.py`, which adds that
+relocation (addend 0, against the destination function) to every ProDG object,
+so objdiff and `verify_unit.py` see what the target has (`__sinit` calling
+`std`, `fread` calling `fread_copy`). Loops back to a function's own first
+instruction are left alone.
+
+## Imported units (55 objects, all promoted)
 
 Strict `verify_fn.py --strict-symbols` and `verify_unit.py --functions` pass for
 every function; the whole image stays at 0 differing bytes.
@@ -49,11 +112,16 @@ every function; the whole image stays at 0 differing bytes.
 | Group | Units |
 |---|---|
 | ctype | `isdigit`, `isspace`, `tolower`, `toupper` |
-| stdlib | `exit`, `strtol` (`_strtol_r`, `strtol`), `strtoul` (`_strtoul_r`, `strtoul`) |
+| errno, locale | `errno` (`__errno`), `locale` (`_localeconv_r`, `localeconv`) |
+| stdlib | `atof`, `exit`, `mbtowc_r`, `rand` (`srand`, `rand`), `strtol` (`_strtol_r`, `strtol`), `strtoul` (`_strtoul_r`, `strtoul`) |
 | string | `memchr`, `memcmp`, `memcpy`, `memmove`, `memset`, `strcasecmp`, `strcat`, `strcmp`, `strcpy`, `strlen`, `strncmp`, `strncpy`, `strstr` |
 | reent | `_close_r`, `_fstat_r`, `_lseek_r`, `_read_r`, `_write_r` |
-| stdio | `vprintf` |
-| libgcc | `__ashldi3`, `__ashrdi3`, `__divdi3`, `__lshrdi3`, `__moddi3`, `__udivdi3`, `__umoddi3` |
+| stdio | `fflush`, `findfp` (`std`, `__sinit`, `_cleanup_r`), `fread` (`fread_copy`, `fread`), `fwalk`, `makebuf`, `refill` (`lflush`, `__srefill`), `sprintf`, `sscanf` (`eofread`, `sscanf`), `stdio` (`__sread`, `__swrite`, `__sseek`, `__sclose`), `ungetc`, `vfscanf` (`__svfscanf`, `__sccl`), `vprintf`, `vsprintf` |
+| libm | `floor`, `fmod`, `log`, `log10` |
+| libgcc | `__main` (`__do_global_ctors`, `__main`), `__ashldi3`, `__ashrdi3`, `__divdi3`, `__lshrdi3`, `__moddi3`, `__udivdi3`, `__umoddi3` |
+
+`sprintf`, `vsprintf`, `findfp`, `__main` and the libm objects build with
+`strip=True`.
 
 The four libgcc division objects each own a 256-byte `__clz_tab` copy in
 `.sdata2` (`0x8040B308`, `0x8040B408`, `0x8040B508`, `0x8040B608`), split out of
@@ -63,15 +131,30 @@ auto-generated unit.
 `vprintf` and `memmove` sit at `0x8018BD4C..0x8018BE6C`, far from the rest of the
 runtime, because retail links them with the libm tail.
 
+Data owned by the new units, split out of larger auto symbols:
+
+| Unit | Data |
+|---|---|
+| `vfscanf` | `basefix.3` at `.rodata:0x801AFF98` (34 bytes), split from `lbl_801AFF78`, which keeps the `__cvt_fp2unsigned` double (`0x801AFF78`) and is followed by a DVD message string (`str_801AFF80`) |
+| `mbtowc_r` | strings at `.rodata:0x801AFFBC..0x801AFFD4`, JIS tables at `.data:0x801E1C88..0x801E1FE8` |
+| `locale` | `lconv` at `.rodata:0x801B0430`; only `__mb_cur_max` (`0x80409FBC`) is in `.sdata` |
+| libm | literal pools at `.rodata:0x801B0488..0x801B0568`, one per object; fmod's is the named `Zero` |
+| `ungetc`, `findfp` | messages at `.rodata:0x801B056C..0x801B05E0`; `findfp`'s glue `FILE`s at `.bss:0x802F3704..0x802F3AD0` |
+| `__main` | `initialized.10` at `.bss:0x802F3AD0`; retail folds `.ctors`/`.dtors` into the start of `.rodata`, named `__CTOR_LIST__` (`0x8018CB00`, `{-1, 0}`) and `__DTOR_LIST__` (`0x8018CB20`) |
+
 ## Boundary evidence
 
 `auto/game/podrace.c` had swallowed the runtime. Its `.text` now ends at
 `0x801503A0`: the last podrace function is `PodraceLoadLapSettings`, the range
 `0x80150398..0x801503A0` is zero padding, and `fn_801503A0` (the ppcdown code)
-starts the runtime region. `PPCMfmsr` at `0x8015BEF4` is the first SDK symbol after
+starts the runtime region. Its provisional `.rodata` range ended at `0x801B0460`
+only because podrace `.text` once covered the runtime; its last literal ends at
+`0x801AFF78`, which is now the range end. `PPCMfmsr` at `0x8015BEF4` is the first SDK symbol after
 libgcc. The 8 bytes at `0x8015AFFC..0x8015B004` between `__divdi3` and
 `__lshrdi3` are `.long 0; blr`. The newlib `exit` calls it as `_exit`, so it
-keeps that name and stays in the auto-generated text. No boundary was moved to raise a score.
+keeps that name and stays in the auto-generated text. The newlib pad blocks
+(`0x801541B4..0x8015A938`) were split only at function starts that retail
+bodies prove. No boundary was moved to raise a score.
 
 ## Renames
 
@@ -79,6 +162,12 @@ keeps that name and stays in the auto-generated text. No boundary was moved to r
   `__ashldi3`; `lbl_80155DE8` is `strcasecmp`. Matching bodies prove each.
   The `#define memcmp Menu_SetupDisplay` and `#define strncpy lbl_80156184`
   workarounds in the CARD and DVD sources are removed.
+- Pad-block labels named by matching bodies: `lbl_8015525C` `vsprintf`,
+  `lbl_80155678` `srand`, `lbl_801556A8` `malloc`, `lbl_801556E4` `free` (game
+  callers in `levels.c`, `nufilepak.c` and `numem.c` now use these names),
+  `lbl_80156A70` `_vfprintf_r`, `lbl_80157F88` `_vfiprintf_r` and
+  `lbl_8015A9C8` `__main`. `fread_copy` names SN's static copier, which has no
+  upstream name.
 - libsn syscall stubs: `0x8018AC38` `_write`, `0x8018AC58` `_close`, `0x8018AC78`
   `_fstat`, `0x8018AC88` `_lseek`, `0x8018ACA8` `_read`. The former `_write` at
   `0x8018ABE8` is `fn_8018ABE8`: the `_write` stub calls it, so it is the lower
@@ -93,9 +182,11 @@ keeps that name and stays in the auto-generated text. No boundary was moved to r
 |---|---|
 | libsn `dummy`, `FSasync`, `sndvd` and asm-body units | no upstream source; the console and syscall stubs are ProDG C and `_exit` is a crt word, worked as plan item `sn-tail` ([plan](strategy.md#runtime-and-sdk-routes)) |
 | Debugger driver `0x8018A10C..0x8018AB8C` | CodeWarrior SDK code, not libsn; promoted from the CC0 MSSB `DebuggerDriver.c` in #120 ([plan](strategy.md#runtime-and-sdk-routes), [range](sdk_import.md#debugger-driver-range-8018a10c8018ab8c)) |
-| `vfprintf`, `strtod`, `impure`, `_xeh`, `_x_exit`, `_x_pure` | do not compile or fix up yet (endianness config, `_register_malloc`, elf fixup failure) |
-| `strchr`, `strncat`, `strrchr`, `atoi`, `mbtowc_r`, `qsort`, stdio (`sprintf`, `fflush`, `fopen`, ...) | compile but do not match; not investigated |
-| `__negdi2`, `__cmpdi2`, `__ucmpdi2`, `__do_global_dtors`, `__main`, libm | no match yet / not wired |
+| `malloc`, `free`, `strtod` (`0x801556A8..0x80155A50`) | SN-written, no upstream source: `malloc` and `free` are `OSPanic` stubs that also pass their call site (`mflr; subi 4`); `strtod` is a short `isspace`/`isdigit` scanner, not newlib's Bigint `_strtod_r`. Hand-match |
+| vfprintf block (`0x801562B8..0x8015927C`: five statics, `vfprintf`, `_vfprintf_r`, a static, `_vfiprintf_r`) | SN rewrite of newlib's `vfprintf.c`/`vfiprintf.c`: output goes through a static that calls `_write` (no `__sprint`/`__sfvwrite`), the float `cvt` is replaced by code calling `floor`, `fmod` and `log10` (no `_dtoa_r`), and `vfprintf` dispatches to `_vfiprintf_r` or `_vfprintf_r`. Hand-match, now with SN's `va_arg` |
+| `impure`, `_xeh`, `_x_exit`, `_x_pure` | do not compile or fix up yet (endianness config, `_register_malloc`, elf fixup failure) |
+| `strchr`, `strncat`, `strrchr`, `atoi`, `qsort`, other stdio (`fopen`, ...) | compile but do not match; not investigated |
+| `__negdi2`, `__cmpdi2`, `__ucmpdi2` | no match yet / not wired |
 
 ## CodeWarrior runtime and debugger follow-up
 

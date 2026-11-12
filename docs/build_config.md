@@ -467,13 +467,18 @@ retail. See [SDK import evidence](sdk_import.md) for ranges and limits.
 
 ## SN runtime
 
-`src/sn` holds the newlib libc and libgcc objects. They use the `prodg` compiler
-with `cflags_sn_libc` / `cflags_sn_libgcc`, which add the `ngccc` target defines the
-production rule lacks, `-G 1024` and `-fno-common`; the objects are `Matching`
-under the `sn_runtime` lib and the `runtime` progress category. A unit that owns
-`.sdata2` (the libgcc division objects) needs its split ranges and a symbol per
-`__clz_tab` copy, since dtk rejects a split inside a symbol. See
-[SN runtime](sn_runtime.md) for flags, provenance and boundaries.
+`src/sn` holds the newlib libc, fdlibm libm and libgcc objects. They use the
+`prodg` compiler with `cflags_sn_libc` (`-G 8`, `-DMB_CAPABLE`; libc and libm),
+`cflags_sn_libgcc` (`-G 1024`) or `cflags_sn_libgcc_main` (`-G 0`, `__main.o`
+only), which add the `ngccc` target defines the production rule lacks and
+`-fno-common`. Each entry is an `SnObject`; the objects are `Matching` under the
+`sn_runtime` lib and the `runtime` progress category. `SnObject(..., strip=True)`
+adds a `tools/strip_unused.py` post-build step that keeps only the split target's
+functions, as the SN linker's dead-stripping did. `tools/prodg_cc.py` (step 6)
+adds the `R_PPC_REL24` that GNU as leaves off calls to static functions, to every
+ProDG object. A unit that owns `.sdata2` (the libgcc division objects) needs its
+split ranges and a symbol per `__clz_tab` copy, since dtk rejects a split inside a
+symbol. See [SN runtime](sn_runtime.md) for flags, provenance and boundaries.
 
 ## Splitter and startup constraints
 
