@@ -24,6 +24,7 @@ as live data. Frontend changes deploy independently through Vercel's Git integra
 ```sh
 python3 tools/export_progress.py --output work/progress.json
 python3 tools/export_progress.py --output work/progress.json --sweep work/sweep/results.json
+python3 tools/export_progress.py --output work/progress.json --sweep progress/sweep.json
 ```
 
 The exporter reads the existing report; it does not build or sweep. Pass
@@ -40,9 +41,21 @@ names, sizes and objdiff similarities. Optional sweep statistics include names, 
 sizes, verdict counts and exact-instruction similarity. Section data, instructions, object
 paths, raw logs and proprietary artifacts are never copied.
 
-Normal CI builds do not run a sweep. Their candidate dataset is null, which the site labels
-as unavailable; an empty exported sweep is a different state. Published candidate scores
-are leads, not verification or ownership claims.
+CI builds do not run a sweep. They publish the committed summary in `progress/sweep.json`,
+dated by its `swept_at` field rather than by the build. Each build drops candidates that the
+current report already matches, so the list shrinks between sweeps. Without a summary the
+candidate dataset is null, which the site labels as unavailable; an empty exported sweep is a
+different state. Published candidate scores are leads, not verification or ownership claims.
+
+After a sweep, refresh the summary and commit it:
+
+```sh
+python3 tools/sweep_summary.py
+```
+
+It reads `work/sweep/results.json`, keeps only names, units, sizes, verdicts, similarities and
+applied flags, and dates the summary by the results file's time (override with `--swept-at`).
+Source, targets, context and other experiment output stay in `work/`.
 
 ## History and metrics
 

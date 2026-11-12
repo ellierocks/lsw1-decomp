@@ -66,6 +66,7 @@ jobs:
           --output artifacts/progress.json
           --revision "$REPORT_REVISION"
           --build-url "$REPORT_BUILD_URL"
+          --sweep progress/sweep.json
       - name: Upload public dashboard statistics
         uses: actions/upload-artifact@v4
         with:
