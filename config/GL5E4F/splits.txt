@@ -927,6 +927,45 @@ dolphin/OdemuExi2/DebuggerDriver.c:
 	.text       start:0x8018A10C end:0x8018AB8C
 	.sdata      start:0x8040A1C0 end:0x8040A1C4
 
+sn/libsn/dummy.c:
+	.text       start:0x8018AB8C end:0x8018ACC8
+
+sn/libm/math/sf_cos.c:
+	.text       start:0x8018ACC8 end:0x8018ADA4
+	.sdata      start:0x8040A1C4 end:0x8040A1C8
+
+sn/libm/math/kf_cos.c:
+	.text       start:0x8018ADA4 end:0x8018AE90
+	.sdata      start:0x8040A1D0 end:0x8040A1F4
+
+sn/libm/math/kf_sin.c:
+	.text       start:0x8018AE90 end:0x8018AF3C
+	.sdata      start:0x8040A1F4 end:0x8040A210
+
+sn/libm/math/ef_rem_pio2.c:
+	.text       start:0x8018AF3C end:0x8018B28C
+	.sdata      start:0x8040A230 end:0x8040A264
+	.sdata2     start:0x8040B91C end:0x8040BCB4
+
+sn/libm/math/sf_fabs.c:
+	.text       start:0x8018B28C end:0x8018B2B0
+
+sn/libm/math/kf_rem_pio2.c:
+	.text       start:0x8018B2B0 end:0x8018BB34
+	.sdata      start:0x8040A268 end:0x8040A28C
+	.sdata2     start:0x8040BCB4 end:0x8040BCF0
+
+sn/libm/math/sf_floor.c:
+	.text       start:0x8018BB34 end:0x8018BBFC
+	.sdata      start:0x8040A290 end:0x8040A298
+
+sn/libm/common/sf_scalbn.c:
+	.text       start:0x8018BBFC end:0x8018BD18
+	.sdata      start:0x8040A298 end:0x8040A2A8
+
+sn/libm/common/sf_copysign.c:
+	.text       start:0x8018BD18 end:0x8018BD4C
+
 sn/libc/stdio/vprintf.c:
 	.text       start:0x8018BD4C end:0x8018BD80
 
