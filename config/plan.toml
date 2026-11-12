@@ -171,7 +171,7 @@ units = ["auto/nu3d/ngc/ngc_video"]
 [[stage.item]]
 id = "nuqfnt"
 units = ["auto/nu3d/nuqfnt", "auto/nu3d/ngc/nuqfnt_ngc", "auto/nu3d/ngc/nufont_ngc"]
-note = "nufont_ngc has no source file yet."
+note = "nuqfnt-1 (2026-11-12) matched 18 functions / 4,004 B; no unit promoted; fn_8002BB60 and fn_80027DC8 parked. The nuqfnt unit is mostly portal visibility and NuAnimData2, not quick-font: open are clipPortal, createPortalFrustrum, roomRecursive and NuPortalVisibility (OpenSaga nu3d_includes.cpp roomRecursive ~15346 and NuPortalVisibility ~15528), NuAnimData2Init/Clone/Apply/CalcMatrix (CalcMatrix lead ~8482) and fn_8001FD98. Its .rodata split starts at 0x80190A3C, so float constants are literals."
 # at revision 1: 29 functions, 13,592 bytes left
 
 [[stage.item]]
@@ -2088,3 +2088,11 @@ reason = "Best 79/157 (ngc_mtl); misleading name: GC submits a GX quad; generate
 [[parked]]
 function = "fn_80032768"
 reason = "Strict VERIFIED 121/121, 484 B (ngc_mtl); objdiff remains below 100% because generated .rodata literals use pool relocations. Next: complete the unit and reproduce its owned literal range; keep NonMatching until section, relocation and linked-range checks pass."
+
+[[parked]]
+function = "fn_8002BB60"
+reason = "Best 120/137 (nuqfnt_ngc, candidate in source): the target computes g+0x50 then buf=r9+4, GCC folds both into g+0x54; r6/r7 swap in the 12-byte copy at 0x44. VARIPTR locals, explicit casts and &p[1] score the same; a 180 s permuter burst found only non-equivalent rewrites. Next: type the 0x44 field and the trailing s32 as a sub-struct or array so the +4 is a separate member address."
+
+[[parked]]
+function = "fn_80027DC8"
+reason = "Best 47/55 (nufont_ngc): the transposed projection copy and camera dot product match; only the scheduling of the lis/lfs constant prologue and the m[2][2]/constant stores differ. Order search over the five trailing stores and literal-versus-local constants did not close it. Next: try a Mtx44 struct assignment or a NuMtx helper-shaped copy, then permute the prologue."
