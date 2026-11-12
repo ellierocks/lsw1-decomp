@@ -153,6 +153,37 @@ pointer counted from NULL in 0xD0 steps when `displayScene` is set; the donor st
 NULL. Two `symbols.txt` names are wrong by body: `NuSpecialFindMultiWC` is DrawAt and
 `NuSpecialGetInstAnim` is GetName. They are not renamed yet.
 
+### GameCube material state
+
+The local views in [`ngc_mtl.c`](../src/auto/nu3d/ngc/ngc_mtl.c) follow GC accesses,
+not the donor material layouts. `lbl_803127F0` is 0x160 bytes: the state-copy
+function `fn_8002DC74` copies 0x58 words. Its six vectors occupy 0x3C..0x83;
+`fn_8002DD60` copies a matrix at 0x88 and a vector at 0xC8. `fn_8002D0FC` copies
+the projection matrix at 0xF4 and five projection coefficients at 0x134..0x144.
+The halfword revision counters at 0x1E and 0x24..0x28 are separate from the
+word at 0x20.
+
+`fn_800339C0` visits 128 material pointers at `lbl_80220FBC`. It tests flags
+bit 0x4 at offset 0, then animates UV floats at 0x94/0x98 when the corresponding
+byte at 0xFA/0xFB equals 2, using speeds at 0x104/0x108. It adds the timestep
+and wraps once in either direction. CrashWOC's `NuMtlAnimate` uses different
+list and offset calculations; its `NuMtlUpdate` is empty. Neither its 0x54
+material nor OpenSaga's later material layout transfers to this GC view.
+
+`fn_80032768` reads ambient color at 0, a light mask at 4 and three 0x10-byte
+color/position records starting at 8. GX light objects are 64 bytes; GX colors
+are four-byte aggregates passed by value through the ProDG aggregate ABI.
+The prototypes were checked against the matched Dolphin SDK's `GXLighting.h`
+and `GXTev.h`. `fn_80032958` initializes only a color's alpha byte before
+`GXSetTevKColor`; the target preserves the other bytes in a register.
+
+Two existing symbols in this auto unit are misleading: `NuMtxInvRSS`
+(`0x80030570`) interpolates packed signed-halfword vertex triples and flushes
+the output, while `NuCameraClipTestExtents` (`0x80033B7C`) sets GX state and
+submits a quad to the FIFO. CrashWOC and OpenSaga's matrix inverse and
+bounding-box clip functions do not describe these bodies. This rejects those
+name leads but does not establish a different translation-unit boundary.
+
 ### LSW1-confirmed engine layouts (batch 2)
 
 The second shared-header batch confirmed these engine structs. The material, geometry and
