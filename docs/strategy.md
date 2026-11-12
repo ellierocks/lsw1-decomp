@@ -168,6 +168,14 @@ the local branch was rebased, and goes with the next worktree cleanup). After th
 stage 2 continues at `ngc_mtl`. Donor-led runs (`hvqm4`, `newlib`)
 matched the most bytes per hour, so look for a donor before climbing.
 
+Stage 1 closed on 2026-11-12 without a revision: #145 (`newlib`, 11 functions), #146
+(`sn-tail`, 26 functions; identified `__va_arg`, libsn `FSasync`/`sndvd` and `nan` in the
+former pad range and promoted four units) and #147 (`rtl`, the two hub readers) took main
+to 440,888 matched code bytes and 2,749 functions. Their plateaus are in `[[parked]]`.
+Stage 2 runs `ngc_mtl` and `nutexanm` side by side. The CrashWOC GameCube decomp
+(`src/nu3dx/*.c`, `src/system/gs/*.c` and its alpha NGC DWARF dump) is the main donor for
+the Nu3d items: take algorithms, layouts and call order from it, not codegen.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle. Never weaken
