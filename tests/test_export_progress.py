@@ -1,8 +1,10 @@
 import copy
 import json
+from pathlib import Path
+import tempfile
 import unittest
 
-from tools.export_progress import export
+from tools.export_progress import export, load_sweep, summarize_sweep
 
 
 class ExportProgressTests(unittest.TestCase):
@@ -79,3 +81,35 @@ class ExportProgressTests(unittest.TestCase):
             self.run_export(revision='main')
         with self.assertRaises(ValueError):
             self.run_export(build_url='https://example.com/fake')
+
+
+class SweepSummaryTests(unittest.TestCase):
+    raw = [dict(name='todo', unit='game/test', source='int todo(void) {}', size=28, verdict='MISMATCH',
+                exact=7, target='must-not-publish', padded=False, own_prototype=True,
+                context='must-not-publish', closeness=.5)]
+
+    def test_summary_keeps_only_allowlisted_fields(self):
+        summary = summarize_sweep(self.raw, '2026-11-10T16:57:12Z')
+        self.assertEqual(summary['swept_at'], '2026-11-10T16:57:12+00:00')
+        self.assertEqual(summary['rows'], [dict(name='todo', unit='game/test', size=28,
+                                                verdict='MISMATCH', closeness=.5)])
+        self.assertNotIn('must-not-publish', json.dumps(summary))
+        self.assertNotIn('todo(void)', json.dumps(summary))
+
+    def test_summary_is_dated_by_swept_at_not_file_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp, 'sweep.json')
+            path.write_text(json.dumps(summarize_sweep(self.raw, '2026-11-10T16:57:12+00:00')))
+            rows, swept_at = load_sweep(path)
+        self.assertEqual(swept_at, '2026-11-10T16:57:12+00:00')
+        self.assertEqual(rows[0]['name'], 'todo')
+
+    def test_invalid_summaries_rejected(self):
+        for bad in [dict(rows=[]), dict(swept_at='2026-11-10T16:57:12', rows=[]),
+                    dict(swept_at='yesterday', rows=[]), dict(swept_at='2026-11-10T16:57:12Z', rows={}),
+                    dict(swept_at='2026-11-10T16:57:12Z', rows=[], extra=1), 'rows']:
+            with self.subTest(bad=bad), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp, 'sweep.json')
+                path.write_text(json.dumps(bad))
+                with self.assertRaises(ValueError):
+                    load_sweep(path)

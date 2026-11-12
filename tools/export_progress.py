@@ -45,6 +45,40 @@ def by_address(entries: list) -> list:
     return [value for _, _, value in sorted(entries, key=lambda e: (e[0] is None, e[0] or 0, e[1]))]
 
 
+SWEEP_FIELDS = ('name', 'unit', 'size', 'verdict', 'closeness', 'applied')
+
+
+def iso_time(value) -> str:
+    """Return an aware ISO 8601 timestamp, or raise ValueError."""
+    try:
+        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+    except ValueError:
+        raise ValueError('Invalid timestamp') from None
+    if parsed.tzinfo is None:
+        raise ValueError('Timestamp needs a time zone')
+    return parsed.isoformat()
+
+
+def summarize_sweep(rows: list, swept_at: str) -> dict:
+    """Keep only the allowlisted per-function fields of a raw sweep, for committing to the repository."""
+    if not isinstance(rows, list):
+        raise ValueError('Sweep results must be a list')
+    return dict(swept_at=iso_time(swept_at),
+                rows=[{key: row[key] for key in SWEEP_FIELDS if key in row} for row in rows])
+
+
+def load_sweep(path: Path) -> tuple[list, str]:
+    """Read a raw local sweep (dated by its file time) or a committed summary (dated by swept_at)."""
+    data = json.loads(path.read_text())
+    if isinstance(data, dict):
+        if set(data) != {'swept_at', 'rows'} or not isinstance(data['rows'], list):
+            raise ValueError('Sweep summary must contain only swept_at and rows')
+        return data['rows'], iso_time(data['swept_at'])
+    if not isinstance(data, list):
+        raise ValueError('Sweep results must be a list')
+    return data, datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
+
+
 def export(report: dict, *, report_at: str, revision: str | None = None,
            history: list | None = None, sweep: list | None = None,
            sweep_at: str | None = None, build_url: str | None = None) -> dict:
@@ -116,17 +150,18 @@ def main():
     parser.add_argument('--previous', type=Path)
     parser.add_argument('--revision', help='Only supply for a report built from this exact revision')
     parser.add_argument('--build-url')
-    parser.add_argument('--sweep', type=Path, help='Optional local sweep; absent in normal CI builds')
+    parser.add_argument('--sweep', type=Path,
+                        help='Optional raw local sweep, or a summary from tools/sweep_summary.py')
     args = parser.parse_args()
     stamp = lambda p: datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).isoformat()
     previous = json.loads(args.previous.read_text()) if args.previous and args.previous.exists() else None
     if previous and previous.get('schema_version') != 1:
         raise ValueError('Unsupported previous dataset schema')
+    sweep, sweep_at = load_sweep(args.sweep) if args.sweep else (None, None)
     result = export(json.loads(args.report.read_text()), report_at=stamp(args.report),
                     revision=args.revision, build_url=args.build_url,
                     history=previous['history'] if previous else None,
-                    sweep=json.loads(args.sweep.read_text()) if args.sweep else None,
-                    sweep_at=stamp(args.sweep) if args.sweep else None)
+                    sweep=sweep, sweep_at=sweep_at)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix('.tmp')
     temporary.write_text(json.dumps(result, separators=(',', ':')) + '\n')
