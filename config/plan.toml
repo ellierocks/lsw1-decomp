@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 6
+revision = 7
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -113,30 +113,31 @@ note = "All 43 functions strict-match; nugraph_2, numtx and nu_asm promoted by t
 [[stage.item]]
 id = "rtl"
 units = ["auto/rtl/rtl"]
+note = "PR 136 (2026-11-11) matched 12 functions / 2,816 B; no unit promoted. The 7 plateaus are parked with scores. fn_8006F28C and fn_8006F37C stay open under hubs, which owns them."
 # at revision 1: 21 functions, 10,748 bytes left
 
 [[stage.item]]
 id = "nusound3"
 units = ["auto/nusound3/ngc/nusound", "auto/nusound3/ngc/NGCStreaming", "auto/nusound3/ngc/NGCStreaming2", "auto/nusound3/ngc/NGCSound"]
-note = "NGCStreaming2 has no source file yet."
+note = "PR 137 (2026-11-11) matched 18 functions / 4,288 B; no unit promoted. 18 plateaus and 3 strict-only functions (pool placement) are parked. Rename follow-up: NuRndrWaterRip (0x80044400) loads sound data, NuGobjCalcDims (0x800452FC) computes attenuation/pan and NuRndrShadPolys (0x80047424) updates AX stream voices; check docs/research.md rejected renames before renaming."
 # at revision 1: 36 functions, 19,308 bytes left
 
 [[stage.item]]
 id = "nungc-nufmv"
 units = ["auto/nungc/ngcapi", "auto/nungc/ps2dma", "auto/nufmv/ngc/nufmvmtl", "auto/nufmv/ngc/HVQM4PlayerEx", "auto/effects/objects/part", "auto/gamelib/glutils"]
-note = "HVQM4PlayerEx and glutils promoted (904 code bytes, 6 functions). ngcapi and nufmvmtl gained strict matches; ps2dma still has three strict-only literal-layout cases. Remaining candidates and donor limits: docs/nungc_nufmv_matching.md."
+note = "PR 140 (2026-11-11): HVQM4PlayerEx (MK:DA donor) and glutils promoted (904 code bytes, 6 functions); +12 functions / 2,104 B overall; all 19 remaining functions parked with scores. ngcapi and nufmvmtl gained strict matches; ps2dma still has three strict-only literal-layout cases. Remaining candidates and donor limits: docs/nungc_nufmv_matching.md."
 # at revision 1: 31 functions, 15,772 bytes left
 
 [[stage.item]]
 id = "newlib"
 units = ["auto_01_801556A8_text", "auto_01_801562B8_text"]
-note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Left: SN-written malloc/free/strtod (OSPanic stubs, no _dtoa) and the SN vfprintf rewrite (_write output, floor/fmod/log10 cvt, vfprintf dispatching to _vfiprintf_r). No upstream source: hand-match. See docs/sn_runtime.md#not-imported."
+note = "Donor import done (newlib 1.8.2 libc, fdlibm libm, SN libgcc __main). Left: SN-written malloc/free/strtod (OSPanic stubs, no _dtoa) and the SN vfprintf rewrite (_write output, floor/fmod/log10 cvt, vfprintf dispatching to _vfiprintf_r). No upstream source: hand-match. See docs/sn_runtime.md#not-imported. PR 138 (2026-11-11) imported 22 units (+34 functions / 10,124 B); the 12 functions left are unattempted hand-match work and stay open."
 # at revision 3: 7 functions (pad blocks), 13,036 bytes left
 
 [[stage.item]]
 id = "sn-tail"
 functions = ["fn_8018AB8C", "fn_8018ABE8", "_write", "_close", "_fstat", "_lseek", "_read", "cosf", "__kernel_cosf", "__kernel_sinf", "__ieee754_rem_pio2f", "fabsf", "__kernel_rem_pio2f", "floorf", "scalbnf", "copysignf", "pad_01_8018CAFC_text", "_exit", "pad_01_801531E8_text"]
-note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. Remaining: pad_01_801531E8_text (801531E8..80154168, 3,968 B), pad_01_8018CAFC_text (8018CAFC..8018CB9C, 160 B) and _exit (8015AFFC..8015B004, 8 B)."
+note = "Promoted sn/libsn/dummy (7 functions / 316 B), sn/libm/math/sf_fabs (fabsf / 36 B) and sn/libm/common/sf_copysign (copysignf / 52 B); wired the 7 remaining newlib 1.8.2 libm units (cosf, __kernel_cosf, __kernel_sinf, __ieee754_rem_pio2f, __kernel_rem_pio2f, floorf, scalbnf; 3,800 B, all 100% in objdiff and NonMatching due to unreferenced cc1 static const float symbols in .sdata2): docs/sn_runtime.md. Remaining: pad_01_801531E8_text (801531E8..80154168, 3,968 B), pad_01_8018CAFC_text (8018CAFC..8018CB9C, 160 B) and _exit (8015AFFC..8015B004, 8 B), unattempted and open. __ieee754_rem_pio2f and __kernel_rem_pio2f are parked at 200/212 (two_over_pi SDA addressing)."
 # at revision 3: 18 functions, 4,556 bytes left
 
 [[stage]]
@@ -147,6 +148,7 @@ why = "Rendering, materials, display lists and animation: NuFsqrt and the vector
 [[stage.item]]
 id = "nudlist"
 units = ["auto/nu3d/nudlist_2", "auto/nu3d/ngc/nudlistngc"]
+note = "PR 141 (2026-11-11) matched 16 functions / 2,300 B; neither unit promotes (.text 14,480 and 1,556 B short). All 27 remaining functions parked with scores; fn_8000F488 (115/117) and fn_8002B978 (100/122) are the closest."
 # at revision 1: 45 functions, 18,576 bytes left
 
 [[stage.item]]
@@ -1628,3 +1630,307 @@ reason = "18/300 exact (284 emitted): raw m2c, a typed 0x84-byte scratch object 
 [[parked]]
 function = "fn_800077E8"
 reason = "70/70 strict VERIFIED before and after this run; no new matching progress. Objdiff still reports it below 100%; nustring full-unit proof fails 78 relocation differences. Next: resolve nustring section-symbol/literal ownership and complete-unit relocation proof for promotion; preserve the unchanged C decimal parser. rodata_layout.py diff auto/nucore/nustring (2026-11-11): the unit emits only this function's pool because its strings are extern lbl_ references; the VuMath.h copy at 8018D840, inside numem's range, opens nustring.c; the __FILE__ path and NuHexStringToI message precede this function's pool although it is defined earlier. Make the strings literals, then correct the numem/nustring .rodata boundary with that evidence."
+
+[[parked]]
+function = "fn_8006ECF0"
+reason = "Best 140/243 (rtl, PR 136); Menu callback/control-flow registers and frame differ. Next: Type menu/item layouts and settle the existing wrapper's return/signature together from GC live `r3` evidence. Repaired spurious draft arguments without changing the accepted wrapper."
+
+[[parked]]
+function = "fn_8006F0BC"
+reason = "Best 39/71 (rtl, PR 136); SDA address formation, outer mode switch and shared failure block differ. Next: Recover the two address-taken small-data object types and reproduce the switch tree."
+
+[[parked]]
+function = "fn_8006FA14"
+reason = "Best 103/505 (rtl, PR 136); Version-specific byte/halfword swaps and frame differ. Next: Model the legacy record variants and GC-supported inline swap helpers."
+
+[[parked]]
+function = "fn_800701F8"
+reason = "Best 98/141 (rtl, PR 136); Migration pointer induction and UID-loop aliasing differ. Next: Typed draft improves on sweep's 68/141; next use legacy/current set views with independent source/destination induction."
+
+[[parked]]
+function = "fn_80070690"
+reason = "Best 90/351 (rtl, PR 136); Guessed light/data temporaries and frame differ. Next: Replace raw pointer strides with the verified layouts before scheduling work."
+
+[[parked]]
+function = "fn_80070C0C"
+reason = "Best 140/327 (rtl, PR 136); Dynamic/static traversal and branch flags differ. Next: Rebuild the inline get-next helper with stride `0x8c` and derive restriction flags from GC."
+
+[[parked]]
+function = "fn_800712E4"
+reason = "Best 133/225 (rtl, PR 136); Clamp CR7/CR0 comparisons, unordered paths and vector scheduling differ. Next: Expand the lower/upper clamp control flow before register search."
+
+[[parked]]
+function = "fn_80043050"
+reason = "Best 25/54 (nusound3, PR 137); record access widths, strides and call arguments still guessed. Next: type the 0x40-byte records and check the inner voice-release calls against GC."
+
+[[parked]]
+function = "fn_80043128"
+reason = "Best 80/128 (nusound3, PR 137); register allocation and scaled pointer induction differ. Next: replace m2c word-pointer walks with typed 0x40-byte records and compare the 8-entry request scan."
+
+[[parked]]
+function = "fn_80043328"
+reason = "Best 36/87 (nusound3, PR 137); helper control flow and record addressing differ. Next: recover the record fields and callback argument list from target loads."
+
+[[parked]]
+function = "fn_800434C8"
+reason = "Best 191/561 (nusound3, PR 137); two extra instructions plus float/control-flow differences. Next: type the vectors and stack temporaries before tuning attenuation branches."
+
+[[parked]]
+function = "fn_80043D8C"
+reason = "Best 48/100 (nusound3, PR 137); array walks retain guessed word strides. Next: reconstruct the 0x40-byte record loop and call prototypes."
+
+[[parked]]
+function = "NuSoundInitV"
+reason = "Best N/A (draft does not compile) (nusound3, PR 137); m2c misidentifies the variadic save area and invents a third logger argument. Next: reconstruct ProDG va_list from the register-save prologue."
+
+[[parked]]
+function = "NuRndrWaterRip"
+reason = "Best 89/154 (nusound3, PR 137); sound loader string/tree branches and allocation differ. Next: type the loaded header and tree nodes from target offsets, retaining the existing symbol name."
+
+[[parked]]
+function = "fn_80044668"
+reason = "Best 54/286 (nusound3, PR 137); large loader/request draft has guessed record and stack layouts. Next: identify data headers and recursive request arguments before scheduling."
+
+[[parked]]
+function = "fn_800450C0"
+reason = "Best 54/61 (nusound3, PR 137); clock-address load and unsigned-to-float literal relocation differ, with one extra instruction. Next: recover the SDK bus-clock access and exact constant pool reference."
+
+[[parked]]
+function = "fn_800460C4"
+reason = "Best 14/24 (nusound3, PR 137); two parallel loop induction values allocate differently. Next: model the moving record pointer and requested-field byte index separately."
+
+[[parked]]
+function = "fn_80046264"
+reason = "Best 41/167 in final context (49/167 before typed globals) (nusound3, PR 137); ARQ/frame-buffer layout and buffer-pointer addressing differ. Next: reconstruct the DMA request and stream header layouts."
+
+[[parked]]
+function = "fn_800466E4"
+reason = "Best N/A (draft does not compile) (nusound3, PR 137); generated nested switches contain duplicate case 7 and guessed scalar/array globals. Next: reconstruct the message dispatch directly from target branch labels."
+
+[[parked]]
+function = "fn_800476DC"
+reason = "Best 41/167 in final context (49/167 before typed globals) (nusound3, PR 137); paired stream ARQ/frame-buffer layout differs. Next: transfer the first stream helper layout once proven against both targets."
+
+[[parked]]
+function = "fn_80047978"
+reason = "Best N/A (draft does not compile) (nusound3, PR 137); duplicate case 7 and incompatible scalar/array assignments in generated message dispatch. Next: reconstruct the switch boundaries from GC rather than deleting a label."
+
+[[parked]]
+function = "fn_800456D8"
+reason = "Best 59/63 (nusound3, PR 137); request address and callback/global scheduling differ after buffer-size repair. Next: use the real ARQ request type and callback pointer; 180-second permuter burst did not match."
+
+[[parked]]
+function = "fn_800457D4"
+reason = "Best 163/285 (nusound3, PR 137); voice/sample setup retains guessed 0x58-byte records and parameter blocks. Next: type sample metadata and AX parameter structures."
+
+[[parked]]
+function = "fn_80045C48"
+reason = "Best 54/126 (nusound3, PR 137); call convention repaired but sample/control record addressing still differs. Next: recover widths and AX block boundaries from assembly."
+
+[[parked]]
+function = "fn_80045E40"
+reason = "Best 38/76 (nusound3, PR 137); free-voice scan and error callback allocation differ. Next: use typed sample records and correct AXAcquireVoice callback signature."
+
+[[parked]]
+function = "fn_800451BC"
+reason = "Strict VERIFIED (nusound3, PR 137); objdiff stays below 100% only on constant-pool placement in a unit that is not code-complete. Next: promote with the unit once the rest of NGCSound/NGCStreaming matches and its pools are literals (docs/workflow_gaps.md#9-strict-only-functions-wait-on-rodata-layout)."
+
+[[parked]]
+function = "NuGobjCalcDims"
+reason = "Strict VERIFIED (nusound3, PR 137); objdiff stays below 100% only on constant-pool placement in a unit that is not code-complete. Next: promote with the unit once the rest of NGCSound/NGCStreaming matches and its pools are literals (docs/workflow_gaps.md#9-strict-only-functions-wait-on-rodata-layout)."
+
+[[parked]]
+function = "fn_80047198"
+reason = "Strict VERIFIED (nusound3, PR 137); objdiff stays below 100% only on constant-pool placement in a unit that is not code-complete. Next: promote with the unit once the rest of NGCSound/NGCStreaming matches and its pools are literals (docs/workflow_gaps.md#9-strict-only-functions-wait-on-rodata-layout)."
+
+[[parked]]
+function = "fn_8000F094"
+reason = "Best 62/91 (nudlist, PR 141); Packed visibility bytes and fn_80023628 call arguments differ. Next: recover the full GC call signature and separate byte index from bit shift."
+
+[[parked]]
+function = "fn_8000F200"
+reason = "Best 28/46 (nudlist, PR 141); Visibility traversal has a different loop shape and address arithmetic. Next: type the object-index and float arrays and repair the shifted record address."
+
+[[parked]]
+function = "fn_8000F2B8"
+reason = "Best 40/116 (nudlist, PR 141); Camera bounds tests and packed-map loads differ. Next: preserve unordered float comparisons and reconstruct byte-width buffer traversal."
+
+[[parked]]
+function = "fn_8000F488"
+reason = "Best 115/117 (nudlist, PR 141); Only the li/cmp scheduling around the flags mask differs (115/117). Next: examine ProDG scheduling dependencies for the non-null flag local."
+
+[[parked]]
+function = "fn_8000F65C"
+reason = "Best 64/121 (nudlist, PR 141); Scratch-frame size and two input-buffer walks differ. Next: recover the real scratch arrays instead of scalar stack placeholders."
+
+[[parked]]
+function = "fn_8000F8A8"
+reason = "Best 60/85 (nudlist, PR 141); Packed-map clear lengths and buffer pointer strides differ. Next: model the two buffer slots and signed rounding expressions."
+
+[[parked]]
+function = "fn_8000F9FC"
+reason = "Best 172/199 (nudlist, PR 141); Four instructions short with different argument/register allocation. Next: recover all stack arguments and type aligned allocation cursors."
+
+[[parked]]
+function = "fn_8000FD18"
+reason = "Best 61/130 (nudlist, PR 141); Stack temporaries and manager initialization loops differ. Next: use typed manager arrays and the corrected allocation-helper signature."
+
+[[parked]]
+function = "fn_8000FF20"
+reason = "Best 29/54 (nudlist, PR 141); Four instructions short and call argument setup differs. Next: recover the leading arguments and type the 8-byte command records."
+
+[[parked]]
+function = "fn_8000FFF8"
+reason = "Best 30/74 (nudlist, PR 141); Cursor/alias loads differ despite equal instruction counts. Next: type the shared allocation cursor and aggregate copy at record offsets."
+
+[[parked]]
+function = "fn_80010120"
+reason = "Best 225/708 (nudlist, PR 141); Manager queue/list maintenance has substantial structure and length differences. Next: extend GC-confirmed manager fields and repair byte versus pointer increments."
+
+[[parked]]
+function = "fn_80010C30"
+reason = "Best 38/178 (nudlist, PR 141); After fixing the invalid output-count dereference, command flattening still differs substantially. Next: type linked records and correct 8-byte traversal/copy strides."
+
+[[parked]]
+function = "fn_80010EF8"
+reason = "Best 60/94 (nudlist, PR 141); Manager insertion/compaction has incorrect pointer arithmetic and loop shape. Next: type the scene array and its count before changing code order."
+
+[[parked]]
+function = "fn_80011070"
+reason = "Best 56/105 (nudlist, PR 141); Scene removal/search has extra instructions and compaction differences. Next: reconstruct the scene and material arrays with element-sized increments."
+
+[[parked]]
+function = "fn_80011214"
+reason = "Best N/A (draft does not compile) (nudlist, PR 141); Draft still does not compile because of conflicting math/callee prototypes and missing call arguments. Next: recover GC signatures and packed-buffer access widths before scoring."
+
+[[parked]]
+function = "fn_8001168C"
+reason = "Best 45/118 (nudlist, PR 141); Packed mask/copy loop has different counters and shifts. Next: reconstruct the source/destination map arrays and real buffer sizes."
+
+[[parked]]
+function = "fn_80011864"
+reason = "Best 60/89 (nudlist, PR 141); Temporary scene/frame layout and call setup differ. Next: replace the large opaque scratch frame with GC-supported fields."
+
+[[parked]]
+function = "fn_800119C8"
+reason = "Best 146/319 (nudlist, PR 141); Render dispatch/matrix/material calls and frame layout differ. Next: recover omitted call operands against GC and review branch-heavy JP evidence."
+
+[[parked]]
+function = "fn_80011EC4"
+reason = "Best 288/343 (nudlist, PR 141); Diagnostic command decoder uses the wrong scratch-frame shape (342 versus 343 instructions). Next: recover the sprintf buffer extent and switch-local lifetimes."
+
+[[parked]]
+function = "fn_80012514"
+reason = "Best 10/62 (nudlist, PR 141); Packed visibility comparison loop differs substantially and is six instructions short. Next: reconstruct byte arrays and preserve the count-register loop."
+
+[[parked]]
+function = "NuTexSetTextureStates"
+reason = "Best 86/115 (nudlist, PR 141); Scratch state layout and linked texture traversal differ. Next: reuse the GC-confirmed initialization helper layout and fix pointer increments."
+
+[[parked]]
+function = "fn_8001280C"
+reason = "Best 22/41 (nudlist, PR 141); Scene update traversal is two instructions long. Next: type the scene pointer array so each iteration advances four bytes."
+
+[[parked]]
+function = "fn_800128B0"
+reason = "Best 40/52 (nudlist, PR 141); Buffer-swap traversal is four instructions long. Next: type the scene pointer array and repair its increments and flag accesses."
+
+[[parked]]
+function = "fn_80012980"
+reason = "Best 25/39 (nudlist, PR 141); Manager slot lookup and loop address calculations differ. Next: model +0x50c as an array of pointers to count-plus-scene records."
+
+[[parked]]
+function = "fn_80012A1C"
+reason = "Best 21/38 (nudlist, PR 141); Equal instruction count but default-command field and call setup differ. Next: type the +0x4b4 command state and reset-helper argument."
+
+[[parked]]
+function = "fn_8002B54C"
+reason = "Best 68/267 (nudlist, PR 141); Repaired float loads, colour word and byte-padding stores compile, but frame/vertex math remains structurally different. Next: use proper vertex and temporary vector structs."
+
+[[parked]]
+function = "fn_8002B978"
+reason = "Best 100/122 (nudlist, PR 141); Equal instruction count with register/cursor scheduling differences in both clone paths. Next: keep the +0x50 intermediate live and constrain the three-word aggregate copy order."
+
+[[parked]]
+function = "fn_80037E1C"
+reason = "Best 45/116 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft. Next: Recover typed GC state and call prototypes before scheduling search."
+
+[[parked]]
+function = "fn_80038058"
+reason = "Best 49/110 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft. Next: Recover typed GC state and call prototypes before scheduling search."
+
+[[parked]]
+function = "fn_80038210"
+reason = "Best 112/202 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft. Next: Recover typed GC state and call prototypes before scheduling search."
+
+[[parked]]
+function = "fn_80038538"
+reason = "Best 24/27 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); 28 emitted; the absolute bus-clock load materializes an extra address instruction; direct, indexed and volatile address forms did not fix it. Next: Recover the original bus-clock macro and argument lifetimes; keep the u64 alarm ABI."
+
+[[parked]]
+function = "fn_80038628"
+reason = "Best N/A (m2c cannot handle the dispatcher) (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); no compiling draft. Next: Type the GC initialization state/dispatcher first; the Android donor is not a substitute."
+
+[[parked]]
+function = "NuInitHardware"
+reason = "Best N/A (draft does not compile) (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); the hardware draft has a noninteger switch expression. Next: Type the GC initialization state/dispatcher first; the Android donor is not a substitute."
+
+[[parked]]
+function = "fn_800395E8"
+reason = "Best 215/382 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft; the proposed JP pair was rejected. Next: Reconstruct GC render-state helper prototypes and typed state bits."
+
+[[parked]]
+function = "fn_80039D74"
+reason = "Best 3/16 (aggregate return) (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); an explicit output/input-pointer variant reached 9/16 but regressed its caller to 34/56, so it was rejected; statement-order, union and u64-copy probes did not solve it. Next: Recover the original packet/cursor aggregate and template-copy helper while keeping the hidden-return ABI in callers."
+
+[[parked]]
+function = "fn_80039E78"
+reason = "Best 20/77 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); the repaired body; the generated aggregate/pointer expressions do not compile. Next: Model the 64-byte local DMA payload and update-address writes before permutation."
+
+[[parked]]
+function = "fn_80039FAC"
+reason = "Best N/A (draft does not compile) (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated aggregate/pointer expressions do not compile. Next: Model the 64-byte local DMA payload and update-address writes before permutation."
+
+[[parked]]
+function = "fn_800485EC"
+reason = "Best 94/96 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); 96 emitted; signed 16-bit samples and the two-argument buffer-free API are corrected; a focused 180-second permuter run did not match. Next: Resolve the zero-index and conversion-constant scheduling around the sample loop."
+
+[[parked]]
+function = "fn_8004876C"
+reason = "Best 97/139 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft. Next: Replace integer player/buffer guesses with GC-confirmed API and ownership views."
+
+[[parked]]
+function = "fn_80048B04"
+reason = "Best 79/209 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft. Next: Replace integer player/buffer guesses with GC-confirmed API and ownership views."
+
+[[parked]]
+function = "fn_8004901C"
+reason = "Best 356/608 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); generated draft. Next: Replace integer player/buffer guesses with GC-confirmed API and ownership views."
+
+[[parked]]
+function = "fn_80048E48"
+reason = "Best N/A (draft does not compile) (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); the generated draft references an undeclared stack temporary. Next: Reconstruct the movie descriptor and out-parameter call shape from GC."
+
+[[parked]]
+function = "fn_80071E9C"
+reason = "Best 95/99 (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); 100 emitted after a focused 180-second search (retained source 92/99), two address-taken strings unverified. Next: Recover nested-loop induction scope (retail decrements the outer counter at the tail and branches on nonzero), then resolve string pools with the full unit gate."
+
+[[parked]]
+function = "fn_80039BE4"
+reason = "Strict VERIFIED 48/48 at baseline (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); objdiff stays below 100% only on pool placement. Next: complete the unit's missing functions and reproduce per-TU pools at current boundaries."
+
+[[parked]]
+function = "fn_80039CB0"
+reason = "Strict VERIFIED 30/30 at baseline (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); objdiff stays below 100% only on pool placement. Next: complete the unit's missing functions and reproduce per-TU pools at current boundaries."
+
+[[parked]]
+function = "fn_8003A134"
+reason = "Strict VERIFIED 56/56 at baseline (nungc-nufmv, PR 140; docs/nungc_nufmv_matching.md); objdiff stays below 100% only on pool placement. Next: complete the unit's missing functions and reproduce per-TU pools at current boundaries."
+
+[[parked]]
+function = "__ieee754_rem_pio2f"
+reason = "Best 200/212 (sn-tail, PR 139; docs/sn_runtime.md): exact newlib 1.8.2 source, but ours forms two_over_pi's address with lis/addi where retail uses @sda21. Next: find the cc1 option or declaration (small-data size/section attribute) that puts two_over_pi in .sdata, then split the .sdata2 literals so the float units promote."
+
+[[parked]]
+function = "__kernel_rem_pio2f"
+reason = "Best 200/212 (sn-tail, PR 139; docs/sn_runtime.md): exact newlib 1.8.2 source, but ours forms two_over_pi's address with lis/addi where retail uses @sda21. Next: find the cc1 option or declaration (small-data size/section attribute) that puts two_over_pi in .sdata, then split the .sdata2 literals so the float units promote."
