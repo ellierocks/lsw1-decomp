@@ -60,7 +60,7 @@ class ToolError(Exception):
 
 SHT_SYMTAB, SHT_RELA, SHT_NOBITS = 2, 4, 8
 SHF_EXECINSTR = 4
-STT_SECTION, STT_FUNC = 3, 2
+STT_SECTION, STT_FUNC, STT_OBJECT = 3, 2, 1
 
 # type -> (name, bits rewritten by the linker). Unknown types are an error so a
 # new reloc kind can never be silently ignored.
@@ -98,6 +98,7 @@ class Section:
     flags: int
     offset: int
     size: int
+    align: int = 1
 
     @property
     def is_code(self) -> bool:
@@ -144,8 +145,8 @@ class Elf:
             raise ToolError(f"{path}: truncated section header table")
         strtab = raw[shstrndx]
         self.sections: list[Section] = []
-        for i, (name, typ, flags, _addr, off, size, *_rest) in enumerate(raw):
-            self.sections.append(Section(i, self._cstr(strtab[4] + name), typ, flags, off, size))
+        for i, (name, typ, flags, _addr, off, size, _link, _info, align, _entsize) in enumerate(raw):
+            self.sections.append(Section(i, self._cstr(strtab[4] + name), typ, flags, off, size, align))
         self.symbols: list[Symbol] = []
         self._function_symbols: Optional[list[Symbol]] = None
         self.relocs: dict[int, list[RawReloc]] = {}
@@ -300,6 +301,18 @@ class SymbolTable:
         if e is None and name not in self.duplicates:
             return linker_symbols().get(name)
         return e.addr if e and name not in self.duplicates else None
+
+    def object_at(self, addr: int) -> Optional[SymEntry]:
+        """The one sized non-function symbol starting at ADDR, or None."""
+        if not hasattr(self, "_objects_by_addr"):
+            self._objects_by_addr: dict[int, list[SymEntry]] = {}
+            entries = list(self.entries.values()) + list(self.shadowed_locals.values())
+            entries += [e for es in self.local_duplicates.values() for e in es]
+            for e in entries:
+                if e.size and not e.is_function and e.section not in CODE_SECTIONS:
+                    self._objects_by_addr.setdefault(e.addr, []).append(e)
+        hits = {(e.addr, e.size) for e in self._objects_by_addr.get(addr, [])}
+        return self._objects_by_addr[addr][0] if len(hits) == 1 else None
 
     def _dtk_local(self, name: str) -> Optional[SymEntry]:
         """DTK renames a local symbol to NAME_<address> in split objects.
@@ -589,6 +602,66 @@ class Comparer:
         return bool(self.unit_proof and 0 <= mloc[1] and mloc[1] + width <= sec.size
                     and self.unit_proof.get(mloc[0], -1) + mloc[1] == taddr)
 
+    def whole_object_status(self, mine: Func, mloc, sec: Section, taddr: int) -> str:
+        """Status of an address-taken reference (no load width).
+
+        Verified only when mine's sized object symbol starts at MLOC, symbols.txt sizes the
+        retail object at TADDR identically and every byte matches retail. A word holding an
+        R_PPC_ADDR32 relocation (a pointer table) matches when its named target resolves in
+        symbols.txt to the retail pointer value and that pointee verifies the same way."""
+        return self._object_status(mine.elf, sec, mloc[1], taddr, set())
+
+    def _object_status(self, elf: Elf, sec: Section, off: int, taddr: int, seen: set) -> str:
+        unverified = "unverified: address-taken or unsized, contents not compared"
+        if (sec.index, off) in seen:
+            return "verified: (cycle)"
+        seen.add((sec.index, off))
+        obj = next((s for s in elf.symbols
+                    if s.shndx == sec.index and s.value == off and s.size
+                    and s.sym_type == STT_OBJECT), None)
+        target = self.symbols.object_at(taddr)
+        if obj is None or target is None or sec.sh_type == SHT_NOBITS or self.dol is None:
+            return unverified
+        if obj.size != target.size:
+            return (f"unverified: address-taken object is 0x{obj.size:X} bytes in mine but "
+                    f"0x{target.size:X} in symbols.txt")
+        mine_bytes = bytearray(elf.section_bytes(sec)[obj.value: obj.value + obj.size])
+        target_bytes = self.dol.read(taddr, obj.size)
+        if target_bytes is None:
+            return unverified
+        pointers = 0
+        for r in elf.relocs.get(sec.index, []):
+            if not obj.value <= r.offset < obj.value + obj.size:
+                continue
+            rel = r.offset - obj.value
+            if r.rtype != 1 or rel % 4 or rel + 4 > obj.size or r.sym >= len(elf.symbols):
+                return "unverified: address-taken object holds non-pointer relocations"
+            ps = elf.symbols[r.sym]
+            if not 0 < ps.shndx < len(elf.sections):
+                return f"unverified: pointer at +0x{rel:X} targets undefined {ps.name}"
+            ptr_off = ps.value + r.addend
+            # MWCC points through section anchors (`...data.0`); name the object instead
+            named = next((s for s in elf.symbols if s.shndx == ps.shndx and s.size and s.name
+                          and s.sym_type == STT_OBJECT and s.value <= ptr_off < s.value + s.size), None)
+            paddr = self.symbols.addr(named.name) if named else None
+            if paddr is None or mine_bytes[rel: rel + 4] != bytes(4):
+                return (f"unverified: pointer at +0x{rel:X} targets {ps.name or 'a section'}"
+                        f"{r.addend:+#x}, which symbols.txt does not place")
+            paddr += ptr_off - named.value
+            want, = struct.unpack(">I", target_bytes[rel: rel + 4])
+            if paddr != want:
+                return (f"MISMATCH: pointer at +0x{rel:X} is {named.name}+{ptr_off - named.value:#x} "
+                        f"(0x{paddr:08X}) but retail holds 0x{want:08X}")
+            inner = self._object_status(elf, elf.sections[ps.shndx], ptr_off, want, seen)
+            if not inner.startswith("verified"):
+                return f"{inner.split(':')[0]}: pointee {named.name} at +0x{rel:X}: {inner}"
+            mine_bytes[rel: rel + 4] = target_bytes[rel: rel + 4]
+            pointers += 1
+        if bytes(mine_bytes) != target_bytes:
+            return f"MISMATCH: address-taken object {bytes(mine_bytes).hex()} != retail {target_bytes.hex()}"
+        how = f", {pointers} pointer(s) and their pointees verified" if pointers else ", no relocations"
+        return f"verified: whole {obj.size}-byte object identical to retail{how}"
+
     def verify_data(self, mine: Func, report: Report) -> None:
         for (key, mloc, taddr), _ in list(self.pending_data.items()):
             width = mine.data_widths.get(mloc, 0)
@@ -597,7 +670,9 @@ class Comparer:
                 if self.unit_proof_covers(mloc, sec, 1, taddr):
                     self.mappings[key] = "verified: full unit sections and relocations match retail"
                     continue
-                self.mappings[key] = "unverified: address-taken or unsized, contents not compared"
+                self.mappings[key] = status = self.whole_object_status(mine, mloc, sec, taddr)
+                if status.startswith("MISMATCH"):
+                    report.diffs.append(Diff("data", None, None, f"{key}: {status}"))
                 continue
             if self.dol is None:
                 self.mappings[key] = "unverified: retail DOL not available"

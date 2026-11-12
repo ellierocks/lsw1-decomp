@@ -4,6 +4,7 @@ All relocations are compared against the split target and independently
 checked against the encoded retail destination. Unknown encodings fail closed.
 """
 import re
+from types import SimpleNamespace
 
 
 def retail_relocation_matches(kind, address, pc, word, symbols, dol):
@@ -83,6 +84,7 @@ def refuse(reason):
     return None
 LOCAL_BRANCH_OPCODES = {10: 18, 11: 16}
 STT_SECTION, STT_FILE = 3, 4
+STT_NOTYPE, STB_LOCAL = 0, 0
 
 
 def bss_symbols(elf, section):
@@ -161,6 +163,8 @@ def check_linked_bss(ranges, mine, linked):
     `linked` maps names to sets of linked addresses. Every relocation into the section
     from any unit resolves through these symbols, so an object at the retail address
     here means references from other units resolve to the retail address too.
+    MWCC's local `...bss.0` section anchors are skipped: only the unit's own
+    relocations can use them, and the section relocation proof covers those.
     """
     for section in mine.sections:
         if section.sh_type != 8 or section.name not in ranges:
@@ -168,6 +172,8 @@ def check_linked_bss(ranges, mine, linked):
         start = ranges[section.name][0]
         for sym in mine.symbols:
             if sym.shndx != section.index or sym.sym_type in (STT_SECTION, STT_FILE):
+                continue
+            if sym.bind == STB_LOCAL and sym.sym_type == STT_NOTYPE and sym.name.startswith('...'):
                 continue
             if start + sym.value not in linked.get(sym.name, ()):
                 return (f"{section.name}: {sym.name} is not linked at retail 0x{start + sym.value:08x} "
@@ -198,6 +204,12 @@ def prove_unit(target, mine, ranges, symbols, dol):
     ts, ms = sections(target), sections(mine)
     if ts is None or ms is None:
         return None
+    # The linker places a compiled data section at its own alignment. When a split
+    # range starts on a smaller boundary (dtk's "Alignment ... expected 8" warning),
+    # the bytes before the aligned start are the previous object's padding.
+    lead = {name: 0 if ms[name].flags & 4 or ms[name].sh_type == 8
+            else -start % max(getattr(ms[name], 'align', 1), 1)
+            for name, (start, _) in ranges.items()}
 
     def resolve(elf, rel):
         if rel.sym >= len(elf.symbols):
@@ -211,6 +223,8 @@ def prove_unit(target, mine, ranges, symbols, dol):
             if section.name not in ranges or selected.get(section.name) is not section:
                 return None
             start, end = ranges[section.name]
+            if elf is not target:
+                start += lead[section.name]
             if not 0 <= sym.value <= end - start:
                 return None
             addr = start + sym.value
@@ -233,22 +247,24 @@ def prove_unit(target, mine, ranges, symbols, dol):
             continue
         # The linker aligns the next object, so a donor data section may end
         # before its retail range. Only a short all-zero tail is accepted.
-        pad = t.size - m.size
-        if pad and not (0 < pad < MAX_ALIGN_TAIL and not t.flags & 4):
+        head = lead[name]
+        pad = t.size - m.size - head
+        if pad < 0 or pad and not (0 < pad < MAX_ALIGN_TAIL and not t.flags & 4):
             return refuse(f"{name}: donor section is {pad} bytes short of the retail range")
         tb, mb, rb = bytearray(target.section_bytes(t)), bytearray(mine.section_bytes(m)), dol.read(start, t.size)
         if rb is None or len(tb) != t.size or len(mb) != m.size or len(rb) != t.size:
             return refuse(f"{name}: cannot read retail bytes")
-        if pad:
-            if any(tb[m.size:]) or any(rb[m.size:]):
-                return None
-            mb += bytes(pad)
+        if any(tb[:head]) or any(rb[:head]) or any(tb[t.size - pad:]) or any(rb[t.size - pad:]):
+            return refuse(f"{name}: alignment padding outside the compiled section is not zero")
+        mb = bytearray(head) + mb + bytearray(pad)
         tr, mr = target.relocs.get(t.index, []), mine.relocs.get(m.index, [])
         code = bool(t.flags & 4)
 
         def canonical(elf, relocs):
             result = {}
+            shift = 0 if elf is target else head
             for rel in relocs:
+                rel = SimpleNamespace(**{**vars(rel), 'offset': rel.offset + shift}) if shift else rel
                 if code:
                     if rel.rtype not in RELOC_TYPES:
                         return None
@@ -308,7 +324,7 @@ def prove_unit(target, mine, ranges, symbols, dol):
             bad = next(i for i in range(len(tb)) if tb[i] != mb[i] or tb[i] != clean_retail[i])
             return refuse(f"{name}: bytes differ at +0x{bad:x} (target {tb[bad]:02x}, donor {mb[bad]:02x}, "
                           f"retail {clean_retail[bad]:02x})")
-    return {name: start for name, (start, _) in ranges.items()}
+    return {name: start + lead[name] for name, (start, _) in ranges.items()}
 
 
 def linked_symbol_addresses(elf):

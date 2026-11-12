@@ -642,6 +642,14 @@ data relocation kinds, incomplete ownership fail closed. `.bss`/`.sbss` is prove
 
 `verify_fn.py` uses this same complete-unit proof to verify an address-taken
 local table only when its section-relative address agrees with the reference.
+Without that proof, an address-taken table verifies per object: mine's sized
+`STT_OBJECT` symbol must start at the referenced offset, `symbols.txt` must give
+the retail object the same size, and every byte must equal retail. A word that
+carries an `R_PPC_ADDR32` relocation (a pointer table) matches only when its target,
+resolved through the named sized object that contains it (MWCC section anchors such
+as `...data.0` included), sits at the retail pointer value in `symbols.txt` and that
+pointee verifies the same way. Different bytes are a `MISMATCH`; other relocation
+kinds, unsized objects and size disagreements stay unverified.
 An identical instruction sequence or consistent reference mapping alone still
 cannot verify a table. This does not promote a unit automatically; the final
 linked-range gate remains required. See [SDK import evidence](sdk_import.md)

@@ -266,7 +266,9 @@ def main(argv=None) -> int:
     ap.add_argument("name", help="retail function name in symbols.txt")
     ap.add_argument("source", type=Path, help="C file to compile")
     ap.add_argument("--compiled-symbol", help="symbol emitted by the source if it differs")
-    ap.add_argument("--compiler", choices=("prodg", "sdk"), default="prodg")
+    ap.add_argument("--compiler", choices=("prodg", "sdk"),
+                    help="default: sdk when SOURCE has an mwcc edge in build.ninja (an SDK or "
+                         "middleware unit, e.g. HVQM4), else prodg")
     ap.add_argument("-I", dest="includes", action="append", default=[], help="extra include dir")
     ap.add_argument("-D", dest="defines", action="append", default=[], help="extra define")
     ap.add_argument("--mw-version", metavar="VER",
@@ -294,7 +296,9 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     global MW_VERSION, MW_FLAGS
     import shlex
-    unit = unit_mw_settings(args.source) if args.compiler == "sdk" else None
+    unit = unit_mw_settings(args.source) if args.compiler in (None, "sdk") else None
+    if args.compiler is None:  # sweep.py and other callers pass no --compiler for SDK units
+        args.compiler = "sdk" if unit else "prodg"
     MW_VERSION = args.mw_version or (unit[0] if unit else "1.2.5n")
     MW_FLAGS = shlex.split(args.mw_flags) if args.mw_flags else (unit[1] if unit else SDK_FLAGS)
     extra = [x for d in args.includes for x in ("-I", d)] + [f"-D{d}" for d in args.defines]

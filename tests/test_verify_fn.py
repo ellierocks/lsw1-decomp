@@ -358,6 +358,38 @@ class SyntheticDataTests(Env):
         self.assertEqual(code, 1, out)
         self.assertEqual(json.loads(out)["differences"][0]["kind"], "data")
 
+    def address_taken(self, retail, mine, size=None):
+        """Foo takes lbl_80200000's address (lis/addi: no load width)."""
+        relocs_t = [(0, R_HA, "lbl_80200000", 0), (4, R_LO, "lbl_80200000", 0),
+                    (8, R_REL24, "ext_a", 0)]
+        funcs = [("Foo", [LIS_R9, ADDI, BL, BLR]), ("Bar", [BLR, BLR])]
+        self.target(funcs, undefined=["lbl_80200000", "ext_a"], relocs=relocs_t)
+        image = bytearray(0x200000)
+        image[0:16] = struct.pack(">4I", LIS_R9, ADDI, BL, BLR)
+        image[0x1FF000:0x1FF000 + len(retail)] = retail
+        self.install_dol(build_dol(0x80001000, bytes(image)))
+        relocs_m = [(0, R_HA, "tbl", 0), (4, R_LO, "tbl", 0), (8, R_REL24, "ext_a", 0)]
+        self.mine(funcs, undefined=["ext_a"], relocs=relocs_m, rodata=mine,
+                  extra_symbols=[("tbl", ".rodata", 0, size or len(mine))])
+
+    def test_address_taken_object_is_verified_whole(self):
+        self.address_taken(bytes(range(8)), bytes(range(8)))
+        code, out, err = self.run_with_dol("--strict-symbols")
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("whole 8-byte object identical to retail, no relocations", out)
+
+    def test_address_taken_object_with_wrong_contents_is_a_mismatch(self):
+        self.address_taken(bytes(range(8)), bytes(range(1, 9)))
+        code, out, _ = self.run_with_dol("--json")
+        self.assertEqual(code, 1, out)
+        self.assertEqual(json.loads(out)["differences"][0]["kind"], "data")
+
+    def test_address_taken_object_of_another_size_stays_unverified(self):
+        self.address_taken(bytes(range(8)), bytes(range(8)), size=4)
+        code, out, err = self.run_with_dol("--strict-symbols")
+        self.assertEqual(code, 3, out + err)
+        self.assertIn("0x4 bytes in mine but 0x8 in symbols.txt", out)
+
     def test_bss_in_mine_against_initialised_retail_data_stays_unverified(self):
         self.retail_with(bytes(4) + bytes(4))
         relocs_m = [(0, R_HA, "gvar", 0), (4, R_LO, "gvar", 0), (8, R_REL24, "ext_a", 0)]
@@ -720,3 +752,37 @@ class GenuineProdgTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PointerTableTests(unittest.TestCase):
+    """Comparer._object_status on a pointer table (R_PPC_ADDR32 words) and its pointees."""
+
+    def status(self, retail_words, pointee=b"\x01\x02\x03\x04", retail_pointee=None):
+        sec = vf.Section(1, ".data", 1, 3, 0, 12)
+        anchor = vf.Symbol(1, "...data.0", 0, 0, 0, 0, 1)  # MWCC section anchor
+        tbl = vf.Symbol(2, "tbl", 4, 8, vf.STT_OBJECT, 0, 1)
+        leaf = vf.Symbol(3, "leaf", 0, 4, vf.STT_OBJECT, 0, 1)
+        elf = mock.Mock(symbols=[vf.Symbol(0, "", 0, 0, 0, 0, 0), anchor, tbl, leaf],
+                        sections=[None, sec], relocs={1: [vf.RawReloc(4, 1, 1, 0)]})
+        elf.section_bytes.return_value = pointee + bytes(4) + b"\xAA\xBB\xCC\xDD"
+        symbols = vf.SymbolTable.__new__(vf.SymbolTable)
+        symbols.entries = {"tbl": vf.SymEntry(".data", 0x80300000, 8, False),
+                           "leaf": vf.SymEntry(".data", 0x80300100, 4, False)}
+        symbols.shadowed_locals, symbols.local_duplicates, symbols.duplicates = {}, {}, set()
+        image = {0x80300000: retail_words, 0x80300100: retail_pointee or pointee}
+        dol = mock.Mock(read=lambda a, n: image[a][:n])
+        return vf.Comparer(symbols, dol)._object_status(elf, sec, 4, 0x80300000, set())
+
+    def test_pointer_to_matching_pointee_verifies(self):
+        st = self.status(struct.pack(">I", 0x80300100) + b"\xAA\xBB\xCC\xDD")
+        self.assertTrue(st.startswith("verified"), st)
+        self.assertIn("1 pointer(s)", st)
+
+    def test_pointer_to_another_address_is_a_mismatch(self):
+        st = self.status(struct.pack(">I", 0x80300104) + b"\xAA\xBB\xCC\xDD")
+        self.assertTrue(st.startswith("MISMATCH"), st)
+
+    def test_pointee_with_wrong_contents_fails(self):
+        st = self.status(struct.pack(">I", 0x80300100) + b"\xAA\xBB\xCC\xDD",
+                         retail_pointee=b"\x09\x09\x09\x09")
+        self.assertTrue(st.startswith("MISMATCH"), st)

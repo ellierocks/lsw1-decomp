@@ -48,8 +48,8 @@ note = "#122 promoted ppcdown, tealeaf and __init_cpp (docs/sn_runtime.md#codewa
 
 [[stage.item]]
 id = "hvqm4"
-units = ["dolphin/hvqm4/hvqm4dec"]
-note = "GC/1.2.5; Pikmin CC0 donor adds 10 strict matches / 8,160 B: 33/43 functions, 16,296 B verified, zero promoted. Ten remain: MCBlockDecDCNest 107/108; PpicPlaneDec and fn_80189FFC have exact instructions but unproved tables; eight code mismatches. Owning existing BSS layouts works but regresses reference verification until full-unit code/relocations pass. Next: docs/sdk_import.md#pikmin-cc0-donor-follow-up."
+units = ["dolphin/hvqm4/hvqm4dec", "dolphin/hvqm4/HVQM4DecSnd", "dolphin/hvqm4/HVQM4Adpcm", "dolphin/hvqm4/HVQM4Pcm16", "dolphin/hvqm4/HVQM4Adp8x"]
+note = "Promoted: MK:DA CC0 donor (3d6f177) has the same HVQM4 1.5 build; split into the five retail TUs (hvqm4dec, HVQM4DecSnd, HVQM4Adpcm, HVQM4Pcm16, HVQM4Adp8x), all 43 functions and every unit verify. See docs/sdk_import.md#hvqm4-sound-tus."
 # at revision 1: 25 functions, 18,592 bytes left
 
 
