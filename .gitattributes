@@ -11,3 +11,10 @@
 
 # decomp-toolkit writes files with LF
 config/**/*.txt  text eol=lf
+
+# Upstream newlib/fdlibm/libgcc sources are kept byte-for-byte (docs/sn_runtime.md),
+# trailing whitespace included, so git diff --check skips them.
+src/sn/libc/**    -whitespace
+src/sn/libm/**    -whitespace
+src/sn/libgcc/**  -whitespace
+src/sn/include/** -whitespace

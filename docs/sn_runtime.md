@@ -31,7 +31,7 @@ SN's GPL release. Nothing here ships retail bytes.
 
 Match edits are limited to what the compiler needs and what retail code proves:
 the `#define` wrappers, the trimmed `libgcc2.c` and the `SN Systems:` edits below.
-Every other newlib and fdlibm file is byte-for-byte upstream.
+Every other newlib and fdlibm file is byte-for-byte upstream. `.gitattributes` marks the upstream trees `-whitespace` so `git diff --check` leaves their trailing blanks alone.
 
 ## SN edits
 
