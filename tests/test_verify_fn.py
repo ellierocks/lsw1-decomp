@@ -829,3 +829,31 @@ class PointerTableTests(unittest.TestCase):
         st = self.status(struct.pack(">I", 0x80300100) + b"\xAA\xBB\xCC\xDD",
                          retail_pointee=b"\x09\x09\x09\x09")
         self.assertTrue(st.startswith("MISMATCH"), st)
+
+
+class StringLiteralTests(unittest.TestCase):
+    """Comparer._object_status on an unnamed GCC string literal (no sized symbol in mine)."""
+
+    def status(self, mine_bytes, retail_bytes, size=8):
+        sec = vf.Section(1, ".rodata", 1, 2, 0, 16)
+        elf = mock.Mock(symbols=[vf.Symbol(0, "", 0, 0, 0, 0, 0)], sections=[None, sec],
+                        relocs={})
+        elf.section_bytes.return_value = bytes(4) + mine_bytes
+        symbols = vf.SymbolTable.__new__(vf.SymbolTable)
+        symbols.entries = {"str": vf.SymEntry(".rodata", 0x80300000, size, False)}
+        symbols.shadowed_locals, symbols.local_duplicates, symbols.duplicates = {}, {}, set()
+        dol = mock.Mock(read=lambda a, n: retail_bytes[:n])
+        return vf.Comparer(symbols, dol)._object_status(elf, sec, 4, 0x80300000, set())
+
+    def test_identical_literal_verifies(self):
+        st = self.status(b"abc.c\x00\x00\x00", b"abc.c\x00\x00\x00")
+        self.assertTrue(st.startswith("verified"), st)
+        self.assertIn("6-byte string literal", st)
+
+    def test_different_literal_is_a_mismatch(self):
+        st = self.status(b"abd.c\x00\x00\x00", b"abc.c\x00\x00\x00")
+        self.assertTrue(st.startswith("MISMATCH"), st)
+
+    def test_non_string_retail_object_stays_unverified(self):
+        st = self.status(bytes(range(1, 9)), b"\x01\x02\x00\x04\x05\x06\x07\x08")
+        self.assertTrue(st.startswith("unverified"), st)
