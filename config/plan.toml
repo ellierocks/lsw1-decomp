@@ -124,7 +124,7 @@ note = "NGCStreaming2 has no source file yet."
 [[stage.item]]
 id = "nungc-nufmv"
 units = ["auto/nungc/ngcapi", "auto/nungc/ps2dma", "auto/nufmv/ngc/nufmvmtl", "auto/nufmv/ngc/HVQM4PlayerEx", "auto/effects/objects/part", "auto/gamelib/glutils"]
-note = "HVQM4PlayerEx has no source file yet."
+note = "HVQM4PlayerEx and glutils promoted (904 code bytes, 6 functions). ngcapi and nufmvmtl gained strict matches; ps2dma still has three strict-only literal-layout cases. Remaining candidates and donor limits: docs/nungc_nufmv_matching.md."
 # at revision 1: 31 functions, 15,772 bytes left
 
 [[stage.item]]
