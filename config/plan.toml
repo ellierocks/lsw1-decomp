@@ -154,6 +154,7 @@ note = "PR 141 (2026-11-11) matched 16 functions / 2,300 B; neither unit promote
 [[stage.item]]
 id = "ngc_mtl"
 units = ["auto/nu3d/ngc/ngc_mtl"]
+note = "Matched 12 functions / 2,416 B; unit stays NonMatching with 23 unmatched functions / 25,076 B parked, plus strict-only lighting literal-pool placement. fn_8002DBE4 (17/18), fn_80030A98 (56/57) and fn_80031524 (103/108) are closest. GX prototype repairs reduce sweep compile failures 4 to 1. Donor layouts and misleading NuMtxInvRSS/NuCameraClipTestExtents name leads rejected; see docs/nu2_engine_reference.md#gamecube-material-state."
 # at revision 1: 35 functions, 27,492 bytes left
 
 [[stage.item]]
@@ -1958,3 +1959,99 @@ reason = "Strict VERIFIED 1297/1297 (newlib; docs/sn_runtime.md); objdiff remain
 [[parked]]
 function = "_vfiprintf_r"
 reason = "Strict VERIFIED 1213/1213 (newlib; docs/sn_runtime.md); objdiff remains below 100% with literal-pool relocations, and unit proof rejects generated .rodata without an owned split range. Next: establish data ownership and reproduce the full unit pools without changing boundaries; keep NonMatching until complete section, relocation and linked-range gates pass."
+
+[[parked]]
+function = "fn_8002DBE4"
+reason = "Best 17/18 (ngc_mtl); state reset store at 0xE0 schedules late; order/variant search and a 180 s permuter burst did not match. Next: Recover the original subobject/alias expression for that store."
+
+[[parked]]
+function = "fn_80030A98"
+reason = "Best 56/57 (ngc_mtl); frame-pointer load and output-alignment mask schedule in the opposite order after variant search and a 180 s burst. Next: Model the frame/index pointer ownership rather than introducing another scalar preload."
+
+[[parked]]
+function = "fn_800303D8"
+reason = "Best 85/102 (ngc_mtl); frame indexing repaired; weight-base loads and register allocation still differ. Next: Recover the frame/weight record types and induction-variable scopes."
+
+[[parked]]
+function = "fn_80030210"
+reason = "Best 98/114 (ngc_mtl); frame-pointer indexing repaired; blend operands retain different registers. Next: Share GC-confirmed frame/weight views with fn_800303D8, then tune coefficient lifetimes."
+
+[[parked]]
+function = "fn_800306F8"
+reason = "Best 60/81 (ngc_mtl); sweep retains better scheduling than the readable typed draft. Next: Recover packed vertex/frame views and compare loop-carried pointers with Ghidra."
+
+[[parked]]
+function = "NuMtxInvRSS"
+reason = "Best 59/98 (ngc_mtl); misleading name: GC interpolates packed s16 vertex triples, not a matrix inverse. Next: Model four arguments and six-byte vertex records; confirm frame selection and scale2048 against GC."
+
+[[parked]]
+function = "fn_80031524"
+reason = "Best 103/108 (ngc_mtl); white GXColor union fixes aggregate codegen; call-argument and cache-store scheduling remain after 1200 order variants and bounded permuter work. Next: Inspect integer argument live ranges around GXSetZMode/GXSetBlendMode and byte cache stores."
+
+[[parked]]
+function = "fn_8002D770"
+reason = "Best 120/158 (ngc_mtl); sweep-only draft still guesses state and helper argument types. Next: Trace fn_8002D1F4/fn_8002BEA0 and recover GC state/view fields before scheduling work."
+
+[[parked]]
+function = "fn_8003083C"
+reason = "Best 36/116 (ngc_mtl); sweep-only draft has guessed camera/math helper signatures. Next: Check each helper against GC and model the input geometry and wave/frame state."
+
+[[parked]]
+function = "fn_80032AB0"
+reason = "Best 56/129 (ngc_mtl); prototype repairs compile the texture draft, but texture/TLUT layouts remain raw offsets. Next: Use GXTexture.h and GC access widths to recover texture format, palette and LOD fields."
+
+[[parked]]
+function = "fn_80030B7C"
+reason = "Best 46/176 (ngc_mtl); sweep-only table initializer has unresolved record shapes and store grouping. Next: Derive descriptor strides and group adjacent stores from GC before order search."
+
+[[parked]]
+function = "fn_80030E3C"
+reason = "Best 28/208 (ngc_mtl); Ghidra confirms table construction; sweep guesses descriptor types and loops. Next: Recover TEV descriptor arrays and loop induction scopes from GC writes."
+
+[[parked]]
+function = "fn_8003117C"
+reason = "Best 105/234 (ngc_mtl); sweep-only renderer initializer retains guessed texture object and call shapes. Next: Apply matched GXTexture.h prototypes and typed GX objects; then reconstruct initialization order."
+
+[[parked]]
+function = "fn_8002FDEC"
+reason = "Best 110/265 (ngc_mtl); sweep-only skin/morph draft has raw vertex/weight arithmetic and one unverified reference. Next: Recover frame, vertex and weight records; resolve the reference against retail data before accepting."
+
+[[parked]]
+function = "fn_8002F220"
+reason = "Best 72/329 (ngc_mtl); sweep-only deformation loop has raw weight/vertex arithmetic and one unverified reference. Next: Confirm packed input strides, weights and referenced data from GC and helper callers."
+
+[[parked]]
+function = "fn_8002D1F4"
+reason = "Best 257/351 (ngc_mtl); sweep-only vector/state transform retains raw layout and branch guesses. Next: Recover the full state transform view around PSMTXMultVec and compare branch structure with Ghidra."
+
+[[parked]]
+function = "fn_8002EC3C"
+reason = "Best 295/377 (ngc_mtl); sweep-only display-list setup has raw material/vertex-array fields and three extra instructions. Next: Apply the light/color ABI views, then recover GXSetArray descriptors and state-cache branches."
+
+[[parked]]
+function = "fn_8002DE44"
+reason = "Best 157/421 (ngc_mtl); m2c emits invalid void FIFO stores; local typed volatile repair compiles but GX state/stack layout differs. Next: Recover actual FIFO write widths and typed GXColor/matrix locals; do not use Ghidra omitted stores as evidence."
+
+[[parked]]
+function = "fn_8002F744"
+reason = "Best 167/426 (ngc_mtl); sweep-only larger deformation loop still guesses frame, weights and vertex views. Next: Reuse GC-confirmed small morph-helper layouts, then reconstruct the multiweight loop."
+
+[[parked]]
+function = "fn_8002E53C"
+reason = "Best 223/448 (ngc_mtl); matrix-array repair compiles; matrix/temp layout and GX matrix IDs still differ. Next: Confirm 3x4 versus 4x4 matrix views and PSMTX/GX call signatures against GC."
+
+[[parked]]
+function = "fn_80032CB4"
+reason = "Best 479/835 (ngc_mtl); sweep-only texture loader improved with prototype repairs but palette/LOD branches and raw offsets remain. Next: Recover texture and palette records using GXTexture.h, then work branch cases independently."
+
+[[parked]]
+function = "fn_800316D4"
+reason = "Best 629/1061 (ngc_mtl); large sweep-only GX setup draft still misrepresents colors, material stages and stack locals. Next: Extend the matched color/stage views across TEV/indirect-texture branches using SDK prototypes."
+
+[[parked]]
+function = "NuCameraClipTestExtents"
+reason = "Best 79/157 (ngc_mtl); misleading name: GC submits a GX quad; generated C loses repeated FIFO writes. Next: Reconstruct all volatile FIFO stores and widths from assembly; reject donor bounding-box clipping and leave boundaries fixed."
+
+[[parked]]
+function = "fn_80032768"
+reason = "Strict VERIFIED 121/121, 484 B (ngc_mtl); objdiff remains below 100% because generated .rodata literals use pool relocations. Next: complete the unit and reproduce its owned literal range; keep NonMatching until section, relocation and linked-range checks pass."
