@@ -237,23 +237,26 @@ f32 NuAnimCurveCalcVal2(struct nuanimcurve_s* curve, struct nuanimtime_s* time)
         idx += ObjectAnim[mask_bytes[2] & time->time_mask];
         break;
     case 2:
-        idx = ObjectAnim[mask_bytes[3]] + ObjectAnim[mask_bytes[2]];
+        idx = ObjectAnim[mask_bytes[3]];
+        idx += ObjectAnim[mask_bytes[2]];
         idx += ObjectAnim[mask_bytes[1] & time->time_mask];
         break;
     case 3:
-        idx = ObjectAnim[mask_bytes[3]] + ObjectAnim[mask_bytes[2]] + ObjectAnim[mask_bytes[1]];
+        idx = ObjectAnim[mask_bytes[3]];
+        idx += ObjectAnim[mask_bytes[2]];
+        idx += ObjectAnim[mask_bytes[1]];
         idx += ObjectAnim[mask_bytes[0] & time->time_mask];
         break;
     }
 
     {
-        struct nuanimkey_s* prev = curve->animkeys + (idx - 1);
-        struct nuanimkey_s* curr = curve->animkeys + idx;
+        struct nuanimkey_s* prev = &curve->animkeys[idx - 1];
+        struct nuanimkey_s* curr = prev + 1;
         u32 flags = curve->flags;
 
         if (flags & 1) {
             if ((flags & 2) && idx - 1 < curve->numkeys) {
-                f32 d1 = time->time - prev->time;
+                f32 d1 = time->time - curr[-1].time;
                 f32 d2 = curr->time - time->time;
                 if (d1 > d2) return curr->d;
             }

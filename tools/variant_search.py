@@ -19,8 +19,11 @@ only the named function. `--body FILE` searches a draft that is not in the unit 
 
     python3 tools/variant_search.py NuAnimCurve2SetApplyToMatrix src/nu3dx/nuanim.c -j 8
 
-Variants are tried fewest-changes first, so the smallest edit that matches wins. Every one is
-compiled with `score_fn.py` (strict verifier, same score order as hillclimb.py). The search
+The unmodified function is scored first; if it does not compile the search refuses to start,
+since every variant would fail the same way. Variants are tried fewest-changes first, so the
+smallest edit that matches wins; a rewrite that does not compile alone is not combined with
+others, and `--max-error-run` (default 64) compile errors in a row stop the search with the
+commonest diagnostic. Every one is compiled with `score_fn.py` (strict verifier, same score order as hillclimb.py). The search
 stops at the first strict MATCH. At most `--max-changes` dimensions (default 2; a
 whole declaration permutation or all ternaries together count as one) change at once. A space
 larger than `--limit` (default 2000, about 5 minutes serially, under a minute with -j 8) is
@@ -267,7 +270,13 @@ def render(fn: Function, dims: list[Dimension], body_lines: list[str], choice: t
     return fn.before + head + "\n".join(lines) + fn.tail
 
 
-def search(name: str, text: str, scorer, *, jobs: int, limit: int, max_changes: int = 2, log=None):
+def search(name: str, text: str, scorer, *, jobs: int, limit: int, max_changes: int = 2, log=None,
+           max_error_run: int = osr.DEFAULT_MAX_ERROR_RUN):
+    """Score the unmodified function, then its variants fewest-changes first.
+
+    A rewrite option that does not compile on its own is not combined with others: its
+    combinations are skipped (counted in `pruned`), since they fail the same way. The
+    search stops at the first strict MATCH or after MAX_ERROR_RUN compile errors in a row."""
     fn = find_function(text, name)
     dims, body_lines = build_dimensions(fn)
     dims += sign_param_dims(fn)
@@ -277,30 +286,56 @@ def search(name: str, text: str, scorer, *, jobs: int, limit: int, max_changes: 
     truncated = total > limit
     if truncated and log:
         log(f"{total} variants exceed --limit {limit}; trying the first {limit} (fewest changes first)")
-    best, tried, errors = None, 0, 0
-    it = itertools.islice(combos(dims, max_changes), limit)
+    it = combos(dims, max_changes)
+    seed_choice = next(it)
+    seed_text = render(fn, dims, body_lines, seed_choice)
+    try:
+        rep = osr.check_seed(scorer, seed_text)
+    except osr.SearchError as e:
+        raise VariantError(str(e)) from None
+    best = {"score": rep["score"], "changes": [], "text": seed_text, "report": rep}
+    if log:
+        log(f"[1/{total}] seed {rep['verdict']} score={rep['score']} "
+            f"exact={rep['exact_insns']}/{rep['target_insns']}")
+    tried, errors, stopped = 1, 0, None
+    broken: set[tuple[int, int]] = set()  # (dimension, option) that fails to compile alone
+    pruned = {"n": 0}
+    guard = osr.ErrorGuard(max_error_run)
+
+    def viable():
+        for c in it:
+            if any((i, k) in broken for i, k in enumerate(c) if k):
+                pruned["n"] += 1
+                continue
+            yield c
+
+    remaining = itertools.islice(viable(), max(0, limit - 1))
     with ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
-        while True:
-            batch = list(itertools.islice(it, max(1, jobs) * 4))
+        while not stopped and not (best["report"].get("returncode") == 0 and best["report"]["verdict"] == "MATCH"):
+            batch = list(itertools.islice(remaining, max(1, jobs) * 4))
             if not batch:
                 break
             texts = [render(fn, dims, body_lines, c) for c in batch]
             reports = list(pool.map(lambda a: scorer(a[1], a[0]), enumerate(texts, tried)))
             for choice, variant, rep in zip(batch, texts, reports):
                 tried += 1
+                if guard.add(rep) and not stopped:
+                    stopped = f"{guard.run} compile errors in a row"
                 if rep.get("verdict") == "ERROR":
                     errors += 1
+                    changed = [(i, k) for i, k in enumerate(choice) if k]
+                    if len(changed) == 1:
+                        broken.add(changed[0])
                     continue
-                if best is None or rep["score"] < best["score"]:
+                if rep["score"] < best["score"]:
                     changes = [d.name for d, k in zip(dims, choice) if k]
                     best = {"score": rep["score"], "changes": changes, "text": variant, "report": rep}
                     if log:
                         log(f"[{tried}/{total}] {rep['verdict']} score={rep['score']} "
                             f"exact={rep['exact_insns']}/{rep['target_insns']} changes={changes or 'none'}")
-            if best and best["report"].get("returncode") == 0 and best["report"]["verdict"] == "MATCH":
-                break
-    return {"total": total, "tried": tried, "errors": errors, "best": best,
-            "truncated": truncated, "dimensions": [d.name for d in dims]}
+    return {"total": total, "tried": tried, "errors": errors, "best": best, "pruned": pruned["n"],
+            "truncated": truncated, "dimensions": [d.name for d in dims], "stopped": stopped,
+            "warning": guard.report(tried)}
 
 
 def main(argv=None) -> int:
@@ -319,6 +354,8 @@ def main(argv=None) -> int:
                     help="search a draft definition (as for score_fn.py --body) spliced into SOURCE, "
                          "without editing SOURCE")
     ap.add_argument("--dry-run", action="store_true", help="list the dimensions and variant count, then exit")
+    ap.add_argument("--max-error-run", type=int, default=osr.DEFAULT_MAX_ERROR_RUN,
+                    help=f"stop after this many compile errors in a row (default {osr.DEFAULT_MAX_ERROR_RUN}; 0: never)")
     args = ap.parse_args(argv)
     try:
         text = args.source.read_text()
@@ -343,15 +380,17 @@ def main(argv=None) -> int:
     extra += osr.compiler_args(args.compiler, args.source)
     with tempfile.TemporaryDirectory(prefix="variant_search_") as tmp:
         def scorer(variant, index):
-            return osr.score_source(args.name, variant, extra, Path(tmp), index)
+            return osr.score_source(args.name, variant, extra, Path(tmp), index, source="variant_search")
         try:
             result = search(args.name, text, scorer, jobs=args.jobs, limit=args.limit,
-                            max_changes=args.max_changes, log=print)
+                            max_changes=args.max_changes, log=print, max_error_run=args.max_error_run)
         except VariantError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
     best = result["best"]
-    print(f"tried {result['tried']}/{result['total']} variants, {result['errors']} compile errors")
+    osr.print_outcome(result)
+    if result["pruned"]:
+        print(f"skipped {result['pruned']} combinations of rewrites that did not compile alone")
     if best is None:
         print("error: no variant compiled", file=sys.stderr)
         return 2

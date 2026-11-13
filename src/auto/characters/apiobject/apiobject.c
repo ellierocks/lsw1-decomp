@@ -1,4 +1,6 @@
 #include "types.h"
+#include "game/apiobject.h"
+#include "numath/numath.h"
 
 extern s32 lbl_80408D2C;
 extern s32 lbl_80408D30;
@@ -29,6 +31,98 @@ void fn_8008F44C(s32 a)
 void fn_8008F454(s32 a)
 {
     lbl_80408D34 = a;
+}
+
+struct aivec_s { f32 x, y, z; };
+struct aigroup_s {
+    void *leader;
+    u8 pad4[0x4C];
+    u32 flags_hi : 3;
+    u32 is_in_formation : 1;
+};
+struct aipathroute_s {
+    u8 pad0[0x18];
+    u64 character_mask;
+    u8 pad20[8];
+};
+struct aipath_s {
+    u8 pad0[0x14];
+    u8 route_count;
+    u8 pad15[0x84 - 0x15];
+    struct aipathroute_s *routes;
+};
+struct aipathcnx_s {
+    u8 pad0[0x16];
+    u16 route_mask;
+};
+struct aipathinfo_s {
+    struct aipath_s *path;
+    struct aipathcnx_s *connection;
+    s32 w[4];
+};
+struct aipacket_s {
+    u8 pad0[0x50];
+    void *owner;
+    u8 pad54[0xA0 - 0x54];
+    s16 inside_path_node;
+    u8 padA2[6];
+    u64 character_type_mask;
+    u8 padB0[0xF0 - 0xB0];
+    struct aigroup_s *group;
+    u8 padF4[0x10C - 0xF4];
+    struct aipathinfo_s path_info;
+    u8 pad124[0x168 - 0x124];
+    u16 available_routes;
+    u8 current_route;
+    u8 next_route;
+    u8 pad16C[0x170 - 0x16C];
+    struct aivec_s fallback_destination;
+    f32 fallback_stopping_distance;
+    f32 movement_parameter;
+    struct aipathinfo_s fallback_path_info;
+    u8 pad19C[4];
+    u32 movement_mode : 3;
+};
+
+extern void* memset();
+
+void AISysCharacterSetPath(struct aipacket_s *packet, struct aipath_s *path)
+{
+    s32 i;
+    if (packet->path_info.path == path) return;
+    memset(&packet->path_info, 0, sizeof(packet->path_info));
+    packet->path_info.path = path;
+    packet->available_routes = 0;
+    packet->inside_path_node = -1;
+    packet->current_route = 0xff;
+    packet->next_route = 0;
+    if (path == NULL) return;
+    for (i = 0; i < path->route_count; i++) {
+        struct aipathroute_s *route = &path->routes[i];
+        if (route->character_mask & packet->character_type_mask)
+            packet->available_routes |= (u16)(1LL << i);
+    }
+}
+
+/* OpenSaga AISysFindRoute: pick the next route the connection allows, round robin. */
+void fn_8008F660(struct aipacket_s *packet)
+{
+    s32 count = packet->path_info.path->route_count;
+    s32 route, first;
+    if (count == 0) return;
+    if ((packet->path_info.connection->route_mask & packet->available_routes) == 0) return;
+    first = packet->next_route;
+    if (first < 0 || first >= count) first = 0;
+    route = first;
+    do {
+        if ((u32)((u64)(packet->path_info.connection->route_mask & packet->available_routes) >> route) & 1) {
+            packet->current_route = route;
+            packet->next_route = route + 1;
+            return;
+        }
+        route++;
+        if (route >= packet->path_info.path->route_count) route = 0;
+    } while (route != first);
 }
 
 struct object_entry3c { char bytes[0x3c]; };
@@ -121,7 +215,6 @@ struct object_pool {
     u8 list[8];
     u8 otherList[8];
 };
-extern void* memset();
 extern void fn_80007610(void*, void*);
 void fn_8008F968(struct object_pool* pool)
 {
@@ -136,7 +229,6 @@ void fn_8008F968(struct object_pool* pool)
     }
 }
 
-#include "game/apiobject.h"
 extern f32 fn_8000C038(void);
 extern f32 NuSinApprox(s32);
 extern f32 NuCosApprox(s32);
@@ -179,38 +271,25 @@ void fn_8009083C(struct NUAPIOBJECT_s* a, struct NUAPIOBJECT_s* b)
     b->responseZ = b->velocityZ;
 }
 
-void *CheckAIMessage();
+struct aimessage_s {
+    u8 links[8];
+    char name[0x20];
+    f32 value;
+};
+struct aimessagesys_s {
+    u8 pad0[8];
+    u8 free_list[8];
+    u8 active_list[8];
+};
+struct aimessage_s *CheckAIMessage(struct aimessagesys_s *sys, char *name, struct aimessage_s *message);
 
-void SetAIMessage(f32 farg0) {
-    void *temp_r3;
-
-    temp_r3 = CheckAIMessage();
-    if (temp_r3 != NULL) {
-        (*(f32 *)((s8 *)(temp_r3) + (0x28))) = farg0;
+void SetAIMessage(struct aimessagesys_s *sys, char *name, f32 value, struct aimessage_s *message)
+{
+    message = CheckAIMessage(sys, name, message);
+    if (message != NULL) {
+        message->value = value;
     }
 }
-
-struct aivec_s { f32 x, y, z; };
-struct aipathinfo_s { s32 w[6]; };
-struct aigroup_s {
-    void *leader;
-    u8 pad4[0x4C];
-    u32 flags_hi : 3;
-    u32 is_in_formation : 1;
-};
-struct aipacket_s {
-    u8 pad0[0x50];
-    void *owner;
-    u8 pad54[0xF0 - 0x54];
-    struct aigroup_s *group;
-    u8 padF4[0x170 - 0xF4];
-    struct aivec_s fallback_destination;
-    f32 fallback_stopping_distance;
-    f32 movement_parameter;
-    struct aipathinfo_s fallback_path_info;
-    u8 pad19C[4];
-    u32 movement_mode : 3;
-};
 
 extern void AIFormationFollow(struct aipacket_s *packet);
 extern void fn_8008CDE8(struct aigroup_s *group, void (*move)());
@@ -242,4 +321,638 @@ void AIMoveInstruction(struct aipacket_s *packet, struct aivec_s *destination,
     packet->fallback_stopping_distance = stopping_distance;
     packet->movement_parameter = movement_parameter;
     packet->movement_mode = mode;
+}
+
+extern void *fn_800076C4(void *list);
+extern void *fn_800076CC(void *list, void *link);
+extern s32 fn_800076E4(char *a, char *b, s32 n);
+extern void fn_80007680(void *list, void *link);
+extern void NuStrNCpy(char *dst, char *src, s32 n);
+struct aimessage_s *CheckAIMessage(struct aimessagesys_s *sys, char *name, struct aimessage_s *message)
+{
+    struct aimessage_s *result = NULL;
+    if (sys != NULL) {
+        if (message != NULL) {
+            result = message;
+        } else if (name != NULL) {
+            for (message = fn_800076C4(sys->active_list); message != NULL;
+                 message = fn_800076CC(sys->active_list, message)) {
+                if (fn_800076E4(name, message->name, 0x20) == 0) {
+                    result = message;
+                    break;
+                }
+            }
+        }
+        if (result == NULL) {
+            result = fn_800076C4(sys->free_list);
+            if (result != NULL) {
+                fn_80007680(sys->free_list, result);
+                fn_80007610(sys->active_list, result);
+                NuStrNCpy(result->name, name, 0x20);
+            }
+        }
+    }
+    return result;
+}
+
+extern s32 lbl_80408DEC;
+extern f32 lbl_80408DE8;
+extern f32 NuFsqrt(f32);
+extern f32 NuFdiv(f32, f32);
+extern void *fn_80059C44(struct nuvec_s *pos, struct nuvec_s *delta, f32 radius, void *arg);
+void *fn_8008FB18(struct nuvec_s *start, struct nuvec_s *delta, f32 radius, f32 maxdist, void *arg)
+{
+    f32 len;
+    struct nuvec_s dir;
+    struct nuvec_s moved;
+    struct nuvec_s pos;
+    struct nuvec_s step;
+    void *hit;
+    if (lbl_80408DEC == 0) goto fallback;
+    len = delta->x * delta->x + delta->y * delta->y + delta->z * delta->z;
+    if (len > maxdist * maxdist) return NULL;
+    if (len < lbl_80408DE8 * lbl_80408DE8) goto fallback;
+    len = NuFsqrt(len);
+    NuVecScale(&dir, delta, NuFdiv(1.0f, len));
+    moved.x = 0.0f;
+    moved.y = 0.0f;
+    moved.z = 0.0f;
+    pos = *start;
+    while (len > 0.0f) {
+        if (len >= lbl_80408DE8) {
+            NuVecScale(&step, &dir, lbl_80408DE8);
+            len -= lbl_80408DE8;
+        } else {
+            NuVecScale(&step, &dir, len);
+            len = 0.0f;
+        }
+        hit = fn_80059C44(&pos, &step, radius, arg);
+        if (hit != NULL) {
+            NuVecAdd(delta, &moved, &step);
+            return hit;
+        }
+        NuVecAdd(&pos, &pos, &step);
+        NuVecAdd(&moved, &moved, &step);
+    }
+    return NULL;
+fallback:
+    return fn_80059C44(start, delta, radius, arg);
+}
+
+extern void (*fn_80009948(char *, int))(char *, ...);
+extern char lbl_8019DE8C[];
+extern char lbl_8019DECC[];
+extern void fn_80095234(void *entry);
+struct apientry_s { u8 pad0[8]; void *a; void *b; void *c; u8 pad14[0x54 - 0x14]; };
+struct apisys_s {
+    s32 count0; s32 entry_count; s32 count8; u8 padC[8]; s32 count14;
+    struct apientry_s *entries; s16 *array1c; s32 field20; void *array24;
+    u8 pad28[0x34 - 0x28]; s32 field34;
+};
+extern struct apisys_s *lbl_80408DF0;
+void fn_80091FC0(u32 *buf, s32 unused, s32 count0, s32 entry_count, s32 count8, s32 count14,
+                 s32 field20, s32 field34)
+{
+    s32 i;
+    if (lbl_80408DF0 != NULL) {
+        fn_80009948(lbl_8019DE8C, 0x7F6)(lbl_8019DECC);
+    }
+    {
+        struct apisys_s *p = (struct apisys_s *)((*buf + 0xF) & ~0xF);
+        lbl_80408DF0 = p;
+        *buf = (u32)p + 0x38;
+        memset(p, 0, 0x38);
+    }
+    {
+        struct apisys_s *sys = lbl_80408DF0;
+        sys->count0 = count0;
+        sys->count8 = count8;
+        sys->count14 = count14;
+        sys->entry_count = entry_count;
+        if (entry_count != 0) {
+            sys->entries = (struct apientry_s *)((*buf + 3) & ~3);
+            *buf = (*buf + 3) & ~3;
+            *buf += sys->entry_count * 0x54;
+            memset(sys->entries, 0, sys->entry_count * 0x54);
+            for (i = 0; i < lbl_80408DF0->entry_count; i++) {
+                struct apisys_s *s2 = lbl_80408DF0;
+                struct apientry_s *entry = &s2->entries[i];
+                if (s2->count8 != 0) {
+                    entry->a = (void *)((*buf + 3) & ~3);
+                    *buf = (*buf + 3) & ~3;
+                    *buf += s2->count8 * 4;
+                    entry->b = (void *)*buf;
+                    *buf = (*buf + 3) & ~3;
+                    *buf += s2->count8 * 4;
+                    entry->c = (void *)*buf;
+                    *buf = (*buf + 3) & ~3;
+                    *buf += s2->count8 * 4;
+                }
+                fn_80095234(entry);
+            }
+        }
+    }
+    {
+        struct apisys_s *sys = lbl_80408DF0;
+        if (sys->count0 != 0) {
+            sys->array1c = (s16 *)((*buf + 3) & ~3);
+            *buf = (*buf + 3) & ~3;
+            *buf += sys->count0 * 2;
+            memset(sys->array1c, 0, sys->count0 * 2);
+        }
+    }
+    {
+        struct apisys_s *sys = lbl_80408DF0;
+        if (sys->count14 != 0) {
+            sys->array24 = (void *)((*buf + 3) & ~3);
+            *buf = (*buf + 3) & ~3;
+            *buf += sys->count14 * 0x34;
+            memset(sys->array24, 0, sys->count14 * 0x34);
+        }
+    }
+    lbl_80408DF0->field20 = field20;
+    lbl_80408DF0->field34 = field34;
+}
+
+struct variptr_s { u32 addr; };
+struct charanim_s {
+    char *name;
+    s16 id;
+    u8 pad6[2];
+    u16 flags;
+    u8 padA[0x40 - 0xA];
+};
+struct chardata_s {
+    u8 pad0[4];
+    s32 model_flags;
+    char *dir;
+    char *file;
+    struct charanim_s *animations;
+    u8 pad14[0x48 - 0x14];
+};
+struct charmodel_s {
+    s16 model_id;
+    u8 flag2;
+    u8 flag3;
+    void *hierarchy;
+    struct charanim_s **anim;
+    void **data_b;
+    void **data_c;
+    void *poi[16];
+};
+struct animlist_s {
+    char path[0x30];
+    void *anim;
+};
+struct apicharsys_s {
+    s32 character_count;
+    s32 model_capacity;
+    s32 anim_id_capacity;
+    s32 permanent_model_count;
+    s32 loaded_model_count;
+    s32 animation_capacity;
+    struct charmodel_s *models;
+    s16 *playermodelids;
+    struct chardata_s *char_data;
+    struct animlist_s *animations;
+    s32 area_animation_count;
+    s32 loaded_animation_count;
+    s32 animation_load_attempts;
+};
+struct charmodellist_s { u8 model_id; u8 count; };
+#define apicharsys ((struct apicharsys_s *)lbl_80408DF0)
+extern s32 lbl_80408DF4;
+extern void (*fn_80009970(char *, int))(char *, ...);
+extern char lbl_8019DEFC[];
+extern char lbl_8019DF04[];
+extern char lbl_8019DF08[];
+extern char lbl_8019DF20[];
+extern char lbl_8019DF30[];
+extern char lbl_8019DF38[];
+extern char lbl_8019DF40[];
+extern char lbl_8019DF48[];
+extern char lbl_8019DF50[];
+extern char lbl_8019DF58[];
+extern char lbl_8019DF60[];
+extern s32 NuStrCpy(char *, char *);
+extern void NuStrCat(char *, char *);
+extern s32 NuFileExists(char *);
+extern void *NuGHGReadEx(char *, struct variptr_s *, struct variptr_s);
+extern void *NuHGobjGetPOI(void *, u8);
+extern void *fn_800092F0(char *, struct variptr_s *, struct variptr_s, s32);
+extern s32 fn_80009324(void *, char *);
+extern s32 fn_80009408(void *, s32, s32 **, s32 *);
+extern void fn_800094C4(void *, s32, s32);
+extern s32 NuLightStoreCurrentLights(void *);
+extern void *NuAnimDataLoadBuff(s32, s32 **);
+extern void *NuAnimData2LoadBuff(char *, struct variptr_s *, struct variptr_s *);
+
+static inline void APIResetCharacterRemap(void)
+{
+    s32 i;
+    for (i = 0; i < apicharsys->character_count; i++) {
+        if ((apicharsys->char_data[i].model_flags & 2) == 0) {
+            apicharsys->playermodelids[i] = -1;
+        }
+    }
+}
+
+static inline void APICharacterModelReset(struct charmodel_s *model)
+{
+    model->model_id = 0;
+    model->flag2 = 0;
+    model->flag3 = 0;
+    model->hierarchy = NULL;
+    if (apicharsys->anim_id_capacity != 0) {
+        memset(model->anim, 0, apicharsys->anim_id_capacity * 4);
+        memset(model->data_b, 0, apicharsys->anim_id_capacity * 4);
+        memset(model->data_c, 0, apicharsys->anim_id_capacity * 4);
+    }
+    memset(model->poi, 0, sizeof(model->poi));
+}
+
+static inline void *LoadAnim(char *path, s32 area_animation, struct variptr_s *buf, struct variptr_s buf_end)
+{
+    struct animlist_s *entry = apicharsys->animations;
+    s32 i;
+    for (i = 0; i < apicharsys->loaded_animation_count; i++, entry++) {
+        if (NuStrICmp(path, entry->path) == 0) {
+            return entry->anim;
+        }
+    }
+    if (i < apicharsys->animation_capacity) {
+        NuStrCpy(entry->path, path);
+        entry->anim = NuAnimData2LoadBuff(entry->path, buf, &buf_end);
+        if (entry->anim != NULL) {
+            if (area_animation != 0) {
+                apicharsys->area_animation_count++;
+            }
+            {
+                struct apicharsys_s *sys = apicharsys;
+                sys->loaded_animation_count++;
+                sys->animation_load_attempts++;
+            }
+        }
+        return entry->anim;
+    }
+    apicharsys->animation_load_attempts++;
+    return NULL;
+}
+
+void APILoadCharacterModels(struct charmodellist_s *list, s32 area_animation, struct variptr_s *buf,
+                            struct variptr_s buf_end, s32 area_models)
+{
+    char directory[0x40];
+    char path[0x100];
+    char pak_path[0x100];
+    struct charmodel_s *model;
+    struct charanim_s *anim;
+    struct chardata_s *character;
+    s32 i;
+    s32 j;
+    u8 model_id;
+    s32 loaded;
+    void *pak;
+
+    if (lbl_80408DF4 == 0) {
+        for (i = 0; i < apicharsys->character_count; i++) {
+            if ((apicharsys->char_data[i].model_flags & 2) == 0) {
+                apicharsys->playermodelids[i] = -1;
+            }
+        }
+        model = apicharsys->models;
+        for (i = 0; i < apicharsys->permanent_model_count; i++, model++) {
+            for (j = 0; j < apicharsys->anim_id_capacity; j++) {
+                if ((model->data_b[j] != NULL || model->data_c[j] != NULL) && (model->anim[j]->flags & 1) == 0) {
+                    model->anim[j] = NULL;
+                    model->data_b[j] = NULL;
+                    model->data_c[j] = NULL;
+                }
+            }
+        }
+        for (i = apicharsys->permanent_model_count; i < apicharsys->model_capacity; i++, model++) {
+            model->hierarchy = NULL;
+        }
+        apicharsys->loaded_model_count = apicharsys->permanent_model_count;
+    }
+    lbl_80408DF4 = 0;
+    if (list == NULL) {
+        return;
+    }
+    while ((model_id = list->model_id) != 0xFF && apicharsys->loaded_model_count < apicharsys->model_capacity) {
+        character = &apicharsys->char_data[model_id];
+        loaded = 0;
+        NuStrCpy(directory, lbl_8019DEFC);
+        NuStrCat(directory, character->dir);
+        NuStrCat(directory, lbl_8019DF04);
+        if (apicharsys->playermodelids[model_id] != -1) {
+            fn_80009970(lbl_8019DE8C, 0x8A7)(lbl_8019DF08);
+            model = &apicharsys->models[apicharsys->playermodelids[model_id]];
+        } else {
+            fn_80009970(lbl_8019DE8C, 0x8AD)(lbl_8019DF20);
+            model = &apicharsys->models[apicharsys->loaded_model_count];
+            APICharacterModelReset(model);
+            NuStrCpy(path, directory);
+            NuStrCat(path, character->file);
+            NuStrCpy(pak_path, path);
+            NuStrCat(pak_path, lbl_8019DF30);
+            NuStrCat(path, lbl_8019DF38);
+            model->hierarchy = NuGHGReadEx(path, buf, buf_end);
+            if (model->hierarchy == NULL) {
+                list++;
+                continue;
+            }
+            for (i = 0; i < 16; i++) {
+                model->poi[i] = NuHGobjGetPOI(model->hierarchy, i);
+            }
+            loaded = 1;
+        }
+        if (area_models != 0 && list->count != 0) {
+            anim = apicharsys->char_data[model_id].animations;
+        } else {
+            anim = NULL;
+        }
+        pak = fn_800092F0(pak_path, buf, buf_end, 0x10);
+        if (pak != NULL) {
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0) {
+                    s32 item;
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF40);
+                    fn_80009324(pak, path);
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF48);
+                    item = fn_80009324(pak, path);
+                    if (item != 0) {
+                        fn_800094C4(pak, item, 1);
+                    }
+                }
+            }
+            buf->addr -= NuLightStoreCurrentLights(pak);
+            if (area_models != 0 && list->count != 0) {
+                anim = apicharsys->char_data[model_id].animations;
+            } else {
+                anim = NULL;
+            }
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0) {
+                    s32 item;
+                    s32 *data;
+                    s32 size;
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF40);
+                    fn_80009324(pak, path);
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF48);
+                    item = fn_80009324(pak, path);
+                    if (item != 0 && fn_80009408(pak, item, &data, &size) != 0) {
+                        if (*data == 2) {
+                            if ((model->data_b[anim->id] = NuAnimDataLoadBuff(size, &data)) != NULL) {
+                                model->anim[anim->id] = anim;
+                            }
+                        }
+                        if (*data >= 0) {
+                            void *p = NuAnimDataLoadBuff(size, &data);
+                            *data |= 0x80000000;
+                            if ((model->data_b[anim->id] = p) != NULL) {
+                                model->anim[anim->id] = anim;
+                            }
+                        }
+                    }
+                }
+            }
+            if (area_models != 0 && list->count != 0) {
+                anim = apicharsys->char_data[model_id].animations;
+            } else {
+                anim = NULL;
+            }
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0) {
+                    s32 item;
+                    s32 *data;
+                    s32 size;
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF40);
+                    item = fn_80009324(pak, path);
+                    if (item != 0 && fn_80009408(pak, item, &data, &size) != 0) {
+                        *data &= 0x7FFFFFFF;
+                    }
+                }
+            }
+        } else {
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0
+                    && ((area_animation != 0 && (anim->flags & 1) != 0)
+                        || (area_animation == 0 && (anim->flags & 1) == 0))) {
+                    if ((anim->flags & 4) != 0 && model->data_b[anim->id] == NULL) {
+                        NuStrCpy(path, directory);
+                        NuStrCat(path, anim->name);
+                        NuStrCat(path, lbl_8019DF50);
+                        if (NuFileExists(path) != 0) {
+                            model->data_b[anim->id] = LoadAnim(path, area_animation, buf, buf_end);
+                        }
+                        if (model->data_b[anim->id] == NULL) {
+                            NuStrCpy(path, directory);
+                            NuStrCat(path, anim->name);
+                            NuStrCat(path, lbl_8019DF58);
+                            model->data_b[anim->id] = LoadAnim(path, area_animation, buf, buf_end);
+                        }
+                        if (model->data_b[anim->id] != NULL) {
+                            model->anim[anim->id] = anim;
+                        }
+                    }
+                    if ((anim->flags & 8) != 0 && model->data_c[anim->id] == NULL) {
+                        NuStrCpy(path, directory);
+                        NuStrCat(path, anim->name);
+                        NuStrCat(path, lbl_8019DF60);
+                        model->data_c[anim->id] = LoadAnim(path, area_animation, buf, buf_end);
+                        if (model->data_c[anim->id] != NULL) {
+                            model->anim[anim->id] = anim;
+                        }
+                    }
+                }
+            }
+        }
+        if (loaded) {
+            model->model_id = model_id;
+            apicharsys->playermodelids[model_id] = apicharsys->loaded_model_count;
+            if (area_animation != 0) {
+                apicharsys->permanent_model_count++;
+                character->model_flags |= 2;
+            }
+            apicharsys->loaded_model_count++;
+        }
+        list++;
+    }
+}
+
+struct aiscriptentry_s {
+    s32 id;
+    char name[0x10];
+};
+struct aiscriptlist_s {
+    s32 count;
+    s32 max;
+    struct aiscriptentry_s *entries;
+};
+extern s32 fn_800633A4(char *name, s32 mode);
+extern s32 lbl_804083F4;
+extern char **lbl_804083FC;
+
+struct aiscriptlist_s *fn_800911D0(s32 *buffer, s32 unused, s32 max, s32 count, char **names, s32 mode)
+{
+    struct aiscriptlist_s *list;
+    s32 i, j;
+
+    list = (struct aiscriptlist_s *)((*buffer + 0xf) & ~0xf);
+    *buffer = (s32)(list + 1);
+    if (list != NULL) {
+    memset(list, 0, sizeof(*list));
+    list->count = count;
+    list->max = max;
+    list->entries = (struct aiscriptentry_s *)((*buffer + 0xf) & ~0xf);
+    *buffer = ((*buffer + 0xf) & ~0xf) + max * sizeof(struct aiscriptentry_s);
+    if (list->entries != NULL) {
+    memset(list->entries, -1, max * sizeof(struct aiscriptentry_s));
+    for (i = 0; i < list->count; i++) {
+        NuStrCpy(list->entries[i].name, names[i]);
+        list->entries[i].id = -1;
+        list->entries[i].id = fn_800633A4(list->entries[i].name, (s8)mode);
+    }
+    for (j = 1; i < list->max && j < lbl_804083F4; j++) {
+        list->entries[i].id = -1;
+        if (lbl_804083FC[j] != NULL) {
+            NuStrCpy(list->entries[i].name, lbl_804083FC[j]);
+            list->entries[i].id = fn_800633A4(list->entries[i].name, (s8)mode);
+            i++;
+        }
+    }
+    for (; i < list->max; i++) list->entries[i].id = -1;
+    return list;
+    }
+    }
+    return NULL;
+}
+
+extern f32 NuFdiv(f32 a, f32 b);
+extern f32 lbl_80408DDC;
+extern f32 lbl_80408DE0;
+
+s32 fn_8009098C(struct NUAPIOBJECT_s *a, struct NUAPIOBJECT_s *b)
+{
+    struct nuvec_s *pa = (struct nuvec_s *)&a->positionX;
+    struct nuvec_s *pb = (struct nuvec_s *)&b->positionX;
+    struct nuvec_s dir;
+    struct nuvec_s va;
+    struct nuvec_s vb;
+    struct nuvec_s avg;
+    s32 touching;
+    f32 f, ra, rb;
+    f32 speedA, speedB, d, k, len;
+
+    if ((a->contactMask & b->identityMask) || (b->contactMask & a->identityMask)) touching = 1;
+    else touching = 0;
+    a->contactMask |= b->identityMask;
+    b->contactMask |= a->identityMask;
+    f = a->mass + b->mass;
+    if (f > 0.0f) {
+        ra = 2.0f * (a->mass / f);
+        rb = 2.0f - ra;
+    } else {
+        ra = rb = 1.0f;
+    }
+    if (!touching) {
+        if (a->flags208 & 0x80) return 2;
+        if (b->flags208 & 0x80) return 2;
+        if (pa->x == pb->x && pa->z == pb->z && a->unk84 == 0.0f && a->unk8C == 0.0f
+            && b->unk84 == 0.0f && b->unk8C == 0.0f) {
+            fn_8009083C(a, b);
+            return 2;
+        }
+        dir.x = pb->x - pa->x;
+        dir.z = pb->z - pa->z;
+        len = NuFsqrt(dir.x * dir.x + dir.z * dir.z);
+        if (len == 0.0f) f = 0.0f;
+        else f = 1.0f / len;
+        dir.x = dir.x * f;
+        dir.z = dir.z * f;
+        speedA = NuFsqrt(a->unk84 * a->unk84 + a->unk8C * a->unk8C);
+        if (speedA == 0.0f) f = 0.0f;
+        else f = 1.0f / speedA;
+        va.x = a->unk84 * f;
+        va.z = a->unk8C * f;
+        speedB = NuFsqrt(b->unk84 * b->unk84 + b->unk8C * b->unk8C);
+        if (speedB == 0.0f) f = 0.0f;
+        else f = 1.0f / speedB;
+        vb.x = b->unk84 * f;
+        vb.z = b->unk8C * f;
+        f = (va.x * dir.x + va.z * dir.z) * speedA;
+        va.x = dir.x * f;
+        va.z = dir.z * f;
+        f = (vb.x * dir.x + vb.z * dir.z) * speedB;
+        vb.x = dir.x * f;
+        vb.z = dir.z * f;
+        if ((a->flags20C & 0x40000000) && !(b->flags20C & 0x40000000)) {
+            b->velocityX += (va.x - vb.x) * ra * 2.0f;
+            b->velocityZ += (va.z - vb.z) * ra * 2.0f;
+        } else if (!(a->flags20C & 0x40000000) && (b->flags20C & 0x40000000)) {
+            a->velocityX += (vb.x - va.x) * rb * 2.0f;
+            a->velocityZ += (vb.z - va.z) * rb * 2.0f;
+        } else {
+            a->velocityX += (vb.x - va.x) * rb;
+            a->velocityZ += (vb.z - va.z) * rb;
+            b->velocityX += (va.x - vb.x) * ra;
+            b->velocityZ += (va.z - vb.z) * ra;
+        }
+        a->responseX = a->velocityX;
+        a->responseZ = a->velocityZ;
+        b->responseX = b->velocityX;
+        b->responseZ = b->velocityZ;
+        return 2;
+    }
+    if (!(a->flags208 & 0x80) && !(b->flags208 & 0x80)) {
+        if (pa->x == pb->x && pa->z == pb->z && a->unk84 == 0.0f && a->unk8C == 0.0f
+            && b->unk84 == 0.0f && b->unk8C == 0.0f) {
+            fn_8009083C(a, b);
+        } else {
+            avg.x = (a->unk84 + b->unk84) * 0.5f;
+            avg.z = (a->unk8C + b->unk8C) * 0.5f;
+            if (pa->x != pb->x || pa->z != pb->z) {
+                dir.x = pb->x - pa->x;
+                dir.z = pb->z - pa->z;
+                f = NuFdiv(1.0f, NuFsqrt(dir.x * dir.x + dir.z * dir.z));
+                dir.x = dir.x * f;
+                dir.z = dir.z * f;
+                f = NuFsqrt(avg.x * avg.x + avg.z * avg.z);
+                if (f < lbl_80408DDC) f = lbl_80408DDC;
+                else if (f > lbl_80408DE0) f = lbl_80408DE0;
+                k = 3.0f;
+                f = f * (k / 2.1f);
+                dir.x = dir.x * f;
+                dir.z = dir.z * f;
+                if ((a->flags20C & 0x40000000) && !(b->flags20C & 0x40000000)) {
+                    b->velocityX = avg.x + (dir.x + dir.x);
+                    b->velocityZ = avg.z + (dir.z + dir.z);
+                } else if (!(a->flags20C & 0x40000000) && (b->flags20C & 0x40000000)) {
+                    a->velocityX = avg.x - (dir.x + dir.x);
+                    a->velocityZ = avg.z - (dir.z + dir.z);
+                } else {
+                    a->velocityX = avg.x - dir.x;
+                    a->velocityZ = avg.z - dir.z;
+                    b->velocityX = avg.x + dir.x;
+                    b->velocityZ = avg.z + dir.z;
+                }
+                a->responseX = a->velocityX;
+                a->responseZ = a->velocityZ;
+                b->responseX = b->velocityX;
+                b->responseZ = b->velocityZ;
+            }
+        }
+    }
+    return 1;
 }

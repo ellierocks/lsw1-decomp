@@ -121,6 +121,7 @@ class ScanIsolation(unittest.TestCase):
              patch.object(score_fn.vf, 'main', side_effect=verify), \
              patch.object(score_fn, 'score', return_value=[]), \
              patch.object(score_fn, 'note_queue') as queue, \
+             patch.object(score_fn, 'bench_note'), \
              contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(score_fn.main(['f', 'scratch.c', '--json', '--no-queue']), 0)
             queue.assert_not_called()

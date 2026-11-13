@@ -178,49 +178,21 @@ note = "nuqfnt-2 (2026-11-12) strictly VERIFIED createPortalFrustrum (756 B) and
 [[stage.item]]
 id = "nucamera"
 units = ["auto/nu3d/ngc/nucamera"]
-note = "The nucamera run (2026-11-12) strictly matched 15 functions / 4,156 B; no unit promoted (6 functions remain). Misattributed symbols found here were renamed in the follow-up cleanup (NuVpInit/NuVpUpdate/NuVpSetScalingMtx, NuCosApprox/NuSinApprox, NuVec4MtxTransform, NuMtxSetIdentity); NuAnimCurveSetApplyBlendToJoint2 is really NuCameraSet but keeps its name because 0x800D149C already carries that name. Eight of them are strict-only (float-pool fuzzy) and parked; fn_80022DE8 is parked with a NONMATCHING draft; fn_80021784, fn_800225C4, fn_80022A88 and fn_8002303C were not attempted. Layouts come from CrashWOC nu3dx/nucamera.c and OpenSaga nucamera.c, with LSW1 offsets and outcode bits confirmed in asm. Open, not attempted: fn_8002303C: (0x46C). Walks the lbl_803378CC light/fx table (0x68-byte records, group byte at +0x67), distance-culls against the camera position, calls fn_80022DE8 and copies matrices. Next: type the 0x68-byte record from its readers, then draft from work/fn_8002303C/draft_m2c.c. fn_80022A88: (0x360). It uses a 16-byte-aligned stack buffer (&local & ~0xF) for a matrix and vec4 pairs, transforms with fn_8000EE70/NuVec4MtxTransformVU0 and appends triangles to lbl_803145E0 (lbl_80407CE4 count). Next: find how other LSW1 matches spell the manual alignment idiom, then draft. fn_800225C4: (0x4C4). Next: task pack and m2c draft; check its callers next to fn_80022A88 for the shared record types. fn_80021784: (0xE40, the largest in the unit). Next: attempt after the smaller camera/light functions fix the shared record layouts."
+note = "The nucamera run (2026-11-12) strictly matched 15 functions / 4,156 B. Misattributed symbols found there were renamed in the follow-up cleanup (NuVpInit/NuVpUpdate/NuVpSetScalingMtx, NuCosApprox/NuSinApprox, NuVec4MtxTransform, NuMtxSetIdentity). NuAnimCurveSetApplyBlendToJoint2 is really NuCameraSet, but keeps its name because 0x800D149C already carries that name. The second pass (PR 158) strictly VERIFIED the four remaining camera/light bodies: fn_8002303C (0x46C), fn_80022A88 (0x360), fn_800225C4 (0x4C4) and fn_80021784 (0xE40), 6,864 B. The fixes are recorded in docs/nucamera_matching_pass.md. The third pass reordered nucamera.c into retail .text order with static const placeholders for the dead-stripped pools and VuMath.h copies, so the unit .rodata (0x570 B) is byte-identical to retail and seven of the eight strict-only functions reach 100% in objdiff; fn_80023628 stays at 99.96% from a .bss symbol-name relocation. fn_80022DE8 improved from 135/149 to 146/149 and is parked at a plateau, so 30/31 functions are strict VERIFIED and the unit is not promoted (.text differs by 3 scheduled instructions in fn_80022DE8). Next: match fn_80022DE8's first-block schedule, then promote. Layouts come from CrashWOC nu3dx/nucamera.c and OpenSaga nucamera.c, with LSW1 offsets and outcode bits confirmed in asm."
 # at revision 1: 20 functions, 11,616 bytes left
 
 [[parked]]
-function = "fn_800234A8"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
 function = "fn_80023628"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuCameraCreate"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuCameraClipTestBoundingSphere"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuCameraEnableClipping"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuVpInit"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuVpUpdate"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuVpSetScalingMtx"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
+reason = "Strict VERIFIED and its .rodata pool now matches; objdiff stays at 99.96% only because the farclip read relocates as lbl_80313268+0x4c where the retail split names the same address lbl_803132B4 (struct nucam_s spans the 0x20-byte lbl_80313268 symbol). The linked address is identical. Next: settle the .bss symbol boundary at 0x80313268 with runtime or caller evidence, never by faking a separate extern."
 
 [[parked]]
 function = "fn_80022DE8"
-reason = "Best 135/149, score [1,17,0,-135,0] (NONMATCHING draft in src/auto/nu3d/ngc/nucamera.c). Builds the lbl_80337860 ring: yaw/pitch from fn_8000ABDC (atan2), pitch clamped to 8192, then a rot_xy inline applied to the input and each of 8 ring points. Angles must live in a struct nuvec_s local (stack-resident). The loop's inline instance assigns x/y to f12/f13 the other way round from the first instance, and the first z store is scheduled one slot early. Two 180 s permuter bursts did not improve it. Next: write the second rotation out by hand (or as a macro) with a different load order, keeping the first as the inline."
+reason = "Best 146/149, score [1,6,0,-146,0] (NONMATCHING draft in src/auto/nu3d/ngc/nucamera.c, kept unguarded because its 8192.0f/0.0f pool entries are part of the unit .rodata). Writing rot_xy straight through v fixed the loop instance register swap. The only remaining difference is the first block after the second NuFsqrt: retail schedules the p->x store directly after fctiwz and loads ang.y (lfs f31) before mr r3,r30. Plateau: over 25 distinct hypotheses (store orders, chained/split zero stores, a len temporary, ternary clamp, f32 ang[2]/[3], ang pointer inline, local declaration orders, comma expressions) and a 13k-iteration 180 s permuter burst on the block found nothing better. Next: a scheduler-aware search (e.g. different inline parameter shapes for the first call only) or a different source form for the first rotation."
 
 [[stage.item]]
 id = "nuhgobj"
 units = ["auto/nu3d/NuHGobjEval", "auto/nu3d/ngc/nuhgobj"]
-note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2 (strict 167/167, fuzzy due pool refs), fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Open: NuHGobjEvalAnim2Root (best 89/251: 4-byte scratch fixes frame; next align saved-register pressure and joint loop), NuHGobjEvalAnimBlend2Root (85/301: donor modern-only wrapper does not cover GC legacy loop; next type the two time and scale arrays), NuAnimCurveSetEval (22/224: frame fixed but generated code saves four FPRs absent in retail; next write typed matrix/bounds loop), NuAnimCurveSetLoad (61/802: draft frame 0x118 too small; next recover pointer and local array layout), fn_8001AF8C (guarded 160/168 candidate in #157), NuGHGReadEx (265/662 after fixing pointer arithmetic and callee return type; next model 0x200-byte path buffer and nested GHG records)."
+note = "Done: every function in both units strictly matches. ngc/nuhgobj is promoted (0x8002A4B0..0x8002B3A0, 3,824 bytes; NuGHGReadEx needs an array local u8 *buf[1] so stores reload it, integer off + (u32)base add order and a pt = &p->pts[i] local). NuHGobjEval stays NonMatching: all 14 functions match and .text is in retail order, but its .rodata split starts 4 mod 8, so fn_8001AF8C's 8-byte-aligned double lands 4 bytes late (0x23C vs 0x238). Only a split/alignment change could fix that, which is out of scope for matching."
 # at revision 1: 12 functions, 12,580 bytes left
 
 [[stage.item]]
@@ -2246,3 +2218,19 @@ reason = "Best 120/137 (nuqfnt_ngc, candidate in source). Second pass tested geo
 [[parked]]
 function = "fn_80027DC8"
 reason = "Best 52/55 (nufont_ngc, candidate in source), up from 47/55. Mtx44/full-copy and inline-helper shapes rejected; a 180 s permuter burst found a local zero row index plus literals that preserves all references. Only first destination address materialization differs: target lis r7, addi r9,r7 and stfs through r7; candidate folds it through r9. Next: recover the first-element lvalue/base lifetime with an array or union view, then strict-verify the complete unit."
+
+[[parked]]
+function = "fn_80090FB0"
+reason = "Best 103/136 (apiobject; OpenSaga APIObjectCollisions by body, donor shape with an extra do{}while(0) from variant_search). Instruction stream and reload pattern agree; the outer/inner loop pointers take different callee-saved registers. variant_search 2000 variants and order_search 6 orderings gave nothing better. Next: give the three outer cursors (objs, mins, maxs) one struct-of-arrays lifetime, or split the inner loop into a static inline helper."
+
+[[parked]]
+function = "fn_800902C0"
+reason = "Best 350/351 (apiobject, 125 distinct candidates). One fmuls is scheduled before the second NuVecDot instead of after. Next: move the scale factor into its own statement after the second dot product, or make the dot product a block-local temporary, then a 180 s permuter burst."
+
+[[parked]]
+function = "fn_8008FCD0"
+reason = "Best 370/380 (apiobject, 25 distinct candidates; possibly OpenSaga APIObjectLOSChecks, which calls QuickNewRayCast = fn_8008FB18). sys->j is reloaded in the target, and the i0/j0 counters swap r21/r22. Next: read sys->j through a per-iteration local, and declare j0 before i0."
+
+[[parked]]
+function = "fn_800913BC"
+reason = "Short park, not attempted (0xC04 bytes, ~740 instructions). OpenSaga has an older, longer AddAnimEffects with the same body shape; matching it needs a long hand climb that did not fit this benchmark pass. Next: start from the donor AddAnimEffects control flow and the Ghidra decompile in work/fn_800913BC."

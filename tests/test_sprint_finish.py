@@ -10,6 +10,26 @@ from tools.sprint_finish import validate_queue, phase, rebase_refusal, merge_mai
 
 
 class SprintFinishTests(unittest.TestCase):
+    def test_reverification_is_not_new_progress(self):
+        baseline = {"strict_baseline": {"existing": True, "new": False}}
+        self.assertEqual(sprint_finish.new_verified_names(
+            baseline, {"existing": True, "new": True}), ["new"])
+        self.assertEqual(sprint_finish.new_verified_names(baseline, {"existing": True}), [])
+        self.assertIsNone(sprint_finish.new_verified_names({}, {"existing": True}))
+        self.assertIsNone(sprint_finish.new_verified_names(baseline, {"later_added": True}))
+
+    def test_parks_need_25_distinct_compiled_candidates(self):
+        def scores(name, hashes):
+            return [{"kind": "score", "t": i, "name": name, "verdict": "MISMATCH", "exact": 1, "target": 9,
+                     "codegen": h} for i, h in enumerate(hashes)]
+        runs = {"r1": scores("deep", [f"h{i}" for i in range(20)]) + scores("shallow", ["a", "a", "b"]),
+                "r2": scores("deep", [f"h{i}" for i in range(15, 30)]),
+                "r3": [{"kind": "score", "t": 1, "name": "old", "verdict": "MISMATCH", "exact": 1, "target": 9}]}
+        evidence = sprint_finish.park_evidence(["deep", "shallow", "old"], runs)
+        self.assertEqual(evidence, {"deep": 30, "shallow": 2, "old": None})
+        self.assertEqual(sprint_finish.short_parks(evidence), ["shallow (2)"])
+        self.assertEqual(sprint_finish.park_evidence([], runs), {})
+
     def test_pr52_omitted_candidates_are_rejected(self):
         matched = ['fn_8000556C', 'fn_800034A0', 'fn_800055EC', 'NuFileBeginBlkRead']
         queue = matched + ['NuDatFileOpenSize', 'NuFileSeek', 'NuDatFileSeek',
@@ -186,6 +206,13 @@ class QueueTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'outside queue=.*z'):
             validate_queue(['a'], ['a', 'z'], [])
 
+    def test_prior_matches_leave_the_queue_unless_named(self):
+        from tools.sprint_finish import drop_prior_matches
+        queue, dropped = drop_prior_matches(['new', 'old', 'parked', 'again'], {'new', 'parked', 'again'},
+                                            {'old', 'again'})
+        self.assertEqual((queue, dropped), (['new', 'parked', 'again'], ['old']))
+        validate_queue(queue, ['new', 'again'], ['parked=1/2: regs; next: x'])
+
     def test_score_fn_adds_scored_function(self):
         from tools import score_fn
         with tempfile.TemporaryDirectory() as directory:
@@ -210,6 +237,7 @@ class BaselineTimerTests(unittest.TestCase):
             with mock.patch.object(sprint_finish, 'ROOT', root), \
                     mock.patch.object(sprint_finish, 'BASELINE', root / 'work' / 'sprint_baseline.json'), \
                     mock.patch.object(sprint_finish, 'snapshot', return_value=snap), \
+                    mock.patch.object(sprint_finish, 'verify', return_value=False), \
                     mock.patch('sys.stdout'):
                 self.assertEqual(sprint_finish.main(['--baseline', '--allow-behind', '--queue', 'a']), 0)
             self.assertEqual(json.loads(timing.read_text())['active'], 'matching')

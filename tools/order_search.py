@@ -43,6 +43,11 @@ after `--budget` scored variants (default 2000), and never rescores an order:
 
     python3 tools/order_search.py fn_800262BC scratch.c --climb -j 8 --budget 1500
 
+The source order is scored first, and a search whose unmodified source does not
+compile is refused: every variant would fail the same way. `--max-error-run`
+(default 64) compile errors in a row stop either mode, and more than 20% compile
+errors print the commonest diagnostic.
+
 The best variant is written to `work/order_search/NAME/best.c` (or `-o`).
 A candidate is accepted only through `verify_fn.py --build --strict-symbols`
 after porting it into the unit source; this tool never edits the checkout.
@@ -54,12 +59,14 @@ import argparse
 import itertools
 import json
 import math
+import os
 import random
 import re
 import shlex
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -70,10 +77,58 @@ CONST_ASSIGN = re.compile(r"^(?P<lhs>[^=;]*[^=!<>+\-*/%&|^])=\s*(?P<const>-?(?:0
                           re.S)
 DEFAULT_LIMIT = math.factorial(7)
 DEFAULT_BUDGET = 2000
+# Consecutive ERROR scores after which a search stops: by then the variants are not testing
+# hypotheses, the seed or its types are (docs/workflow_gaps.md#11-search-attempts-mostly-fail-to-compile).
+DEFAULT_MAX_ERROR_RUN = 64
+WARN_ERROR_RATE = 0.2
 
 
 class SearchError(Exception):
     pass
+
+
+def diagnostic(rep: dict) -> str:
+    """The first compiler error line of an ERROR report, without its file and line prefix."""
+    lines = [line.strip() for line in (rep.get("error") or "").splitlines() if line.strip()]
+    line = next((x for x in lines if "error" in x.lower()), lines[-1] if lines else "")
+    return re.sub(r"^\S*?:\d+:(?:\d+:)?\s*", "", line)[:200]
+
+
+class ErrorGuard:
+    """Tallies ERROR scores by diagnostic and says when a run of them should stop the search."""
+
+    def __init__(self, max_run: int = DEFAULT_MAX_ERROR_RUN):
+        self.max_run, self.run, self.counts = max_run, 0, Counter()
+
+    def add(self, rep: dict) -> bool:
+        """Record one score; True once `max_run` ERRORs in a row have been seen (0: never)."""
+        if rep.get("verdict") != "ERROR":
+            self.run = 0
+            return False
+        self.run += 1
+        self.counts[diagnostic(rep)] += 1
+        return bool(self.max_run) and self.run >= self.max_run
+
+    def common(self) -> tuple[str, int] | None:
+        return self.counts.most_common(1)[0] if self.counts else None
+
+    def report(self, tried: int) -> str | None:
+        """A warning when ERRORs exceed WARN_ERROR_RATE of TRIED, naming the commonest diagnostic."""
+        errors = sum(self.counts.values())
+        if not tried or errors / tried <= WARN_ERROR_RATE:
+            return None
+        text, n = self.common()
+        return (f"{errors}/{tried} variants did not compile ({100 * errors / tried:.0f}%); "
+                f"most common ({n}x): {text}. Fix the seed's types or drop that rewrite before searching on.")
+
+
+def check_seed(scorer, text: str) -> dict:
+    """Score the unmodified source first: if it does not compile, no variant tests a hypothesis."""
+    rep = scorer(text, 0)
+    if rep.get("verdict") == "ERROR":
+        raise SearchError(f"the unmodified source does not compile, so the search would test nothing: "
+                          f"{diagnostic(rep) or 'no diagnostic'}")
+    return rep
 
 
 @dataclass
@@ -272,12 +327,17 @@ def compiler_args(compiler: str | None, source: Path) -> list[str]:
     return args
 
 
-def score_source(name: str, text: str, extra: list[str], tmpdir: Path, index: int) -> dict:
-    """Compile and score one variant with score_fn.py; returns its JSON report or an error."""
+def score_source(name: str, text: str, extra: list[str], tmpdir: Path, index: int,
+                 source: str = "order_search") -> dict:
+    """Compile and score one variant with score_fn.py; returns its JSON report or an error.
+
+    SOURCE tags the bench `score` event (score_fn.BENCH_SOURCE_ENV) so workflow metrics keep
+    mechanical search attempts apart from hand edits."""
     src = tmpdir / f"cand{index}.c"
     src.write_text(text)
+    env = dict(os.environ, LSW1_BENCH_SOURCE=source)
     r = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), name, str(src), "--json", *extra],
-                       cwd=ROOT, capture_output=True, text=True)
+                       cwd=ROOT, capture_output=True, text=True, env=env)
     src.unlink()
     if r.returncode == 2 or not r.stdout.strip():
         return {"verdict": "ERROR", "error": (r.stderr or r.stdout).strip()[-500:], "returncode": r.returncode}
@@ -286,17 +346,26 @@ def score_source(name: str, text: str, extra: list[str], tmpdir: Path, index: in
     return rep
 
 
-def search(template: Template, scorer, *, const_locals: bool, jobs: int, limit: int, log=None):
-    """Score every variant (in parallel batches); stop at the first strict MATCH."""
+def search(template: Template, scorer, *, const_locals: bool, jobs: int, limit: int, log=None,
+           max_error_run: int = DEFAULT_MAX_ERROR_RUN):
+    """Score the source order, then every variant (in parallel batches); stop at the first strict
+    MATCH or after MAX_ERROR_RUN compile errors in a row."""
     total = count(template, const_locals)
     if total > limit:
         raise SearchError(f"{total} variants exceed --limit {limit}; use --climb, shrink the blocks "
                           "or raise --limit")
-    best = None
-    tried = errors = 0
     it = candidates(template, const_locals)
+    orders, variant = next(it)  # source order, no shared locals
+    text = render(template, orders, variant)
+    rep = check_seed(scorer, text)
+    best = {"score": rep["score"], "orders": orders, "variant": variant, "text": text, "report": rep}
+    if log:
+        log(f"[1/{total}] seed {rep['verdict']} score={rep['score']} "
+            f"exact={rep['exact_insns']}/{rep['target_insns']}")
+    tried, errors, stopped = 1, 0, None
+    guard = ErrorGuard(max_error_run)
     with ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
-        while True:
+        while not stopped and not (best["report"].get("returncode") == 0 and best["report"]["verdict"] == "MATCH"):
             batch = list(itertools.islice(it, max(1, jobs) * 4))
             if not batch:
                 break
@@ -304,18 +373,19 @@ def search(template: Template, scorer, *, const_locals: bool, jobs: int, limit: 
             reports = list(pool.map(lambda a: scorer(a[1], a[0]), enumerate(texts, tried)))
             for (orders, variant), text, rep in zip(batch, texts, reports):
                 tried += 1
+                if guard.add(rep) and not stopped:
+                    stopped = f"{guard.run} compile errors in a row"
                 if rep.get("verdict") == "ERROR":
                     errors += 1
                     continue
                 key = rep["score"]
-                if best is None or key < best["score"]:
+                if key < best["score"]:
                     best = {"score": key, "orders": orders, "variant": variant, "text": text, "report": rep}
                     if log:
                         log(f"[{tried}/{total}] {rep['verdict']} score={key} "
                             f"exact={rep['exact_insns']}/{rep['target_insns']}")
-            if best and best["report"].get("returncode") == 0 and best["report"]["verdict"] == "MATCH":
-                break
-    return {"total": total, "tried": tried, "errors": errors, "best": best}
+    return {"total": total, "tried": tried, "errors": errors, "best": best, "stopped": stopped,
+            "warning": guard.report(tried)}
 
 
 def moves(orders: tuple[tuple[int, ...], ...]):
@@ -345,13 +415,15 @@ def kick(orders: tuple[tuple[int, ...], ...], rng: random.Random, n: int):
     return orders
 
 
-def climb(template: Template, scorer, *, jobs: int, budget: int, seed: int = 0, log=None):
+def climb(template: Template, scorer, *, jobs: int, budget: int, seed: int = 0, log=None,
+          max_error_run: int = DEFAULT_MAX_ERROR_RUN):
     """Best-improvement hill climb over statement orders with random restarts from the best."""
     if all(len(b.statements) < 2 for b in template.blocks):
         raise SearchError("--climb needs a block with at least two statements")
     rng = random.Random(seed)
     seen: dict[tuple, dict | None] = {}
-    state = {"tried": 0, "errors": 0, "best": None}
+    state = {"tried": 0, "errors": 0, "best": None, "stopped": None}
+    guard = ErrorGuard(max_error_run)
     pool = ThreadPoolExecutor(max_workers=max(1, jobs))
 
     def evaluate(cands: list[tuple]) -> list[tuple[tuple, dict | None]]:
@@ -361,6 +433,8 @@ def climb(template: Template, scorer, *, jobs: int, budget: int, seed: int = 0, 
         out = []
         for c, text, rep in zip(cands, texts, reps):
             state["tried"] += 1
+            if guard.add(rep) and not state["stopped"]:
+                state["stopped"] = f"{guard.run} compile errors in a row"
             if rep.get("verdict") == "ERROR":
                 state["errors"] += 1
                 rep = None
@@ -382,9 +456,10 @@ def climb(template: Template, scorer, *, jobs: int, budget: int, seed: int = 0, 
         start = tuple(tuple(range(len(b.statements))) for b in template.blocks)
         evaluate([start])
         if seen[start] is None:
-            raise SearchError("the source order does not compile")
+            raise SearchError(f"the unmodified source does not compile, so the search would test nothing: "
+                              f"{(guard.common() or ('no diagnostic',))[0]}")
         cur, cur_score, kicks = start, seen[start]["score"], 0
-        while state["tried"] < budget and not matched():
+        while state["tried"] < budget and not matched() and not state["stopped"]:
             neighbours = list(moves(cur))
             evaluate(neighbours)
             # Already-seen neighbours count too, so a revisited region still climbs.
@@ -409,7 +484,17 @@ def climb(template: Template, scorer, *, jobs: int, budget: int, seed: int = 0, 
                 log(f"[{state['tried']}/{budget}] plateau; kick {kicks} from the best order")
     finally:
         pool.shutdown()
-    return {"total": budget, "tried": state["tried"], "errors": state["errors"], "best": state["best"]}
+    return {"total": budget, "tried": state["tried"], "errors": state["errors"], "best": state["best"],
+            "stopped": state["stopped"], "warning": guard.report(state["tried"])}
+
+
+def print_outcome(result: dict) -> None:
+    """The tried/errors line, then why the search stopped early and the error-rate warning."""
+    print(f"tried {result['tried']}/{result['total']} variants, {result['errors']} compile errors")
+    if result.get("stopped"):
+        print(f"stopped: {result['stopped']} (--max-error-run)")
+    if result.get("warning"):
+        print(f"warning: {result['warning']}", file=sys.stderr)
 
 
 def main(argv=None) -> int:
@@ -433,6 +518,8 @@ def main(argv=None) -> int:
     ap.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
                     help=f"with --climb: stop after this many scored variants (default {DEFAULT_BUDGET})")
     ap.add_argument("--seed", type=int, default=0, help="with --climb: random seed for plateau kicks")
+    ap.add_argument("--max-error-run", type=int, default=DEFAULT_MAX_ERROR_RUN,
+                    help=f"stop after this many compile errors in a row (default {DEFAULT_MAX_ERROR_RUN}; 0: never)")
     args = ap.parse_args(argv)
     if args.climb and args.const_locals:
         ap.error("--climb does not combine with --const-locals; run the exhaustive search on the "
@@ -464,15 +551,16 @@ def main(argv=None) -> int:
             return score_source(args.name, text, extra, Path(tmp), index)
         try:
             if args.climb:
-                result = climb(template, scorer, jobs=args.jobs, budget=args.budget, seed=args.seed, log=print)
+                result = climb(template, scorer, jobs=args.jobs, budget=args.budget, seed=args.seed, log=print,
+                               max_error_run=args.max_error_run)
             else:
                 result = search(template, scorer, const_locals=args.const_locals, jobs=args.jobs,
-                                limit=args.limit, log=print)
+                                limit=args.limit, log=print, max_error_run=args.max_error_run)
         except SearchError as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
     best = result["best"]
-    print(f"tried {result['tried']}/{result['total']} variants, {result['errors']} compile errors")
+    print_outcome(result)
     if best is None:
         print("error: no variant compiled", file=sys.stderr)
         return 2

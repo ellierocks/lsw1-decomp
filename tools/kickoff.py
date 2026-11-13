@@ -249,13 +249,13 @@ def lane_of(rec: dict) -> str | None:
 
 
 def lane_rates(records: list[dict]) -> dict[str, float]:
-    """Verified bytes per active hour per lane, over records that measured verified bytes."""
+    """New strict-match bytes per active hour; legacy validation counts are not yield."""
     tot: dict[str, list[float]] = {}
     for rec in records:
         lane, active = lane_of(rec), rec.get("active_seconds")
-        if lane and active and rec.get("verified_bytes") is not None:
+        if lane and active and rec.get("new_verified_bytes") is not None:
             t = tot.setdefault(lane, [0.0, 0.0])
-            t[0] += rec["verified_bytes"]
+            t[0] += rec["new_verified_bytes"]
             t[1] += active
     return {lane: b * 3600 / s for lane, (b, s) in tot.items() if s}
 
@@ -273,11 +273,13 @@ def yield_lines(records: list[dict], n: int = 3) -> list[str]:
             out.append(head + " (no active time recorded)")
             continue
         hours = active / 3600
-        line = f"{head} in {hours:.1f} active h = {(rec.get('verified') or 0) / hours:.0f} fn/h"
-        if rec.get("verified_bytes") is not None:
-            line += f", {rec['verified_bytes']:,} B = {rec['verified_bytes'] / hours:,.0f} B/h"
-        elif rec.get("code_bytes_delta") is not None:
-            line += f"; verified bytes not recorded (report delta {rec['code_bytes_delta']:,} B, may include main drift)"
+        if rec.get("new_verified_bytes") is not None:
+            line = (f"{head}; {rec['new_verified']} new in {hours:.1f} active h, "
+                    f"{rec['new_verified_bytes']:,} B = {rec['new_verified_bytes'] / hours:,.0f} B/h")
+        else:
+            line = head + "; new matches unknown (legacy verification count is not yield)"
+        if rec.get("code_bytes_delta") is not None:
+            line += f"; report delta {rec['code_bytes_delta']:,} B (may include main drift)"
         out.append(line)
     return out
 
@@ -471,7 +473,7 @@ def print_report(state: dict) -> None:
     lines, near_lane, unit, blocker = lane_table(state)
     print("\nOff-plan lanes (context; starting one needs --off-plan REASON):")
     print("\n".join(lines))
-    print("\nMeasured yield (verified per active hour, sprint_bench):")
+    print("\nMeasured yield (new strict matches per active hour, sprint_bench):")
     print("\n".join("  " + l for l in yield_lines(state["records"])))
     lane, why, alt = recommend(state["sweep"], near_lane, unit, blocker, lane_rates(state["records"]))
     print(f"  off-plan lane rule would pick {lane}: {why}" + (f"; alternative {alt}" if alt else ""))

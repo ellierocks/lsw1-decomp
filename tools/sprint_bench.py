@@ -90,10 +90,15 @@ def summarize(events: list[dict]) -> dict:
         "attempts_per_match": round(len(scores) / len(matched_names), 1) if matched_names else None,
     }
     if finish:
-        out.update({k: finish[k] for k in ("verified", "verified_bytes", "parked", "deferred", "code_bytes_delta",
-                                           "active_seconds", "phases", "tool_commits") if k in finish})
+        out.update({k: finish[k] for k in ("new_verified", "new_verified_bytes", "verified", "verified_bytes", "parked", "deferred", "code_bytes_delta",
+                                           "active_seconds", "phases", "tool_commits", "parked_names",
+                                           "deferred_names") if k in finish})
         active = finish.get("active_seconds") or out["wall_seconds"]
         if active:
+            if finish.get("new_verified") is not None:
+                out["new_verified_per_active_hour"] = round(finish["new_verified"] * 3600 / active, 1)
+            if finish.get("new_verified_bytes") is not None:
+                out["new_verified_bytes_per_active_hour"] = round(finish["new_verified_bytes"] * 3600 / active)
             out["verified_per_active_hour"] = round(finish.get("verified", 0) * 3600 / active, 1)
             if "verified_bytes" in finish:
                 out["verified_bytes_per_active_hour"] = round(finish["verified_bytes"] * 3600 / active)
@@ -118,20 +123,38 @@ def start(model: str, run_id: str | None, launched_at: float | None, now: float 
     return append("start", now=now, **data)
 
 
+def archive_events(src: Path | None = None, directory: Path | None = None) -> Path | None:
+    """Copy an event log to `<bench cache>/events/<run_id>.jsonl` so tools/workflow_metrics.py
+    can still read it after the worktree is cleaned up. A longer copy already there is kept."""
+    src = src or EVENTS
+    events = load(src)
+    run_id = next((e.get("run_id") for e in events if e["kind"] == "start"), None)
+    if not run_id:
+        return None
+    out = (directory or cache_dir() / "events") / f"{run_id}.jsonl"
+    if out.exists() and out.stat().st_size > src.stat().st_size:
+        return out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(src.read_bytes())
+    return out
+
+
 def finish(record: dict) -> Path | None:
-    """Append the finish event and copy the run summary to the shared bench cache."""
+    """Append the finish event, copy the run summary to the shared bench cache and archive
+    the raw events next to it."""
     if append("finish", **record) is None:
         return None
     summary = summarize(load())
     out = cache_dir() / f"{summary['run_id']}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(summary, indent=2) + "\n")
+    archive_events()
     return out
 
 
 COMPARE_KEYS = ("run_id", "model", "lane", "unit", "item", "off_plan", "started_at", "verified", "verified_bytes",
-                "code_bytes_delta", "parked", "active_seconds", "verified_per_active_hour",
-                "verified_bytes_per_active_hour", "attempts_per_match", "first_match_seconds",
+                "new_verified", "new_verified_bytes", "code_bytes_delta", "parked", "active_seconds", "verified_per_active_hour",
+                "verified_bytes_per_active_hour", "new_verified_per_active_hour", "new_verified_bytes_per_active_hour", "attempts_per_match", "first_match_seconds",
                 "startup", "steps_seconds")
 
 

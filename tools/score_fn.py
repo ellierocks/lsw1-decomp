@@ -45,12 +45,15 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -257,11 +260,57 @@ def drop_redeclared(context: str, body: str) -> tuple[str, list[str]]:
     return _EXTERN.sub(extern, body), dropped
 
 
-def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0) -> None:
-    """Record an interactive attempt for tools/sprint_bench.py (no-op without a started run)."""
+BENCH_SOURCE_ENV = "LSW1_BENCH_SOURCE"
+
+
+def codegen_hash(obj: Path, symbol: str) -> str | None:
+    """Short hash of SYMBOL's compiled bytes in OBJ (relocations unresolved), or None.
+
+    Two source edits with the same hash are the same hypothesis as far as the oracle can
+    tell, so tools/workflow_metrics.py counts distinct hashes, not raw attempts."""
+    try:
+        elf = vf.Elf(obj)
+        sym = elf.find_function(symbol)
+        if sym is None:
+            return None
+        data = elf.section_bytes(elf.sections[sym.shndx])
+        return hashlib.sha1(data[sym.value:sym.value + elf.symbol_extent(sym)]).hexdigest()[:12]
+    except (vf.ToolError, OSError, IndexError, ValueError):
+        return None
+
+
+def plateau_notice(name: str) -> None:
+    """Say when this run's distinct candidates for NAME stopped raising its best score. Hand
+    scores only: a search tool's scores are its own loop and stay quiet."""
+    if os.environ.get(BENCH_SOURCE_ENV):
+        return
     try:
         import sprint_bench
-        sprint_bench.append("score", name=name, verdict=verdict, exact=exact, target=target)
+        from sprint_metrics import plateau
+        p = plateau(sprint_bench.load(), name)
+    except (OSError, ValueError, ImportError):
+        return
+    if p:
+        print(f"PLATEAU: {p['distinct']} distinct candidates; best {p['best']}/{p['target']} unchanged for the "
+              f"last {p['since']}. Park it (sprint_finish.py --parked) or try a new hypothesis class "
+              "(docs/sprint_workflow.md#matching-brief), and move to the next function.")
+
+
+def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0,
+               seconds: float | None = None, codegen: str | None = None) -> None:
+    """Record an interactive attempt for tools/sprint_bench.py (no-op without a started run).
+
+    `source` says who scored it: `manual` unless a search tool set $LSW1_BENCH_SOURCE
+    (variant_search, order_search), so compile-error rates and hypothesis counts can be
+    split between hand edits and mechanical searches."""
+    extra = {"source": os.environ.get(BENCH_SOURCE_ENV) or "manual"}
+    if seconds is not None:
+        extra["seconds"] = round(seconds, 2)
+    if codegen:
+        extra["codegen"] = codegen
+    try:
+        import sprint_bench
+        sprint_bench.append("score", name=name, verdict=verdict, exact=exact, target=target, **extra)
     except (OSError, ValueError):
         pass
 
@@ -386,6 +435,8 @@ def main(argv=None) -> int:
         print(f"error: toolchain not bootstrapped (missing {names}).\n"
               "Run: bash tools/bootstrap.sh", file=sys.stderr)
         return vf.EXIT_ERROR
+    started = time.monotonic()
+    codegen = None
     with tempfile.TemporaryDirectory(prefix="score_fn_") as tmp:
         obj = args.o.resolve() if args.o else Path(tmp) / "candidate.o"
         source = args.source.resolve()
@@ -401,10 +452,12 @@ def main(argv=None) -> int:
         if err:
             print(f"error: compile failed\n{err}", file=sys.stderr)
             if not args.no_queue and not args.compile_only:
-                bench_note(args.name, "ERROR")
+                bench_note(args.name, "ERROR", seconds=time.monotonic() - started)
             return vf.EXIT_ERROR
         if args.compile_only:
             return 0
+        if not args.no_queue:
+            codegen = codegen_hash(obj, args.compiled_symbol or args.name)
         buf = io.StringIO()
         vargs = [args.name, "--object", str(obj), "--strict-symbols", "--json"]
         if args.compiled_symbol:
@@ -427,7 +480,8 @@ def main(argv=None) -> int:
     rep["score"] = score(rep)
     if not args.no_queue:
         note_queue(args.name)
-        bench_note(args.name, rep.get("verdict", ""), rep.get("exact_insns", 0), rep.get("target_insns", 0))
+        bench_note(args.name, rep.get("verdict", ""), rep.get("exact_insns", 0), rep.get("target_insns", 0),
+                   seconds=time.monotonic() - started, codegen=codegen)
     if args.json:
         print(json.dumps(rep, indent=2))
         return code
@@ -439,6 +493,8 @@ def main(argv=None) -> int:
     if near_miss(rep["exact_insns"], rep["target_insns"]):
         print("NEAR MISS: common causes and search tools in "
               "docs/sprint_workflow.md#per-function-search")
+    if not args.no_queue and rep["verdict"] != "MATCH":
+        plateau_notice(args.name)
     if listing and code != 0:
         print(listing)
     if args.apply and code == 0:

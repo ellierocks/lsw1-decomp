@@ -50,6 +50,11 @@ code compiled with ProDG GCC 2.95, plus HVQM4, the debugger driver and libsn.
   average function left is about 680 bytes against about 150 in those sprints, so expect
   fewer functions per hour. Every item run is benched (`kickoff.py --start --item`), and
   `plan.py` reports bytes per active hour per stage so the order can be corrected.
+  How a run works is measured too: [workflow metrics](workflow_metrics.md) track matched
+  bytes per child-hour and its causes (compile-error rate, distinct hypotheses before a
+  park, park recovery). Children follow the
+  [matching brief](sprint_workflow.md#matching-brief), which raised matched bytes per
+  child-hour 39× on 2026-11-12.
 
 ## Stages
 
@@ -176,12 +181,14 @@ Stage 2 runs `ngc_mtl` and `nutexanm` side by side. The CrashWOC GameCube decomp
 (`src/nu3dx/*.c`, `src/system/gs/*.c` and its alpha NGC DWARF dump) is the main donor for
 the Nu3d items: take algorithms, layouts and call order from it, not codegen.
 
-Revision 8 records the zero-match nuhgobj run reported by `plan.py`. Source and
-target assembly resolve `fn_80015C88`'s return as `s32` with its existing
-46/46 strict match intact. A scorer fix now exposes parked `#if 0` candidates
-to `--body` scoring. The remaining nuhgobj functions have measured plateaus and
-next hypotheses in `plan.toml`; their item stays in stage 2, in its original
-order, while the typed legacy animation and GHG layouts remain unresolved.
+Revision 8 (2026-11-12) adds no new item. `tools/plan.py` reported that stage `s2-nu3d` has no
+recommendable item. Five of its items are still open (`nucamera`, `nuhgobj`, `nuportal`,
+`nurndr-nugscn`, `nuanim`), and each is claimed by an in-flight worktree. Stage `s3-objects-ai`
+therefore starts by look-ahead with `apiobject` while those runs finish. The unit has OpenSaga
+leads by body, not only by name. `fn_8008F660` is `AISysFindRoute`, `fn_8008FB18` is
+`QuickNewRayCast`, `fn_80090FB0` is `APIObjectCollisions`, `fn_80091FC0` is
+`APICharacterSysInit` and `fn_800913BC` is an earlier and longer `AddAnimEffects`. This
+revision also parks the `apiobject` plateaus with their best scores.
 
 ## Rules that do not change
 

@@ -533,6 +533,31 @@ extern s32 lbl_8021F924[];
 extern s32 lbl_8021F964[];
 extern s32 lbl_80407F6C;
 extern s32 lbl_80407DE4;
+extern s32 fn_80010C30(void);
+
+void fn_80027564(void)
+{
+    s32 value = fn_80010C30();
+    s32 i = lbl_80407DE4;
+    lbl_8021F924[i] = value;
+    lbl_8021F8E4[i] = lbl_8040A340;
+    lbl_8021F8A4[i] = lbl_8040A33C;
+    lbl_8021F964[i] = lbl_80407DD8;
+    lbl_80407DE4 = i + 1;
+    lbl_80407DD8 = 0;
+}
+
+void fn_800275E0(void)
+{
+    s32 value = fn_80010C30();
+    s32 i = lbl_80407DE4;
+    lbl_8021F924[i] = value;
+    lbl_8021F8E4[i] = lbl_8040A340;
+    lbl_8021F8A4[i] = lbl_8040A33C;
+    lbl_8021F964[i] = lbl_80407DD8;
+    lbl_80407DE4 = i + 1;
+    lbl_80407DD8 = 0;
+}
 extern u32 *lbl_8040ACF0;
 extern u32 lbl_8040ACFC;
 extern u32 lbl_8040AD00;

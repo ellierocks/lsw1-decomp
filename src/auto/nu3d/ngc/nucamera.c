@@ -66,6 +66,130 @@ extern s32 lbl_80407C58;              /* camera effect mode */
 extern f32 lbl_8040AD3C;              /* zy */
 extern f32 lbl_8040AD40;              /* zx */
 
+
+
+
+
+
+f32 NuCosApprox(s32 a);
+f32 NuSinApprox(s32 a);
+void* memset();
+extern struct numtx_s lbl_8033EA8C;
+extern f32 lbl_8040AD58;
+extern f32 lbl_8040AD5C;
+extern struct nuvec_s lbl_80337860[9];
+s32 fn_8000ABDC(f32, f32);
+
+static inline void rot_xy(struct nuvec_s* v, f32 pitch, f32 yaw)
+{
+    f32 s, c, s2, c2, t, x, y, z;
+    s32 i;
+    i = (s32)pitch;
+    s = NuSinApprox(i);
+    c = NuCosApprox(i);
+    i = (s32)yaw;
+    s2 = NuSinApprox(i);
+    c2 = NuCosApprox(i);
+    z = v->z;
+    y = v->y;
+    x = v->x;
+    t = y * s + z * c;
+    v->y = y * c - z * s;
+    v->z = t * c2 - x * s2;
+    v->x = t * s2 + x * c2;
+}
+
+
+static inline f32 cotan(f32 fov)
+{
+    s32 angle = (s32)(fov * 0.5f * 10430.378f);
+    return NuCosApprox(angle) / NuSinApprox(angle);
+}
+
+void fn_8000D134(struct numtx_s* dst, struct numtx_s* a, struct numtx_s* b);
+extern struct numtx_s lbl_801B0F08;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void fn_80039BE4(struct nuvp_s* vp);
+void NuVpSetScalingMtx(void);
+void NuVpUpdate(void);
+
+extern struct numtx_s lbl_8020E974;
+/* GC record layout read by fn_8002303C (0x68 stride; field names provisional).
+ * fn_80021784 and fn_800225C4 take the matrix and direction by value: the
+ * caller's copies are the ABI's argument temporaries at sp+0x18/0x58. */
+/* Bit 0 of the first word (p0.x read as an integer) selects the cylinder path. */
+struct camera_child40 {
+    struct nuvec_s p0;
+    struct nuvec_s a;
+    struct nuvec_s b;
+    f32 unk24;
+    struct nuvec_s c;
+    u8 unk34[0xC];
+};
+struct camera_child30 { struct nuvec_s corners[4]; };
+struct camera_pair { struct nuvec4_s *faces; struct nuvec4_s *verts; };
+struct camera_record {
+    struct numtx_s mtx;
+    struct camera_child30 *children30;
+    struct camera_child40 *children40;
+    struct camera_pair *pairs;
+    f32 vector_x;
+    f32 vector_y;
+    f32 vector_z;
+    u32 mask;
+    f32 outer_radius;
+    f32 inner_radius;
+    u8 count30;
+    u8 count40;
+    u8 count_pair;
+    u8 group;
+};
+
+extern struct camera_record lbl_803378CC[];
+/* lbl_80337924 is lbl_803378CC[0].mask; the target relocation names it. */
+extern u32 lbl_80337924[];
+extern s32 lbl_80407CE0;
+extern s32 lbl_8040AD54;
+s32 fn_80021784(struct camera_child40 *, struct numtx_s, struct nuvec_s);
+void fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s, f32, f32);
+void fn_80022A88(struct camera_record *, struct nuvec4_s *, struct nuvec4_s *, struct nuvec_s *);
+
+extern struct nuvec_s lbl_803145E0[];
+extern s32 lbl_80407CE4;
+void fn_8000EE70(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+void NuVec4MtxTransformVU0(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+
+/* fn_80021784: v[0] is the transformed origin, v[1] the first edge and v[2]
+ * the unit normal (edge x dir). l is reused for |v[2]|^2, its inverse length,
+ * the second dot and the radius; one pseudo keeps all four in f2. */
+void NuVecCross(struct nuvec_s *dst, struct nuvec_s *a, struct nuvec_s *b);
+f32 NuFdiv(f32 a, f32 b);
+
+
+
+/* fn_80022A88: faces holds one plane point per polygon (w = vertex count);
+ * verts->w is the polygon count. The pointer is assigned twice so GCC loses
+ * its frame base: the target reloads the scratch vectors after every
+ * lbl_803145E0 store, which only happens when the base is unknown. */
+
 s32 NuAnimData2GetEnd(struct nuanimdata2_s* d)
 {
     if (d->magic == 0x414e4934) {
@@ -81,6 +205,9 @@ f32 fn_800215F0(s32* d)
     }
     return *(f32*)d;
 }
+
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const u32 unk_80190C98[4] = { 0x40490FDB, 0x40C90FDB, 0xC0490FDB, 0 };
 
 void fn_8002163C(s32* p, s32 off)
 {
@@ -126,37 +253,453 @@ void fn_80021738(void *arg0, void *arg1, s32 arg2) {
     (*(void **)((s8 *)(arg0) + (8))) = temp_r11;
 }
 
-f32 NuCosApprox(s32 a);
-f32 NuSinApprox(s32 a);
-void* memset();
-extern struct numtx_s lbl_8033EA8C;
-extern f32 lbl_8040AD58;
-extern f32 lbl_8040AD5C;
-extern struct nuvec_s lbl_80337860[9];
-s32 fn_8000ABDC(f32, f32);
+/* .rodata +0x18: a TU starts here (VuMath.h copy), and another at +0x68. */
+#include "numath/VuMath.h"
 
-static inline void rot_xy(struct nuvec_s* v, f32 pitch, f32 yaw)
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const u32 unk_80190CF4[1] __attribute__((section(".rodata"))) = { 0 };
+static const char unk_80190CF8[] = "../nu2api.legogc/numath/ngc/VuMath.h";
+static const char unk_80190D20[] = "VuMtxInitRot NOT fully implemented!";
+
+s32 fn_80021784(struct camera_child40 *box, struct numtx_s mtx, struct nuvec_s dir)
 {
-    f32 s, c, s2, c2, t, x, y, z;
+    struct nuvec_s e[8];
+    struct nuvec4_s v[35];
+    struct nuvec4_s *t;
+    f32 s1, c1, s3, c3;
+    f32 l, k, r;
+    f32 d1;
     s32 i;
-    i = (s32)pitch;
-    s = NuSinApprox(i);
-    c = NuCosApprox(i);
-    i = (s32)yaw;
-    s2 = NuSinApprox(i);
-    c2 = NuCosApprox(i);
-    z = v->z;
-    y = v->y;
-    x = v->x;
-    t = y * s + z * c;
-    y = y * c - z * s;
-    z = t;
-    v->z = z * c2 - x * s2;
-    v->y = y;
-    v->x = z * s2 + x * c2;
+
+    s1 = NuSinApprox(0x2000);
+    c1 = NuCosApprox(0x2000);
+    s3 = NuSinApprox(0x6000);
+    c3 = NuCosApprox(0x6000);
+    if (*(u32 *)&box->p0.x & 1) {
+        t = &v[3];
+        v[7].x = box->p0.x;
+        v[7].y = box->p0.y;
+        v[7].z = box->p0.z;
+        v[7].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[0], &v[7], &mtx);
+        v[3].x = box->a.x + box->p0.x;
+        v[3].y = box->a.y + box->p0.y;
+        v[3].z = box->a.z + box->p0.z;
+        v[3].w = 1.0f;
+        NuVec4MtxTransformVU0(t, t, &mtx);
+        e[0].x = v[3].x - v[0].x;
+        e[0].y = v[3].y - v[0].y;
+        e[0].z = v[3].z - v[0].z;
+        v[4].x = box->b.x + box->p0.x;
+        v[4].y = box->b.y + box->p0.y;
+        v[4].z = box->b.z + box->p0.z;
+        v[4].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[4], &v[4], &mtx);
+        e[1].x = v[4].x - v[0].x;
+        e[1].y = v[4].y - v[0].y;
+        e[1].z = v[4].z - v[0].z;
+        v[5].x = box->c.x + box->p0.x;
+        v[5].y = box->c.y + box->p0.y;
+        v[5].z = box->c.z + box->p0.z;
+        v[5].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[5], &v[5], &mtx);
+        e[2].x = v[5].x - v[0].x;
+        e[2].y = v[5].y - v[0].y;
+        e[2].z = v[5].z - v[0].z;
+        v[1].x = e[0].x;
+        v[1].y = e[0].y;
+        v[1].z = e[0].z;
+        NuVecCross((struct nuvec_s *)&v[2], &e[0], &dir);
+        l = v[2].x * v[2].x + v[2].y * v[2].y + v[2].z * v[2].z;
+        if (l > 0.0f) {
+            l = NuFdiv(1.0f, NuFsqrt(l));
+        }
+        v[2].x *= l;
+        v[2].y *= l;
+        v[2].z *= l;
+        k = v[1].x * v[1].x + v[1].y * v[1].y + v[1].z * v[1].z;
+        if (k > 0.0f) {
+            k = NuFdiv(1.0f, NuFsqrt(k));
+        } else {
+            k = 0.0f;
+        }
+        l = (v[2].x * e[1].x + v[2].y * e[1].y + v[2].z * e[1].z);
+        d1 = (v[2].x * e[2].x + v[2].y * e[2].y + v[2].z * e[2].z);
+        l = NuFsqrt(l * l + d1 * d1);
+        for (i = 0; i < 10; i++) {
+            lbl_8040AD54 += 2;
+            switch (i) {
+            case 0:
+                v[3].x = v[1].x + v[2].x * l;
+                v[3].y = v[1].y + v[2].y * l;
+                v[3].z = v[1].z + v[2].z * l;
+                v[4].x = -v[1].x + v[2].x * l;
+                v[4].y = -v[1].y + v[2].y * l;
+                v[4].z = -v[1].z + v[2].z * l;
+                break;
+            case 1:
+                v[3].x = -v[1].x + v[2].x * l;
+                v[3].y = -v[1].y + v[2].y * l;
+                v[3].z = -v[1].z + v[2].z * l;
+                v[4].x = -v[1].x + v[2].x * l * c1 - v[1].x * k * l * s1;
+                v[4].y = -v[1].y + v[2].y * l * c1 - v[1].y * k * l * s1;
+                v[4].z = -v[1].z + v[2].z * l * c1 - v[1].z * k * l * s1;
+                break;
+            case 2:
+                v[3].x = -v[1].x + v[2].x * l * c1 - v[1].x * k * l * s1;
+                v[3].y = -v[1].y + v[2].y * l * c1 - v[1].y * k * l * s1;
+                v[3].z = -v[1].z + v[2].z * l * c1 - v[1].z * k * l * s1;
+                v[4].x = -v[1].x - v[1].x * l;
+                v[4].y = -v[1].y - v[1].y * l;
+                v[4].z = -v[1].z - v[1].z * l;
+                break;
+            case 3:
+                v[3].x = -v[1].x - v[1].x * l;
+                v[3].y = -v[1].y - v[1].y * l;
+                v[3].z = -v[1].z - v[1].z * l;
+                v[4].x = -v[1].x + v[2].x * l * c3 - v[1].x * k * l * s3;
+                v[4].y = -v[1].y + v[2].y * l * c3 - v[1].y * k * l * s3;
+                v[4].z = -v[1].z + v[2].z * l * c3 - v[1].z * k * l * s3;
+                break;
+            case 4:
+                v[3].x = -v[1].x + v[2].x * l * c3 - v[1].x * k * l * s3;
+                v[3].y = -v[1].y + v[2].y * l * c3 - v[1].y * k * l * s3;
+                v[3].z = -v[1].z + v[2].z * l * c3 - v[1].z * k * l * s3;
+                v[4].x = -v[1].x - v[2].x * l;
+                v[4].y = -v[1].y - v[2].y * l;
+                v[4].z = -v[1].z - v[2].z * l;
+                break;
+            case 5:
+                v[3].x = -v[1].x - v[2].x * l;
+                v[3].y = -v[1].y - v[2].y * l;
+                v[3].z = -v[1].z - v[2].z * l;
+                v[4].x = v[1].x - v[2].x * l;
+                v[4].y = v[1].y - v[2].y * l;
+                v[4].z = v[1].z - v[2].z * l;
+                break;
+            case 6:
+                v[3].x = v[1].x - v[2].x * l;
+                v[3].y = v[1].y - v[2].y * l;
+                v[3].z = v[1].z - v[2].z * l;
+                v[4].x = v[1].x - v[2].x * l * c1 + v[1].x * k * l * s1;
+                v[4].y = v[1].y - v[2].y * l * c1 + v[1].y * k * l * s1;
+                v[4].z = v[1].z - v[2].z * l * c1 + v[1].z * k * l * s1;
+                break;
+            case 7:
+                v[3].x = v[1].x - v[2].x * l * c1 + v[1].x * k * l * s1;
+                v[3].y = v[1].y - v[2].y * l * c1 + v[1].y * k * l * s1;
+                v[3].z = v[1].z - v[2].z * l * c1 + v[1].z * k * l * s1;
+                v[4].x = v[1].x + v[1].x * l;
+                v[4].y = v[1].y + v[1].y * l;
+                v[4].z = v[1].z + v[1].z * l;
+                break;
+            case 8:
+                v[3].x = v[1].x + v[1].x * l;
+                v[3].y = v[1].y + v[1].y * l;
+                v[3].z = v[1].z + v[1].z * l;
+                v[4].x = v[1].x - v[2].x * l * c3 + v[1].x * k * l * s3;
+                v[4].y = v[1].y - v[2].y * l * c3 + v[1].y * k * l * s3;
+                v[4].z = v[1].z - v[2].z * l * c3 + v[1].z * k * l * s3;
+                break;
+            case 9:
+                v[3].x = v[1].x - v[2].x * l * c3 + v[1].x * k * l * s3;
+                v[3].y = v[1].y - v[2].y * l * c3 + v[1].y * k * l * s3;
+                v[3].z = v[1].z - v[2].z * l * c3 + v[1].z * k * l * s3;
+                v[4].x = v[1].x + v[2].x * l;
+                v[4].y = v[1].y + v[2].y * l;
+                v[4].z = v[1].z + v[2].z * l;
+                break;
+            }
+            v[3].x += v[0].x;
+            v[3].y += v[0].y;
+            v[3].z += v[0].z;
+            v[4].x += v[0].x;
+            v[4].y += v[0].y;
+            v[4].z += v[0].z;
+            v[5].x = v[3].x + dir.x * 5.0f;
+            v[5].y = v[3].y + dir.y * 5.0f;
+            v[5].z = v[3].z + dir.z * 5.0f;
+            v[6].x = v[4].x + dir.x * 5.0f;
+            v[6].y = v[4].y + dir.y * 5.0f;
+            v[6].z = v[4].z + dir.z * 5.0f;
+            lbl_803145E0[lbl_80407CE4].x = v[3].x;
+            lbl_803145E0[lbl_80407CE4].y = v[3].y;
+            lbl_803145E0[lbl_80407CE4].z = v[3].z;
+            lbl_803145E0[lbl_80407CE4 + 1].x = v[5].x;
+            lbl_803145E0[lbl_80407CE4 + 1].y = v[5].y;
+            lbl_803145E0[lbl_80407CE4 + 1].z = v[5].z;
+            lbl_803145E0[lbl_80407CE4 + 2].x = v[6].x;
+            lbl_803145E0[lbl_80407CE4 + 2].y = v[6].y;
+            lbl_803145E0[lbl_80407CE4 + 2].z = v[6].z;
+            lbl_803145E0[lbl_80407CE4 + 3].x = v[4].x;
+            lbl_803145E0[lbl_80407CE4 + 3].y = v[4].y;
+            lbl_803145E0[lbl_80407CE4 + 3].z = v[4].z;
+            lbl_80407CE4 += 4;
+        }
+    } else {
+        t = &v[3];
+        v[7].x = box->p0.x;
+        v[7].y = box->p0.y;
+        v[7].z = box->p0.z;
+        v[7].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[0], &v[7], &mtx);
+        v[3].x = box->a.x + box->p0.x;
+        v[3].y = box->a.y + box->p0.y;
+        v[3].z = box->a.z + box->p0.z;
+        v[3].w = 1.0f;
+        NuVec4MtxTransformVU0(t, t, &mtx);
+        e[0].x = v[3].x - v[0].x;
+        e[0].y = v[3].y - v[0].y;
+        e[0].z = v[3].z - v[0].z;
+        v[4].x = box->b.x + box->p0.x;
+        v[4].y = box->b.y + box->p0.y;
+        v[4].z = box->b.z + box->p0.z;
+        v[4].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[4], &v[4], &mtx);
+        e[1].x = v[4].x - v[0].x;
+        e[1].y = v[4].y - v[0].y;
+        e[1].z = v[4].z - v[0].z;
+        v[5].x = box->c.x + box->p0.x;
+        v[5].y = box->c.y + box->p0.y;
+        v[5].z = box->c.z + box->p0.z;
+        v[5].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[5], &v[5], &mtx);
+        e[2].x = v[5].x - v[0].x;
+        e[2].y = v[5].y - v[0].y;
+        e[2].z = v[5].z - v[0].z;
+        v[1].x = e[0].x;
+        v[1].y = e[0].y;
+        v[1].z = e[0].z;
+        NuVecCross((struct nuvec_s *)&v[2], &e[0], &dir);
+        l = v[2].x * v[2].x + v[2].y * v[2].y + v[2].z * v[2].z;
+        if (l > 0.0f) {
+            l = NuFdiv(1.0f, NuFsqrt(l));
+        }
+        v[2].x *= l;
+        v[2].y *= l;
+        v[2].z *= l;
+        k = v[1].x * v[1].x + v[1].y * v[1].y + v[1].z * v[1].z;
+        if (k > 0.0f) {
+            k = NuFdiv(1.0f, NuFsqrt(k));
+        }
+        l = (v[2].x * e[1].x + v[2].y * e[1].y + v[2].z * e[1].z);
+        d1 = (v[2].x * e[2].x + v[2].y * e[2].y + v[2].z * e[2].z);
+        l = NuFsqrt(l * l + d1 * d1);
+        v[2].x *= l;
+        v[2].y *= l;
+        v[2].z *= l;
+        for (i = 0; i < 4; i++) {
+            switch (i) {
+            case 0:
+                v[3].x = v[1].x + v[2].x;
+                v[3].y = v[1].y + v[2].y;
+                v[3].z = v[1].z + v[2].z;
+                v[4].x = -v[1].x + v[2].x;
+                v[4].y = -v[1].y + v[2].y;
+                v[4].z = -v[1].z + v[2].z;
+                break;
+            case 1:
+                v[3].x = -v[1].x + v[2].x;
+                v[3].y = -v[1].y + v[2].y;
+                v[3].z = -v[1].z + v[2].z;
+                v[4].x = -v[1].x - v[2].x;
+                v[4].y = -v[1].y - v[2].y;
+                v[4].z = -v[1].z - v[2].z;
+                break;
+            case 2:
+                v[3].x = -v[1].x - v[2].x;
+                v[3].y = -v[1].y - v[2].y;
+                v[3].z = -v[1].z - v[2].z;
+                v[4].x = v[1].x - v[2].x;
+                v[4].y = v[1].y - v[2].y;
+                v[4].z = v[1].z - v[2].z;
+                break;
+            case 3:
+                v[3].x = v[1].x - v[2].x;
+                v[3].y = v[1].y - v[2].y;
+                v[3].z = v[1].z - v[2].z;
+                v[4].x = v[1].x + v[2].x;
+                v[4].y = v[1].y + v[2].y;
+                v[4].z = v[1].z + v[2].z;
+                break;
+            }
+            v[3].x += v[0].x;
+            v[3].y += v[0].y;
+            v[3].z += v[0].z;
+            v[4].x += v[0].x;
+            v[4].y += v[0].y;
+            v[4].z += v[0].z;
+            v[5].x = v[3].x + dir.x * 5.0f;
+            v[5].y = v[3].y + dir.y * 5.0f;
+            v[5].z = v[3].z + dir.z * 5.0f;
+            v[6].x = v[4].x + dir.x * 5.0f;
+            v[6].y = v[4].y + dir.y * 5.0f;
+            v[6].z = v[4].z + dir.z * 5.0f;
+            lbl_803145E0[lbl_80407CE4].x = v[3].x;
+            lbl_803145E0[lbl_80407CE4].y = v[3].y;
+            lbl_803145E0[lbl_80407CE4].z = v[3].z;
+            lbl_803145E0[lbl_80407CE4 + 1].x = v[5].x;
+            lbl_803145E0[lbl_80407CE4 + 1].y = v[5].y;
+            lbl_803145E0[lbl_80407CE4 + 1].z = v[5].z;
+            lbl_803145E0[lbl_80407CE4 + 2].x = v[6].x;
+            lbl_803145E0[lbl_80407CE4 + 2].y = v[6].y;
+            lbl_803145E0[lbl_80407CE4 + 2].z = v[6].z;
+            lbl_803145E0[lbl_80407CE4 + 3].x = v[4].x;
+            lbl_803145E0[lbl_80407CE4 + 3].y = v[4].y;
+            lbl_803145E0[lbl_80407CE4 + 3].z = v[4].z;
+            lbl_80407CE4 += 4;
+        }
+    }
 }
 
-/* NONMATCHING 135/149: one rot_xy instance swaps x/y registers; see config/plan.toml. */
+/* fn_800225C4: e[0..2] are the transformed box edges, e[3] the ring point's
+ * edge coordinates and e[4] the inverse edge lengths. The ring is
+ * lbl_80337860 from fn_80022DE8. a and b are unused here. */
+void fn_800225C4(struct camera_child30 *box, struct camera_record *rec, struct nuvec_s dir, f32 a, f32 b)
+{
+    struct nuvec_s e[8];
+    struct nuvec4_s v[33];
+    struct nuvec4_s *t;
+    s32 i;
+
+    t = &v[1];
+    v[5].x = box->corners[0].x;
+    v[5].y = box->corners[0].y;
+    v[5].z = box->corners[0].z;
+    v[5].w = 1.0f;
+    NuVec4MtxTransformVU0(&v[0], &v[5], &rec->mtx);
+    v[1].x = box->corners[2].x + box->corners[0].x;
+    v[1].y = box->corners[2].y + box->corners[0].y;
+    v[1].z = box->corners[2].z + box->corners[0].z;
+    v[1].w = 1.0f;
+    NuVec4MtxTransformVU0(t, t, &rec->mtx);
+    e[0].x = v[1].x - v[0].x;
+    e[0].y = v[1].y - v[0].y;
+    e[0].z = v[1].z - v[0].z;
+    v[2].x = box->corners[1].x + box->corners[0].x;
+    v[2].y = box->corners[1].y + box->corners[0].y;
+    v[2].z = box->corners[1].z + box->corners[0].z;
+    v[2].w = 1.0f;
+    NuVec4MtxTransformVU0(&v[2], &v[2], &rec->mtx);
+    e[1].x = v[2].x - v[0].x;
+    e[1].y = v[2].y - v[0].y;
+    e[1].z = v[2].z - v[0].z;
+    v[3].x = box->corners[3].x + box->corners[0].x;
+    v[3].y = box->corners[3].y + box->corners[0].y;
+    v[3].z = box->corners[3].z + box->corners[0].z;
+    v[3].w = 1.0f;
+    NuVec4MtxTransformVU0(&v[3], &v[3], &rec->mtx);
+    e[2].x = v[3].x - v[0].x;
+    e[2].y = v[3].y - v[0].y;
+    e[2].z = v[3].z - v[0].z;
+    e[4].x = 1.0f / NuFsqrt(e[0].x * e[0].x + e[0].y * e[0].y + e[0].z * e[0].z);
+    e[4].y = 1.0f / NuFsqrt(e[1].x * e[1].x + e[1].y * e[1].y + e[1].z * e[1].z);
+    e[4].z = 1.0f / NuFsqrt(e[2].x * e[2].x + e[2].y * e[2].y + e[2].z * e[2].z);
+    for (i = 0; i < 8; i++) {
+        lbl_8040AD54 += 2;
+        e[3].x = (lbl_80337860[i].x * e[0].x + lbl_80337860[i].y * e[0].y + lbl_80337860[i].z * e[0].z) * e[4].x;
+        e[3].y = (lbl_80337860[i].x * e[1].x + lbl_80337860[i].y * e[1].y + lbl_80337860[i].z * e[1].z) * e[4].y;
+        e[3].z = (lbl_80337860[i].x * e[2].x + lbl_80337860[i].y * e[2].y + lbl_80337860[i].z * e[2].z) * e[4].z;
+        v[1].x = e[3].x * e[0].x + e[3].y * e[1].x + e[3].z * e[2].x + v[0].x;
+        v[1].y = e[3].x * e[0].y + e[3].y * e[1].y + e[3].z * e[2].y + v[0].y;
+        v[1].z = e[3].x * e[0].z + e[3].y * e[1].z + e[3].z * e[2].z + v[0].z;
+        e[3].x = (lbl_80337860[(i + 1) & 7].x * e[0].x + lbl_80337860[(i + 1) & 7].y * e[0].y + lbl_80337860[(i + 1) & 7].z * e[0].z) * e[4].x;
+        e[3].y = (lbl_80337860[(i + 1) & 7].x * e[1].x + lbl_80337860[(i + 1) & 7].y * e[1].y + lbl_80337860[(i + 1) & 7].z * e[1].z) * e[4].y;
+        e[3].z = (lbl_80337860[(i + 1) & 7].x * e[2].x + lbl_80337860[(i + 1) & 7].y * e[2].y + lbl_80337860[(i + 1) & 7].z * e[2].z) * e[4].z;
+        v[2].x = e[3].x * e[0].x + e[3].y * e[1].x + e[3].z * e[2].x + v[0].x;
+        v[2].y = e[3].x * e[0].y + e[3].y * e[1].y + e[3].z * e[2].y + v[0].y;
+        v[2].z = e[3].x * e[0].z + e[3].y * e[1].z + e[3].z * e[2].z + v[0].z;
+        v[3].x = v[1].x + dir.x;
+        v[3].y = v[1].y + dir.y;
+        v[3].z = v[1].z + dir.z;
+        v[4].x = v[2].x + dir.x;
+        v[4].y = v[2].y + dir.y;
+        v[4].z = v[2].z + dir.z;
+        lbl_803145E0[lbl_80407CE4].x = v[1].x;
+        lbl_803145E0[lbl_80407CE4].y = v[1].y;
+        lbl_803145E0[lbl_80407CE4].z = v[1].z;
+        lbl_80407CE4++;
+        lbl_803145E0[lbl_80407CE4].x = v[3].x;
+        lbl_803145E0[lbl_80407CE4].y = v[3].y;
+        lbl_803145E0[lbl_80407CE4].z = v[3].z;
+        lbl_80407CE4++;
+        lbl_803145E0[lbl_80407CE4].x = v[4].x;
+        lbl_803145E0[lbl_80407CE4].y = v[4].y;
+        lbl_803145E0[lbl_80407CE4].z = v[4].z;
+        lbl_80407CE4++;
+        lbl_803145E0[lbl_80407CE4].x = v[2].x;
+        lbl_803145E0[lbl_80407CE4].y = v[2].y;
+        lbl_803145E0[lbl_80407CE4].z = v[2].z;
+        lbl_80407CE4++;
+    }
+}
+
+void fn_80022A88(struct camera_record *rec, struct nuvec4_s *faces, struct nuvec4_s *verts, struct nuvec_s *dir)
+{
+    u8 buffer[0x400];
+    struct numtx_s *m;
+    struct nuvec4_s *v;
+    struct nuvec4_s *p;
+    s32 n, k, last;
+
+    v = (struct nuvec4_s *)buffer;
+    v = (struct nuvec4_s *)(((u32)v + 15) & ~15);
+    m = (struct numtx_s *)v;
+    NuCameraGetClippingMtx();
+    v += 4;
+    *m = rec->mtx;
+    for (n = *(s32 *)&verts->w; n > 0; n--) {
+        v[0] = *faces;
+        v[0].w = 1.0f;
+        fn_8000EE70(&v[0], &v[0], m);
+        if (!(v[0].x * dir->x + v[0].y * dir->y + v[0].z * dir->z > 0.0f)) {
+            p = verts;
+            last = 8;
+            for (k = *(s32 *)&faces->w; k > 0; k--, p++) {
+                lbl_8040AD54 += 6;
+                v[0] = *p;
+                v[0].w = 1.0f;
+                NuVec4MtxTransformVU0(&v[0], &v[0], m);
+                if (k == 1) {
+                    v[1] = *verts;
+                } else {
+                    v[1] = p[1];
+                }
+                v[1].w = 1.0f;
+                NuVec4MtxTransformVU0(&v[1], &v[1], m);
+                v[2].x = v[0].x + dir->x;
+                v[2].y = v[0].y + dir->y;
+                v[2].z = v[0].z + dir->z;
+                v[3].x = v[1].x + dir->x;
+                v[3].y = v[1].y + dir->y;
+                v[3].z = v[1].z + dir->z;
+                v[2].w = 1.0f;
+                v[3].w = 1.0f;
+                lbl_803145E0[lbl_80407CE4].x = v[0].x;
+                lbl_803145E0[lbl_80407CE4].y = v[0].y;
+                lbl_803145E0[lbl_80407CE4].z = v[0].z;
+                lbl_80407CE4++;
+                lbl_803145E0[lbl_80407CE4].x = v[2].x;
+                lbl_803145E0[lbl_80407CE4].y = v[2].y;
+                lbl_803145E0[lbl_80407CE4].z = v[2].z;
+                lbl_80407CE4++;
+                lbl_803145E0[lbl_80407CE4].x = v[3].x;
+                lbl_803145E0[lbl_80407CE4].y = v[3].y;
+                lbl_803145E0[lbl_80407CE4].z = v[3].z;
+                lbl_80407CE4++;
+                lbl_803145E0[lbl_80407CE4].x = v[1].x;
+                lbl_803145E0[lbl_80407CE4].y = v[1].y;
+                lbl_803145E0[lbl_80407CE4].z = v[1].z;
+                lbl_80407CE4++;
+            }
+            v[last] = v[1];
+        }
+        verts += *(s32 *)&faces->w;
+        faces++;
+    }
+}
+
+/* NONMATCHING 146/149: the first p->z store is scheduled one slot early. */
 void fn_80022DE8(struct nuvec_s* p)
 {
     struct nuvec_s ang;
@@ -169,8 +712,7 @@ void fn_80022DE8(struct nuvec_s* p)
         ang.x = 8192.0f;
     }
     p->z = NuFsqrt(p->x * p->x + p->y * p->y + p->z * p->z);
-    p->y = 0.0f;
-    p->x = 0.0f;
+    p->x = p->y = 0.0f;
     rot_xy(p, ang.x, ang.y);
     a = 0;
     for (i = 0; i < 8; i++) {
@@ -183,11 +725,100 @@ void fn_80022DE8(struct nuvec_s* p)
     }
 }
 
-static inline f32 cotan(f32 fov)
+void fn_8002303C(s32 mask, s32 value)
 {
-    s32 angle = (s32)(fov * 0.5f * 10430.378f);
-    return NuCosApprox(angle) / NuSinApprox(angle);
+    struct nuvec_s direction;
+    s32 previous;
+    s32 i, j;
+    s32 state;
+    s32 active;
+    f32 dx, dy, dz, distance, radius, near_radius;
+    f32 a, b;
+
+    active = 0;
+    previous = -1;
+    lbl_8040AD54 = 0;
+    for (i = 0; i < lbl_80407CE0; i++) {
+        if (lbl_803378CC[i].group != previous) previous = lbl_803378CC[i].group;
+    }
+    previous = -1;
+    state = 1;
+    for (i = 0; i < lbl_80407CE0; i++) {
+        if (lbl_803378CC[i].group != previous) {
+            previous = lbl_803378CC[i].group;
+            if ((lbl_80337924[i * 0x1a] & mask) == value) {
+                dx = lbl_803378CC[i].mtx._30 - lbl_80313268.mtx._30;
+                dy = lbl_803378CC[i].mtx._31 - lbl_80313268.mtx._31;
+                dz = lbl_803378CC[i].mtx._32 - lbl_80313268.mtx._32;
+                distance = dx * dx + dy * dy + dz * dz;
+                radius = lbl_803378CC[i].inner_radius * lbl_803378CC[i].inner_radius;
+                a = 10000000.0f;
+                b = -10000000.0f;
+                near_radius = lbl_803378CC[i].outer_radius;
+                active = 0;
+                if (!(distance >= radius)) {
+                    active = 1;
+                    if (lbl_803378CC[i].vector_x >= 65536.0f) {
+                        direction.x = 0.0f;
+                        direction.y = -1.0f;
+                        direction.z = direction.x;
+                        fn_80022DE8(&direction);
+                        direction.y = -4.0f;
+                        if (state != 5 && lbl_803378CC[i].vector_z == 0.0f) state = 5;
+                        a = lbl_803378CC[i].vector_y;
+                        b = lbl_803378CC[i].vector_z;
+                    } else {
+                        direction.x = lbl_803378CC[i].vector_x;
+                        direction.y = lbl_803378CC[i].vector_y;
+                        direction.z = lbl_803378CC[i].vector_z;
+                        if (state != 1) state = 1;
+                        fn_80022DE8(&direction);
+                        direction.x *= 4.0f;
+                        direction.y *= 4.0f;
+                        direction.z *= 4.0f;
+                    }
+                    if (active) {
+                        if (distance > near_radius * near_radius) NuFsqrt(distance);
+                    }
+                }
+            } else active = 0;
+        }
+        if (active) {
+            if (lbl_803378CC[i].children40) {
+                for (j = 0; j < lbl_803378CC[i].count40; j++) {
+                    fn_80021784(&lbl_803378CC[i].children40[j], lbl_803378CC[i].mtx, direction);
+                }
+            }
+            if (lbl_803378CC[i].children30) {
+                for (j = 0; j < lbl_803378CC[i].count30; j++) {
+                    fn_800225C4(&lbl_803378CC[i].children30[j], &lbl_803378CC[i], direction, a, b);
+                }
+            }
+            if (lbl_803378CC[i].pairs) {
+                for (j = 0; j < lbl_803378CC[i].count_pair; j++) {
+                    fn_80022A88(&lbl_803378CC[i], lbl_803378CC[i].pairs->faces, lbl_803378CC[i].pairs->verts, &direction);
+                }
+            }
+        }
+    }
 }
+
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const u32 unk_80190D8C[3] = { 0, 0x43300000, 0x80000000 };
+
+/* .rodata +0x108: nucamera.c starts here (VuMath.h copy). */
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const char unk_80190D98[] = "../nu2api.legogc/numath/ngc/VuMath.h";
+static const char unk_80190DC0[] = "VuMtxInitRot NOT fully implemented!";
+
+/* Stand-in for a stripped function that used __FILE__ before fn_800234A8:
+ * retail emits the path ahead of fn_800234A8's pool and NuCameraCreate
+ * shares it. Never called. */
+static inline void* unk_nucamera_file(void)
+{
+    return NuMemAlloc(0, "../nu2api.legogc/nu3d/ngc/ngc_obj/../nucamera.c", 0);
+}
+
 void fn_800234A8(struct numtx_s* mtx, f32 fov, f32 aspect, f32 nearclip, f32 farclip)
 {
     struct numtx_s* m = &lbl_8033EA8C;
@@ -224,9 +855,6 @@ void fn_800234A8(struct numtx_s* mtx, f32 fov, f32 aspect, f32 nearclip, f32 far
     m->_32 = -(farclip * nearclip) * q;
     m->_33 = 0.0f;
 }
-
-void fn_8000D134(struct numtx_s* dst, struct numtx_s* a, struct numtx_s* b);
-extern struct numtx_s lbl_801B0F08;
 
 s32 fn_80023628(struct nuvec_s* min, struct nuvec_s* max, struct numtx_s* wm, f32 farclip)
 {
@@ -369,6 +997,9 @@ struct nucam_s* NuCameraCreate(void)
     return cam;
 }
 
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const u32 unk_80190E40[5] = { 0x3F000000, 0x4622F983, 0x40000000, 0x3F800000, 0xC0000000 };
+
 void NuCameraCalcFrustrumPlanes(struct nucam_s* cam)
 {
     NuAnimCurveSetApplyBlendToJoint2(cam, 0);
@@ -466,6 +1097,12 @@ void NuPs2CreateSkin(void)
     }
 }
 
+/* .rodata +0x1D0: the viewport TU starts here (VuMath.h copy). */
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const u32 unk_80190E5C[1] __attribute__((section(".rodata"))) = { 0 };
+static const char unk_80190E60[] = "../nu2api.legogc/numath/ngc/VuMath.h";
+static const char unk_80190E88[] = "VuMtxInitRot NOT fully implemented!";
+
 void NuVpInit(void)
 {
     fn_80039BE4(&lbl_8020E8F4);
@@ -480,9 +1117,9 @@ void NuVpInit(void)
     NuVpUpdate();
 }
 
-void fn_80039BE4(struct nuvp_s* vp);
-void NuVpSetScalingMtx(void);
-void NuVpUpdate(void);
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+static const u32 unk_80190EB8[24] = { 0x43300000, 0x80000000, 0x41800000, 0, 0x41E00000, 0, 0x43300000, 0, 0x3D800000, 0, 0x43300000, 0x80000000, 0x43300000, 0x80000000, 0x41800000, 0, 0x41E00000, 0, 0x43300000, 0, 0x3D800000, 0, 0x43300000, 0x80000000 };
+
 void NuVpUpdate(void)
 {
     if (lbl_8040A338 != 0) {
@@ -503,28 +1140,52 @@ void NuVpUpdate(void)
     }
 }
 
-extern struct numtx_s lbl_8020E974;
 void NuVpSetScalingMtx(void)
 {
     f32 x = (f32)lbl_8020E934.x;
     f32 y = (f32)lbl_8020E934.y;
     f32 w = (f32)lbl_8020E934.width;
     f32 h = (f32)lbl_8020E934.height;
+    f32 zero = 0.0f;
+    f32 depth = 16777214.0f;
 
     lbl_8020E974._00 = w * 0.5f;
-    lbl_8020E974._01 = 0.0f;
-    lbl_8020E974._02 = 0.0f;
-    lbl_8020E974._03 = 0.0f;
-    lbl_8020E974._10 = 0.0f;
+    lbl_8020E974._01 = zero;
+    lbl_8020E974._02 = zero;
+    lbl_8020E974._03 = zero;
+    lbl_8020E974._10 = zero;
     lbl_8020E974._11 = -h * 0.5f;
-    lbl_8020E974._12 = 0.0f;
-    lbl_8020E974._13 = 0.0f;
-    lbl_8020E974._20 = 0.0f;
-    lbl_8020E974._21 = 0.0f;
-    lbl_8020E974._22 = 16777214.0f;
-    lbl_8020E974._23 = 0.0f;
+    lbl_8020E974._12 = zero;
+    lbl_8020E974._13 = zero;
+    lbl_8020E974._20 = zero;
+    lbl_8020E974._21 = zero;
+    lbl_8020E974._22 = depth;
+    lbl_8020E974._23 = zero;
     lbl_8020E974._30 = w * 0.5f + x;
     lbl_8020E974._31 = h * 0.5f + y;
-    lbl_8020E974._32 = 0.0f;
+    lbl_8020E974._32 = zero;
     lbl_8020E974._33 = 1.0f;
 }
+
+/* Unreferenced: retail keeps this .rodata from stripped functions. */
+/* The rest of the split range: stripped viewport pools, then nuscene.c and
+ * one more TU with no surviving code. */
+static const u32 unk_80190F48[26] = { 0x41E00000, 0, 0x41E00000, 0, 0, 0x3F800000, 0x43300000, 0x80000000, 0x41800000, 0, 0x41E00000, 0, 0x43300000, 0, 0x3D800000, 0, 0x43300000, 0x80000000, 0x43300000, 0, 0x43300000, 0, 0x43300000, 0, 0x43300000, 0 };
+static const char unk_80190FB0[] = "../nu2api.legogc/numath/ngc/VuMath.h";
+static const char unk_80190FD8[] = "VuMtxInitRot NOT fully implemented!";
+static const char unk_80190FFC[] = "../nu2api.legogc/nu3d/ngc/ngc_obj/../nuscene.c";
+static const char unk_8019102C[] = "Reading texture set header...";
+static const char unk_8019104C[] = "Reading Material set...";
+static const char unk_80191064[] = "Reading Spline set...";
+static const char unk_8019107C[] = "Reading geometry set header...";
+static const char unk_8019109C[] = "ReadNuIFFGobjSet : Object already defined!";
+static const char unk_801910C8[] = "ReadNuIFFGeomVtx : Lock VB failed!";
+static const char unk_801910EC[] = "Cannot have prelight sets on characters (you fool).";
+static const char unk_80191120[] = "Unknown primitive type";
+static const char unk_80191138[] = "Unknown block type %c%c%c%c";
+static const char unk_80191154[] = "Reading scene file %s...";
+static const char unk_80191170[] = "NuScene no longer supported.";
+static const char unk_80191190[] = "Failed to open scene file %s!";
+static const u32 unk_801911B0[1] __attribute__((section(".rodata"))) = { 0 };
+static const char unk_801911B4[] = "../nu2api.legogc/numath/ngc/VuMath.h";
+static const char unk_801911DC[] = "VuMtxInitRot NOT fully implemented!";

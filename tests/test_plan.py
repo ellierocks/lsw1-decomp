@@ -63,6 +63,16 @@ class EvaluateTests(unittest.TestCase):
         self.assertTrue(plan.stage_of(s, "s1")["closed"])
         self.assertEqual(s["current"], "s2")
 
+    def test_strict_only_functions_are_not_targets(self):
+        s = plan.evaluate(PLAN, REPORT, {"b1", "b2"})
+        core = plan.find_item(s, "core")
+        self.assertEqual((core["functions"], core["bytes_left"], core["strict_only"]), (["a2"], 20, ["b1"]))
+        self.assertEqual(core["parked"], ["b2"])  # parked wins over strict-only
+        s = plan.evaluate(PLAN, report(**{"core/a": [fn("a2", 20, True)], "core/b": [fn("b1", 30)],
+                                          "game/c": [fn("c1", 50, True)]}), {"b1"})
+        self.assertTrue(plan.find_item(s, "core")["closed"])
+        self.assertEqual(state_with()["stages"][0]["items"][1]["strict_only"], [])  # given REPORT: none
+
     def test_revision_warnings_for_missing_and_uncovered(self):
         p = json.loads(json.dumps(PLAN))
         p["stage"][0]["item"][0]["functions"].append("nope")
@@ -106,6 +116,12 @@ class NextItemTests(unittest.TestCase):
         self.assertEqual(s["current"], "s2")
         self.assertEqual(s["next"]["item"]["id"], "side")  # still open, still worked
 
+    def test_batch_lists_distinct_free_items_then_looks_ahead(self):
+        cl = {"items": {"hub": {"by": "x", "mine": False}}, "stale": []}
+        rows = [(i["id"], la) for i, la in plan.batch_items(state_with(cl), cl, 5)]
+        self.assertEqual(rows, [("core", False), ("game", True), ("data", True)])
+        self.assertEqual(len(plan.batch_items(state_with(), NO_CLAIMS, 2)), 2)
+
     def test_blocked_items_are_never_recommended(self):
         p = json.loads(json.dumps(PLAN))
         p["stage"][1]["item"][1] = {"id": "stuck", "units": ["game/c"], "blocked": "no route"}
@@ -118,11 +134,11 @@ class NextItemTests(unittest.TestCase):
         self.assertTrue(any("stage s2" in w for w in s["warnings"]))
 
     def test_zero_verified_bench_run_and_yield(self):
-        records = [{"run_id": "r1", "item": "core", "verified": 0, "verified_bytes": 0, "active_seconds": 1800},
-                   {"run_id": "r2", "item": "hub", "verified": 4, "verified_bytes": 400, "active_seconds": 1800},
+        records = [{"run_id": "r1", "item": "core", "verified": 0, "verified_bytes": 0, "new_verified": 0, "new_verified_bytes": 0, "active_seconds": 1800},
+                   {"run_id": "r2", "item": "hub", "verified": 4, "verified_bytes": 400, "new_verified": 4, "new_verified_bytes": 400, "active_seconds": 1800},
                    {"run_id": "r3", "unit": "old", "verified": 0, "active_seconds": 60}]
         s = state_with(records=records)
-        self.assertIn("bench run r1 on item core verified no functions", s["warnings"])
+        self.assertIn("bench run r1 on item core added no new strict matches", s["warnings"])
         self.assertEqual(len([w for w in s["warnings"] if "bench run" in w]), 1)
         y = s["yield"]["s1"]
         self.assertEqual((y["runs"], y["verified"], y["fn_per_hour"], y["bytes_per_hour"]), (2, 4, 4.0, 400.0))

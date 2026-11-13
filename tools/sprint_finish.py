@@ -73,9 +73,11 @@ def fetch(timeout: float = FETCH_TIMEOUT, cmd=None) -> bool:
 
 
 def snapshot() -> dict:
-    report = json.loads((ROOT / "build" / "GL5E4F" / "report.json").read_text())
+    path = ROOT / "build" / "GL5E4F" / "report.json"
+    report = json.loads(path.read_text())
     m = report["measures"]
-    gap = [r for r in strict_gap.candidates(report, 90.0) if strict_gap.strict_match(r["name"])]
+    ok = strict_gap.verified(path, report)
+    gap = [r for r in strict_gap.candidates(report, 90.0) if r["name"] in ok]
     return {"functions": int(m["matched_functions"]), "code": int(float(m["matched_code"])),
             "strict_only_functions": len(gap), "strict_only_bytes": sum(r["size"] for r in gap),
             "dol_sha1": hashlib.sha1(DOL.read_bytes()).hexdigest() if DOL.is_file() else None,
@@ -107,6 +109,28 @@ def validate_queue(queue: list[str], matched: list[str], parked: list[str], defe
         raise ValueError(f"queue accounting failed: unresolved={missing}, outside queue={extra}; "
                          "continue matching or record bounded plateaus with --parked; "
                          "context pressure requires a continuation, not an incomplete finish")
+
+
+def park_evidence(names: list[str], runs=None) -> dict[str, int | None]:
+    """Distinct compiled candidates per parked function, from every bench log workflow_metrics
+    can find (this checkout, sibling worktrees, the bench cache). None: no hashed scores."""
+    if not names:
+        return {}
+    import workflow_metrics as wm
+    if runs is None:
+        runs = wm.load_runs(wm.log_paths())
+    return wm.hypothesis_counts(names, runs)
+
+
+def short_parks(evidence: dict[str, int | None], floor: int | None = None) -> list[str]:
+    """Parked functions with fewer than FLOOR distinct compiled candidates on record.
+
+    A later pass matched 53% of the functions short passes left (docs/workflow_gaps.md#12):
+    under the floor a function is unfinished, not a plateau. Unknown counts are not refused."""
+    if floor is None:
+        import workflow_metrics as wm
+        floor = wm.HYPOTHESIS_FLOOR
+    return [f"{fn} ({n})" for fn, n in evidence.items() if n is not None and n < floor]
 
 
 def phase(path: Path, name: str, now: float | None = None, cap: float | None = None) -> dict:
@@ -173,15 +197,30 @@ def global_functions(text: str) -> list[str]:
                               if not re.search(r"\bstatic\b", specs)))
 
 
+def _unit_path(unit: str) -> Path:
+    path = Path(unit)
+    return path if path.is_absolute() else ROOT / path
+
+
+def defined_at_base(unit: str, base: str | None = None) -> set[str]:
+    """Functions UNIT already defined at the merge base (matched before this branch)."""
+    rel = _unit_path(unit).resolve().relative_to(ROOT)
+    old = run(["git", "show", f"{base or merge_base()}:{rel.as_posix()}"])
+    return set(defined_functions(old.stdout)) if old.returncode == 0 else set()
+
+
 def matched_from_diff(unit: str, base: str | None = None) -> list[str]:
     """Non-static functions defined in UNIT now that were not defined there at the merge base."""
-    path = Path(unit)
-    if not path.is_absolute():
-        path = ROOT / path
-    rel = path.resolve().relative_to(ROOT)
-    old = run(["git", "show", f"{base or merge_base()}:{rel.as_posix()}"])
-    before = set(defined_functions(old.stdout)) if old.returncode == 0 else set()
-    return [fn for fn in global_functions(path.read_text()) if fn not in before]
+    before = defined_at_base(unit, base)
+    return [fn for fn in global_functions(_unit_path(unit).read_text()) if fn not in before]
+
+
+def drop_prior_matches(queue: list[str], named: set[str], prior: set[str]) -> tuple[list[str], list[str]]:
+    """(queue, dropped): queue names already defined before this branch and not named in this
+    finish. score_fn queues every function it scores, so rechecking an old match would otherwise
+    fail queue accounting; it is a reverification, not progress, so it is not counted matched."""
+    dropped = [n for n in queue if n in prior and n not in named]
+    return [n for n in queue if n not in dropped], dropped
 
 
 def tool_commits(base: str | None = None) -> list[str]:
@@ -228,6 +267,7 @@ def record_baseline(queue: list[str], allow_behind: bool = False, idle_cap: floa
             return 2
     snap = snapshot()
     snap["queue"] = metrics.dedupe(queue)
+    snap["strict_baseline"] = {name: verify(name) for name in snap["queue"]}
     snap.update(extra or {})
     BASELINE.parent.mkdir(exist_ok=True)
     BASELINE.write_text(json.dumps(snap, indent=2))
@@ -239,6 +279,19 @@ def record_baseline(queue: list[str], allow_behind: bool = False, idle_cap: floa
         phase(timing, "matching", cap=idle_cap)
         print("timer: setup -> matching")
     return 0
+
+
+def new_verified_names(base: dict | None, results: dict[str, bool]) -> list[str] | None:
+    """New strict matches only when every successful result was checked at kickoff.
+
+    Legacy baselines and later queue additions cannot prove novelty. Do not infer
+    it from the report delta: strict-only matches and main drift make that unsafe.
+    """
+    before = (base or {}).get("strict_baseline")
+    names = [name for name, ok in results.items() if ok]
+    if before is None or any(name not in before for name in names):
+        return None
+    return [name for name in names if not before[name]]
 
 
 def symbol_sizes(names) -> dict[str, int]:
@@ -276,6 +329,8 @@ def main(argv=None) -> int:
     ap.add_argument("--timing", "--budget-status", dest="budget_status", action="store_true", help="report measured active time per phase")
     ap.add_argument("--usage", type=Path, help="import provider-reported usage JSON for one run")
     ap.add_argument("--deferred", nargs="*", default=[], help="queue entries not attempted or not finished this run")
+    ap.add_argument("--short-park", metavar="REASON",
+                    help="park functions with fewer than 25 distinct compiled candidates anyway (recorded)")
     args = ap.parse_args(argv)
     if args.rebase and args.merge:
         ap.error("choose --merge or --rebase")
@@ -323,12 +378,25 @@ def main(argv=None) -> int:
     if not args.unit:
         ap.error("finish requires --unit and the complete --queue")
     if args.unit:
+        queue = metrics.dedupe(args.queue or (base or {}).get("queue", []))
+        if args.matched_from_diff:
+            named = set(args.functions) | parked_names
+            queue, dropped = drop_prior_matches(queue, named, defined_at_base(args.unit))
+            if dropped:
+                print(f"queue: {', '.join(dropped)} already matched before this branch "
+                      "(reverified while scoring, not progress); left out of accounting", file=sys.stderr)
         try:
-            validate_queue(metrics.dedupe(args.queue or (base or {}).get("queue", [])), args.functions,
-                           args.parked, args.deferred)
+            validate_queue(queue, args.functions, args.parked, args.deferred)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
+    evidence = park_evidence([p.partition("=")[0] for p in args.parked])
+    short = short_parks(evidence)
+    if short and not args.short_park:
+        print(f"error: too few distinct compiled candidates to park: {', '.join(short)}. A plateau needs 25 "
+              "(docs/sprint_workflow.md#matching-brief); keep going, list them under --deferred with the "
+              "hypotheses left, or pass --short-park REASON", file=sys.stderr)
+        return 2
     if args.rebase:
         if not fetch():
             print("error: git fetch failed or timed out", file=sys.stderr)
@@ -381,7 +449,10 @@ def main(argv=None) -> int:
     for fn, ok in results.items():
         print(f"| {fn} | {'VERIFIED' if ok else '**FAILED strict check**'} |")
     for fn, note in parked:
-        print(f"| {fn} | parked {note} |")
+        n = evidence.get(fn)
+        print(f"| {fn} | parked {note} ({n if n is not None else 'unknown'} distinct candidates) |")
+    if short:
+        print(f"\nShort parks ({args.short_park}): {', '.join(short)}")
     for fn in args.deferred:
         print(f"| {fn} | deferred: not finished this run; resume next run |")
     print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
@@ -410,7 +481,15 @@ def main(argv=None) -> int:
     verified_names = [fn for fn, ok in results.items() if ok]
     record = {"unit": args.unit, "verified": len(verified_names),
               "verified_bytes": sum(symbol_sizes(verified_names).values()), "parked": len(parked),
-              "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures}
+              "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures,
+              "parked_names": [p[0] for p in parked], "deferred_names": list(args.deferred),
+              "parked_hypotheses": evidence, "short_park": args.short_park if short else None}
+    new_names = new_verified_names(base, results)
+    record["new_verified"] = len(new_names) if new_names is not None else None
+    record["new_verified_bytes"] = (sum(symbol_sizes(new_names).values())
+                                    if new_names is not None else None)
+    print("- New strict matches: " + (str(len(new_names)) if new_names is not None
+                                     else "unknown (no complete strict baseline)"))
     if base:
         record["code_bytes_delta"] = snap["code"] - base["code"]
     if timing.exists():
