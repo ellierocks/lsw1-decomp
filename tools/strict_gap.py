@@ -47,6 +47,41 @@ def strict_match(name: str) -> bool:
     return code == 0
 
 
+CACHE_NAME = "strict_verified.json"
+
+
+def report_key(report_path: Path) -> str:
+    st = report_path.stat()
+    return f"{st.st_mtime_ns}:{st.st_size}"
+
+
+def verified(report_path: Path = REPORT, report: dict | None = None, min_percent: float = 90.0,
+             check=None) -> set[str]:
+    """Names of sub-100% report functions that pass the strict verifier, cached beside the
+    report (`strict_verified.json`) until the next build rewrites it. The first call after a
+    build checks every candidate (about 10 s); later calls read the cache."""
+    check = check or strict_match
+    report = report if report is not None else json.loads(report_path.read_text())
+    key = report_key(report_path)
+    cache_path = report_path.parent / CACHE_NAME
+    checked: dict[str, bool] = {}
+    try:
+        cached = json.loads(cache_path.read_text())
+        if cached.get("report") == key:
+            checked = cached.get("checked", {})
+    except (OSError, ValueError):
+        pass
+    names = [r["name"] for r in candidates(report, min_percent)]
+    missing = [n for n in names if n not in checked]
+    if missing:
+        checked.update({n: check(n) for n in missing})
+        try:
+            cache_path.write_text(json.dumps({"report": key, "checked": checked}, indent=1))
+        except OSError:
+            pass
+    return {n for n in names if checked.get(n)}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--min-percent", type=float, default=90.0, help="lowest objdiff percent to re-check")
@@ -57,7 +92,8 @@ def main(argv=None) -> int:
         return 2
     report = json.loads(REPORT.read_text())
     rows = candidates(report, args.min_percent)
-    passed = [dict(r) for r in rows if strict_match(r["name"])]
+    ok = verified(REPORT, report, args.min_percent)
+    passed = [dict(r) for r in rows if r["name"] in ok]
     total = {"functions": len(passed), "bytes": sum(r["size"] for r in passed), "checked": len(rows)}
     if args.json:
         print(json.dumps({"strict_only": passed, **total}, indent=2))

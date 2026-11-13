@@ -17,5 +17,25 @@ class CandidateTests(unittest.TestCase):
         self.assertEqual(rows[0]["size"], 16)
 
 
+class CacheTests(unittest.TestCase):
+    def test_verified_checks_each_name_once_per_report(self):
+        import json, os, tempfile
+        from pathlib import Path
+        report = {"units": [{"name": "main/u", "functions": [
+            {"name": "a", "size": "8", "fuzzy_match_percent": 99.0},
+            {"name": "b", "size": "8", "fuzzy_match_percent": 98.0}]}]}
+        calls = []
+        check = lambda n: calls.append(n) or n == "a"
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "report.json"
+            path.write_text(json.dumps(report))
+            self.assertEqual(strict_gap.verified(path, report, check=check), {"a"})
+            self.assertEqual(strict_gap.verified(path, report, check=check), {"a"})
+            self.assertEqual(calls, ["a", "b"])
+            os.utime(path, ns=(1, 1))  # a rebuilt report invalidates the cache
+            strict_gap.verified(path, report, check=check)
+            self.assertEqual(calls, ["a", "b", "a", "b"])
+
+
 if __name__ == "__main__":
     unittest.main()

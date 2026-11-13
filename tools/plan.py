@@ -8,8 +8,11 @@
     python3 tools/plan.py --release hubs  # drop this checkout's claim record for an item
     python3 tools/plan.py --no-remote     # skip the GitHub open-PR query
 
-A function is matched when its `fuzzy_match_percent` in build/GL5E4F/report.json is 100; an
-item is closed when each of its functions is matched or listed in `[[parked]]`, a stage when
+A function is matched when its `fuzzy_match_percent` in build/GL5E4F/report.json is 100; it
+is strict-only when it scores below 100% but passes `verify_fn.py --strict-symbols` (gap 9:
+it waits on `.rodata` layout for promotion, not on matching; `strict_gap.verified()`, cached
+per build). An item is closed when each of its functions is matched, strict-only or listed in
+`[[parked]]`, a stage when
 all its items are closed, and the current stage is the first one not closed and not marked
 `alongside = true`. An alongside stage (stage 0, the CodeWarrior SDK residue) does not wait on
 the call graph: its open items are worked beside the current stage's and come first in order. The `data` item
@@ -118,9 +121,10 @@ def item_functions(item: dict, idx: dict) -> tuple[list[dict], list[str]]:
     return fns, missing
 
 
-def evaluate(plan: dict, report: dict) -> dict:
+def evaluate(plan: dict, report: dict, strict: set[str] | frozenset = frozenset()) -> dict:
     """Per-item and per-stage figures, the current stage and the plan-revision warnings that
-    need only the plan and the report (claims and bench runs add more in status())."""
+    need only the plan and the report (claims and bench runs add more in status()). STRICT names
+    the strict-only functions: done for matching, so not targets."""
     idx = index_report(report)
     parked = parked_names(plan)
     stages, covered, warnings = [], set(), []
@@ -132,14 +136,16 @@ def evaluate(plan: dict, report: dict) -> dict:
                    "whole_units": bool(item.get("units"))}
             if rec["data"]:
                 matched, total = idx["data"]
-                rec.update(functions=[], fn_left=0, bytes_left=total - matched, parked=[],
+                rec.update(functions=[], fn_left=0, bytes_left=total - matched, parked=[], strict_only=[],
                            closed=total > 0 and matched >= total)
             else:
                 fns, missing = item_functions(item, idx)
                 covered.update((f["unit"], f["name"]) for f in fns)
                 left = [f for f in fns if not f["matched"]]
-                todo = [f for f in left if f["name"] not in parked]
+                todo = [f for f in left if f["name"] not in parked and f["name"] not in strict]
                 rec.update(functions=[f["name"] for f in todo], fn_left=len(todo),
+                           strict_only=sorted({f["name"] for f in left if f["name"] in strict
+                                               and f["name"] not in parked}),
                            bytes_left=sum(f["size"] for f in todo),
                            parked=sorted({f["name"] for f in left if f["name"] in parked}),
                            units=rec["units"] or sorted({f["unit"] for f in fns}), closed=not todo)
@@ -327,6 +333,23 @@ def active_items(state: dict, cl: dict) -> list[tuple[dict, bool]]:
     return [(i, False) for i in now] or [(i, True) for i in rest]
 
 
+def batch_items(state: dict, cl: dict, n: int) -> list[tuple[dict, bool]]:
+    """Up to N distinct free items for parallel children, one item each: active_items() first,
+    then the free items of later open stages in plan order (look-ahead)."""
+    out = active_items(state, cl)[:n]
+    seen = {i["id"] for i, _ in out}
+    for stage in state["stages"]:
+        if len(out) >= n:
+            break
+        if stage["closed"]:
+            continue
+        for item in open_items(stage):
+            if len(out) < n and item["id"] not in seen and not taken(cl, item["id"]):
+                out.append((item, True))
+                seen.add(item["id"])
+    return out
+
+
 # --- bench yield ----------------------------------------------------------------------------
 
 def bench_records() -> list[dict]:
@@ -358,9 +381,24 @@ def stage_yield(state: dict, records: list[dict]) -> dict[str, dict]:
 
 # --- the joined view ------------------------------------------------------------------------
 
+def strict_only(report: dict) -> set[str]:
+    """Strict-only names for the built report; empty when the check cannot run."""
+    try:
+        import strict_gap
+        return strict_gap.verified(REPORT, report)
+    except Exception as exc:  # a missing build object must not stop the plan
+        print(f"warning: strict-only check skipped ({exc})", file=sys.stderr)
+        return set()
+
+
 def status(remote: bool = True, plan: dict | None = None, report: dict | None = None,
-           cl: dict | None = None, records: list[dict] | None = None) -> dict:
-    state = evaluate(plan if plan is not None else load_plan(), report if report is not None else load_report())
+           cl: dict | None = None, records: list[dict] | None = None,
+           strict: set[str] | None = None) -> dict:
+    """STRICT defaults to the built report's strict-only set, or none for a given REPORT."""
+    if report is None:
+        report = load_report()
+        strict = strict_only(report) if strict is None else strict
+    state = evaluate(plan if plan is not None else load_plan(), report, strict or frozenset())
     cl = claims(state, remote=remote) if cl is None else cl
     records = bench_records() if records is None else records
     state["claims"] = cl
@@ -388,7 +426,9 @@ def target_item(state: dict) -> dict | None:
 
 def functions_for(item_id: str, state: dict | None = None) -> list[str]:
     """ITEM_ID's unmatched, unparked function names."""
-    state = state or evaluate(load_plan(), load_report())
+    if state is None:
+        report = load_report()
+        state = evaluate(load_plan(), report, strict_only(report))
     item = find_item(state, item_id)
     if item is None:
         raise PlanError(f"no item {item_id} in {PLAN.relative_to(ROOT)}")
@@ -454,6 +494,7 @@ def print_status(state: dict) -> None:
             else:
                 who = "-"
             extra = f" ({len(i['parked'])} parked)" if i["parked"] else ""
+            extra += f" ({len(i['strict_only'])} strict-only)" if i.get("strict_only") else ""
             print(f"  {i['id']:<18}{i['fn_left']:>8}{i['bytes_left']:>12,}  {who}{extra}")
     for rec in state["claims"]["stale"]:
         print(f"stale claim ignored: {rec['item']} ({rec['stale']}; {rec['path']})")
@@ -481,6 +522,8 @@ def main(argv=None) -> int:
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--next", action="store_true", help="print the next item and its targets")
     ap.add_argument("--item", help="print one item's targets")
+    ap.add_argument("--batch", type=int, metavar="N",
+                    help="list N distinct free items, one per child, with their claim commands")
     ap.add_argument("--release", metavar="ID", help="remove the claim record for ID")
     ap.add_argument("--no-remote", action="store_true", help="do not ask GitHub for open t3/plan-* PRs")
     args = ap.parse_args(argv)
@@ -492,6 +535,21 @@ def main(argv=None) -> int:
     except PlanError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    if args.batch:
+        rows = batch_items(state, state["claims"], args.batch)
+        if args.json:
+            print(json.dumps([dict(i, lookahead=la) for i, la in rows], indent=2))
+            return 0
+        if not rows:
+            print("error: no free item", file=sys.stderr)
+            return 2
+        for item, la in rows:
+            tag = " (look-ahead)" if la else ""
+            print(f"{item['id']:<20} {item['stage']:<16} {item['fn_left']:>4} fn {item['bytes_left']:>8,} B{tag}"
+                  f"   python3 tools/kickoff.py --start --item {item['id']}")
+        if len(rows) < args.batch:
+            print(f"only {len(rows)} free item(s); give no child a single function instead", file=sys.stderr)
+        return 0
     if args.next or args.item:
         item = state["next"]["item"] if args.next and state["next"] else find_item(state, args.item or "")
         if item is None:
@@ -508,6 +566,8 @@ def main(argv=None) -> int:
         print(f"functions left ({item['fn_left']}): " + " ".join(item["functions"]))
         if item["parked"]:
             print("parked: " + " ".join(item["parked"]))
+        if item.get("strict_only"):
+            print("strict-only (verified; awaits promotion): " + " ".join(item["strict_only"]))
         return 0
     if args.json:
         print(json.dumps(jsonable(state), indent=2, default=str))

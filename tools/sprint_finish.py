@@ -73,9 +73,11 @@ def fetch(timeout: float = FETCH_TIMEOUT, cmd=None) -> bool:
 
 
 def snapshot() -> dict:
-    report = json.loads((ROOT / "build" / "GL5E4F" / "report.json").read_text())
+    path = ROOT / "build" / "GL5E4F" / "report.json"
+    report = json.loads(path.read_text())
     m = report["measures"]
-    gap = [r for r in strict_gap.candidates(report, 90.0) if strict_gap.strict_match(r["name"])]
+    ok = strict_gap.verified(path, report)
+    gap = [r for r in strict_gap.candidates(report, 90.0) if r["name"] in ok]
     return {"functions": int(m["matched_functions"]), "code": int(float(m["matched_code"])),
             "strict_only_functions": len(gap), "strict_only_bytes": sum(r["size"] for r in gap),
             "dol_sha1": hashlib.sha1(DOL.read_bytes()).hexdigest() if DOL.is_file() else None,
