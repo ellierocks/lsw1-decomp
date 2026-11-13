@@ -338,6 +338,59 @@ NuPortalFrustum* NuFrustrumAlloc(s32 count)
 }
 
 typedef struct {
+    u8 pad0[4];
+    NuPortalPlane* planes;
+    u8 pad8[6];
+    u8 plane_count;
+} NuPortalRoom;
+f32 NuPlnLine3(void* plane, struct nuvec_s* origin, struct nuvec_s* dir, struct nuvec_s* out);
+typedef struct {
+    NuPortalPlane plane;
+    struct nuvec_s* vertices;
+    s16 vertex_count;
+} NuPortalPortal;
+extern s32 lbl_80407C90;
+extern struct nuvec_s lbl_8020D8E8;
+void NuCameraTransformScreenClip(void);
+void NuPs2CreateSkin(void);
+void fn_8002782C(u32 colour, f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1);
+
+void drawPortal(NuPortalPortal* portal, NuPortalRoom* room)
+{
+    struct nuvec_s dir;
+    struct nuvec_s point;
+    struct nuvec_s nearest_point;
+    f32 nearest;
+    f32 distance;
+    s32 i;
+    s32 j;
+    if (lbl_80407C90 != 0) {
+        NuCameraTransformScreenClip();
+        for (i = 0; i < portal->vertex_count; i++) {
+            struct nuvec_s* a = &portal->vertices[i];
+            struct nuvec_s* b = &portal->vertices[(i + 1) % portal->vertex_count];
+            NuVecSub(&dir, a, b);
+            fn_8002782C(0xffff00ff, a->x, a->y, a->z, b->x, b->y, b->z);
+        }
+        for (i = 0; i < portal->vertex_count; i++) {
+            NuVecSub(&dir, &portal->vertices[i], &lbl_8020D8E8);
+            NuVecNorm(&dir, &dir);
+            nearest = 3.4028234e+38f;
+            for (j = 0; j < room->plane_count; j++) {
+                distance = NuPlnLine3(&room->planes[j], &portal->vertices[i], &dir, &point);
+                if (distance > 0.0f && distance < nearest) {
+                    nearest_point = point;
+                    nearest = distance;
+                }
+            }
+            fn_8002782C(0xffff00ff, nearest_point.x, nearest_point.y, nearest_point.z,
+                portal->vertices[i].x, portal->vertices[i].y, portal->vertices[i].z);
+        }
+        NuPs2CreateSkin();
+    }
+}
+
+typedef struct {
     f32 x, y, z, w;
     u32 colour;
     f32 u, v;
@@ -421,13 +474,6 @@ void drawViewFrustrum(void)
     }
 }
 
-typedef struct {
-    u8 pad0[4];
-    NuPortalPlane* planes;
-    u8 pad8[6];
-    u8 plane_count;
-} NuPortalRoom;
-f32 NuPlnLine3(void* plane, struct nuvec_s* origin, struct nuvec_s* dir, struct nuvec_s* out);
 
 void drawClippedPortal(NuPortalPlane* portal, NuPortalRoom* room, NuPortalVec3* minimum, NuPortalVec3* maximum)
 {
