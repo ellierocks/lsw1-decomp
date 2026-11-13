@@ -70,6 +70,15 @@ class BenchTests(unittest.TestCase):
         self.assertEqual([r["run_id"] for r in rows], ["old", "run3"])
         self.assertIsNone(rows[0]["lane"])
 
+    def test_finish_keeps_parked_names_and_archives_events(self):
+        sb.start("m", "run4", launched_at=None, now=1000)
+        out = sb.finish({"verified": 0, "parked": 1, "parked_names": ["fn_a"], "deferred_names": ["fn_b"],
+                         "active_seconds": 60})
+        saved = json.loads(out.read_text())
+        self.assertEqual((saved["parked_names"], saved["deferred_names"]), (["fn_a"], ["fn_b"]))
+        archived = self.dir / "cache" / "bench" / "events" / "run4.jsonl"
+        self.assertEqual(archived.read_text(), self.events.read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

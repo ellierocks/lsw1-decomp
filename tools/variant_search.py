@@ -343,7 +343,7 @@ def main(argv=None) -> int:
     extra += osr.compiler_args(args.compiler, args.source)
     with tempfile.TemporaryDirectory(prefix="variant_search_") as tmp:
         def scorer(variant, index):
-            return osr.score_source(args.name, variant, extra, Path(tmp), index)
+            return osr.score_source(args.name, variant, extra, Path(tmp), index, source="variant_search")
         try:
             result = search(args.name, text, scorer, jobs=args.jobs, limit=args.limit,
                             max_changes=args.max_changes, log=print)

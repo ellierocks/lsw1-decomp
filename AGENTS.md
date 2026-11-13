@@ -18,7 +18,10 @@ from doldecomp/dolsdk2004. CrashWOC's CodeWarrior game code generation does not 
 - **Improve the workflow as you go.** Fix drafting, m2c, sweep and search tools when
   that unlocks matches more effectively than hand-editing each function. Preserve
   reproducible patches, test the fix and rerun it on affected targets to collect the
-  wins. See [workflow improvement](docs/sprint_workflow.md#improve-the-workflow-as-you-go).
+  wins. See [workflow improvement](docs/sprint_workflow.md#improve-the-workflow-as-you-go):
+  pick fixes by the [workflow metrics](docs/workflow_metrics.md) they move and record
+  each one's before → after number. Children follow the
+  [matching brief](docs/sprint_workflow.md#matching-brief).
 - [Sprint tools](docs/sprint_workflow.md) cover target selection, ownership detection,
   queue accounting and verification. Choose scope and search effort for the task;
   T3 owns orchestration and continuation.

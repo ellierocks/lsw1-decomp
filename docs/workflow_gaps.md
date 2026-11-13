@@ -1,22 +1,54 @@
 # Workflow gaps
 
 Review of 2026-11-10 over the session threads of 2026-10-30 to 2026-11-10, PRs #1 to
-#108, CI history and the tools. Gaps are ranked by how much matching work they cost
-or put at risk. Each has its evidence and its state. Update the state when a gap closes;
-delete the row when nothing remains to say.
+#108, CI history and the tools, extended on 2026-11-12 with the first [workflow
+metrics](workflow_metrics.md) baseline. Each gap has its evidence and its state. Update
+the state when a gap closes; delete the row when nothing remains to say.
 
-| # | Gap | State |
-|---|---|---|
-| 1 | [Stale task packs change scores](#1-stale-task-packs-change-scores) | fixed, #111 |
-| 2 | [Unfinished and parked work is invisible across worktrees](#2-unfinished-and-parked-work-is-invisible-across-worktrees) | fixed, #110 |
-| 3 | [Transient download failures turn main red](#3-transient-download-failures-turn-main-red) | fixed, #109 |
-| 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | fixed, #109, #114 |
-| 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | fixed, #113, #116 |
-| 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | partly fixed |
-| 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | partly fixed, #119 |
-| 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | open |
-| 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | partly fixed, numath promoted |
-| 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | accounting fixed; structural matching work continues |
+## Ranking rule
+
+A gap is ranked by the [workflow metric](workflow_metrics.md#metrics) it moves:
+
+1. the metric's distance from its target in the latest baseline,
+2. times the share of child time it touches,
+3. with ties going to the cheaper fix.
+
+Matched bytes per child-hour is the outcome; every other metric is ranked by how
+directly it feeds that. A gap that no metric measures goes below the measured ones until
+a metric covers it. If it matters, add that metric to `tools/workflow_metrics.py`.
+
+A fix records the metric's value before and after in its PR and in this table
+([recording a change](workflow_metrics.md#recording-a-change)).
+
+### Open gaps, ranked
+
+| Rank | Gap | Metric | Baseline 2026-11-12 | Target |
+|---:|---|---|---|---|
+| 1 | [11. Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | 47.1% overall; 91–94% in search-heavy runs | under 20% per source |
+| 2 | [12. Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates per unfinished function; park recovery | median 1–2 (proxy); 52.9% of the short passes' leftovers matched later | 25 or more; recovery under 10% |
+| 3 | [8. Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour (sweep) | 131 functions, 131,080 B unswept | 0 |
+| 4 | [9. Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes (not per run) | 203 functions, 54,460 B | 0 |
+| 5 | [13. Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | unknown until runs log `seconds` | baseline, then lower |
+| 6 | [7. Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | build/score latency (sweep) | about 1,000 s cold, 238 s warm | lower |
+
+### All gaps
+
+| # | Gap | Metric moved | State |
+|---|---|---|---|
+| 1 | [Stale task packs change scores](#1-stale-task-packs-change-scores) | exact-instruction gain | fixed, #111 |
+| 2 | [Unfinished and parked work is invisible across worktrees](#2-unfinished-and-parked-work-is-invisible-across-worktrees) | park recovery | fixed, #110 |
+| 3 | [Transient download failures turn main red](#3-transient-download-failures-turn-main-red) | none (CI) | fixed, #109 |
+| 4 | [`tools/sweep.py` is one module that every sprint edits](#4-toolssweeppy-is-one-module-that-every-sprint-edits) | none (merge friction) | fixed, #109, #114 |
+| 5 | [The plan document carries results, and its next lead is not done](#5-the-plan-document-carries-results-and-its-next-lead-is-not-done) | start to first compiling score | fixed, #113, #116 |
+| 6 | [Smaller recurring friction](#6-smaller-recurring-friction) | mixed | partly fixed |
+| 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | score and build latency | partly fixed, #119 |
+| 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour | open |
+| 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes | partly fixed, numath promoted |
+| 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | matched bytes per child-hour (accounting) | accounting fixed, #163; the structural brief is in [sprint workflow](sprint_workflow.md#matching-brief) |
+| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | measured (per-source split); open |
+| 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | brief rule added; not enforced |
+| 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | logging added; baseline pending |
+| 14 | [Bench logs were polluted and lost](#14-bench-logs-were-polluted-and-lost) | all (data quality) | fixed |
 
 ## 1. Stale task packs change scores
 
@@ -202,3 +234,59 @@ Keep a child on its current unit while useful hypotheses remain, preserve each
 measured candidate, and explain the unresolved instruction or data-layout issue
 before deferring it. Do not count fresh worktrees, PRs, or reverified baseline
 functions as matching gains.
+
+## 11. Search attempts mostly fail to compile
+
+Baseline 2026-11-12 (`workflow_metrics.py cohorts`): 23,053 of 48,978 scored attempts in
+the 17 plan runs of 2026-11-11 were ERROR (47.1%). The Sol short passes reached 69.4%.
+The runs that relied on `variant_search.py` reached 91–94%: hvqm4, nutexanm, the first
+nucamera pass and nuportal. In nuportal, `NuAnimCurveEval` alone had 684 ERROR scores
+out of 724. An ERROR attempt tests no hypothesis, but each one costs a full compile. The
+Opus passes with the structural brief had 4.1%.
+
+Search and hand-edit attempts were mixed in the log until now. Score events now carry
+`source` (`manual`, `variant_search`, `order_search`), so the rate is reported per
+source.
+
+Next fix: `variant_search.py` and `order_search.py` should score the seed first and
+refuse to search from a seed that does not compile. They should also stop after N
+consecutive ERROR variants and print the most common diagnostic. Measure the
+compile-error rate of `variant_search` before and after.
+
+## 12. Functions are parked before 25 distinct hypotheses
+
+The median number of distinct compiled candidates per unfinished function was 1 in the
+2026-11-11 runs and 2 in the Sol short passes. These counts are a proxy: distinct exact
+counts, a lower bound, because old events have no codegen hash. The
+[brief](sprint_workflow.md#matching-brief) asks for 25. A later pass matched 9 of the 17
+functions the short passes left unmatched (52.9%). Seven of those nine took the Opus
+passes 17–25 minutes, so they were not plateaus.
+
+Score events now carry `codegen`, so the count is exact for new runs. The brief rule is
+in place; nothing enforces it yet.
+
+Next fix: `sprint_finish.py --parked` should warn when a parked function has fewer than
+25 distinct codegen hashes in the run's log. Measure park recovery before and after.
+
+## 13. Score latency is not yet measured
+
+`score_fn.py` is the cost of every hypothesis, but no log recorded its wall time; only
+finish builds were timed (median 0.8–0.9 s). Score events now carry `seconds`. Record the
+first cohort's median here, then rank latency fixes (cache hits, compiling only the
+function's TU) against it.
+
+## 14. Bench logs were polluted and lost
+
+Two problems damaged the logs:
+
+- `test_no_queue_skips_queue_mutation_after_verifying` called `score_fn.main` without
+  patching `bench_note`. Each test run in a checkout with an open bench run appended
+  `f MATCH 0 0` to that run's real log. The test now patches it out, and
+  `workflow_metrics.py` ignores non-ERROR scores with `target` 0.
+- Raw event logs lived only in `work/` of each worktree, so a cleanup day deleted the
+  evidence for every metric. `sprint_bench.py finish` now copies the log to
+  `~/.cache/lsw1/bench/events/`, and `workflow_metrics.py archive` copies every log it
+  can find. 38 logs were archived on 2026-11-12.
+
+Parked and deferred function names now go into the finish record, so park recovery no
+longer has to be inferred from scores alone.

@@ -424,7 +424,8 @@ def main(argv=None) -> int:
     verified_names = [fn for fn, ok in results.items() if ok]
     record = {"unit": args.unit, "verified": len(verified_names),
               "verified_bytes": sum(symbol_sizes(verified_names).values()), "parked": len(parked),
-              "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures}
+              "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures,
+              "parked_names": [p[0] for p in parked], "deferred_names": list(args.deferred)}
     new_names = new_verified_names(base, results)
     record["new_verified"] = len(new_names) if new_names is not None else None
     record["new_verified_bytes"] = (sum(symbol_sizes(new_names).values())

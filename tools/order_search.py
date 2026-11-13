@@ -54,6 +54,7 @@ import argparse
 import itertools
 import json
 import math
+import os
 import random
 import re
 import shlex
@@ -272,12 +273,17 @@ def compiler_args(compiler: str | None, source: Path) -> list[str]:
     return args
 
 
-def score_source(name: str, text: str, extra: list[str], tmpdir: Path, index: int) -> dict:
-    """Compile and score one variant with score_fn.py; returns its JSON report or an error."""
+def score_source(name: str, text: str, extra: list[str], tmpdir: Path, index: int,
+                 source: str = "order_search") -> dict:
+    """Compile and score one variant with score_fn.py; returns its JSON report or an error.
+
+    SOURCE tags the bench `score` event (score_fn.BENCH_SOURCE_ENV) so workflow metrics keep
+    mechanical search attempts apart from hand edits."""
     src = tmpdir / f"cand{index}.c"
     src.write_text(text)
+    env = dict(os.environ, LSW1_BENCH_SOURCE=source)
     r = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), name, str(src), "--json", *extra],
-                       cwd=ROOT, capture_output=True, text=True)
+                       cwd=ROOT, capture_output=True, text=True, env=env)
     src.unlink()
     if r.returncode == 2 or not r.stdout.strip():
         return {"verdict": "ERROR", "error": (r.stderr or r.stdout).strip()[-500:], "returncode": r.returncode}

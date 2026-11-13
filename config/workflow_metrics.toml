@@ -1,0 +1,65 @@
+# Cohorts and comparisons for tools/workflow_metrics.py (definitions: docs/workflow_metrics.md).
+#
+# A cohort is a list of bench-run segments: a run id from work/sprint_bench*.jsonl or
+# <bench cache>/events/, optionally cut to [since, until] (ISO 8601 with offset) when one log
+# holds several agents' work. Add a cohort for each workflow change you measure and a
+# comparison naming its before and after cohorts; the run ids come from
+# `python3 tools/workflow_metrics.py report`.
+
+[[cohort]]
+name = "recent-2026-11-11"
+label = "All plan runs 2026-11-11 to 2026-11-12 morning (baseline before the brief)"
+segments = [
+  { run = "t3-ff078cd4-142b2689c03ad59b-1794400612" },
+  { run = "t3-80107917-5aa9cd51edd0e8b0-1794400896" },
+  { run = "t3-c58310bb-598735d8c0233d70-1794401267" },
+  { run = "t3-eedf1b9a-57545281a93d6c4f-1794401492" },
+  { run = "t3-145f63f5-eec3572991f154ea-1794402576" },
+  { run = "t3-7b3ba6f1-7e38eb3557a271b5-1794402998" },
+  { run = "t3-08703467-7e2a28b222839ecf-1794403147" },
+  { run = "t3-69ed193e-e6a97efe70c7c0c9-1794404139" },
+  { run = "t3-de623e11-cd6a1ffd891e94f4-1794407606" },
+  { run = "t3-f0bdb327-1b9341e5db64df40-1794439721" },
+  { run = "t3-1028bb63-98bfcca1fa1c85e2-1794439907" },
+  { run = "t3-8b9c2224-42a435f6fbca457c-1794443705" },
+  { run = "t3-07cf087a-6f123126d70d6785-1794443852" },
+  { run = "t3-02dcd71e-834546517ab62b0a-1794474351" },
+  { run = "t3-8de8faa1-034299ea4deee0da-1794476955" },
+  { run = "t3-ebd89be8-29a4fc4d6dbc26da-1794478865" },
+  { run = "t3-d7610161-68526bb076c32d93-1794480550" },
+]
+
+# Thread a2be7419, 2026-11-12 (times UTC-8). Codex Sol children with the generic brief: the
+# first passes on nucamera/nuhgobj, the nuportal, nurndr-nugscn and nuanim passes, and the Sol
+# continuations at 18:43-19:00 before the Codex parent hit a 429.
+[[cohort]]
+name = "sol-short-2026-11-12"
+label = "Codex Sol children, generic brief (10-13 min passes)"
+segments = [
+  { run = "t3-7af2dada-8f58381893d28584-1794535295", until = "2026-11-12T18:12:00-08:00" },
+  { run = "t3-7af2dada-8f58381893d28584-1794535295", since = "2026-11-12T18:43:00-08:00", until = "2026-11-12T19:30:00-08:00" },
+  { run = "t3-d0bd4e08-6316cfdddce4db52-1794535298", until = "2026-11-12T18:09:10-08:00" },
+  { run = "t3-f7f562b6-d944dc6fd053e915-1794535983", until = "2026-11-12T18:30:00-08:00" },
+  { run = "t3-f7f562b6-d944dc6fd053e915-1794535983", since = "2026-11-12T18:43:00-08:00" },
+  { run = "t3-bd4d6cd9-78b17c668f8c2042-1794536060" },
+  { run = "t3-fa22d343-97b9e695ae7c78e8-1794536762" },
+  { run = "t3-54b00346-8848ee0a705540b9-1794536822" },
+]
+
+# The two Opus children restarted in the same checkouts at 20:10 with the structural brief
+# (recover struct/pointer relationships from target asm first, diff by asm block, >=25
+# distinct hypotheses before a plateau). Both finished by 20:35.
+[[cohort]]
+name = "opus-brief-2026-11-12"
+label = "Opus children, structural-recovery brief (17-25 min passes)"
+segments = [
+  { run = "t3-7af2dada-8f58381893d28584-1794535295", since = "2026-11-12T20:10:00-08:00", until = "2026-11-12T20:40:00-08:00" },
+  { run = "t3-d0bd4e08-6316cfdddce4db52-1794535298", since = "2026-11-12T20:10:00-08:00", until = "2026-11-12T20:40:00-08:00" },
+]
+
+[[comparison]]
+title = "Structural brief vs short passes"
+subtitle = "same units, same day: nucamera and nuhgobj"
+before = "sol-short-2026-11-12"
+after = "opus-brief-2026-11-12"
+metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]

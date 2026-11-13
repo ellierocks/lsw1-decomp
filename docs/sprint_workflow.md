@@ -54,6 +54,62 @@ hand. Drafting fixes, m2c patches, sweep repairs and new search dimensions can u
 whole classes of functions. Do not wait for an arbitrary repeat count when the cause
 and benefit are already clear.
 
+### Choose by metric, record before and after
+
+The [workflow metrics](workflow_metrics.md) are what a workflow change has to move:
+
+- matched bytes per child-hour, the outcome
+- exact-instruction gain per child-hour
+- compile-error rate
+- distinct candidates per unfinished function
+- time to first compiling score
+- park recovery rate
+- score and build latency
+
+[Workflow gaps](workflow_gaps.md) ranks the open gaps by the metric each one moves and
+by how far that metric is from its target. Take the gap at the top unless a blocker in
+front of you is cheaper to fix and moves the same metric.
+
+Every workflow fix records one number before and one after. Use
+`python3 tools/workflow_metrics.py report` or a cohort to note the metric's value on
+the runs the fix will affect. After the fix, add a cohort and a `[[comparison]]` to
+[`config/workflow_metrics.toml`](../config/workflow_metrics.toml). Put
+`workflow_metrics.py compare`'s row in the PR, update the gap's row in the gap table,
+and name everything else that changed (model, units, starting drafts). A fix that
+moved no metric, or the wrong one, is recorded as well. For sweep blockers,
+`sweep_report.py --json` before and `--compare` after is the per-class measure, as below.
+
+### Matching brief
+
+These rules come from the 2026-11-12 comparison
+([measured](workflow_metrics.md#structural-brief-vs-short-passes): 39× matched bytes per
+child-hour, compile errors 69% → 4%). Give them to every child and sprint.
+
+1. **Recover structure from the target assembly first.** Before tuning a draft, read
+   which offsets the target loads and stores, through which base registers, and at what
+   widths. Recover the struct and pointer relationships from that: local struct sizes,
+   pointers formed from `&local`, float values the target reuses, literal floats versus
+   rodata labels, and argument order. Every Opus fix that day was of this kind. Fix
+   types and layout; do not tune registers or pad frames with scratch locals. Register
+   order is the last step, and only once the instruction stream matches.
+2. **Diff by asm block.** Use `score_fn.py --diff` and walk the target one basic block
+   at a time. Find the first block that differs and explain it before changing a later
+   one.
+3. **A plateau needs 25 distinct compiled candidates.** Count hypotheses the compiler
+   saw as different, not calls: the `codegen` hash in the bench log tells you when two
+   edits compiled to the same code. With fewer than 25, the function is not a plateau.
+   Keep going, or hand it off as unfinished with the hypotheses that remain. Do not
+   defer it while structural hypotheses remain. A later pass matched 53% of the
+   functions the short passes left.
+4. **Seed searches with compiling source.** `variant_search.py`, `order_search.py` and
+   the permuter only test hypotheses when the variants compile. If more than about 20%
+   of a search's scores are ERROR (`workflow_metrics.py report` gives the rate per
+   source), stop it, read the diagnostics and fix the seed or the types. Runs that
+   relied on searches lost 91–94% of their scores this way.
+5. **Count only new work.** A function that was already MATCH when first scored is a
+   reverification. Report `new_verified` ([gap
+   10](workflow_gaps.md#10-verification-counts-were-mistaken-for-new-progress)).
+
 Keep fixes reproducible and test the behavior they change. m2c changes belong in
 `tools/patches/m2c-*.patch`, applied by `tools/fetch_m2c.sh` to its pinned checkout.
 Use an isolated `M2C` checkout for experiments so other worktrees' shared cache is not
@@ -135,6 +191,10 @@ require them.
 - `tools/sprint_bench.py` (`start --model MODEL --launched-at EPOCH`,
   `time LABEL -- CMD`, `mark LABEL`, `report`, `compare`) logs wall-time spend per step
   and per `score_fn.py` attempt to `~/.cache/lsw1/bench/`, which outlives the worktree.
+  Each score event carries the search tool that made it (`source`), the score's wall
+  time (`seconds`) and a hash of the compiled code (`codegen`). Finish archives the raw
+  log to `~/.cache/lsw1/bench/events/`, and `tools/workflow_metrics.py` computes the
+  [workflow metrics](workflow_metrics.md) from it.
 - `sprint_finish.py --usage work/provider-usage.json` imports provider-reported per-run
   cumulative totals:
 
@@ -264,6 +324,7 @@ the lane order changes.
 ```text
 Plan item: ID. Branch t3/plan-ID.
 Run python3 tools/kickoff.py --start --item ID --model MODEL.
+Follow the matching brief in docs/sprint_workflow.md#matching-brief.
 ```
 
 Off plan (Ellie asked, a tooling fix, or runtime evidence):
@@ -271,4 +332,5 @@ Off plan (Ellie asked, a tooling fix, or runtime evidence):
 ```text
 Sprint: UNIT (optionally: fn_A, fn_B, ...). Branch t3/sprint-<unit-leaf>.
 Run python3 tools/kickoff.py --start UNIT [fn_A ...] --off-plan "REASON" --model MODEL.
+Follow the matching brief in docs/sprint_workflow.md#matching-brief.
 ```
