@@ -1,4 +1,5 @@
 #include "types.h"
+#include "numath/numath.h"
 
 typedef union {
     void* ptr;
@@ -91,6 +92,46 @@ void NuAnimBuffEvaluate(NuPortalAnimBuff* buffer, void* anim, f32 time, s32 appl
     }
 }
 
+typedef struct {
+    struct nuvec_s t;
+    struct nuvec_s r;
+    struct nuvec_s s;
+} NuPortalJointKey;
+typedef struct {
+    u8 pad0[0x34];
+    u8* flags;
+} NuPortalAnimData;
+extern f32 lbl_801905E0[];
+extern f32 lbl_801905E4[];
+void fn_8000EB24(struct numtx_s* m, struct nuangvec_s* ang);
+void fn_8000EA94(struct numtx_s* m, struct nuvec_s* scale);
+void NuMtxTranslate(struct numtx_s* m, struct nuvec_s* t);
+
+void fn_8001BE94(NuPortalAnimData* anim, s32 joint, struct numtx_s* m, f32 time)
+{
+    NuPortalJointKey* key = (NuPortalJointKey*)((NuPortalAnimBuff*)lbl_80407C38)->data;
+    u8 flags = anim->flags[joint];
+    struct nuangvec_s ang;
+    NuAnimData2Clone(anim, key, (void*)joint, time - lbl_801905E0[0]);
+    if (flags & 1) {
+        ang.x = key->r.x * lbl_801905E4[0];
+        ang.y = key->r.y * lbl_801905E4[0];
+        ang.z = key->r.z * lbl_801905E4[0];
+        fn_8000EB24(m, &ang);
+    } else {
+        NuMtxSetIdentity(m);
+    }
+    if (flags & 8)
+        fn_8000EA94(m, &key->s);
+    NuMtxTranslate(m, &key->t);
+    m->_02 = -m->_02;
+    m->_12 = -m->_12;
+    m->_20 = -m->_20;
+    m->_21 = -m->_21;
+    m->_23 = -m->_23;
+    m->_32 = -m->_32;
+}
+
 void* fn_8001BFC4(void* data, void* source, f32 time)
 {
     void* buffer = ((void**)lbl_80407C38)[2];
@@ -181,6 +222,61 @@ s32 clipTestSphere(NuPortalVec4* sphere, NuPortalFrustum* frustum)
     return inside == frustum->plane_count + 1 ? 1 : 2;
 }
 
+extern f32 lbl_803132B0[];
+extern f32 lbl_8040AD3C;
+extern f32 lbl_8040AD40;
+extern f32 lbl_8040AD44;
+extern f32 lbl_8040AD48;
+extern struct numtx_s lbl_80314430;
+extern struct numtx_s lbl_80314470;
+extern const f32 lbl_80190918[];
+extern s32 lbl_80407C88;
+void fn_8000DBA0(struct numtx_s* m);
+
+void fn_8001D0D8(void)
+{
+    f32 scale, scale_sq, a, b;
+    f32 c, d;
+    f32 inv_a, inv_b, inv_c, inv_d;
+    f32 x, y, z, w;
+    scale = lbl_803132B0[0];
+    scale_sq = scale * scale;
+    a = scale * lbl_8040AD40;
+    b = scale * lbl_8040AD3C;
+    lbl_80407C88 = 1;
+    inv_a = lbl_80190918[0] / NuFsqrt(a * a + scale_sq);
+    inv_b = lbl_80190918[0] / NuFsqrt(b * b + scale_sq);
+    fn_8000DBA0(&lbl_80314430);
+    w = -b * inv_b;
+    c = scale * lbl_8040AD44;
+    d = scale * lbl_8040AD48;
+    x = -scale * inv_a;
+    y = scale * inv_b;
+    z = -a * inv_a;
+    lbl_80314430._00 = x;
+    lbl_80314430._12 = y;
+    lbl_80314430._21 = z;
+    lbl_80314430._20 = z;
+    lbl_80314430._01 = -x;
+    lbl_80314430._13 = -y;
+    lbl_80314430._23 = w;
+    lbl_80314430._22 = w;
+    inv_c = lbl_80190918[0] / NuFsqrt(c * c + scale_sq);
+    inv_d = lbl_80190918[0] / NuFsqrt(d * d + scale_sq);
+    fn_8000DBA0(&lbl_80314470);
+    x = -scale * inv_c;
+    y = scale * inv_d;
+    z = -c * inv_c;
+    w = -d * inv_d;
+    lbl_80314470._00 = x;
+    lbl_80314470._12 = y;
+    lbl_80314470._21 = z;
+    lbl_80314470._23 = w;
+    lbl_80314470._01 = -x;
+    lbl_80314470._13 = -y;
+    lbl_80314470._20 = z;
+    lbl_80314470._22 = w;
+}
 typedef struct {
     u8 pad0[0x1c];
     u16 count;
@@ -195,7 +291,6 @@ typedef struct {
     u32 flags5 : 27;
 } NuPortalOwner;
 extern s32 lbl_80407C80;
-extern s32 lbl_80407C88;
 void fn_8001D0D8(void);
 void fn_8001D25C(void);
 void fn_8001D7EC(NuPortalSet* set, s32 index, s32 arg2, s32 arg3);
