@@ -24,6 +24,15 @@ whole unit is needed:
 
     python3 tools/order_search.py fn_X src/auto/u.c --body try.c -j 4
 
+With `--auto`, no markers are needed: every run of two or more plain statements
+(assignments and calls, each on its own line, at any brace depth; not declarations,
+control flow or labels) in NAME's definition becomes a block. A product over
+`--limit` keeps the run nearest the seed's first score difference; `--climb`
+searches them all. The output is then NAME's definition (with `--body`, the body
+file's own externs too), ready for `score_fn.py NAME SOURCE --body best.c --apply`:
+
+    python3 tools/order_search.py fn_X src/auto/u.c --body draft.c --auto -j 4
+
 Each block between `/* order: begin */` and `/* order: end */` is split into
 top-level statements (a braced statement counts as one). Several blocks are
 permuted independently and searched as a product. With `--const-locals`, an
@@ -48,7 +57,8 @@ compile is refused: every variant would fail the same way. `--max-error-run`
 (default 64) compile errors in a row stop either mode, and more than 20% compile
 errors print the commonest diagnostic.
 
-The best variant is written to `work/order_search/NAME/best.c` (or `-o`).
+The best variant is written to `work/order_search/NAME/best.c` (or `-o`): the whole
+file for a marked scratch copy, only the definition with `--body` or `--auto`.
 A candidate is accepted only through `verify_fn.py --build --strict-symbols`
 after porting it into the unit source; this tool never edits the checkout.
 """
@@ -72,6 +82,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
 MARK = re.compile(r"^[ \t]*/\*\s*order:\s*(begin|end|decl)\s*\*/[ \t]*\n?", re.M)
 CONST_ASSIGN = re.compile(r"^(?P<lhs>[^=;]*[^=!<>+\-*/%&|^])=\s*(?P<const>-?(?:0[xX][0-9a-fA-F]+|\d+))\s*;$",
                           re.S)
@@ -148,8 +159,16 @@ class Template:
 
 def split_statements(body: str) -> list[str]:
     """Top-level statements of a block body: `;`-terminated at depth 0, or a braced group."""
+    return [stmt for _, _, stmt in statement_spans(body)]
+
+
+def statement_spans(body: str) -> list[tuple[int, int, str]]:
+    """`split_statements` with each statement's [start, end) offsets in BODY."""
     out, cur, depth, i = [], [], 0, 0
+    first = None
     while i < len(body):
+        if first is None and not body[i].isspace():
+            first = i
         c = body[i]
         if body.startswith("/*", i):
             j = body.find("*/", i + 2)
@@ -181,8 +200,8 @@ def split_statements(body: str) -> list[str]:
         if depth == 0 and (c == ";" or (c == "}" and not _continues(body, i + 1))):
             stmt = "".join(cur).strip()
             if stmt and stmt != ";":
-                out.append(stmt)
-            cur = []
+                out.append((first, i + 1, stmt))
+            cur, first = [], None
         i += 1
     if depth or "".join(cur).strip():
         raise SearchError(f"order block has an incomplete statement: {''.join(cur).strip()!r}")
@@ -225,6 +244,104 @@ def parse(text: str) -> Template:
     if decl and any(b.start <= decl[0] < b.end for b in blocks):
         raise SearchError("/* order: decl */ must be outside the order blocks")
     return Template(text, blocks, decl)
+
+
+LABEL = re.compile(r"^[A-Za-z_]\w*\s*:(?!:)")
+CONTROL = re.compile(r"^(?:if|else|for|while|do|switch|case|default|return|goto|break|continue)\b")
+DECLARATION = re.compile(r"^(?:(?:static|const|volatile|register|unsigned|signed|struct|union|enum)\s+)*"
+                         r"[A-Za-z_]\w*[\s*]+[A-Za-z_]\w*\s*(?:\[[^\]]*\]\s*)*(?:=[^;]*)?;$", re.S)
+
+
+def movable(stmt: str) -> bool:
+    """A plain expression statement (assignment or call) another can be swapped with."""
+    return (stmt.endswith(";") and "{" not in stmt and not stmt.startswith(("/*", "//", "#"))
+            and not CONTROL.match(stmt) and not DECLARATION.match(stmt) and not LABEL.match(stmt))
+
+
+def auto_blocks(text: str, name: str, min_run: int = 2) -> tuple[list[Block], int, int]:
+    """Order blocks for NAME's definition without hand markers (gap 26): every run of MIN_RUN or
+    more consecutive movable statements at any brace depth, each on lines of its own. Returns the blocks
+    and the body's [start, end) offsets."""
+    from variant_search import VariantError, find_function
+    try:
+        fn = find_function(text, name)
+    except VariantError as e:
+        raise SearchError(str(e)) from None
+    base = len(fn.before) + len(fn.head)
+    blocks: list[Block] = []
+    walk_runs(text, fn.body, base, min_run, blocks)
+    blocks.sort(key=lambda b: b.start)
+    if not blocks:
+        raise SearchError(f"no run of {min_run}+ movable statements in {name}; mark one by hand")
+    return blocks, base, base + len(fn.body)
+
+
+def brace_groups(stmt: str) -> list[tuple[int, int]]:
+    """[start, end) of the text inside each outermost `{...}` of STMT."""
+    out, depth, start = [], 0, 0
+    for i, c in enumerate(stmt):
+        if c == "{":
+            if depth == 0:
+                start = i + 1
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                out.append((start, i))
+    return out
+
+
+def walk_runs(text: str, body: str, base: int, min_run: int, blocks: list[Block]) -> None:
+    """Append to BLOCKS each run of MIN_RUN+ movable statements in BODY (at offset BASE of TEXT),
+    at every brace depth."""
+    run: list[tuple[int, int, str]] = []
+
+    def close():
+        if len(run) >= min_run:
+            s0, e0 = run[0][0], run[-1][1]
+            line_start = text.rfind("\n", 0, s0) + 1
+            nl = text.find("\n", e0)
+            blocks.append(Block(line_start, len(text) if nl < 0 else nl + 1, text[line_start:s0],
+                                [r[2] for r in run]))
+        run.clear()
+
+    try:
+        spans = statement_spans(body)
+    except SearchError:
+        return
+    for start, end, stmt in spans:
+        a, b = start + base, end + base
+        nl = text.find("\n", b)
+        own_line = (not text[text.rfind("\n", 0, a) + 1:a].strip()
+                    and not text[b:len(text) if nl < 0 else nl].strip())
+        if movable(stmt) and own_line:
+            run.append((a, b, stmt))
+            continue
+        close()
+        raw = body[start:end]
+        for gs, ge in brace_groups(raw):
+            walk_runs(text, raw[gs:ge], a + gs, min_run, blocks)
+    close()
+
+
+def nearest_block(blocks: list[Block], body: tuple[int, int], first_diff: float) -> int:
+    """Index of the block whose position in the body is nearest FIRST_DIFF, the first scored
+    difference as a fraction of the target's instructions. Source and instruction order only
+    roughly correspond, so this picks a start, not a proof."""
+    span = max(body[1] - body[0], 1)
+    return min(range(len(blocks)), key=lambda i: abs(((blocks[i].start + blocks[i].end) / 2 - body[0]) / span
+                                                      - first_diff))
+
+
+def definition(text: str, name: str) -> str | None:
+    """NAME's definition from a variant: what `score_fn.py --body` needs, without the unit."""
+    from variant_search import VariantError, find_function
+    try:
+        fn = find_function(text, name)
+    except VariantError:
+        return None
+    line_start = fn.before.rfind("\n") + 1
+    return text[line_start:len(text) - len(fn.tail) + 1].rstrip() + "\n"
 
 
 def shared_constants(stmts: list[str]) -> list[str]:
@@ -500,7 +617,7 @@ def print_outcome(result: dict) -> None:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name", help="retail function name in symbols.txt")
-    ap.add_argument("source", type=Path, help="candidate C file with order markers")
+    ap.add_argument("source", type=Path, help="candidate C file with order markers, or the unit source with --body/--auto")
     ap.add_argument("--const-locals", action="store_true",
                     help="also try a shared s32 local for repeated assigned constants")
     ap.add_argument("-j", "--jobs", type=int, default=1, help="parallel compiles")
@@ -512,6 +629,9 @@ def main(argv=None) -> int:
     ap.add_argument("--body", type=Path, metavar="FILE",
                     help="take the marked definition from FILE (as for score_fn.py --body) and splice "
                          "it into SOURCE, without editing SOURCE")
+    ap.add_argument("--auto", action="store_true",
+                    help="no markers needed: search runs of plain statements in NAME's definition; without "
+                         "--climb, a product over --limit keeps the run nearest the first score difference")
     ap.add_argument("--dry-run", action="store_true", help="print the variant count and exit")
     ap.add_argument("--climb", action="store_true",
                     help="hill-climb with single-statement moves instead of trying every order")
@@ -527,19 +647,17 @@ def main(argv=None) -> int:
     try:
         text = args.source.read_text()
         if args.body:
-            sys.path.insert(0, str(Path(__file__).resolve().parent))
             from score_fn import splice_body
             text = splice_body(text, args.name, args.body.read_text())
-        template = parse(text)
+        body_span = None
+        if args.auto and not MARK.search(text):
+            blocks, *body_span = auto_blocks(text, args.compiled_symbol or args.name)
+            template = Template(text, blocks, None)
+        else:
+            template = parse(text)
     except (OSError, SearchError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
-    total = count(template, args.const_locals)
-    sizes = ", ".join(str(len(b.statements)) for b in template.blocks)
-    mode = f"; climbing with a budget of {args.budget}" if args.climb else ""
-    print(f"{len(template.blocks)} block(s) of {sizes} statements; {total} variants{mode}")
-    if args.dry_run:
-        return 0
     extra = ["-I", str(args.source.resolve().parent)]
     for inc in args.includes:
         extra += ["-I", inc]
@@ -549,6 +667,28 @@ def main(argv=None) -> int:
     with tempfile.TemporaryDirectory(prefix="order_search_") as tmp:
         def scorer(text, index):
             return score_source(args.name, text, extra, Path(tmp), index)
+        if body_span and not args.climb and count(template, args.const_locals) > args.limit:
+            try:
+                seed = check_seed(scorer, text)
+            except SearchError as e:
+                print(f"error: {e}", file=sys.stderr)
+                return 2
+            diffs, target = seed.get("differences") or [], seed.get("target_insns") or 0
+            frac = (diffs[0].get("index_t") or 0) / target if diffs and target else 0.0
+            pick = nearest_block(template.blocks, tuple(body_span), frac)
+            print(f"auto: {len(template.blocks)} runs exceed --limit together; searching the one nearest the "
+                  f"first difference (@{diffs[0].get('index_t') if diffs else 0}/{target}); --climb searches "
+                  "them all")
+            template = Template(text, [template.blocks[pick]], None)
+        total = count(template, args.const_locals)
+        sizes = ", ".join(str(len(b.statements)) for b in template.blocks)
+        mode = f"; climbing with a budget of {args.budget}" if args.climb else ""
+        print(f"{len(template.blocks)} block(s) of {sizes} statements; {total} variants{mode}")
+        if body_span:
+            for b in template.blocks:
+                print(f"  block: {b.statements[0]} ... {b.statements[-1]}")
+        if args.dry_run:
+            return 0
         try:
             if args.climb:
                 result = climb(template, scorer, jobs=args.jobs, budget=args.budget, seed=args.seed, log=print,
@@ -566,14 +706,24 @@ def main(argv=None) -> int:
         return 2
     out = args.output or ROOT / "work" / "order_search" / args.name / "best.c"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(best["text"])
+    # With --body or --auto, SOURCE is the unit: write NAME's definition, ready for --body (gap 26).
+    only = definition(best["text"], args.compiled_symbol or args.name) if args.body or body_span else None
+    if only and args.body:  # keep the body file's own externs and helpers around the definition
+        draft = args.body.read_text()
+        old = definition(draft, args.compiled_symbol or args.name)
+        only = draft.replace(old, only, 1) if old and old in draft else only
+    out.write_text(only or best["text"])
     rep = best["report"]
     locals_ = ", ".join(c for _, c in best["variant"]) or "none"
     print(f"best: {rep['verdict']} score={best['score']} exact={rep['exact_insns']}/{rep['target_insns']} "
           f"orders={[list(o) for o in best['orders']]} shared locals={locals_}")
     print(f"wrote {out}")
     if rep["verdict"] == "MATCH" and rep["returncode"] == 0:
-        print("Port it into the unit source, then accept with verify_fn.py --build --strict-symbols.")
+        if only:
+            print(f"Apply it: python3 tools/score_fn.py {args.name} {args.source} --body {out} --apply, then "
+                  "accept with verify_fn.py --build --strict-symbols.")
+        else:
+            print("Port it into the unit source, then accept with verify_fn.py --build --strict-symbols.")
         return 0
     return 1
 

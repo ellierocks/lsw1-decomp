@@ -58,6 +58,11 @@ median of 48 distinct candidates per park.
 | 19 | [Fresh worktrees had no Ghidra project](#19-fresh-worktrees-had-no-ghidra-project) | start to first compiling score | fixed: `draft_fn.py` seeds the project; worktrees with `ghidra.c` 0 → all |
 | 20 | [Drafts lost the unit's types](#20-drafts-lost-the-units-types) | compile-error rate; exact-instruction gain | fixed: drafts compile 30/60 → 54/60 |
 | 21 | [Rodata float labels hide literal pools](#21-rodata-float-labels-hide-literal-pools) | exact-instruction gain (sweep) | fixed: `float_literals` repair; nuportal sweep +9 exact over 5 functions |
+| 22 | [Plan items were cut to 15 functions](#22-plan-items-were-cut-to-15-functions) | functions per child | fixed: nuportal listed 15/22 → 22/22 |
+| 23 | [Kickoff queued sweep matches as hand work](#23-kickoff-queued-sweep-matches-as-hand-work) | matched bytes per child-hour | fixed: sweep-matched functions handed out as hand work 1 → 0 (nuportal) |
+| 24 | [`score_fn.py --apply` skipped silently](#24-score_fnpy---apply-skipped-silently) | start to first compiling score | fixed: unexplained skips 3 paths → 0; `--json` MATCH applied 0 → 1 |
+| 25 | [Handoffs skipped the hypothesis floor](#25-handoffs-skipped-the-hypothesis-floor) | distinct candidates; compile-error rate | fixed: aisys-1 short handoffs accepted without a reason 7 → 0; ERROR events with a diagnostic class 0% → all new |
+| 26 | [Order search needed hand markers](#26-order-search-needed-hand-markers) | distinct candidates | fixed: markers needed 1+ → 0; `--body` output 1,992-line unit → 76-line definition |
 
 ## 1. Stale task packs change scores
 
@@ -538,3 +543,101 @@ Before → after (same unit source, nuportal sweep, exact instructions):
 `NuAnimCurveEval` 33 → 36, `NuAnimCurveSetApplyBlendToJoint2` 256 → 258,
 `NuAnimData2Fixup` 86 → 89, `NuAnimData2Relocate` 98 → 99 and `drawViewFrustrum`
 44 → 45. No function scored lower. Tests: `tests/test_sweep_literals.py`.
+
+## 22. Plan items were cut to 15 functions
+
+`next_target.py --plan nuportal` listed 15 of the item's 22 functions. `collect()` returned
+all 22, but the CLI's `--limit 15` default (meant for the whole-queue view) also cut plan
+items, without saying so. A child took the 15 as its work list.
+
+`--limit` now defaults to all rows for a plan item and 15 otherwise. Whenever rows are cut,
+the output says how many and that `--limit 0` lists them all.
+
+Before → after: nuportal listed 15/22 → 22/22. Tests: `tests/test_next_target.py`
+(`PlanListingTests`, three tests that fail before the fix).
+
+## 23. Kickoff queued sweep matches as hand work
+
+`kickoff.py` named `transposeClipPlanes` as the next hand target after the parent's sweep
+had already strict-matched it. Gap 15's filter does not apply: it reverifies only functions
+the report scores at 90% or more from the built source, and a sweep MATCH that has not been
+applied is not in the source yet. Kickoff's plan lane built its queue from the report and
+ignored the sweep's MATCH rows.
+
+The plan lane now puts sweep MATCH rows last (they stay queued, so finish accounting still
+covers them). `--start` and the plan summary print `sweep already strict-matches N of them
+(...); apply, don't hand-match` with the `sweep.py --unit U --apply` command, and the
+suggested first `score_fn.py` call names the first function that is not a sweep match.
+
+Before → after: sweep-matched functions handed out as hand work 1 → 0 in the nuportal
+case. Test: `tests/test_kickoff.py::test_item_start_puts_sweep_matches_last_and_says_apply`.
+
+## 24. `score_fn.py --apply` skipped silently
+
+`--apply` writes only a strict MATCH. On a mismatch, a compile error or a verifier ERROR it
+printed nothing about the skip, so children believed a candidate was in the source. With
+`--json`, the code returned before the apply step, so even a MATCH was never applied.
+
+Every skip now prints `not applied to SOURCE:` with the reason: the verdict, score and
+exact count, `the candidate does not compile`, or `the verifier returned ERROR`. `--json`
+applies a MATCH and writes its apply line to stderr, which keeps stdout valid JSON.
+`sweep.py` uses `--apply` or `--json`, never both, so nothing is applied twice.
+
+Before → after: unexplained skips 3 paths → 0; `--json` MATCH applied 0 → 1. Tests:
+`tests/test_score_fn_apply.py` (three tests that fail before the fix).
+
+## 25. Handoffs skipped the hypothesis floor
+
+The Sol cohort of 2026-11-13 (`sol-batch-2026-11-13`) handed off the aisys-1 item early:
+`AIScriptResolveReferences` 3, `fn_8007E97C` 3, `fn_8007EBD0` 5, `AIScriptProcessorInit` 2,
+`fn_8007EFA0` 4, `fn_8007F130` 8 and `AIScriptProcess` 3 distinct compiled candidates, all
+under the 25 floor (PR 169). `sprint_finish.py` refused short parks ([gap 12](#12-functions-are-parked-before-25-distinct-hypotheses)),
+but `--deferred` had no floor, and the park refusal itself suggested deferring as the way
+out. Deferring was the free path.
+
+A `--deferred` function with 1–24 distinct compiled candidates now needs
+`--short-handoff REASON` (time, a rate limit, a named blocker), just as a short park
+needs `--short-park`. Functions with no compiled candidate on record can still be handed
+off untouched. The table shows each deferred function's count, and the finish record keeps
+`deferred_hypotheses` and `short_handoff`. The refusal no longer suggests `--deferred`.
+The brief's rule 3 says the same.
+
+The compile-error rate behind the 8.7% figure: the two Sol bench runs scored 2,062
+attempts with 180 ERRORs (nuanim `t3-64a20ec0-…` 154/1,663; aisys `t3-d590fc6c-…`
+26/399). 142 of them are one `variant_search` burst on `NuAnimCurve2CalcVal`, the
+declaration-dependency class [gap 18](#18-body-splicing-dropped-declarations-needed-before-the-new-use)
+fixed. Without it the rate is 38/1,920 (2.0%). Most of the rest are m2c first drafts that
+did not compile. `Action_SetViewDistance`, `Action_SetMinViewHeight`,
+`Action_SetMaxViewHeight` and `Action_SetHearDistance` all had ERROR first drafts in that
+run; redrafted on current main with [gap 20](#20-drafts-lost-the-units-types)'s typed
+drafts, they compile 4/4 (47/105 exact each). No class remains that this pass could fix
+in the drafting or scoring tools.
+
+ERROR bench events carried no diagnostic, so classes could only be guessed from
+timestamps. `score_fn.py` now records `error`, the first compiler error with its location
+and quoted names removed (`X undeclared (first use in this function)`), and
+`workflow_metrics.py` reports the five commonest as `error_classes`.
+
+Before → after: aisys-1 short handoffs accepted without a reason 7 → 0 (all 7 refused
+until a reason is given); ERROR events with a diagnostic class 0% → every new one. Tests:
+`tests/test_sprint_finish.py::test_short_handoffs_need_a_reason`,
+`tests/test_workflow_metrics.py::test_error_events_record_a_diagnostic_class`.
+
+## 26. Order search needed hand markers
+
+`order_search.py` searched only blocks a child had marked by hand with
+`/* order: begin */` and `/* order: end */` in a scratch file. With `--body`, it wrote
+the whole spliced unit to `best.c`, which then had to be cut back to the definition before
+`score_fn.py --body` could take it.
+
+`--auto` marks the blocks itself: every run of two or more plain statements (assignments
+and calls on lines of their own, at any brace depth; not declarations, control flow or
+labels). When the runs together exceed `--limit`, it keeps the one nearest the seed's
+first score difference (source position against instruction position, a rough mapping),
+and `--climb` searches them all. With `--body` or `--auto`, `best.c` holds the definition
+plus the body file's own externs, ready for `score_fn.py NAME SOURCE --body best.c --apply`.
+
+Before → after: markers needed 1+ → 0. On the `Action_SetViewDistance` draft, `--auto`
+found 3 runs (8 variants, 0 compile errors), and `best.c` went from the 1,992-line unit to
+the 76-line definition, which scores the same through `--body`. Tests: `AutoBlockTests` in
+`tests/test_order_search.py`.

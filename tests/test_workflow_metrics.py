@@ -164,6 +164,22 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual(second.kwargs["source"], "variant_search")
         self.assertNotIn("codegen", second.kwargs)
 
+    def test_error_events_record_a_diagnostic_class(self):
+        cls = score_fn.error_class("src/a.c:12: error: `foo' undeclared (first use in this function)\n"
+                                   "src/a.c:12: error: (Each undeclared identifier is reported only once")
+        self.assertEqual(cls, "X undeclared (first use in this function)")
+        self.assertEqual(score_fn.error_class("x.c: In function `f':\nx.c:31: error: incompatible types in "
+                                              "assignment"), "incompatible types in assignment")
+        self.assertEqual(score_fn.error_class('x.c:5: parse error before "u8"'), "parse error before X")
+        fake = mock.Mock()
+        with mock.patch.dict(sys.modules, {"sprint_bench": fake}):
+            score_fn.bench_note("a", "ERROR", error=cls)
+        self.assertEqual(fake.append.call_args.kwargs["error"], cls)
+        events = [START, score(1060, "a", "ERROR", error=cls), score(1070, "b", "ERROR", error=cls),
+                  score(1080, "c", "ERROR"), score(1090, "a", "MISMATCH", 3)]
+        m = wm.measure([wm.Segment.of("run-a", events)], {"run-a": events})
+        self.assertEqual(m["error_classes"], [(cls, 2)])
+
     def test_codegen_hash_is_none_for_unreadable_objects(self):
         self.assertIsNone(score_fn.codegen_hash(Path("/nonexistent.o"), "f"))
 

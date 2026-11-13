@@ -296,8 +296,18 @@ def plateau_notice(name: str) -> None:
               "(docs/sprint_workflow.md#matching-brief), and move to the next function.")
 
 
+def error_class(text: str) -> str:
+    """The first compiler error of TEXT with its location and quoted names removed, so bench
+    ERROR events group by kind ("`X' undeclared ...") rather than by symbol (gap 25)."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    line = next((x for x in lines if re.search(r"\berror\b", x, re.I)), lines[-1] if lines else "")
+    line = re.sub(r"^\S*?:\d+:(?:\d+:)?\s*(?:error:\s*)?", "", line)
+    line = re.sub(r"[`'\"‘][^`'\"’]*['\"’]", "X", line)
+    return re.sub(r"\b0x[0-9a-fA-F]+\b|\b\d+\b", "N", line)[:120]
+
+
 def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0,
-               seconds: float | None = None, codegen: str | None = None) -> None:
+               seconds: float | None = None, codegen: str | None = None, error: str | None = None) -> None:
     """Record an interactive attempt for tools/sprint_bench.py (no-op without a started run).
 
     `source` says who scored it: `manual` unless a search tool set $LSW1_BENCH_SOURCE
@@ -308,6 +318,8 @@ def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0,
         extra["seconds"] = round(seconds, 2)
     if codegen:
         extra["codegen"] = codegen
+    if error:
+        extra["error"] = error
     try:
         import sprint_bench
         sprint_bench.append("score", name=name, verdict=verdict, exact=exact, target=target, **extra)
@@ -516,7 +528,7 @@ def main(argv=None) -> int:
             if args.apply:
                 print(f"not applied to {args.source}: the candidate does not compile", file=sys.stderr)
             if not args.no_queue and not args.compile_only:
-                bench_note(args.name, "ERROR", seconds=time.monotonic() - started)
+                bench_note(args.name, "ERROR", seconds=time.monotonic() - started, error=error_class(err))
             return vf.EXIT_ERROR
         if args.compile_only:
             return 0

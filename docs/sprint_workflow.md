@@ -98,10 +98,12 @@ child-hour, compile errors 69% → 4%). Give them to every child and sprint.
 3. **A plateau needs 25 distinct compiled candidates.** Count hypotheses the compiler
    saw as different, not calls: the `codegen` hash in the bench log tells you when two
    edits compiled to the same code. With fewer than 25, the function is not a plateau.
-   Keep going, or hand it off as unfinished with the hypotheses that remain. Do not
-   defer it while structural hypotheses remain. A later pass matched 53% of the
-   functions the short passes left. `sprint_finish.py` refuses a `--parked` function
-   under 25 unless `--short-park REASON` says why the floor does not apply.
+   Keep going. Do not defer it while structural hypotheses remain. A later pass
+   matched 53% of the functions the short passes left. `sprint_finish.py` refuses a
+   `--parked` function under 25 unless `--short-park REASON` says why the floor does
+   not apply, and a `--deferred` handoff of an attempted function under 25 unless
+   `--short-handoff REASON` names what stopped the pass (time, a rate limit, a named
+   blocker); list the hypotheses that remain in the PR.
 4. **Seed searches with compiling source.** `variant_search.py`, `order_search.py` and
    the permuter only test hypotheses when the variants compile. The two search tools
    refuse a seed that does not compile, stop after 64 ERRORs in a row and warn above
@@ -240,7 +242,7 @@ Do not project whole-project completion from one easy-function run.
 | `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, writes the unit only on a strict MATCH |
 | `hillclimb.py try` | ledger of recorded candidates; configurable `--patience`, `--max-attempts` and verifier `--timeout` ([defaults](code_matching_workflow.md#measure-and-iterate)) |
 | `variant_search.py NAME src/UNIT.c -j 8` | searches source rewrites; over `--limit` it tries the fewest-change variants first; refuses a seed that does not compile and stops after `--max-error-run` (64) ERRORs in a row |
-| `order_search.py` | exhaustive statement-order search defaults to `--limit 5040` (7!); `--climb` handles larger spaces with a configurable `--budget` (default 2000 scored variants); same seed check and `--max-error-run` |
+| `order_search.py` | `--auto` marks plain-statement runs itself and writes only the definition; exhaustive statement-order search defaults to `--limit 5040` (7!); `--climb` handles larger spaces with a configurable `--budget` (default 2000 scored variants); same seed check and `--max-error-run` |
 | Permuter | searches candidate rewrites; `/* permute: begin */` focuses mutations. Choose runtime and parallelism for the target and available resources |
 
 The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has

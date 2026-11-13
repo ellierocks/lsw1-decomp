@@ -259,6 +259,18 @@ variants (default 7! = 5040, about two minutes with `-j 8`). `--dry-run` prints 
 count. The best variant goes to `work/order_search/NAME/best.c`; port it into the
 unit source and accept it with `verify_fn.py --build --strict-symbols`.
 
+Without markers, `--auto` takes every run of two or more plain statements
+(assignments and calls on their own lines, at any brace depth; not declarations,
+control flow or labels) in the definition as a block. When the runs together exceed
+`--limit`, it keeps the run nearest the seed's first score difference, a rough
+source-to-instruction mapping, and `--climb` searches them all. With `--body` or
+`--auto`, `best.c` holds only the definition (plus the body file's own externs), so
+`score_fn.py NAME src/UNIT.c --body best.c --apply` applies it:
+
+```sh
+python3 tools/order_search.py NAME src/UNIT.c --body work/NAME/try.c --auto -j 8
+```
+
 Blocks over 7 statements use `--climb` instead (`--const-locals` is exhaustive-only):
 
 ```sh
