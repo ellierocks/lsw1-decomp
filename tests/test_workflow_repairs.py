@@ -54,6 +54,24 @@ class DraftRepairs(unittest.TestCase):
         self.assertIn('extern void (*cb)(void);', out)
         self.assertIn('return 2;', out)
 
+    def test_splice_appends_after_parked_disabled_draft(self):
+        source = ('int before(void) { return 1; }\n#if 0\n'
+                  'int target(void) { return 2; }\n#endif\n')
+        out = score_fn.splice_body(source, 'target', 'int target(void) { return 3; }')
+        self.assertIn('#if 0\nint target(void) { return 2; }\n#endif', out)
+        self.assertIn('#endif\n\nint target(void) { return 3; }', out)
+
+    def test_splice_skips_disabled_elif_and_compiles_active_replacement(self):
+        source = ('#if 0\n#elif 0\nint target(void) { return 2; }\n'
+                  '#else\nint target(void) { return 1; }\n#endif\n')
+        out = score_fn.splice_body(source, 'target', 'int target(void) { return 3; }')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / 'test.c').write_text(out + '\nint main(void) { return target() != 3; }\n')
+            subprocess.run(['cc', str(path / 'test.c'), '-o', str(path / 'test')],
+                           check=True, capture_output=True)
+            self.assertEqual(subprocess.run([str(path / 'test')]).returncode, 0)
+
 
 class GitTransport(unittest.TestCase):
     def invoke(self, results):

@@ -339,9 +339,34 @@ def splice_body(text: str, name: str, body: str) -> str:
     from variant_search import VariantError, find_function
     body = body.strip("\n")
     text = function_extern(text, name, body)
+    # Keep offsets intact while hiding definitions in literal disabled branches.
+    # A parked draft under #if 0 must not swallow the replacement candidate.
+    lines = text.splitlines(keepends=True)
+    visible = []
+    branches: list[tuple[bool, bool]] = []
+    for line in lines:
+        directive = re.match(r"^[ \t]*#\s*(if|ifdef|ifndef|else|elif|endif)\b(.*)", line)
+        if directive:
+            op, value = directive.groups()
+            if op == "if":
+                branches.append((value.strip() == "0", value.strip() == "1"))
+            elif op in ("ifdef", "ifndef"):
+                branches.append((False, False))
+            elif op in ("else", "elif") and branches:
+                _, taken = branches[-1]
+                condition = value.strip()
+                disabled = taken or (op == "elif" and condition == "0")
+                branches[-1] = (disabled, taken or op == "else" or condition == "1")
+            elif op == "endif" and branches:
+                branches.pop()
+        visible.append("".join("\n" if c == "\n" else " " for c in line)
+                       if any(disabled for disabled, _ in branches) else line)
+    masked = "".join(visible)
     try:
-        fn = find_function(text, name)
-        context = fn.before + fn.tail[1:]
+        fn = find_function(masked, name)
+        start = len(fn.before)
+        end = len(masked) - len(fn.tail)
+        context = text[:start] + text[end + 1:]
     except VariantError:
         fn, context = None, text
     body, dropped = drop_redeclared(context, body)
@@ -349,7 +374,7 @@ def splice_body(text: str, name: str, body: str) -> str:
         print(f"note: dropped body declarations SOURCE already has: {', '.join(dropped)}", file=sys.stderr)
     body = body.strip("\n")
     if fn is not None:
-        return fn.before + body + fn.tail[1:]
+        return text[:start] + body + text[end + 1:]
     return text.rstrip("\n") + "\n\n" + body + "\n"
 
 
