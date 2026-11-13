@@ -10,10 +10,13 @@ Globals the target addresses with `@ha`/`@l` instead of `@sda21` are declared as
 and read as `sym[0]`: ProDG puts scalar externs of 8 bytes or less in small data, so the
 scalar declaration m2c writes can never match those accesses.
 
-The draft goes to `work/NAME/draft_m2c.c` (ignored by git). m2c runs from the pinned checkout
+The draft goes to `work/NAME/draft_m2c.c` (ignored by git). m2c reads the function's unit
+source, preprocessed, as `--context` (as `sweep.py` does), so declared prototypes, parameter
+types and struct fields carry into the draft; `draft_m2c_plain.c` is the context-free draft for
+comparison, and `--no-context` makes it the only one. m2c runs from the pinned checkout
 (`tools/fetch_m2c.sh`, default ~/.cache/lsw1/m2c; `M2C` overrides it) with the PPC GCC target.
-Its output is a starting point only and usually does not compile until typed: parameter types are `void*`, locals are `var_*`/`temp_*`, and
-struct accesses are raw offsets. Replace them with the shared headers, then iterate with
+Its output is a starting point only: locals are `var_*`/`temp_*`, and anything the unit does
+not declare stays `void *` with raw offsets. Type those from the target assembly, then iterate with
 `score_fn.py` and `variant_search.py`. Nothing here counts as a match until
 `verify_fn.py --build --strict-symbols` passes on the unit source.
 
@@ -41,6 +44,7 @@ import ghidra_decompile  # noqa: E402
 import m2c_helpers as repairs
 import pack_asm  # noqa: E402
 import pc_gc_body  # noqa: E402
+import verify_fn as vf  # noqa: E402
 TARGET = "ppc-gcc-c"
 
 
@@ -111,6 +115,45 @@ def clean(text: str, name: str, asm: str = "") -> str:
     return f'#include "types.h"\n\n{text.strip()}\n'
 
 
+CPP = ["cpp", "-P", "-nostdinc", "-Isrc", "-Iinclude", "-Ibuild/GL5E4F/include", "-D__attribute__(x)="]
+
+
+def unit_source(name: str) -> Path | None:
+    """The C source of NAME's split unit, or None."""
+    m = re.search(rf"^{re.escape(name)} = \.text:0x([0-9A-Fa-f]+);", vf.SYMBOLS.read_text(), re.M) \
+        if vf.SYMBOLS.is_file() else None
+    unit = vf.lookup_unit(int(m.group(1), 16)) if m else None
+    source = vf.source_for_unit(unit) if unit else None
+    return source if source is not None and source.is_file() else None
+
+
+def unit_context(name: str, task: Path) -> Path | None:
+    """NAME's unit source preprocessed for m2c's `--context` (as sweep.py does), or None.
+
+    Without it m2c guesses every type: float returns and parameters came back as `void *`, struct
+    fields as raw offsets, and function-pointer callees as unparseable declarations."""
+    source = unit_source(name)
+    if source is None:
+        return None
+    try:
+        r = subprocess.run(CPP + [str(source.relative_to(ROOT))], cwd=ROOT, capture_output=True, text=True)
+    except OSError:
+        return None
+    if r.returncode:
+        return None
+    out = task / "m2c_context.i"
+    out.write_text(r.stdout)
+    return out
+
+
+def run_m2c(prepared: Path, context: Path | None) -> str:
+    cmd = [sys.executable, str(m2c_dir() / "m2c.py"), "-t", TARGET, "--valid-syntax"]
+    if context is not None:
+        cmd += ["--context", str(context)]
+    r = subprocess.run(cmd + [str(prepared.resolve())], capture_output=True, text=True)
+    return "" if r.returncode or not r.stdout.strip() else r.stdout
+
+
 def compact_asm(asm: str) -> str:
     """Assembly without the address/offset/bytes comment column."""
     return "\n".join(re.sub(r"^/\* [0-9A-F]+ [0-9A-F]+\s+(?:[0-9A-F]{2} ){4}\*/\s*", "\t", ln)
@@ -151,18 +194,25 @@ def draft_one(name: str, args) -> int:
         return 2
     prepared = task / "asm_m2c.s"
     prepared.write_text(repairs.prepare_asm(asm.read_text()))
-    r = subprocess.run([sys.executable, str(m2c / "m2c.py"), "-t", TARGET,
-                        "--valid-syntax", str(prepared.resolve())],
-                       capture_output=True, text=True)
-    if r.returncode or not r.stdout.strip():
-        print(f"error: m2c failed for {name}\n{(r.stdout + r.stderr).strip()[-800:]}", file=sys.stderr)
+    asm_text = asm.read_text()
+    context = None if args.no_context else unit_context(name, task)
+    typed = run_m2c(prepared, context) if context else ""
+    plain = run_m2c(prepared, None)
+    if not typed and not plain:
+        print(f"error: m2c failed for {name}", file=sys.stderr)
         return 2
     out = task / "draft_m2c.c"
-    asm_text = asm.read_text()
-    out.write_text(clean(repairs.type_derefs(repairs.expand_macros(
-        repairs.declare_unset(r.stdout, name))), name, asm_text))
-    print(f"wrote {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
+    for text, path in ((typed or plain, out), (plain if typed else "", task / "draft_m2c_plain.c")):
+        if text:
+            path.write_text(clean(repairs.type_derefs(repairs.expand_macros(
+                repairs.declare_unset(text, name))), name, asm_text))
+            print(f"wrote {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}"
+                  + (" (typed from the unit source)" if path == out and typed else ""))
+        elif path.exists():
+            path.unlink()
     ghidra_out = task / "ghidra.c"
+    if not args.no_ghidra and (args.ghidra or not ghidra_out.is_file()):
+        ghidra_decompile.auto_setup()
     want_ghidra = not args.no_ghidra and (args.ghidra or (not ghidra_out.is_file() and ghidra_decompile.project_ready()))
     if want_ghidra:
         g = subprocess.run([sys.executable, str(ROOT / "tools" / "ghidra_decompile.py"), "decompile", name,
@@ -179,12 +229,14 @@ def draft_one(name: str, args) -> int:
     if args.print:
         print(f"--- {name} draft ---\n{out.read_text().strip()}\n--- {name} asm ---\n{compact_asm(asm_text)}")
     if args.score:
-        s = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), name, str(out),
-                            "-I", "src"], cwd=ROOT, capture_output=True, text=True)
+        source = unit_source(name)
+        cmd = [name, str(source), "--body", str(out)] if source else [name, str(out), "-I", "src"]
+        s = subprocess.run([sys.executable, str(ROOT / "tools" / "score_fn.py"), *cmd],
+                           cwd=ROOT, capture_output=True, text=True)
         first = (s.stdout or s.stderr).strip().splitlines()
         if s.returncode == 2:
-            print("draft does not compile yet (expected: m2c leaves `void *` members); give the "
-                  "arguments real struct types, then run score_fn.py")
+            print("draft does not compile yet; give the remaining `void *` arguments and members real "
+                  "types, then run score_fn.py")
         else:
             print(first[0] if first else "no output")
     return 0
@@ -200,6 +252,9 @@ def main(argv=None) -> int:
     ap.add_argument("--no-ghidra", action="store_true", help="skip the Ghidra reference")
     ap.add_argument("--print", action="store_true",
                     help="print each draft and its assembly (without the byte column)")
+    ap.add_argument("--no-context", action="store_true",
+                    help="run m2c without the unit source as --context (draft_m2c_plain.c is always "
+                         "written next to the typed draft)")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "work")
     args = ap.parse_args(argv)
     return max(draft_one(name, args) for name in args.names)

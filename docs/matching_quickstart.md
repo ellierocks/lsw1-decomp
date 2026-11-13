@@ -86,13 +86,14 @@ against GC, and record what transfers or the no-hit/unavailable limit. Check
 
 For a first draft, `python3 tools/draft_fn.py NAME` writes `work/NAME/draft_m2c.c` from the
 pinned [m2c](https://github.com/matt-kempster/m2c) (`tools/fetch_m2c.sh`, run by the
-bootstrap). It does not compile until the arguments have real struct types; use it for the
-control flow and the offsets.
+bootstrap). m2c reads the unit source as context, so declared prototypes, float returns and
+struct fields carry over, and most drafts compile as written; `draft_m2c_plain.c` is the
+context-free draft. Use the draft for the control flow and the types, not as matching source.
 
 It also writes `work/NAME/ghidra.c`, which shows named small-data globals, loops and
 switches that m2c leaves raw. Read it for loops, switches and nested conditions; skip it
-for straight-line leaves. The bootstrap creates the Ghidra project; without
-it, run `tools/ghidra_decompile.py setup` once. For "who else reads or writes this global", run
+for straight-line leaves. The bootstrap creates the Ghidra project. In a checkout without
+one, the first draft copies the shared seed; with no seed, run `tools/ghidra_decompile.py setup` once. For "who else reads or writes this global", run
 `tools/ghidra_decompile.py xrefs NAME`; REA covers callers, strings and tables interactively
 ([Ghidra and REA](research.md#ghidra-and-rea)).
 
