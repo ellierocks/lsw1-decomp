@@ -54,6 +54,7 @@ median of 48 distinct candidates per park.
 | 15 | [Strict-only functions were counted as plan work](#15-strict-only-functions-were-counted-as-plan-work) | functions left (targeting) | fixed: plan functions left 1,306 → 1,147 |
 | 16 | [Children got single functions, not items](#16-children-got-single-functions-not-items) | functions per child | fixed: `plan.py --batch N` and brief rule 6 |
 | 17 | [Plateaued functions kept being scored](#17-plateaued-functions-kept-being-scored) | matched bytes per child-hour | fixed: `score_fn.py` prints a PLATEAU notice |
+| 18 | [Rodata float labels hide literal pools](#18-rodata-float-labels-hide-literal-pools) | exact-instruction gain (sweep) | fixed: `float_literals` repair; nuportal sweep +9 exact over 5 functions |
 
 ## 1. Stale task packs change scores
 
@@ -420,3 +421,25 @@ hypothesis class, or move on.
 
 Before → after: no signal → a notice at the plateau. The replay shows 13.6 minutes of
 no-gain work across three functions, out of about 77 child-minutes in the cohort.
+
+## 18. Rodata float labels hide literal pools
+
+ProDG writes each function's float literals into its own `.rodata` pool, and m2c drafts
+them as `extern f32 lbl_X[];` loads. The label and the literal load the same value, but
+GCC schedules literal-pool loads differently: the `lis` order, and whether a constant
+stays in a register across calls. In the nuportal sprint (s2-nu3d, 2026-11-13) three
+hand matches needed only this change once their structure was right: `buildFrustrum`
+(704 B), `drawViewFrustrum` (332 B) and `NuAnimCurveEval` (172 B), which had plateaued
+at 145 candidates with labels.
+
+`tools/sweep_repairs/literals.py` adds a final-stage `float_literals` repair. It reads
+every single-`.float` 4-byte `.rodata` object from the retail assembly and rewrites a
+label as the shortest C literal that rounds to the same bits, but only when every use is
+`label[0]`. It produces the all-literal draft first, then each label alone. Near
+`FLT_MAX`, dtk prints `3.4028235e38`, which is out of range for `struct.pack` and makes old
+GCC warn, so the repair writes the truncated `3.4028234e+38f` instead.
+
+Before → after (same unit source, nuportal sweep, exact instructions):
+`NuAnimCurveEval` 33 → 36, `NuAnimCurveSetApplyBlendToJoint2` 256 → 258,
+`NuAnimData2Fixup` 86 → 89, `NuAnimData2Relocate` 98 → 99 and `drawViewFrustrum`
+44 → 45. No function scored lower. Tests: `tests/test_sweep_literals.py`.
