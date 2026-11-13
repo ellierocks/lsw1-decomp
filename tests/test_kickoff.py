@@ -145,13 +145,21 @@ class RecommendTests(unittest.TestCase):
         self.assertIn("void *", alt)
         self.assertIsNone(ko.recommend(self.fresh, near, self.unit, {"cells": ["v"], "bytes80": 300}, {})[2])
 
+    def test_nuanim_rechecks_do_not_inflate_lane_yield(self):
+        legacy = {"lane": "plan", "verified": 4, "verified_bytes": 2136,
+                  "active_seconds": 674, "code_bytes_delta": 0}
+        self.assertEqual(ko.lane_rates([legacy]), {})
+        current = dict(legacy, new_verified=0, new_verified_bytes=0)
+        self.assertEqual(ko.lane_rates([current]), {"plan": 0.0})
+        self.assertIn("0 new", ko.yield_lines([current])[0])
+
     def test_rates_need_verified_bytes_and_old_records_stay_readable(self):
         old = {"unit": "src/u.c", "verified": 29, "active_seconds": 3600, "code_bytes_delta": 3680}
-        new = {"lane": "near-misses", "verified": 4, "verified_bytes": 800, "active_seconds": 1800}
+        new = {"lane": "near-misses", "verified": 4, "verified_bytes": 800, "new_verified": 4, "new_verified_bytes": 800, "active_seconds": 1800}
         self.assertEqual(ko.lane_rates([old, new]), {"near-misses": 1600.0})
         lines = ko.yield_lines([old, new])
         self.assertIn("unit src/u.c", lines[0])
-        self.assertIn("verified bytes not recorded", lines[0])
+        self.assertIn("new matches unknown", lines[0])
         self.assertIn("800 B = 1,600 B/h", lines[1])
         self.assertEqual(ko.yield_lines([]), ["no measurement (no finished bench runs in ~/.cache/lsw1/bench)"])
 
