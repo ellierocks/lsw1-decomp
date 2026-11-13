@@ -50,6 +50,11 @@ code compiled with ProDG GCC 2.95, plus HVQM4, the debugger driver and libsn.
   average function left is about 680 bytes against about 150 in those sprints, so expect
   fewer functions per hour. Every item run is benched (`kickoff.py --start --item`), and
   `plan.py` reports bytes per active hour per stage so the order can be corrected.
+  How a run works is measured too: [workflow metrics](workflow_metrics.md) track matched
+  bytes per child-hour and its causes (compile-error rate, distinct hypotheses before a
+  park, park recovery). Children follow the
+  [matching brief](sprint_workflow.md#matching-brief), which raised matched bytes per
+  child-hour 39× on 2026-11-12.
 
 ## Stages
 

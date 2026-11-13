@@ -110,7 +110,8 @@ the binary; donor projects supply evidence.
 | [Strategy](docs/strategy.md) | The staged plan to 100% (`config/plan.toml`); earlier phases in `docs/history/` |
 | [Sprint workflow](docs/sprint_workflow.md) | Matching tools, workflow improvements, queue accounting and evidence |
 | [Phase 3 batch history](docs/phase3_batches.md) | Results and failure modes from the earlier multi-unit batches |
-| [Workflow gaps](docs/workflow_gaps.md) | Ranked tooling and process gaps with evidence and state |
+| [Workflow gaps](docs/workflow_gaps.md) | Tooling and process gaps ranked by workflow metric, with evidence and state |
+| [Workflow metrics](docs/workflow_metrics.md) | Agent speed and quality metrics, baseline and before → after comparisons |
 | [Sweep blockers](docs/sweep_blockers.md) | Generated ranking of what blocks the automatic sweep, by functions and bytes |
 | [Matching quickstart](docs/matching_quickstart.md) | Bootstrap, pick a target, score, record and verify in six steps |
 | [C matching](docs/code_matching_workflow.md) | Toolchain, bounded experiments, strict verification, promotion and link blockers |

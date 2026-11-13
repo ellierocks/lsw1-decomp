@@ -18,6 +18,18 @@ class SprintFinishTests(unittest.TestCase):
         self.assertIsNone(sprint_finish.new_verified_names({}, {"existing": True}))
         self.assertIsNone(sprint_finish.new_verified_names(baseline, {"later_added": True}))
 
+    def test_parks_need_25_distinct_compiled_candidates(self):
+        def scores(name, hashes):
+            return [{"kind": "score", "t": i, "name": name, "verdict": "MISMATCH", "exact": 1, "target": 9,
+                     "codegen": h} for i, h in enumerate(hashes)]
+        runs = {"r1": scores("deep", [f"h{i}" for i in range(20)]) + scores("shallow", ["a", "a", "b"]),
+                "r2": scores("deep", [f"h{i}" for i in range(15, 30)]),
+                "r3": [{"kind": "score", "t": 1, "name": "old", "verdict": "MISMATCH", "exact": 1, "target": 9}]}
+        evidence = sprint_finish.park_evidence(["deep", "shallow", "old"], runs)
+        self.assertEqual(evidence, {"deep": 30, "shallow": 2, "old": None})
+        self.assertEqual(sprint_finish.short_parks(evidence), ["shallow (2)"])
+        self.assertEqual(sprint_finish.park_evidence([], runs), {})
+
     def test_pr52_omitted_candidates_are_rejected(self):
         matched = ['fn_8000556C', 'fn_800034A0', 'fn_800055EC', 'NuFileBeginBlkRead']
         queue = matched + ['NuDatFileOpenSize', 'NuFileSeek', 'NuDatFileSeek',

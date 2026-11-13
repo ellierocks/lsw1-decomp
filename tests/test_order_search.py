@@ -123,10 +123,40 @@ class SearchTests(unittest.TestCase):
 
     def test_compile_errors_are_counted_not_scored(self):
         t = os_.parse(SOURCE)
-        res = os_.search(t, lambda text, i: {"verdict": "ERROR", "error": "x"},
+        res = os_.search(t, lambda text, i: report("MISMATCH", 1) if i == 0 else
+                         {"verdict": "ERROR", "error": "c.c:9:3: error: 'q' undeclared"},
                          const_locals=False, jobs=1, limit=100)
-        self.assertEqual(res["errors"], 24)
-        self.assertIsNone(res["best"])
+        self.assertEqual((res["tried"], res["errors"]), (24, 23))
+        self.assertEqual(res["best"]["orders"], ((0, 1, 2, 3),))
+        self.assertIn("23/24 variants did not compile", res["warning"])
+        self.assertIn("(23x): error: 'q' undeclared", res["warning"])
+
+    def test_uncompilable_seed_is_refused(self):
+        # nuportal 2026-11-12: 684 of 724 NuAnimCurveEval scores were ERROR (workflow gap 11).
+        t = os_.parse(SOURCE)
+        calls = []
+        with self.assertRaisesRegex(os_.SearchError, "does not compile.*error: bad type"):
+            os_.search(t, lambda text, i: calls.append(i) or {"verdict": "ERROR", "error": "/tmp/x/c.c:3:5: error: bad type"},
+                       const_locals=False, jobs=4, limit=100)
+        self.assertEqual(calls, [0])
+        with self.assertRaisesRegex(os_.SearchError, "does not compile"):
+            os_.climb(t, lambda text, i: {"verdict": "ERROR", "error": "e"}, jobs=1, budget=10)
+
+    def test_a_run_of_errors_stops_the_search(self):
+        t = os_.parse(SOURCE)
+        scorer = lambda text, i: report("MISMATCH", 1) if i == 0 else {"verdict": "ERROR", "error": "e"}
+        res = os_.search(t, scorer, const_locals=False, jobs=1, limit=100, max_error_run=5)
+        self.assertEqual(res["stopped"], "5 compile errors in a row")
+        self.assertLess(res["tried"], 24)
+        res = os_.search(t, scorer, const_locals=False, jobs=1, limit=100, max_error_run=0)
+        self.assertIsNone(res["stopped"])
+        res = os_.climb(t, scorer, jobs=1, budget=100, max_error_run=5)
+        self.assertEqual(res["stopped"], "5 compile errors in a row")
+
+    def test_diagnostic_strips_location(self):
+        self.assertEqual(os_.diagnostic({"error": "In function f:\n/t/c.c:12: error: parse error before `}'\n"}),
+                         "error: parse error before `}'")
+        self.assertEqual(os_.diagnostic({}), "")
 
     def test_refuses_search_over_limit(self):
         t = os_.parse(SOURCE)
