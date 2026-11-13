@@ -136,7 +136,8 @@ struct numtl_s {
     u8 unknownC2;
     u8 unknownC3[4];
     u8 unknownC7;
-    u8 unknownC8[8];
+    u8 unknownC8[4];
+    void* unknownCC; // GC: fn_8002963C stores the display scene's per-material entry here
     f32 unknownD0[3];
     u8 unknownDC[0x14];
     f32 unknownF0;
@@ -276,14 +277,15 @@ struct NUNODE_s {
 struct nuinstance_s {
     struct numtx_s mtx;
     s16 objid;
-    u8 unknown42[2];
+    s16 unknown42; // GC: lha in fn_8002933C, compared against the camera LOD level
     u32 visible : 1;
     u32 onScreen : 1;
     u32 unknownFlag2 : 1;
     u32 noVisiTest : 1;
     u32 unknownFlags4 : 28;
     struct numtx_s* animMtx;
-    u8 unknown4C[4];
+    s16 unknown4C; // GC: lha in fn_8002933C, converted to float
+    u8 unknown4E[2];
 };
 
 struct nuspecial_s {
@@ -305,19 +307,99 @@ struct nudisplayspecial_s {
     u8 unknown9C[4];
     struct nuvec_s center;
     f32 radius;
-    u8 unknownB0[4];
+    void* unknownB0; // GC: self-relative in the file, fixed up by fn_8002963C
     char* name;
     u32 flags;
-    u8 unknownBC[4];
+    void* unknownBC; // GC: self-relative in the file, fixed up by fn_8002963C
     s32 instanceIx;
     struct numtx_s* animMtx;
     u8 unknownC8[8];
 };
 
+struct nugscnbounds_s {
+    s32 numa;
+    s32 numb;
+    void* a; // GC: 0x10-byte entries
+    void* b; // GC: 0x20-byte entries
+};
+
+// GC: draw command in nudisplayscene_s.displist; the list ends at type 0x8E.
+struct nudispcmd_s {
+    u8 type;
+    u8 unknown01[3];
+    void* data; // file: offset from the command itself
+};
+
+struct nudispentry0C_s {
+    u8 unknown00[4];
+    void* unknown04;
+    void* unknown08;
+};
+
+struct nudispentry24_s {
+    u8 unknown00[4];
+    void* unknown04;
+    u8 unknown08[8];
+    void* unknown10;
+    u8 unknown14[8];
+    void* unknown1C;
+    u8 unknown20[4];
+};
+
+// GC: per-material entry from nudisplayscene_s.mtlentries; fn_8002963C
+// fixes the pointers up and stores each in numtl_s.unknownCC.
+struct nudispmtl_s {
+    void* unknown00;
+    u8 unknown04[4];
+    void* unknown08;
+    void* unknown0C;
+    void* unknown10;
+    void* unknown14; // copy of unknown10 after the fixup
+    void* unknown18;
+};
+
+struct nudispsub7C_s {
+    u8 unknown00[4];
+    void* unknown04;
+    u8 unknown08[8];
+    void* unknown10;
+};
+
+// GC: layout from fn_8002963C, which turns every self-relative pointer
+// (stored as an offset from the field itself) into an absolute one.
 struct nudisplayscene_s {
-    u8 unknown00[0x6C];
+    void* unknown00;
+    u8 unknown04[4];
+    struct nudispcmd_s* displist;
+    u8 unknown0C[4];
+    s32 num0C;
+    struct nudispentry0C_s* entries0C;
+    void* unknown18;
+    void* unknown1C;
+    void* unknown20;
+    void* unknown24;
+    void* unknown28;
+    void* unknown2C;
+    void* unknown30;
+    void* unknown34;
+    struct nugscnbounds_s bounds; // 0x38: copy of the scene's bounds
+    void* unknown48;
+    u32 nummtl;
+    struct numtl_s** mtls;
+    struct nudispmtl_s** mtlentries;
+    void* unknown58;
+    void* unknown5C;
+    s32 num24;
+    struct nudispentry24_s* entries24;
+    u8 unknown68[4];
     s32 numSpecials;
     struct nudisplayspecial_s* specials;
+    u8 unknown74[4];
+    struct nugscn_s* scene; // GC: back-pointer set by fn_80029EC8
+    struct nudispsub7C_s* unknown7C;
+    void* unknown80;
+    u8 unknown84[4];
+    void* unknown88; // fixed up only when lbl_8040AD98 > 1
 };
 
 struct nuhspecial_s {
@@ -344,6 +426,38 @@ struct nuscene_s {
     struct nugscn_s* gscene;
 };
 
+// GC: portal set layout from fn_80028B88, which reads each table and turns the
+// stored indices into pointers. nuqfnt.c keeps its own view of the same data.
+struct nuportal_s {
+    struct nuvec4_s plane;
+    struct nuvec_s* vertices; // file: index into nuportalinfo_s.verts
+    u8 unknown14[0xC];
+};
+
+struct nuroom_s {
+    s16* unknown00;        // file: index into nuportalinfo_s.indices
+    struct nuvec4_s* planes; // file: index into nuportalinfo_s.planes
+    s16* portalIndices;    // file: index into nuportalinfo_s.portalix
+    u8 unknown0C[0xC];
+};
+
+struct nuportalinfo_s {
+    s32 numportals;
+    struct nuportal_s* portals;
+    s32 numrooms;
+    struct nuroom_s* rooms;
+    s32 numindices;
+    s16* indices;
+    s32 numplanes;
+    struct nuvec4_s* planes;
+    s32 numverts;
+    struct nuvec_s* verts;
+    s32 numportalix;
+    s16* portalix;
+    u8 unknown30[0x48];
+    s32 depth; // GC: fn_80028B88 sets 0x100
+};
+
 // GC: tids/numtid/mtls/nummtl/texanims confirmed by auto/nu3d/ngc/nugscn
 // (material load and scene free); a scene tid entry is a word, not the
 // donor's s16.
@@ -358,10 +472,32 @@ struct nugscn_s {
     struct nuinstance_s* instances;
     s32 numSpecial;
     struct nuspecial_s* specials;
-    u8 unknown28[0x58];
-    void* texanims;
-    u8 unknown84[0x11C];
+    u8 unknown28[4];
+    s32 numvtxsets; // GC: fn_80028DAC
+    struct nuvtxset_s* vtxsets; // GC: 0xC-byte entries built by fn_80028DAC
+    char* strings; // GC: fn_80028444 adds it to the texanim name offsets
+    u8 unknown38[0xC];
+    s32 numinstanim; // GC: 0x44..0x4C set by fn_800286B4
+    struct nuinstanim_s* instanims;
+    struct numtx_s* instanim_mtx;
+    struct nuanimdata_s** instanim_data; // GC: fn_80029050; NULL skips instance animation
+    u8 unknown54[0x28];
+    s32 numtexanims; // GC: fn_80028444
+    struct nutexanim_s* texanims;
+    u8 unknown84[4];
+    struct nuportalinfo_s portals; // GC: read by fn_80028B88 ("Reading Portal set...")
+    u8 unknown104[0x7C];
+    struct nugscnbounds_s bounds; // GC: 0x180, filled by fn_80029EC8 ("Reading Bounds set...")
+    u8 unknown190[8];
+    s32 numtex; // GC: texture headers loaded by NuMtlRender (0x800294C8)
+    struct nughgtex_s* texs;
     struct nudisplayscene_s* displayScene;
+    s32 numnamed; // GC: 0x1A4..0x1AC filled by fn_80029EC8 ('HNIB'/'0NIB' blocks)
+    char** names;
+    void** named;
+    u8 unknown1B0[0x18];
+    struct nuportalinfo_s* portalinfo; // GC: fn_80028B88 points it at portals
+    u8 unknown1CC[0x10]; // GC: fn_80029EC8 allocates and clears 0x1DC bytes
 };
 
 // ----- Hierarchical GO -----
