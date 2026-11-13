@@ -424,12 +424,14 @@ s32 fn_800274BC(void) {
 }
 
 s32 NuHGobjEval(s32, s32, s32, s32 *);
-void fn_80024F68(s32, s32, s32, s32, s32 *, s32, s32);
+struct nurndr_hgobj_s;
+struct nurndr_hgmtx_s;
+s32 fn_80024F68(struct nurndr_hgobj_s *hg, struct nurndr_hgmtx_s *mtx, s32 n, s16 *layers, struct nurndr_hgmtx_s *mtxs, s32 *arg5, s32 arg6);
 extern s32 lbl_802158A4[];
 
 void fn_80027404(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     NuHGobjEval(arg0, 0, 0, lbl_802158A4);
-    fn_80024F68(arg0, arg1, arg2, arg3, lbl_802158A4, 0, 0);
+    fn_80024F68((struct nurndr_hgobj_s *)arg0, (struct nurndr_hgmtx_s *)arg1, arg2, (s16 *)arg3, (struct nurndr_hgmtx_s *)lbl_802158A4, 0, 0);
 }
 
 void *memset(void *, s32, u32);
@@ -1066,4 +1068,325 @@ s32 fn_80025FA0(struct nurndr_vtxin_s *arg0, void *arg1, struct nurndr_mtx_s *ar
     *(s32 *)(pass->dl + 4) = desc;
     pass->dl += 8;
     return 1;
+}
+
+struct nurndr_hgmtx_s {
+    f32 m[16];
+};
+struct nurndr_hglayer_s {
+    u8 pad00[4];
+    void **specials04;
+    void *gobj08;
+    void **specials0C;
+    void *gobj10;
+};
+struct nurndr_hgjoint_s {
+    s32 unknown00;
+    s32 unknown04;
+    s32 unknown08;
+    u8 unknown0C;
+    u8 unknown0D;
+    u8 unknown0E;
+    u8 joint;
+};
+struct nurndr_hgobj_s {
+    u8 pad00[0x1c];
+    void *joints1C;
+    u8 pad20[4];
+    struct nurndr_hglayer_s *layers;
+    u8 pad28[0x14];
+    struct nurndr_hgjoint_s *points;
+    u8 pad40[8];
+    u8 bounds48[0xc];
+    u8 bounds54[0x28];
+    u8 numjoints;
+    u8 pad7D;
+    u8 numlayers;
+    u8 pad7F[2];
+    u8 nopoints;
+    u8 pad82[0x12];
+    s32 numpoints;
+};
+struct nurndr_hgpoint_s {
+    struct nurndr_hgmtx_s mtx;
+    s32 unknown40;
+    s32 unknown44;
+    s32 unknown48;
+    struct nurndr_v3_s colour;
+    s32 alpha;
+    f32 unknown5C;
+    f32 unknown60;
+    u8 unknown64;
+    u8 unknown65;
+    u8 unknown66;
+    u8 unknown67;
+};
+extern s32 lbl_80407DD4;
+extern f32 lbl_8019150C[];
+extern s32 lbl_80407CD8;
+extern s32 lbl_80407CDC;
+extern u8 lbl_80407CDF;
+extern s32 lbl_80407CE0;
+extern struct nurndr_hgpoint_s lbl_803378CC[];
+s32 fn_80023628(void *, void *, struct nurndr_hgmtx_s *, s32, f32);
+void fn_8000EB44(struct nurndr_hgmtx_s *, struct nurndr_hgmtx_s *, struct nurndr_hgmtx_s *);
+void fn_8000EB64(struct nurndr_hgmtx_s *, void *, struct nurndr_hgmtx_s *, s32);
+s32 NuSpecialFindMultiWC(void *, struct nurndr_hgmtx_s *);
+s32 fn_80013124(void *, struct nurndr_hgmtx_s *, struct nurndr_hgmtx_s *, s32);
+s32 fn_8001AF7C(void);
+s32 fn_8001AF84(void);
+void fn_80030A70(void);
+
+/* NONMATCHING 222/270: point-copy anchor/register allocation; see work/fn_80024F68/status.md. */
+s32 fn_80024F68(struct nurndr_hgobj_s *hg, struct nurndr_hgmtx_s *mtx, s32 n, s16 *layers, struct nurndr_hgmtx_s *mtxs, s32 *arg5, s32 arg6)
+{
+  s32 ret;
+  s32 i;
+  s32 j;
+  s32 l;
+  s32 a;
+  struct nurndr_hgjoint_s *pt;
+  struct nurndr_hgpoint_s *out;
+  struct nurndr_hgmtx_s *buf;
+  u8 new_var;
+  u32 *alloc;
+  struct nurndr_hgmtx_s tmp;
+  ret = 0;
+  if (lbl_80407DD4 == 0)
+  {
+    return 1;
+  }
+  if (fn_80023628(hg->bounds48, hg->bounds54, mtx, 0, lbl_8019150C[0]) == 0)
+  {
+    return 0;
+  }
+  if ((hg->points != ((void *) 0)) && (hg->nopoints == 0))
+  {
+    pt = hg->points;
+    for (i = 0; i < hg->numpoints; i++, pt++)
+    {
+      if ((lbl_80407CE0 <= 0x117) && (lbl_80407CD8 != 0))
+      {
+        fn_8000EB44(&lbl_803378CC[lbl_80407CE0].mtx, &mtxs[pt->joint], mtx);
+        lbl_803378CC[lbl_80407CE0].unknown5C = lbl_80407CD0;
+        lbl_803378CC[lbl_80407CE0].unknown60 = lbl_80407CD4;
+        lbl_803378CC[lbl_80407CE0].colour = lbl_8033EACC;
+        lbl_803378CC[lbl_80407CE0].alpha = ((s32) lbl_8040AD68) >> 24;
+        lbl_803378CC[lbl_80407CE0].unknown40 = pt->unknown00;
+        lbl_803378CC[lbl_80407CE0].unknown44 = pt->unknown04;
+        new_var = pt->unknown0E;
+        if (new_var != 0)
+        {
+          lbl_803378CC[lbl_80407CE0].unknown48 = pt->unknown08;
+        }
+        else
+        {
+          lbl_803378CC[lbl_80407CE0].unknown48 = 0;
+        }
+        lbl_803378CC[lbl_80407CE0].unknown64 = pt->unknown0C;
+        lbl_803378CC[lbl_80407CE0].unknown65 = pt->unknown0D;
+        lbl_803378CC[lbl_80407CE0].unknown67 = lbl_80407CDF;
+        lbl_803378CC[lbl_80407CE0].unknown66 = pt->unknown0E;
+        lbl_80407CE0++;
+        lbl_80407CDC++;
+      }
+    }
+
+  }
+  if ((fn_8001AF7C() == 0) || (fn_8001AF84() == 0))
+  {
+    fn_80030A70();
+  }
+  for (i = 0; i < n; i++)
+  {
+    if (layers != ((void *) 0))
+    {
+      l = layers[i];
+      if ((layers[i] < 0) || (l >= hg->numlayers))
+      {
+        continue;
+      }
+    }
+    else
+    {
+      n = 1;
+      l = 0;
+    }
+    a = (arg5 != ((void *) 0)) ? (arg5[i]) : (0);
+    if ((l < 0) || (l > hg->numlayers))
+    {
+      continue;
+    }
+    if (hg->layers[l].specials04 != ((void *) 0))
+    {
+      for (j = 0; j < hg->numjoints; j++)
+      {
+        if (hg->layers[l].specials04[j] != ((void *) 0))
+        {
+          fn_8000EB44(&tmp, &mtxs[j], mtx);
+          ret |= NuSpecialFindMultiWC(hg->layers[l].specials04[j], &tmp);
+        }
+      }
+
+    }
+    if (hg->layers[l].specials0C != ((void *) 0))
+    {
+      for (j = 0; j < hg->numjoints; j++)
+      {
+        if (hg->layers[l].specials0C[j] != ((void *) 0))
+        {
+          fn_8000EB44(&tmp, &mtxs[j], mtx);
+          ret |= NuSpecialFindMultiWC(hg->layers[l].specials0C[j], &tmp);
+        }
+      }
+
+    }
+    if ((hg->layers[l].gobj08 != ((void *) 0)) || (hg->layers[l].gobj10 != ((void *) 0)))
+    {
+      alloc = lbl_8040ACF0;
+      buf = (struct nurndr_hgmtx_s *) (((((*alloc) + 3) & (~3)) + 0xf) & (~0xf));
+      *alloc = (u32) buf;
+      *alloc = (u32) (buf + hg->numjoints);
+      fn_8000EB64(buf, hg->joints1C, mtxs, hg->numjoints);
+      if (hg->layers[l].gobj08 != ((void *) 0))
+      {
+        ret |= fn_80013124(hg->layers[l].gobj08, buf, mtx, a);
+      }
+      if (hg->layers[l].gobj10 != ((void *) 0))
+      {
+        ret |= fn_80013124(hg->layers[l].gobj10, buf, mtx, a);
+      }
+    }
+  }
+
+  return ret;
+}
+
+extern s32 lbl_8021F9A4[];
+void NuAnimCurveEval(void *);
+void fn_80026710(u32 *alloc, void *arg1, s32 count, void *node, s32 arg3, s32 *total, s32 arg4, void *mtl, f32 f1, f32 f2, f32 f3, f32 f4);
+
+struct nurndr_node_s {
+    u16 count;
+    u8 pad02;
+    u8 type;
+    struct nurndr_node_s *next;
+    struct nurndr_node_s *cur;
+    u32 j;
+};
+
+/* NONMATCHING 206/229: node/cur register swap and the hoisted count load; see work/fn_80026F0C/status.md. */
+void fn_80026F0C(struct nurndr_node_s *node, void *arg1, void *mtl, s32 arg3, s32 arg4, f32 f1, f32 f2, f32 f3, f32 f4, f32 f5) {
+    u32 *alloc;
+    u8 *buf;
+    u8 *desc;
+    s32 done;
+    s32 i;
+    u32 pad;
+    s32 size;
+    s32 tex;
+    s32 total;
+    struct nurndr_node_s *next;
+    struct nurndr_node_s *cur;
+    u32 j;
+    struct nurndr_pass_s *pass;
+    s32 bit;
+
+    if (mtl != NULL) {
+        if (*((u8 *)mtl + 0xbf) != 2 || *((u8 *)mtl + 0xc0) != 1) {
+            *((u8 *)mtl + 0xbf) = 2;
+            *((u8 *)mtl + 0xc0) = 1;
+            fn_80024CD4(mtl);
+        }
+        done = 0;
+        cur = node;
+        NuAnimCurveEval(lbl_8021F9A4);
+        alloc = lbl_8040ACF0;
+        i = 0;
+        buf = (u8 *)((((*alloc + 3) & ~3) + 0x1f) & ~0x1f);
+        *alloc = (u32)(buf + 4);
+        *(f32 *)((u8 *)arg1 + 0x1c) = f1;
+        total = 0;
+        do {
+            next = node->next;
+            switch (node->type >> 4) {
+            case 2:
+                if (next != NULL) {
+                    fn_80026710(alloc, arg1, node->count, cur, arg3, &total, arg4, mtl, f1, f5, f2, f3);
+                    cur = next;
+                    node = cur;
+                }
+                break;
+            case 6:
+                fn_80026710(alloc, arg1, 0x20, cur, arg3, &total, arg4, mtl, f1, f5, f2, f3);
+                done = 1;
+                break;
+            case 0:
+                if (next != NULL) {
+                    fn_80026710(alloc, arg1, 0x20, next, arg3, &total, arg4, mtl, f1, f5, f2, f3);
+                    done = 1;
+                }
+                break;
+            case 1:
+                done = 1;
+                break;
+            case 3:
+            case 4:
+            case 5:
+                break;
+            case 7:
+            default:
+                done = 1;
+                break;
+            }
+            i++;
+            if (i > 0x100) {
+                break;
+            }
+        } while (done == 0);
+        if (total > 0) {
+            buf[0] = 0;
+            buf[1] = 0x80;
+            *(s16 *)(buf + 2) = total;
+            pad = ((*alloc + 0x1f) & ~0x1f) - *alloc;
+            for (j = 0; j < pad; j++) {
+                *(u8 *)(*alloc)++ = 0;
+            }
+            size = *alloc - (u32)buf;
+            DCFlushRange(buf, size);
+            tex = fn_8002C090(alloc, (struct nurndr_mtx_s *)&lbl_801B0F08, mtl, 0);
+            desc = (u8 *)((*alloc + 3) & ~3);
+            *alloc = (u32)(desc + 0x50);
+            desc[0] = 1;
+            *(s32 *)(desc + 4) = 0xe80;
+            *(s32 *)(desc + 0x30) = 0;
+            *(s32 *)(desc + 0x28) = size;
+            *(s32 *)(desc + 0xc) = 0;
+            *(s32 *)(desc + 0x10) = 0;
+            *(s32 *)(desc + 0x14) = 0;
+            *(s32 *)(desc + 0x1c) = 0;
+            *(s32 *)(desc + 0x18) = 0;
+            *(s16 *)(desc + 8) = 0;
+            pass = *(struct nurndr_pass_s **)((u8 *)mtl + 0xcc);
+            *(s16 *)(desc + 0x2c) = 0;
+            *(u8 **)(desc + 0x24) = buf;
+            if (*((u8 *)mtl + 0x111) == 0x97) {
+                buf[1] = 0x90;
+                *(s32 *)(desc + 4) |= 0x40000;
+            }
+            pass->mtl->flags |= 0x40000000;
+            bit = pass->bit;
+            pass->mtl->bits[pass->mtl->sel][bit / 8] |= 1 << (bit % 8);
+            fn_8002D770(pass, lbl_803127F0);
+            fn_8002BF48(pass, 2);
+            pass->dl[0] = 0x8c;
+            pass->dl[1] = 3;
+            *(s32 *)(pass->dl + 4) = tex;
+            pass->dl += 8;
+            pass->dl[0] = 0x82;
+            pass->dl[1] = 3;
+            *(u8 **)(pass->dl + 4) = desc;
+            pass->dl += 8;
+        }
+    }
 }
