@@ -54,6 +54,7 @@ median of 48 distinct candidates per park.
 | 15 | [Strict-only functions were counted as plan work](#15-strict-only-functions-were-counted-as-plan-work) | functions left (targeting) | fixed: plan functions left 1,306 → 1,147 |
 | 16 | [Children got single functions, not items](#16-children-got-single-functions-not-items) | functions per child | fixed: `plan.py --batch N` and brief rule 6 |
 | 17 | [Plateaued functions kept being scored](#17-plateaued-functions-kept-being-scored) | matched bytes per child-hour | fixed: `score_fn.py` prints a PLATEAU notice |
+| 18 | [Body splicing dropped declarations needed before the new use](#18-body-splicing-dropped-declarations-needed-before-the-new-use) | compile-error rate | fixed: controlled evaluator replay 1/1 → 0/1 errors; two regression tests fail before the fix |
 
 ## 1. Stale task packs change scores
 
@@ -420,3 +421,28 @@ hypothesis class, or move on.
 
 Before → after: no signal → a notice at the plateau. The replay shows 13.6 minutes of
 no-gain work across three functions, out of about 77 child-minutes in the cohort.
+
+
+## 18. Body splicing dropped declarations needed before the new use
+
+The nuanim evaluator draft declared `lbl_80190074` and the diagnostic callback
+factory. Both already had correct extern declarations below the source stub, so
+`score_fn.py --body` discarded the draft declarations. The replacement then used
+an undeclared array and called an implicitly declared integer as a function pointer.
+The candidate never reached the strict comparison.
+
+The splicer now forwards the source's actual types before the replacement when
+its body supplies externs declared later. Literal disabled branches are masked
+when deciding which declarations exist, so a parked `#if 0` declaration cannot
+remove an active body extern. Existing visible declarations are retained once.
+
+Before → after: the identical evaluator candidate goes from compile ERROR to
+254/449 instructions, **1/1 → 0/1 compile errors (100% → 0%)**. The controlled
+replay cohorts `nuanim-forward-extern-before` and `nuanim-forward-extern-after`
+in [workflow metrics config](../config/workflow_metrics.toml) use the same unit,
+compiler, model and body; only the splice implementation changes. This measures
+one blocker, not population throughput. The candidate remains unmatched.
+
+The regression tests cover the real array/callback-factory failure with a host
+C89 compile, disabled later declarations and an existing visible declaration.
+Two tests fail against the original scorer and all three pass after the fix.
