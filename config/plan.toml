@@ -220,7 +220,7 @@ reason = "Best 135/149, score [1,17,0,-135,0] (NONMATCHING draft in src/auto/nu3
 [[stage.item]]
 id = "nuhgobj"
 units = ["auto/nu3d/NuHGobjEval", "auto/nu3d/ngc/nuhgobj"]
-note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2, fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Open: NuHGobjEvalAnim2Root (one draft, best 83/251: stack frame 0x10 too large and register allocation differ; kept under #if 0), NuHGobjEvalAnimBlend2Root, NuAnimCurveSetEval, NuAnimCurveSetLoad, fn_8001AF8C, NuGHGReadEx (not attempted)."
+note = "Done: every function in both units strictly matches. ngc/nuhgobj is promoted (0x8002A4B0..0x8002B3A0, 3,824 bytes; NuGHGReadEx needs an array local u8 *buf[1] so stores reload it, integer off + (u32)base add order and a pt = &p->pts[i] local). NuHGobjEval stays NonMatching: all 14 functions match and .text is in retail order, but its .rodata split starts 4 mod 8, so fn_8001AF8C's 8-byte-aligned double lands 4 bytes late (0x23C vs 0x238). Only a split/alignment change could fix that, which is out of scope for matching."
 # at revision 1: 12 functions, 12,580 bytes left
 
 [[stage.item]]
