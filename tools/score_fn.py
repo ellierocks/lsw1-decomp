@@ -300,13 +300,14 @@ def splice_body(text: str, name: str, body: str) -> str:
         if directive:
             op, value = directive.groups()
             if op == "if":
-                branches.append((value.strip() == "0", value.strip() in ("0", "1")))
+                branches.append((value.strip() == "0", value.strip() == "1"))
             elif op in ("ifdef", "ifndef"):
                 branches.append((False, False))
             elif op in ("else", "elif") and branches:
-                disabled, literal = branches[-1]
-                if literal:
-                    branches[-1] = (not disabled, literal)
+                _, taken = branches[-1]
+                condition = value.strip()
+                disabled = taken or (op == "elif" and condition == "0")
+                branches[-1] = (disabled, taken or op == "else" or condition == "1")
             elif op == "endif" and branches:
                 branches.pop()
         visible.append("".join("\n" if c == "\n" else " " for c in line)
