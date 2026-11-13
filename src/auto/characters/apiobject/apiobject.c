@@ -1,4 +1,6 @@
 #include "types.h"
+#include "game/apiobject.h"
+#include "numath/numath.h"
 
 extern s32 lbl_80408D2C;
 extern s32 lbl_80408D30;
@@ -227,7 +229,6 @@ void fn_8008F968(struct object_pool* pool)
     }
 }
 
-#include "game/apiobject.h"
 extern f32 fn_8000C038(void);
 extern f32 NuSinApprox(s32);
 extern f32 NuCosApprox(s32);
@@ -352,4 +353,171 @@ struct aimessage_s *CheckAIMessage(struct aimessagesys_s *sys, char *name, struc
         }
     }
     return result;
+}
+
+struct aiscriptentry_s {
+    s32 id;
+    char name[0x10];
+};
+struct aiscriptlist_s {
+    s32 count;
+    s32 max;
+    struct aiscriptentry_s *entries;
+};
+extern void NuStrCpy(char *dst, char *src);
+extern s32 fn_800633A4(char *name, s32 mode);
+extern s32 lbl_804083F4;
+extern char **lbl_804083FC;
+
+struct aiscriptlist_s *fn_800911D0(s32 *buffer, s32 unused, s32 max, s32 count, char **names, s32 mode)
+{
+    struct aiscriptlist_s *list;
+    s32 i, j;
+
+    list = (struct aiscriptlist_s *)((*buffer + 0xf) & ~0xf);
+    *buffer = (s32)(list + 1);
+    if (list != NULL) {
+    memset(list, 0, sizeof(*list));
+    list->count = count;
+    list->max = max;
+    list->entries = (struct aiscriptentry_s *)((*buffer + 0xf) & ~0xf);
+    *buffer = ((*buffer + 0xf) & ~0xf) + max * sizeof(struct aiscriptentry_s);
+    if (list->entries != NULL) {
+    memset(list->entries, -1, max * sizeof(struct aiscriptentry_s));
+    for (i = 0; i < list->count; i++) {
+        NuStrCpy(list->entries[i].name, names[i]);
+        list->entries[i].id = -1;
+        list->entries[i].id = fn_800633A4(list->entries[i].name, (s8)mode);
+    }
+    for (j = 1; i < list->max && j < lbl_804083F4; j++) {
+        list->entries[i].id = -1;
+        if (lbl_804083FC[j] != NULL) {
+            NuStrCpy(list->entries[i].name, lbl_804083FC[j]);
+            list->entries[i].id = fn_800633A4(list->entries[i].name, (s8)mode);
+            i++;
+        }
+    }
+    for (; i < list->max; i++) list->entries[i].id = -1;
+    return list;
+    }
+    }
+    return NULL;
+}
+
+extern f32 NuFdiv(f32 a, f32 b);
+extern f32 lbl_80408DDC;
+extern f32 lbl_80408DE0;
+
+s32 fn_8009098C(struct NUAPIOBJECT_s *a, struct NUAPIOBJECT_s *b)
+{
+    struct nuvec_s *pa = (struct nuvec_s *)&a->positionX;
+    struct nuvec_s *pb = (struct nuvec_s *)&b->positionX;
+    struct nuvec_s dir;
+    struct nuvec_s va;
+    struct nuvec_s vb;
+    struct nuvec_s avg;
+    s32 touching;
+    f32 f, ra, rb;
+    f32 speedA, speedB, d, k, len;
+
+    if ((a->contactMask & b->identityMask) || (b->contactMask & a->identityMask)) touching = 1;
+    else touching = 0;
+    a->contactMask |= b->identityMask;
+    b->contactMask |= a->identityMask;
+    f = a->mass + b->mass;
+    if (f > 0.0f) {
+        ra = 2.0f * (a->mass / f);
+        rb = 2.0f - ra;
+    } else {
+        ra = rb = 1.0f;
+    }
+    if (!touching) {
+        if (a->flags208 & 0x80) return 2;
+        if (b->flags208 & 0x80) return 2;
+        if (pa->x == pb->x && pa->z == pb->z && a->unk84 == 0.0f && a->unk8C == 0.0f
+            && b->unk84 == 0.0f && b->unk8C == 0.0f) {
+            fn_8009083C(a, b);
+            return 2;
+        }
+        dir.x = pb->x - pa->x;
+        dir.z = pb->z - pa->z;
+        len = NuFsqrt(dir.x * dir.x + dir.z * dir.z);
+        if (len == 0.0f) f = 0.0f;
+        else f = 1.0f / len;
+        dir.x = dir.x * f;
+        dir.z = dir.z * f;
+        speedA = NuFsqrt(a->unk84 * a->unk84 + a->unk8C * a->unk8C);
+        if (speedA == 0.0f) f = 0.0f;
+        else f = 1.0f / speedA;
+        va.x = a->unk84 * f;
+        va.z = a->unk8C * f;
+        speedB = NuFsqrt(b->unk84 * b->unk84 + b->unk8C * b->unk8C);
+        if (speedB == 0.0f) f = 0.0f;
+        else f = 1.0f / speedB;
+        vb.x = b->unk84 * f;
+        vb.z = b->unk8C * f;
+        f = (va.x * dir.x + va.z * dir.z) * speedA;
+        va.x = dir.x * f;
+        va.z = dir.z * f;
+        f = (vb.x * dir.x + vb.z * dir.z) * speedB;
+        vb.x = dir.x * f;
+        vb.z = dir.z * f;
+        if ((a->flags20C & 0x40000000) && !(b->flags20C & 0x40000000)) {
+            b->velocityX += (va.x - vb.x) * ra * 2.0f;
+            b->velocityZ += (va.z - vb.z) * ra * 2.0f;
+        } else if (!(a->flags20C & 0x40000000) && (b->flags20C & 0x40000000)) {
+            a->velocityX += (vb.x - va.x) * rb * 2.0f;
+            a->velocityZ += (vb.z - va.z) * rb * 2.0f;
+        } else {
+            a->velocityX += (vb.x - va.x) * rb;
+            a->velocityZ += (vb.z - va.z) * rb;
+            b->velocityX += (va.x - vb.x) * ra;
+            b->velocityZ += (va.z - vb.z) * ra;
+        }
+        a->responseX = a->velocityX;
+        a->responseZ = a->velocityZ;
+        b->responseX = b->velocityX;
+        b->responseZ = b->velocityZ;
+        return 2;
+    }
+    if (!(a->flags208 & 0x80) && !(b->flags208 & 0x80)) {
+        if (pa->x == pb->x && pa->z == pb->z && a->unk84 == 0.0f && a->unk8C == 0.0f
+            && b->unk84 == 0.0f && b->unk8C == 0.0f) {
+            fn_8009083C(a, b);
+        } else {
+            avg.x = (a->unk84 + b->unk84) * 0.5f;
+            avg.z = (a->unk8C + b->unk8C) * 0.5f;
+            if (pa->x != pb->x || pa->z != pb->z) {
+                dir.x = pb->x - pa->x;
+                dir.z = pb->z - pa->z;
+                f = NuFdiv(1.0f, NuFsqrt(dir.x * dir.x + dir.z * dir.z));
+                dir.x = dir.x * f;
+                dir.z = dir.z * f;
+                f = NuFsqrt(avg.x * avg.x + avg.z * avg.z);
+                if (f < lbl_80408DDC) f = lbl_80408DDC;
+                else if (f > lbl_80408DE0) f = lbl_80408DE0;
+                k = 3.0f;
+                f = f * (k / 2.1f);
+                dir.x = dir.x * f;
+                dir.z = dir.z * f;
+                if ((a->flags20C & 0x40000000) && !(b->flags20C & 0x40000000)) {
+                    b->velocityX = avg.x + (dir.x + dir.x);
+                    b->velocityZ = avg.z + (dir.z + dir.z);
+                } else if (!(a->flags20C & 0x40000000) && (b->flags20C & 0x40000000)) {
+                    a->velocityX = avg.x - (dir.x + dir.x);
+                    a->velocityZ = avg.z - (dir.z + dir.z);
+                } else {
+                    a->velocityX = avg.x - dir.x;
+                    a->velocityZ = avg.z - dir.z;
+                    b->velocityX = avg.x + dir.x;
+                    b->velocityZ = avg.z + dir.z;
+                }
+                a->responseX = a->velocityX;
+                a->responseZ = a->velocityZ;
+                b->responseX = b->velocityX;
+                b->responseZ = b->velocityZ;
+            }
+        }
+    }
+    return 1;
 }
