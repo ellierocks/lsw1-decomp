@@ -473,3 +473,320 @@ void fn_80091FC0(u32 *buf, s32 unused, s32 count0, s32 entry_count, s32 count8, 
     lbl_80408DF0->field20 = field20;
     lbl_80408DF0->field34 = field34;
 }
+
+struct variptr_s { u32 addr; };
+struct charanim_s {
+    char *name;
+    s16 id;
+    u8 pad6[2];
+    u16 flags;
+    u8 padA[0x40 - 0xA];
+};
+struct chardata_s {
+    u8 pad0[4];
+    s32 model_flags;
+    char *dir;
+    char *file;
+    struct charanim_s *animations;
+    u8 pad14[0x48 - 0x14];
+};
+struct charmodel_s {
+    s16 model_id;
+    u8 flag2;
+    u8 flag3;
+    void *hierarchy;
+    struct charanim_s **anim;
+    void **data_b;
+    void **data_c;
+    void *poi[16];
+};
+struct animlist_s {
+    char path[0x30];
+    void *anim;
+};
+struct apicharsys_s {
+    s32 character_count;
+    s32 model_capacity;
+    s32 anim_id_capacity;
+    s32 permanent_model_count;
+    s32 loaded_model_count;
+    s32 animation_capacity;
+    struct charmodel_s *models;
+    s16 *playermodelids;
+    struct chardata_s *char_data;
+    struct animlist_s *animations;
+    s32 area_animation_count;
+    s32 loaded_animation_count;
+    s32 animation_load_attempts;
+};
+struct charmodellist_s { u8 model_id; u8 count; };
+#define apicharsys ((struct apicharsys_s *)lbl_80408DF0)
+extern s32 lbl_80408DF4;
+extern void (*fn_80009970(char *, int))(char *, ...);
+extern char lbl_8019DEFC[];
+extern char lbl_8019DF04[];
+extern char lbl_8019DF08[];
+extern char lbl_8019DF20[];
+extern char lbl_8019DF30[];
+extern char lbl_8019DF38[];
+extern char lbl_8019DF40[];
+extern char lbl_8019DF48[];
+extern char lbl_8019DF50[];
+extern char lbl_8019DF58[];
+extern char lbl_8019DF60[];
+extern s32 NuStrCpy(char *, char *);
+extern void NuStrCat(char *, char *);
+extern s32 NuFileExists(char *);
+extern void *NuGHGReadEx(char *, struct variptr_s *, struct variptr_s);
+extern void *NuHGobjGetPOI(void *, u8);
+extern void *fn_800092F0(char *, struct variptr_s *, struct variptr_s, s32);
+extern s32 fn_80009324(void *, char *);
+extern s32 fn_80009408(void *, s32, s32 **, s32 *);
+extern void fn_800094C4(void *, s32, s32);
+extern s32 NuLightStoreCurrentLights(void *);
+extern void *NuAnimDataLoadBuff(s32, s32 **);
+extern void *NuAnimData2LoadBuff(char *, struct variptr_s *, struct variptr_s *);
+
+static inline void APIResetCharacterRemap(void)
+{
+    s32 i;
+    for (i = 0; i < apicharsys->character_count; i++) {
+        if ((apicharsys->char_data[i].model_flags & 2) == 0) {
+            apicharsys->playermodelids[i] = -1;
+        }
+    }
+}
+
+static inline void APICharacterModelReset(struct charmodel_s *model)
+{
+    model->model_id = 0;
+    model->flag2 = 0;
+    model->flag3 = 0;
+    model->hierarchy = NULL;
+    if (apicharsys->anim_id_capacity != 0) {
+        memset(model->anim, 0, apicharsys->anim_id_capacity * 4);
+        memset(model->data_b, 0, apicharsys->anim_id_capacity * 4);
+        memset(model->data_c, 0, apicharsys->anim_id_capacity * 4);
+    }
+    memset(model->poi, 0, sizeof(model->poi));
+}
+
+static inline void *LoadAnim(char *path, s32 area_animation, struct variptr_s *buf, struct variptr_s buf_end)
+{
+    struct animlist_s *entry = apicharsys->animations;
+    s32 i;
+    for (i = 0; i < apicharsys->loaded_animation_count; i++, entry++) {
+        if (NuStrICmp(path, entry->path) == 0) {
+            return entry->anim;
+        }
+    }
+    if (i < apicharsys->animation_capacity) {
+        NuStrCpy(entry->path, path);
+        entry->anim = NuAnimData2LoadBuff(entry->path, buf, &buf_end);
+        if (entry->anim != NULL) {
+            if (area_animation != 0) {
+                apicharsys->area_animation_count++;
+            }
+            {
+                struct apicharsys_s *sys = apicharsys;
+                sys->loaded_animation_count++;
+                sys->animation_load_attempts++;
+            }
+        }
+        return entry->anim;
+    }
+    apicharsys->animation_load_attempts++;
+    return NULL;
+}
+
+void APILoadCharacterModels(struct charmodellist_s *list, s32 area_animation, struct variptr_s *buf,
+                            struct variptr_s buf_end, s32 area_models)
+{
+    char directory[0x40];
+    char path[0x100];
+    char pak_path[0x100];
+    struct charmodel_s *model;
+    struct charanim_s *anim;
+    struct chardata_s *character;
+    s32 i;
+    s32 j;
+    u8 model_id;
+    s32 loaded;
+    void *pak;
+
+    if (lbl_80408DF4 == 0) {
+        for (i = 0; i < apicharsys->character_count; i++) {
+            if ((apicharsys->char_data[i].model_flags & 2) == 0) {
+                apicharsys->playermodelids[i] = -1;
+            }
+        }
+        model = apicharsys->models;
+        for (i = 0; i < apicharsys->permanent_model_count; i++, model++) {
+            for (j = 0; j < apicharsys->anim_id_capacity; j++) {
+                if ((model->data_b[j] != NULL || model->data_c[j] != NULL) && (model->anim[j]->flags & 1) == 0) {
+                    model->anim[j] = NULL;
+                    model->data_b[j] = NULL;
+                    model->data_c[j] = NULL;
+                }
+            }
+        }
+        for (i = apicharsys->permanent_model_count; i < apicharsys->model_capacity; i++, model++) {
+            model->hierarchy = NULL;
+        }
+        apicharsys->loaded_model_count = apicharsys->permanent_model_count;
+    }
+    lbl_80408DF4 = 0;
+    if (list == NULL) {
+        return;
+    }
+    while ((model_id = list->model_id) != 0xFF && apicharsys->loaded_model_count < apicharsys->model_capacity) {
+        character = &apicharsys->char_data[model_id];
+        loaded = 0;
+        NuStrCpy(directory, lbl_8019DEFC);
+        NuStrCat(directory, character->dir);
+        NuStrCat(directory, lbl_8019DF04);
+        if (apicharsys->playermodelids[model_id] != -1) {
+            fn_80009970(lbl_8019DE8C, 0x8A7)(lbl_8019DF08);
+            model = &apicharsys->models[apicharsys->playermodelids[model_id]];
+        } else {
+            fn_80009970(lbl_8019DE8C, 0x8AD)(lbl_8019DF20);
+            model = &apicharsys->models[apicharsys->loaded_model_count];
+            APICharacterModelReset(model);
+            NuStrCpy(path, directory);
+            NuStrCat(path, character->file);
+            NuStrCpy(pak_path, path);
+            NuStrCat(pak_path, lbl_8019DF30);
+            NuStrCat(path, lbl_8019DF38);
+            model->hierarchy = NuGHGReadEx(path, buf, buf_end);
+            if (model->hierarchy == NULL) {
+                list++;
+                continue;
+            }
+            for (i = 0; i < 16; i++) {
+                model->poi[i] = NuHGobjGetPOI(model->hierarchy, i);
+            }
+            loaded = 1;
+        }
+        if (area_models != 0 && list->count != 0) {
+            anim = apicharsys->char_data[model_id].animations;
+        } else {
+            anim = NULL;
+        }
+        pak = fn_800092F0(pak_path, buf, buf_end, 0x10);
+        if (pak != NULL) {
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0) {
+                    s32 item;
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF40);
+                    fn_80009324(pak, path);
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF48);
+                    item = fn_80009324(pak, path);
+                    if (item != 0) {
+                        fn_800094C4(pak, item, 1);
+                    }
+                }
+            }
+            buf->addr -= NuLightStoreCurrentLights(pak);
+            if (area_models != 0 && list->count != 0) {
+                anim = apicharsys->char_data[model_id].animations;
+            } else {
+                anim = NULL;
+            }
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0) {
+                    s32 item;
+                    s32 *data;
+                    s32 size;
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF40);
+                    fn_80009324(pak, path);
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF48);
+                    item = fn_80009324(pak, path);
+                    if (item != 0 && fn_80009408(pak, item, &data, &size) != 0) {
+                        if (*data == 2) {
+                            if ((model->data_b[anim->id] = NuAnimDataLoadBuff(size, &data)) != NULL) {
+                                model->anim[anim->id] = anim;
+                            }
+                        }
+                        if (*data >= 0) {
+                            void *p = NuAnimDataLoadBuff(size, &data);
+                            *data |= 0x80000000;
+                            if ((model->data_b[anim->id] = p) != NULL) {
+                                model->anim[anim->id] = anim;
+                            }
+                        }
+                    }
+                }
+            }
+            if (area_models != 0 && list->count != 0) {
+                anim = apicharsys->char_data[model_id].animations;
+            } else {
+                anim = NULL;
+            }
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0) {
+                    s32 item;
+                    s32 *data;
+                    s32 size;
+                    NuStrCpy(path, lbl_8019DF04);
+                    NuStrCat(path, anim->name);
+                    NuStrCat(path, lbl_8019DF40);
+                    item = fn_80009324(pak, path);
+                    if (item != 0 && fn_80009408(pak, item, &data, &size) != 0) {
+                        *data &= 0x7FFFFFFF;
+                    }
+                }
+            }
+        } else {
+            for (; anim != NULL && anim->name != NULL; anim++) {
+                if ((anim->flags & 0x8000) == 0
+                    && ((area_animation != 0 && (anim->flags & 1) != 0)
+                        || (area_animation == 0 && (anim->flags & 1) == 0))) {
+                    if ((anim->flags & 4) != 0 && model->data_b[anim->id] == NULL) {
+                        NuStrCpy(path, directory);
+                        NuStrCat(path, anim->name);
+                        NuStrCat(path, lbl_8019DF50);
+                        if (NuFileExists(path) != 0) {
+                            model->data_b[anim->id] = LoadAnim(path, area_animation, buf, buf_end);
+                        }
+                        if (model->data_b[anim->id] == NULL) {
+                            NuStrCpy(path, directory);
+                            NuStrCat(path, anim->name);
+                            NuStrCat(path, lbl_8019DF58);
+                            model->data_b[anim->id] = LoadAnim(path, area_animation, buf, buf_end);
+                        }
+                        if (model->data_b[anim->id] != NULL) {
+                            model->anim[anim->id] = anim;
+                        }
+                    }
+                    if ((anim->flags & 8) != 0 && model->data_c[anim->id] == NULL) {
+                        NuStrCpy(path, directory);
+                        NuStrCat(path, anim->name);
+                        NuStrCat(path, lbl_8019DF60);
+                        model->data_c[anim->id] = LoadAnim(path, area_animation, buf, buf_end);
+                        if (model->data_c[anim->id] != NULL) {
+                            model->anim[anim->id] = anim;
+                        }
+                    }
+                }
+            }
+        }
+        if (loaded) {
+            model->model_id = model_id;
+            apicharsys->playermodelids[model_id] = apicharsys->loaded_model_count;
+            if (area_animation != 0) {
+                apicharsys->permanent_model_count++;
+                character->model_flags |= 2;
+            }
+            apicharsys->loaded_model_count++;
+        }
+        list++;
+    }
+}
