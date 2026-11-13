@@ -233,49 +233,64 @@ extern const f32 lbl_80190918[];
 extern s32 lbl_80407C88;
 void fn_8000DBA0(struct numtx_s* m);
 
+static inline f32 portal_mul(f32 arg0, f32 arg1)
+{
+    return arg0 * arg1;
+}
+
 void fn_8001D0D8(void)
 {
-    f32 scale, scale_sq, a, b;
-    f32 c, d;
-    f32 inv_a, inv_b, inv_c, inv_d;
-    f32 x, y, z, w;
+    f32 scale;
+    f32 scale_sq;
+    f32 a;
+    f32 b;
+    f32 c;
+    f32 d;
+    f32 inv_a;
+    f32 inv_b;
+    f32 inv_c;
+    f32 inv_d;
+    f32 x;
+    f32 y;
+    f32 z;
+    f32 w;
     scale = lbl_803132B0[0];
-    scale_sq = scale * scale;
-    a = scale * lbl_8040AD40;
-    b = scale * lbl_8040AD3C;
+    scale_sq = portal_mul(scale, scale);
+    a = portal_mul(scale, lbl_8040AD40);
+    b = portal_mul(scale, lbl_8040AD3C);
     lbl_80407C88 = 1;
-    inv_a = lbl_80190918[0] / NuFsqrt(a * a + scale_sq);
-    inv_b = lbl_80190918[0] / NuFsqrt(b * b + scale_sq);
+    inv_a = lbl_80190918[0] / NuFsqrt(portal_mul(a, a) + scale_sq);
+    inv_b = lbl_80190918[0] / NuFsqrt(portal_mul(b, b) + scale_sq);
     fn_8000DBA0(&lbl_80314430);
-    w = -b * inv_b;
-    c = scale * lbl_8040AD44;
-    d = scale * lbl_8040AD48;
-    x = -scale * inv_a;
-    y = scale * inv_b;
-    z = -a * inv_a;
+    c = portal_mul(scale, lbl_8040AD44);
+    d = portal_mul(scale, lbl_8040AD48);
+    x = portal_mul(-scale, inv_a);
+    y = portal_mul(scale, inv_b);
+    z = portal_mul(-a, inv_a);
+    w = portal_mul(-b, inv_b);
     lbl_80314430._00 = x;
     lbl_80314430._12 = y;
-    lbl_80314430._21 = z;
     lbl_80314430._20 = z;
+    lbl_80314430._21 = z;
     lbl_80314430._01 = -x;
     lbl_80314430._13 = -y;
-    lbl_80314430._23 = w;
     lbl_80314430._22 = w;
-    inv_c = lbl_80190918[0] / NuFsqrt(c * c + scale_sq);
-    inv_d = lbl_80190918[0] / NuFsqrt(d * d + scale_sq);
+    lbl_80314430._23 = w;
+    inv_c = lbl_80190918[0] / NuFsqrt(portal_mul(c, c) + scale_sq);
+    inv_d = lbl_80190918[0] / NuFsqrt(portal_mul(d, d) + scale_sq);
     fn_8000DBA0(&lbl_80314470);
-    x = -scale * inv_c;
-    y = scale * inv_d;
-    z = -c * inv_c;
-    w = -d * inv_d;
+    x = portal_mul(-scale, inv_c);
+    y = portal_mul(scale, inv_d);
+    z = portal_mul(-c, inv_c);
+    w = portal_mul(-d, inv_d);
     lbl_80314470._00 = x;
     lbl_80314470._12 = y;
-    lbl_80314470._21 = z;
-    lbl_80314470._23 = w;
     lbl_80314470._01 = -x;
     lbl_80314470._13 = -y;
     lbl_80314470._20 = z;
+    lbl_80314470._21 = z;
     lbl_80314470._22 = w;
+    lbl_80314470._23 = w;
 }
 typedef struct {
     u8 pad0[0x1c];
@@ -376,6 +391,43 @@ void drawSquare(NuPortalVec3* minimum, NuPortalVec3* maximum, u32 colour)
     lines[7].z = lbl_801909F0[0];
     lines[7].colour = colour;
     fn_80027824(lines, 0, 8);
+}
+
+extern s32 lbl_80407C90;
+extern f32 lbl_801909F4[];
+extern f32 lbl_801909F8[];
+extern f32 lbl_801909FC[];
+extern struct nuvec_s lbl_8020D8E8;
+void NuCameraEnableClipping(struct nuvec_s* out, f32 x, f32 y);
+void NuCameraTransformScreenClip(void);
+void NuPs2CreateSkin(void);
+void fn_8002782C(u32 colour, f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1);
+
+void drawViewFrustrum(void)
+{
+    struct nuvec_s corners[4];
+    struct nuvec_s points[4];
+    s32 i;
+    if (lbl_80407C90 != 0) {
+        NuCameraEnableClipping(&corners[0], lbl_801909F4[0], lbl_801909F4[0]);
+        NuCameraEnableClipping(&corners[1], lbl_801909F4[0], lbl_801909F8[0]);
+        NuCameraEnableClipping(&corners[2], lbl_801909F8[0], lbl_801909F8[0]);
+        NuCameraEnableClipping(&corners[3], lbl_801909F8[0], lbl_801909F4[0]);
+        for (i = 0; i < 4; i++) {
+            struct nuvec_s* p = &points[i];
+            NuVecScale(p, &corners[i], lbl_801909FC[0]);
+            NuVecAdd(p, p, &lbl_8020D8E8);
+        }
+        NuCameraTransformScreenClip();
+        for (i = 0; i < 4; i++) {
+            struct nuvec_s* a = &points[i];
+            struct nuvec_s* b = &points[(i + 1) % 4];
+            fn_8002782C(-1, lbl_8020D8E8.x, lbl_8020D8E8.y, lbl_8020D8E8.z,
+                a->x, a->y, a->z);
+            fn_8002782C(0xffff0000, a->x, a->y, a->z, b->x, b->y, b->z);
+        }
+        NuPs2CreateSkin();
+    }
 }
 
 s32 clipTestBox(NuPortalVec3* minimum, NuPortalVec3* maximum, NuPortalPlane* planes, s32 count)
