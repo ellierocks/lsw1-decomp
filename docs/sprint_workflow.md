@@ -112,6 +112,14 @@ child-hour, compile errors 69% → 4%). Give them to every child and sprint.
 5. **Count only new work.** A function that was already MATCH when first scored is a
    reverification. Report `new_verified` ([gap
    10](workflow_gaps.md#10-verification-counts-were-mistaken-for-new-progress)).
+6. **Work a queue, not one function.** Give each child a whole plan item, or a queue of
+   at least five functions, never a single function. For N children, `python3
+   tools/plan.py --batch N` lists N free items with their claim commands. A child works
+   its queue until every function is matched, parked at the floor or handed off. When
+   `score_fn.py` prints `PLATEAU`, park the function or try a new hypothesis class, and
+   then move to the next function ([gaps 16 and
+   17](workflow_gaps.md#16-children-got-single-functions-not-items)). Strict-only
+   functions are not targets: `plan.py` lists them apart (gap 15).
 
 Keep fixes reproducible and test the behavior they change. m2c changes belong in
 `tools/patches/m2c-*.patch`, applied by `tools/fetch_m2c.sh` to its pinned checkout.

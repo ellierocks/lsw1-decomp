@@ -279,6 +279,23 @@ def codegen_hash(obj: Path, symbol: str) -> str | None:
         return None
 
 
+def plateau_notice(name: str) -> None:
+    """Say when this run's distinct candidates for NAME stopped raising its best score. Hand
+    scores only: a search tool's scores are its own loop and stay quiet."""
+    if os.environ.get(BENCH_SOURCE_ENV):
+        return
+    try:
+        import sprint_bench
+        from sprint_metrics import plateau
+        p = plateau(sprint_bench.load(), name)
+    except (OSError, ValueError, ImportError):
+        return
+    if p:
+        print(f"PLATEAU: {p['distinct']} distinct candidates; best {p['best']}/{p['target']} unchanged for the "
+              f"last {p['since']}. Park it (sprint_finish.py --parked) or try a new hypothesis class "
+              "(docs/sprint_workflow.md#matching-brief), and move to the next function.")
+
+
 def bench_note(name: str, verdict: str, exact: int = 0, target: int = 0,
                seconds: float | None = None, codegen: str | None = None) -> None:
     """Record an interactive attempt for tools/sprint_bench.py (no-op without a started run).
@@ -451,6 +468,8 @@ def main(argv=None) -> int:
     if near_miss(rep["exact_insns"], rep["target_insns"]):
         print("NEAR MISS: common causes and search tools in "
               "docs/sprint_workflow.md#per-function-search")
+    if not args.no_queue and rep["verdict"] != "MATCH":
+        plateau_notice(args.name)
     if listing and code != 0:
         print(listing)
     if args.apply and code == 0:
