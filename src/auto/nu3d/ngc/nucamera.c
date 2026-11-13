@@ -533,7 +533,7 @@ void NuVpSetScalingMtx(void)
  * caller's copies are the ABI's argument temporaries at sp+0x18/0x58. */
 struct camera_child40 { u8 data[0x40]; };
 struct camera_child30 { struct nuvec_s corners[4]; };
-struct camera_pair { s32 first; s32 second; };
+struct camera_pair { struct nuvec4_s *faces; struct nuvec4_s *verts; };
 struct camera_record {
     struct numtx_s mtx;
     struct camera_child30 *children30;
@@ -558,7 +558,82 @@ extern s32 lbl_80407CE0;
 extern s32 lbl_8040AD54;
 s32 fn_80021784(struct camera_child40 *, struct numtx_s, struct nuvec_s);
 s32 fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s, f32, f32);
-s32 fn_80022A88(struct camera_record *, s32, s32, struct nuvec_s *);
+void fn_80022A88(struct camera_record *, struct nuvec4_s *, struct nuvec4_s *, struct nuvec_s *);
+
+/* fn_80022A88: faces holds one plane point per polygon (w = vertex count);
+ * verts->w is the polygon count. The pointer is assigned twice so GCC loses
+ * its frame base: the target reloads the scratch vectors after every
+ * lbl_803145E0 store, which only happens when the base is unknown. */
+extern struct nuvec_s lbl_803145E0[];
+extern s32 lbl_80407CE4;
+void fn_8000EE70(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+void NuVec4MtxTransformVU0(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+
+
+void fn_80022A88(struct camera_record *rec, struct nuvec4_s *faces, struct nuvec4_s *verts, struct nuvec_s *dir)
+{
+    u8 buffer[0x400];
+    struct numtx_s *m;
+    struct nuvec4_s *v;
+    struct nuvec4_s *p;
+    s32 n, k, last;
+
+    v = (struct nuvec4_s *)buffer;
+    v = (struct nuvec4_s *)(((u32)v + 15) & ~15);
+    m = (struct numtx_s *)v;
+    NuCameraGetClippingMtx();
+    v += 4;
+    *m = rec->mtx;
+    for (n = *(s32 *)&verts->w; n > 0; n--) {
+        v[0] = *faces;
+        v[0].w = 1.0f;
+        fn_8000EE70(&v[0], &v[0], m);
+        if (!(v[0].x * dir->x + v[0].y * dir->y + v[0].z * dir->z > 0.0f)) {
+            p = verts;
+            last = 8;
+            for (k = *(s32 *)&faces->w; k > 0; k--, p++) {
+                lbl_8040AD54 += 6;
+                v[0] = *p;
+                v[0].w = 1.0f;
+                NuVec4MtxTransformVU0(&v[0], &v[0], m);
+                if (k == 1) {
+                    v[1] = *verts;
+                } else {
+                    v[1] = p[1];
+                }
+                v[1].w = 1.0f;
+                NuVec4MtxTransformVU0(&v[1], &v[1], m);
+                v[2].x = v[0].x + dir->x;
+                v[2].y = v[0].y + dir->y;
+                v[2].z = v[0].z + dir->z;
+                v[3].x = v[1].x + dir->x;
+                v[3].y = v[1].y + dir->y;
+                v[3].z = v[1].z + dir->z;
+                v[2].w = 1.0f;
+                v[3].w = 1.0f;
+                lbl_803145E0[lbl_80407CE4].x = v[0].x;
+                lbl_803145E0[lbl_80407CE4].y = v[0].y;
+                lbl_803145E0[lbl_80407CE4].z = v[0].z;
+                lbl_80407CE4++;
+                lbl_803145E0[lbl_80407CE4].x = v[2].x;
+                lbl_803145E0[lbl_80407CE4].y = v[2].y;
+                lbl_803145E0[lbl_80407CE4].z = v[2].z;
+                lbl_80407CE4++;
+                lbl_803145E0[lbl_80407CE4].x = v[3].x;
+                lbl_803145E0[lbl_80407CE4].y = v[3].y;
+                lbl_803145E0[lbl_80407CE4].z = v[3].z;
+                lbl_80407CE4++;
+                lbl_803145E0[lbl_80407CE4].x = v[1].x;
+                lbl_803145E0[lbl_80407CE4].y = v[1].y;
+                lbl_803145E0[lbl_80407CE4].z = v[1].z;
+                lbl_80407CE4++;
+            }
+            v[last] = v[1];
+        }
+        verts += *(s32 *)&faces->w;
+        faces++;
+    }
+}
 
 void fn_8002303C(s32 mask, s32 value)
 {
@@ -631,7 +706,7 @@ void fn_8002303C(s32 mask, s32 value)
             }
             if (lbl_803378CC[i].pairs) {
                 for (j = 0; j < lbl_803378CC[i].count_pair; j++) {
-                    fn_80022A88(&lbl_803378CC[i], lbl_803378CC[i].pairs->first, lbl_803378CC[i].pairs->second, &direction);
+                    fn_80022A88(&lbl_803378CC[i], lbl_803378CC[i].pairs->faces, lbl_803378CC[i].pairs->verts, &direction);
                 }
             }
         }
