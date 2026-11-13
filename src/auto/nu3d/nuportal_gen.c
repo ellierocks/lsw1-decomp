@@ -336,6 +336,68 @@ void fn_8001D25C(void)
     portal_abs_mtx(&lbl_80314550, &lbl_803144B0);
     portal_abs_mtx(&lbl_80314590, &lbl_803144F0);
 }
+
+static inline void portal_transform_point(NuPortalVec4* out, struct nuvec_s* v, NuPortalMtx* m)
+{
+    out->x = v->x * m->rows[0].x + v->y * m->rows[1].x + v->z * m->rows[2].x + m->rows[3].x;
+    out->y = v->x * m->rows[0].y + v->y * m->rows[1].y + v->z * m->rows[2].y + m->rows[3].y;
+    out->z = v->x * m->rows[0].z + v->y * m->rows[1].z + v->z * m->rows[2].z + m->rows[3].z;
+    out->w = v->x * m->rows[0].w + v->y * m->rows[1].w + v->z * m->rows[2].w + m->rows[3].w;
+}
+
+static inline void portal_project_box(NuPortalVec4* clip_center, NuPortalVec4* clip_extent, struct nuvec_s* center,
+                                      struct nuvec_s* extent, NuPortalMtx* mtx, NuPortalMtx* abs_mtx)
+{
+    portal_transform_point(clip_center, center, mtx);
+    NuVecMtxTransform((struct nuvec_s*)clip_extent, extent, (struct numtx_s*)abs_mtx);
+}
+
+s32 fn_8001D4B8(struct nuvec_s* center, struct nuvec_s* extent, f32 distance, s32 leaf)
+{
+    NuPortalVec4 clip_extent;
+    NuPortalVec4 clip_center;
+    NuPortalVec4* plane;
+    f32 radius;
+    f32 plane_distance;
+    f32 near_distance;
+    f32 far_distance;
+    radius = NuVecDot((struct nuvec_s*)&lbl_80314540, extent);
+    plane = &lbl_80314530;
+    plane_distance = NuVecDot((struct nuvec_s*)plane, center) + plane->w;
+    near_distance = plane_distance - distance;
+    far_distance = plane_distance - lbl_803132B0[0];
+    if (near_distance > radius || far_distance < -radius)
+        goto outside;
+    portal_project_box(&clip_center, &clip_extent, center, extent, &lbl_803144B0, &lbl_80314550);
+    if (clip_center.x > clip_extent.x || clip_center.y > clip_extent.y || clip_center.z > clip_extent.z
+        || clip_center.w > clip_extent.w)
+        goto outside;
+    if (clip_center.x > -clip_extent.x || clip_center.y > -clip_extent.y || clip_center.z > -clip_extent.z
+        || clip_center.w > -clip_extent.w) {
+        if (leaf == 0)
+            goto partial;
+        portal_project_box(&clip_center, &clip_extent, center, extent, &lbl_803144F0, &lbl_80314590);
+        if (clip_center.x > clip_extent.x || clip_center.y > clip_extent.y || clip_center.z > clip_extent.z
+            || clip_center.w > clip_extent.w) {
+outside:
+            return 0;
+        }
+        if (clip_center.x > -clip_extent.x || clip_center.y > -clip_extent.y || clip_center.z > -clip_extent.z
+            || clip_center.w > -clip_extent.w)
+            goto partial;
+        goto inside;
+    }
+    if (leaf != 0)
+        goto inside;
+    if (near_distance > -radius) {
+partial:
+        return 2;
+    }
+    if (far_distance < radius)
+        return 2;
+inside:
+    return 1;
+}
 typedef struct {
     struct nuvec_s minimum;
     f32 pad0c;
