@@ -166,3 +166,46 @@ variable.
   gitignored `build/` of this worktree; `orig/GL5E4F/sys/main.dol` was copied
   from the main checkout. None are committed.
 - Callee and data names are not verified beyond the symbols above.
+
+
+## `aisys-1` target-derived layout and ABI evidence
+
+The [2026-11-13 matching record](aisys_1_matching.md) adds 25 strict VERIFIED
+functions (16,432 bytes), without unit promotion. These partial views are
+confirmed by GC accesses and exact code generation; they do not import the
+full OpenSaga layouts. Earlier parser experiments above remain historical.
+
+- Script parameters start at `+0x18`, stride 8, containing a name pointer and
+  float value. The processor script pointer is `+4`; its action timer is
+  `+0x40`. The null fallback in the locator inline parser loads
+  `lbl_8019BF58`; the other new inline parser uses a literal zero.
+- Movement calls use the interleaved ABI
+  `AIMoveInstruction(void *, void *, f32, void *, s32, f32)`. Packet owner
+  and opponent pointers are `+0x50` and `+0x64`. The face handler reads
+  positions at object `+0x6c` and writes the packet vector at `+0xc0`.
+- The system creature array pointer is `+0x14`, stride `0xa8`; its final
+  four floats occupy `+0x98..+0xa4`. Setter handlers select the creature
+  using the packet byte at `+0xa6`, not the donor's `+0x134`.
+- Path nodes have stride `0x58`, vector at `+4`, float at `+0x14`, byte
+  connection count at `+0x28` and connection pointer at `+0x30`. The path's
+  node-array pointer is `+0x78`. Connections contain node-index bytes at
+  `+0/+1` and two flag words from `+4`.
+- Circle direction is represented by the packet word at `+0x1a0` with
+  bitfield widths `9/1/22`; logical negation generates the target's
+  `mfcr`/`rlwimi` update. `Action_CirclePlayer` uses the player for movement
+  and the opponent pointer for its final facing calculation.
+  `Action_MoveAwayFromPlayer` has no facing store.
+- Locator selection copies the pointer at `+0xfc` to `+0xb4`; flags use
+  bytes `+0xb2/+0xb3`. The object byte at `+0x285` and squared
+  `(radius + global)` range calculation are GC-specific. `Action_SetLocator`
+  parses numeric parameters using packet `+4`, rather than the processor.
+- Animation override writes signed 16-bit values at `+0xa2`, then `+0xa4`.
+  The loader uses 128 names of stride 32, a 128-byte filename and a
+  `0x10b0` stack frame. It repeats resolution per system after loading.
+
+OpenSaga at the pin above corroborates parsing and traversal, but its newer
+condition fields, logging, reset fields, extra flags and Idle frames extension
+do not transfer. GC Idle's fallback uses `params[0]`, not donor `params[i]`.
+The Japanese PC pair limits and seven unfinished structural hypotheses are
+retained in the matching record. Unknown gameplay meanings remain unnamed;
+no gameplay naming inference or runtime driving was needed.

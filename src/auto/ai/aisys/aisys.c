@@ -1057,6 +1057,8 @@ struct aiscript_s {
 struct aiparamproc_s {
     u8 pad0[4];
     struct aiscript_s *script;
+    u8 pad8[0x38];
+    f32 actionTimer;
 };
 
 extern s32 NuAToI(char *s);
@@ -1088,4 +1090,903 @@ f32 AIParamToFloat(struct aiparamproc_s *processor, char *param) {
         return fn_800077E8(param);
     }
     return lbl_8019C574[0];
+}
+static inline f32 aiParamFloat(struct aiparamproc_s *processor, char *param)
+{
+    char *cursor;
+    s32 i;
+    if (param != NULL) {
+        if (processor != NULL) {
+            cursor = NuStrIStr(param, str_ScriptToken_ParamLower);
+            if (cursor != NULL) {
+                i = NuAToI(cursor);
+                if ((u32)i < 4) return processor->script->params[i].value;
+            } else if (processor->script != NULL) {
+                for (i = 0; i < 4; i++) {
+                    if (processor->script->params[i].name != NULL &&
+                        strcasecmp(processor->script->params[i].name, param) == 0) {
+                        return processor->script->params[i].value;
+                    }
+                }
+            }
+        }
+        return fn_800077E8(param);
+    }
+    return 0.0f;
+}
+struct aimovevec_s { f32 x, y, z; };
+struct aimoveview_s {
+    u8 pad0[0x9c];
+    f32 field9c;
+    u8 padA0[0x6c];
+    struct aimovevec_s field10c;
+    u8 pad118[0xc];
+    struct aimovevec_s field124;
+};
+
+extern s32 (*lbl_80408D2C)(char*, void*);
+extern f32 lbl_8019BE30[];
+extern void AIMoveInstruction(void*,void*,f32,void*,s32,f32);
+s32 Action_FollowOpponent(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet) return 1;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(packet + 0x64);
+    if (target && *(u8**)(target + 4)) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 1, *(f32*)(packet + 0x134));
+    }
+    return 0;
+}
+
+struct aicreatureview_s {
+    u8 pad0[0x98];
+    f32 field98;
+    f32 field9c;
+    f32 fielda0;
+    f32 fielda4;
+};
+
+s32 Action_FollowPlayer(u8* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet || !sys || !*(void**)(sys + 0x1380)) return 1;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(sys + 0x1380);
+    if (target) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 1, *(f32*)(packet + 0x134));
+    }
+    return 0;
+}
+
+extern f32 lbl_8019BE7C[];
+s32 Action_RetreatFromOpponent(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet) return 1;
+    if (firstTime) {
+        *(f32*)(packet + 0x134) = lbl_8019BE7C[0];
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(packet + 0x64);
+    if (target && *(u8**)(target + 4)) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 2, *(f32*)(packet + 0x134));
+    }
+    return 0;
+}
+
+extern f32 lbl_8019BE84[];
+s32 Action_RetreatFromNearestOpponent(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet) return 1;
+    if (firstTime) {
+        *(f32*)(packet + 0x134) = lbl_8019BE84[0];
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(packet + 0x54);
+    if (target) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 2, *(f32*)(packet + 0x134));
+    }
+    return 0;
+}
+
+extern char str_ScriptParam_Face[];
+s32 Action_MoveAwayFromOpponent(u8* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet) return 1;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            if (!NuStrICmp(params[i], str_ScriptParam_Face)) packet[0xb2] = 1;
+            else *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(packet + 0x64);
+    if (target && *(u8**)(target + 4)) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 2, *(f32*)(packet + 0x134));
+        if (packet[0xb2]) *(void**)(packet + 0x19c) = *(u8**)(packet + 0x64) + 0x6c;
+    }
+    return 0;
+}
+
+s32 Action_MoveAwayFromPlayer(u8* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet) return 1;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            if (!NuStrICmp(params[i], str_ScriptParam_Face)) packet[0xb2] = 1;
+            else *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(sys + 0x1380);
+    if (target) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 2, *(f32*)(packet + 0x134));
+    }
+    return 0;
+}
+
+struct aisysview_s {
+    u8 pad0[0x14];
+    struct aicreatureview_s *creatures;
+};
+
+struct aicircleflags_s {
+    u32 pad0 : 9;
+    u32 direction : 1;
+    u32 pad10 : 22;
+};
+
+extern char str_ScriptDir_AntiClockwise_2[], str_ScriptDir_Clockwise_2[], str_ScriptDir_Reverse_2[];
+extern char str_ScriptParam_Facing[];
+s32 Action_CircleOpponent(u8* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet) return 1;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            if (!NuStrICmp(params[i], str_ScriptDir_AntiClockwise_2)) *(u32*)(packet + 0x1a0) &= ~0x400000;
+            else if (!NuStrICmp(params[i], str_ScriptDir_Clockwise_2)) *(u32*)(packet + 0x1a0) |= 0x400000;
+            else if (!NuStrICmp(params[i], str_ScriptDir_Reverse_2)) {
+                ((struct aicircleflags_s*)(packet + 0x1a0))->direction = !((struct aicircleflags_s*)(packet + 0x1a0))->direction;
+            }
+            else if (!NuStrICmp(params[i], str_ScriptParam_Facing)) packet[0xb2] = 1;
+            else *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(packet + 0x64);
+    if (target && *(u8**)(target + 4)) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 3, *(f32*)(packet + 0x134));
+        if (packet[0xb2]) *(void**)(packet + 0x19c) = *(u8**)(packet + 0x64) + 0x6c;
+    }
+    return 0;
+}
+
+s32 Action_CirclePlayer(u8* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 i;
+    u8* target;
+    if (!packet || !sys || !*(void**)(sys + 0x1380)) return 1;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            if (lbl_80408D2C && lbl_80408D2C(params[i], packet + 0xb0)) continue;
+            if (!NuStrICmp(params[i], str_ScriptDir_AntiClockwise_2)) *(u32*)(packet + 0x1a0) &= ~0x400000;
+            else if (!NuStrICmp(params[i], str_ScriptDir_Clockwise_2)) *(u32*)(packet + 0x1a0) |= 0x400000;
+            else if (!NuStrICmp(params[i], str_ScriptDir_Reverse_2)) {
+                ((struct aicircleflags_s*)(packet + 0x1a0))->direction = !((struct aicircleflags_s*)(packet + 0x1a0))->direction;
+            }
+            else if (!NuStrICmp(params[i], str_ScriptParam_Facing)) packet[0xb2] = 1;
+            else *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+        }
+    }
+    target = *(u8**)(sys + 0x1380);
+    if (target) {
+        struct aimoveview_s* ai = *(struct aimoveview_s**)(target + 4);
+        AIMoveInstruction(packet, &ai->field124, ai->field9c, &ai->field10c, 3, *(f32*)(packet + 0x134));
+        if (packet[0xb2]) *(void**)(packet + 0x19c) = *(u8**)(packet + 0x64) + 0x6c;
+    }
+    return 0;
+}
+
+extern char str_ScriptToken_Default[];
+s32 Action_SetViewDistance(struct aisysview_s* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    u8* object;
+    if (packet && (object = *(u8**)(packet + 0x50)) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110) && firstTime) {
+        if (packet[0xa6] != 0xff) {
+            struct aicreatureview_s* creature = sys->creatures + packet[0xa6];
+            *(f32*)(object + 0x234) = creature->field98;
+        } else if (lbl_80408D3C) {
+            *(f32*)(*(u8**)(packet + 0x50) + 0x234) = ((f32 (*)(s32))lbl_80408D3C)(**(s16**)(object + 0x60));
+        } else {
+            *(f32*)(object + 0x234) = 1.0f;
+        }
+        if (count && NuStrICmp(params[0], str_ScriptToken_Default))
+            *(f32*)(*(u8**)(packet + 0x50) + 0x234) = aiParamFloat(processor, params[0]);
+    }
+    return 1;
+}
+
+s32 Action_SetMinViewHeight(struct aisysview_s* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    u8* object;
+    if (packet && (object = *(u8**)(packet + 0x50)) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110) && firstTime) {
+        if (packet[0xa6] != 0xff) {
+            struct aicreatureview_s* creature = sys->creatures + packet[0xa6];
+            *(f32*)(object + 0x240) = creature->fielda4;
+        } else if (lbl_80408D48) {
+            *(f32*)(*(u8**)(packet + 0x50) + 0x240) = ((f32 (*)(s32))lbl_80408D48)(**(s16**)(object + 0x60));
+        } else {
+            *(f32*)(object + 0x240) = 1.0f;
+        }
+        if (count && NuStrICmp(params[0], str_ScriptToken_Default))
+            *(f32*)(*(u8**)(packet + 0x50) + 0x240) = aiParamFloat(processor, params[0]);
+    }
+    return 1;
+}
+
+s32 Action_SetMaxViewHeight(struct aisysview_s* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    u8* object;
+    if (packet && (object = *(u8**)(packet + 0x50)) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110) && firstTime) {
+        if (packet[0xa6] != 0xff) {
+            struct aicreatureview_s* creature = sys->creatures + packet[0xa6];
+            *(f32*)(object + 0x23c) = creature->fielda0;
+        } else if (lbl_80408D44) {
+            *(f32*)(*(u8**)(packet + 0x50) + 0x23c) = ((f32 (*)(s32))lbl_80408D44)(**(s16**)(object + 0x60));
+        } else {
+            *(f32*)(object + 0x23c) = 1.0f;
+        }
+        if (count && NuStrICmp(params[0], str_ScriptToken_Default))
+            *(f32*)(*(u8**)(packet + 0x50) + 0x23c) = aiParamFloat(processor, params[0]);
+    }
+    return 1;
+}
+
+s32 Action_SetHearDistance(struct aisysview_s* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    u8* object;
+    if (packet && (object = *(u8**)(packet + 0x50)) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110) && firstTime) {
+        if (packet[0xa6] != 0xff) {
+            struct aicreatureview_s* creature = sys->creatures + packet[0xa6];
+            *(f32*)(object + 0x238) = creature->field9c;
+        } else if (lbl_80408D40) {
+            *(f32*)(*(u8**)(packet + 0x50) + 0x238) = ((f32 (*)(s32))lbl_80408D40)(**(s16**)(object + 0x60));
+        } else {
+            *(f32*)(object + 0x238) = 1.0f;
+        }
+        if (count && NuStrICmp(params[0], str_ScriptToken_Default))
+            *(f32*)(*(u8**)(packet + 0x50) + 0x238) = aiParamFloat(processor, params[0]);
+    }
+    return 1;
+}
+
+extern char lbl_8019BFBC[], lbl_8019BFC8[], lbl_8019BFD4[];
+extern f32 lbl_8019BFDC[];
+s32 Action_SetInterrupt(void* sys, struct aiparamproc_s* processor, void* packet, char** params, s32 count, s32 firstTime)
+{
+    f32 time = 0.0f;
+    u8 priority = 0;
+    u8 id = 0;
+    char* state = 0;
+    s32 i;
+    if (firstTime && processor) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(params[i], lbl_8019BFBC);
+            if (found) { found += 9; priority = (s32)aiParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i], lbl_8019BFC8))) { found += 3; id = (s32)aiParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i], lbl_8019BFCC))) state = found + 6;
+            else if ((found = NuStrIStr(params[i], lbl_8019BFD4))) { found += 5; time = aiParamFloat(processor,found); }
+        }
+        if (state) fn_8008F35C(processor,priority,id,state,time);
+    }
+    return 1;
+}
+
+extern char lbl_8019BF6C[], lbl_8019BF78[], lbl_8019BF80[];
+extern u8* lbl_80408DF0;
+extern s16 FindAnimIX(void*,char*);
+s32 Action_OverrideAnimation(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    s16 a = -1;
+    s16 b = -1;
+    s32 i;
+    u8* object;
+    if (packet && (object = *(u8**)(packet + 0x50)) && *(void**)object && firstTime) {
+        for (i = 0; i < count; i++) {
+            char* found;
+            if (!NuStrICmp(params[i], lbl_8019BF6C)) a = *(s16*)(lbl_80408DF0 + 0xa);
+            else if ((found = NuStrIStr(params[i], lbl_8019BF78))) a = FindAnimIX(*(void**)(*(u8**)(packet + 0x50) + 0x64), found + 5);
+            else if ((found = NuStrIStr(params[i], lbl_8019BF80))) b = FindAnimIX(*(void**)(*(u8**)(packet + 0x50) + 0x64), found + 3);
+            else processor->actionTimer = aiParamFloat(processor,params[0]);
+        }
+        if (b == -1) a = -1;
+        *(s16*)(packet + 0xa2) = a;
+        *(s16*)(packet + 0xa4) = b;
+    }
+    return 1;
+}
+
+extern char str_ScriptParam_MinTime[], str_ScriptParam_MaxTime[];
+extern f32 lbl_8019BE2C[];
+s32 Action_Idle(void* sys, struct aiparamproc_s* processor, void* packet, char** params, s32 count, s32 firstTime, f32 elapsed)
+{
+    f32 min = 0.0f;
+    f32 max = min;
+    s32 i;
+    if (firstTime) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(params[i],str_ScriptParam_MinTime);
+            if (found) { found += 8; min = aiParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i],str_ScriptParam_MaxTime))) { found += 8; max = aiParamFloat(processor,found); }
+            else processor->actionTimer = aiParamFloat(processor,params[0]);
+        }
+        if (processor->actionTimer == 0.0f) {
+            if (min != 0.0f && max != 0.0f) processor->actionTimer = fn_8000C038() * (max - min) + min;
+            else processor->actionTimer = lbl_8019BE2C[0];
+        }
+    } else if (processor->actionTimer > min) {
+        processor->actionTimer -= elapsed;
+        if (processor->actionTimer <= min) {
+            processor->actionTimer = min;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+struct aipathnodeview_s {
+    u8 pad0[4];
+    struct aimovevec_s field4;
+    u8 pad10[4];
+    f32 field14;
+    u8 pad18[0x10];
+    u8 count;
+    u8 pad29[7];
+    u8** connections;
+    u8 pad34[0x24];
+};
+
+extern f32 fn_8000CDFC(void*,void*,void*);
+s32 Action_GoToNodeRandom(void* sys, void* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    struct aimovevec_s out;
+    struct aipathnodeview_s* node;
+    if (packet && *(void**)(packet + 0x50) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110)) {
+        if (firstTime) {
+            if (count) {
+                struct aipathnodeview_s* selected;
+                s32 index = (s32)((f32)count * fn_8000C038());
+                if (index >= count) index = count - 1;
+                selected = AIPathFindNode(sys,*(void**)(packet + 0x10c),params[index]);
+                *(void**)(packet + 0xb4) = selected;
+                node = selected;
+                if (node && node->count) {
+                    u8* path = *(u8**)(packet + 0x10c);
+                    u8* connection;
+                    s32 nodeIndex = node - *(struct aipathnodeview_s**)(path + 0x78);
+                    *(u8**)(packet + 0xcc) = path;
+                    connection = node->connections[0];
+                    *(u8**)(packet + 0xd0) = connection;
+                    if (connection[0] == nodeIndex) *(f32*)(packet + 0xdc) = 0.0f;
+                    else *(f32*)(packet + 0xdc) = 1.0f;
+                    packet[0xd4] = 0;
+                    *(u32*)(packet + 0xd8) |= 0x8000;
+                    *(f32*)(packet + 0xe0) = 0.0f;
+                    AIMoveInstruction(packet,&selected->field4,0.0f,packet + 0xcc,1,*(f32*)(packet + 0x134));
+                } else return 1;
+            }
+        } else {
+            node = *(struct aipathnodeview_s**)(packet + 0xb4);
+            if (node) {
+                f32 distance = fn_8000CDFC(packet + 0x100,&node->field4,&out);
+                AIMoveInstruction(packet,&node->field4,0.0f,packet + 0xcc,1,*(f32*)(packet + 0x134));
+                if (distance < node->field14) return 1;
+            } else return 1;
+        }
+        goto finished;
+    }
+    return 1;
+finished:
+    return 0;
+}
+
+extern char lbl_8019BFA8[];
+extern f32 lbl_8019BFB0[];
+s32 Action_PathConnectionMaxLength(u8* sys, struct aiparamproc_s* processor, void* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 direction = 0;
+    char* from = 0;
+    f32 length = 0.0f;
+    char* to = 0;
+    s32 i;
+    if (sys && firstTime) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(params[i], lbl_8019BF88);
+            if (found) from = found + 5;
+            else if ((found = NuStrIStr(params[i], lbl_8019BF90))) to = found + 3;
+            else if ((found = NuStrIStr(params[i], lbl_8019BFA8))) { found += 7; length = aiParamFloat(processor,found); }
+        }
+        if (from && to) {
+            u8* connection = fn_8008A6D4(sys, *(void**)(*(u8**)(sys + 0xc) + 8), from,to,&direction);
+            if (connection) {
+                *(f32*)(connection + 0x24) = length;
+                if (length != 0.0f && *(f32*)(connection + 0x1c) > length + *(f32*)(*(u8**)(*(u8**)(*(u8**)(sys + 0xc) + 8) + 0x78) + 0x10) + *(f32*)(*(u8**)(*(u8**)(*(u8**)(sys + 0xc) + 8) + 0x78) + 0x10)) {
+                    *(u32*)(connection + 4) |= 0x08000000;
+                    *(u32*)(connection + 8) |= 0x08000000;
+                } else {
+                    *(u32*)(connection + 4) &= ~0x08000000;
+                    *(u32*)(connection + 8) &= ~0x08000000;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+s32 Action_GoToNode(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    struct aimovevec_s out;
+    struct aipathnodeview_s* node;
+    if (packet && *(void**)(packet + 0x50) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110)) {
+        if (firstTime) {
+            if (count) {
+                struct aipathnodeview_s* selected;
+                s32 i;
+                for (i = 1; i < count; i++) {
+                    if (!lbl_80408D2C || !lbl_80408D2C(params[i], packet + 0xb0))
+                        *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+                }
+                selected = AIPathFindNode(sys,*(void**)(packet + 0x10c),params[0]);
+                *(void**)(packet + 0xb4) = selected;
+                node = selected;
+                if (node && node->count) {
+                    u8* path = *(u8**)(packet + 0x10c);
+                    u8* connection;
+                    s32 nodeIndex = node - *(struct aipathnodeview_s**)(path + 0x78);
+                    *(u8**)(packet + 0xcc) = path;
+                    connection = node->connections[0];
+                    *(u8**)(packet + 0xd0) = connection;
+                    if (connection[0] == nodeIndex) *(f32*)(packet + 0xdc) = 0.0f;
+                    else *(f32*)(packet + 0xdc) = 1.0f;
+                    packet[0xd4] = 0;
+                    *(u32*)(packet + 0xd8) |= 0x8000;
+                    *(f32*)(packet + 0xe0) = 0.0f;
+                    AIMoveInstruction(packet,&selected->field4,0.0f,packet + 0xcc,1,*(f32*)(packet + 0x134));
+                } else return 1;
+            }
+        } else {
+            node = *(struct aipathnodeview_s**)(packet + 0xb4);
+            if (node) {
+                f32 distance = fn_8000CDFC(packet + 0x100,&node->field4,&out);
+                AIMoveInstruction(packet,&node->field4,0.0f,packet + 0xcc,1,*(f32*)(packet + 0x134));
+                if (distance < node->field14) return 1;
+            } else return 1;
+        }
+        goto finished;
+    }
+    return 1;
+finished:
+    return 0;
+}
+
+extern void AISysCharacterSetPath(void*,void*);
+s32 Action_MoveAwayFromNode(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    struct aimovevec_s out;
+    struct aipathnodeview_s* node;
+    if (packet && *(void**)(packet + 0x50) && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110)) {
+        if (firstTime) {
+            if (count) {
+                struct aipathnodeview_s* selected;
+                s32 i;
+                for (i = 1; i < count; i++) {
+                    if (!lbl_80408D2C || !lbl_80408D2C(params[i], packet + 0xb0))
+                        *(f32*)(packet + 0x134) = aiParamFloat(processor, params[i]);
+                }
+                selected = AIPathFindNode(sys,*(void**)(packet + 0x10c),params[0]);
+                *(void**)(packet + 0xb4) = selected;
+                node = selected;
+                if (node && node->count) {
+                    u8* path = *(u8**)(packet + 0x10c);
+                    u8* connection;
+                    s32 nodeIndex = node - *(struct aipathnodeview_s**)(path + 0x78);
+                    AISysCharacterSetPath(packet,path);
+                    connection = node->connections[0];
+                    *(u8**)(packet + 0xd0) = connection;
+                    if (connection[0] == nodeIndex) *(f32*)(packet + 0xdc) = 0.0f;
+                    else *(f32*)(packet + 0xdc) = 1.0f;
+                    packet[0xd4] = 0;
+                    *(u32*)(packet + 0xd8) |= 0x8000;
+                    *(f32*)(packet + 0xe0) = 0.0f;
+                    AIMoveInstruction(packet,&selected->field4,0.0f,packet + 0xcc,2,*(f32*)(packet + 0x134));
+                } else return 1;
+            }
+        } else {
+            node = *(struct aipathnodeview_s**)(packet + 0xb4);
+            if (node) {
+                f32 distance = fn_8000CDFC(packet + 0x100,&node->field4,&out);
+                if (distance < node->field14) return 1;
+                AIMoveInstruction(packet,&node->field4,0.0f,packet + 0xcc,2,*(f32*)(packet + 0x134));
+            } else return 1;
+        }
+        goto finished;
+    }
+    return 1;
+finished:
+    return 0;
+}
+
+extern f32 lbl_8019BEE0[];
+extern void NuVecRotateY(void*,void*,s32);
+extern void NuVecAdd(void*,void*,void*);
+s32 Action_GoToOrigin(struct aisysview_s* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    struct aimovevec_s out;
+    struct aicreatureview_s* creature;
+    u8* object;
+    s32 i;
+    if (!packet || !(object = *(u8**)(packet + 0x50)) || !*(void**)(packet + 0x10c) || !*(void**)(packet + 0x110) || !(*(u32*)(object + 0x208) & 0x400) || packet[0xa6] == 0xff) return 1;
+    creature = sys->creatures + packet[0xa6];
+    if (firstTime) {
+        *(f32*)(packet + 0x134) = lbl_8019BEE0[0];
+        if (count) {
+            for (i = 0; i < count; i++)
+                if (!lbl_80408D2C || !lbl_80408D2C(params[i],packet + 0xb0))
+                    *(f32*)(packet + 0x134) = aiParamFloat(processor,params[i]);
+        }
+        AIMoveInstruction(packet,(u8*)creature + 0x30,0.0f,(u8*)creature + 0x40,1,*(f32*)(packet + 0x134));
+        *(f32*)(packet + 0xc0) = 0.0f;
+        *(f32*)(packet + 0xc4) = 0.0f;
+        *(f32*)(packet + 0xc8) = 1.0f;
+        NuVecRotateY(packet + 0xc0,packet + 0xc0,*(s32*)((u8*)creature + 0x3c));
+        NuVecAdd(packet + 0xc0,packet + 0xc0,(u8*)creature + 0x30);
+    } else {
+        f32 distance;
+        AIMoveInstruction(packet,(u8*)creature + 0x30,0.0f,(u8*)creature + 0x40,1,*(f32*)(packet + 0x134));
+        distance = fn_8000CDFC(packet + 0x100,(u8*)creature + 0x30,&out);
+        if (distance < *(f32*)(packet + 0x134) * *(f32*)(packet + 0x134)) {
+            *(void**)(packet + 0x19c) = packet + 0xc0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern char lbl_8019BEEC[], lbl_8019BEF4[], lbl_8019BF00[], lbl_8019BF08[], lbl_8019BF10[], lbl_8019BF18[];
+extern s32 NuRand(s32);
+s32 Action_SetLocator(void* sys, void* processor, u8* packet, char** params, s32 count, s32 firstTime)
+{
+    char filename[64];
+    s32 a = 0;
+    s32 b = 0;
+    s32 n = 0;
+    char* name = 0;
+    u8* object;
+    s32 i;
+    if (packet && (object = *(u8**)(packet + 0x50)) && *(void**)object && *(void**)(packet + 0x10c) && *(void**)(packet + 0x110) && firstTime) {
+        *(void**)(packet + 0xfc) = 0;
+        if (count) {
+            for (i = 0; i < count; i++) {
+                char* found = NuStrIStr(params[i],lbl_8019BEEC);
+                if (found) name = found + 5;
+                else if (NuStrIStr(params[i],lbl_8019BEF4)) a = 1;
+                else if (NuStrIStr(params[i],lbl_8019BF00)) b = 1;
+                else if ((found = NuStrIStr(params[i],lbl_8019BF08))) { found += 9; n = (s32)aiParamFloat((struct aiparamproc_s*)packet,found); }
+            }
+            if (name) {
+                if (b && *(s8*)(*(u8**)(packet + 0x50) + 0x284) != -1)
+                    sprintf(filename,lbl_8019BF10,name,*(s8*)(*(u8**)(packet + 0x50) + 0x284));
+                else if (a && *(void**)(*(u8**)(packet + 0x50) + 0x64))
+                    sprintf(filename,lbl_8019BF18,name,*(s32*)(*(u8**)(*(u8**)(packet + 0x50) + 0x64) + 0xc));
+                else if (n) sprintf(filename,lbl_8019BF10,name,NuRand(0) % n);
+                else sprintf(filename,name);
+                *(void**)(packet + 0xfc) = AIPathFindLocator(sys,filename);
+            }
+        }
+    }
+    return 1;
+}
+
+extern char str_ScriptPath_ScriptTxtFormat[], str_ScriptPath_ScpFormat[];
+extern u32 lbl_8040AF30;
+extern u8* NuFParCreate(char*);
+extern void NuFParGetWord(void*);
+extern s32 fn_80006398(void*);
+extern void NuMemAllocFn(void*);
+extern u8* AIScriptLoadScp(char*,char*,void*,void*);
+extern void fn_80007610(void*,void*);
+extern s32 fn_8007E064(void*,void*,void*,void*);
+extern s32 sprintf(char*,char*,...);
+void AIScriptLoadScriptTxt(char* path, void* arg1, void* arg2, u8* sys)
+{
+    char names[128][32];
+    char filename[128];
+    s32 n = 0;
+    void* list;
+    u8* parser;
+    u8* script;
+    s32 i;
+    s32 done;
+    list = sys ? sys + 0x18 : &lbl_8040AF30;
+    sprintf(filename, str_ScriptPath_ScriptTxtFormat, path);
+    parser = NuFParCreate(filename);
+    if (parser) {
+        while (fn_80006398(parser)) {
+            NuFParGetWord(parser);
+            sprintf(names[n++], str_ScriptPath_ScpFormat, parser + 0x30a);
+        }
+        NuMemAllocFn(parser);
+    }
+    for (i = 0; i < n; i++) {
+        script = AIScriptLoadScp(names[i], path, arg1, arg2);
+        if (script) {
+            fn_80007610(list, script);
+            if (sys) *(u32*)(script + 0x3c) |= 0x80000000;
+        }
+    }
+    if (sys) {
+        void* lastList = sys + 0x18;
+        do {
+            done = 1;
+            for (script = fn_800076C4(lastList); script; script = fn_800076CC(lastList, script))
+                if (!fn_8007E064(script, arg1, arg2, sys)) done = 0;
+        } while (!done);
+    }
+}
+
+struct aiconnectionview_s { u8 nodes[2]; u8 pad2[2]; u32 flags[2]; };
+extern char lbl_8019BF94[], lbl_8019BFA0[];
+static inline void aiBlockConnection(u8* path, char* from, char* to, s32 blocked)
+{
+    s32 direction = 0;
+    u8* connection = 0;
+    if (path && from && to) {
+        struct aipathnodeview_s* first = AIPathFindNode(0,path,from);
+        struct aipathnodeview_s* last = AIPathFindNode(0,path,to);
+        if (first && last) {
+            s32 index = last - *(struct aipathnodeview_s**)(path + 0x78);
+            s32 i;
+            for (i = 0; i < first->count; i++) {
+                if (first->connections[i][0] == index) { connection = first->connections[i]; direction = 1; break; }
+                if (first->connections[i][1] == index) { connection = first->connections[i]; direction = 0; break; }
+            }
+            if (connection) {
+                if (blocked) ((struct aiconnectionview_s*)connection)->flags[direction] |= 0x80000000;
+                else ((struct aiconnectionview_s*)connection)->flags[direction] &= 0x7fffffff;
+            }
+        }
+    }
+}
+s32 Action_BlockPath(u8* sys, void* processor, void* packet, char** params, s32 count, s32 firstTime)
+{
+    s32 blocked = 1;
+    s32 both = 0;
+    char* from = 0;
+    char* to = 0;
+    s32 i;
+    u8* pathsys;
+    if (sys && (pathsys = *(u8**)(sys + 0xc)) && pathsys[0] && firstTime) {
+        for (i = 0; i < count; i++) {
+            char* found = NuStrIStr(params[i],lbl_8019BF88);
+            if (found) from = found + 5;
+            else if ((found = NuStrIStr(params[i],lbl_8019BF90))) to = found + 3;
+            else if (!NuStrICmp(params[i],lbl_8019BF94)) both = 1;
+            else if (!NuStrICmp(params[i],lbl_8019BFA0)) blocked = 0;
+        }
+        if (from && to) {
+            aiBlockConnection(*(u8**)(*(u8**)(sys + 0xc) + 8),from,to,blocked);
+            if (both) aiBlockConnection(*(u8**)(*(u8**)(sys + 0xc) + 8),to,from,blocked);
+        }
+    }
+    return 1;
+}
+
+struct aifaceobj_s { u8 pad0[4]; void* field4; u8 pad8[0x64]; struct aimovevec_s position; };
+extern void NuVecNorm(void*,void*);
+extern char str_ScriptParam_FaceOffset[];
+extern f32 lbl_8019BE9C[];
+s32 Action_FaceOpponent(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime, f32 elapsed)
+{
+    f32 min = 0.0f;
+    f32 max = min;
+    s32 i;
+    if (!packet) return 1;
+    if (firstTime) {
+        packet[0xb2] = 0;
+        for (i = 0; i < count; i++) {
+            char* found;
+            found = NuStrIStr(params[i],str_ScriptParam_MinTime);
+            if (found) { found += 8; min = aiParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i],str_ScriptParam_MaxTime))) { found += 8; max = aiParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i],str_ScriptParam_FaceOffset))) { found += 11; *(f32*)(packet + 0xb8) = aiParamFloat(processor,found); }
+            else processor->actionTimer = aiParamFloat(processor,params[i]);
+        }
+        if (processor->actionTimer == 0.0f) {
+            if (min != 0.0f && max != 0.0f) processor->actionTimer = fn_8000C038() * (max - min) + min;
+            else processor->actionTimer = lbl_8019BE9C[0];
+        }
+    }
+    {
+        struct aifaceobj_s* opponent = *(struct aifaceobj_s**)(packet + 0x64);
+        if (opponent && opponent->field4) {
+            if (*(f32*)(packet + 0xb8) == 0.0f) *(void**)(packet + 0x19c) = &opponent->position;
+            else {
+                struct aimovevec_s direction;
+                struct aifaceobj_s* object = *(struct aifaceobj_s**)(packet + 0x50);
+                direction.x = opponent->position.z - object->position.z;
+                {
+                    f32 objectX = object->position.x;
+                    f32 opponentX = opponent->position.x;
+                    direction.y = 0.0f;
+                    direction.z = objectX - opponentX;
+                }
+                NuVecNorm(&direction,&direction);
+                {
+                    struct aifaceobj_s* target = *(struct aifaceobj_s**)(packet + 0x64);
+                    *(f32*)(packet + 0xc0) = direction.x * *(f32*)(packet + 0xb8) + target->position.x;
+                    *(f32*)(packet + 0xc4) = target->position.y;
+                    *(f32*)(packet + 0xc8) = direction.z * *(f32*)(packet + 0xb8) + target->position.z;
+                    *(void**)(packet + 0x19c) = packet + 0xc0;
+                }
+            }
+        }
+    }
+    if (processor->actionTimer > 0.0f) {
+        processor->actionTimer -= elapsed;
+        if (processor->actionTimer <= 0.0f) {
+            processor->actionTimer = 0.0f;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern char lbl_8019BF24[], lbl_8019BF30[], lbl_8019BF3C[], lbl_8019BF48[];
+extern f32 lbl_8019BF58[], lbl_8019BF5C[], lbl_8019BF60[], lbl_80408CFC;
+static inline f32 aiLocatorParamFloat(struct aiparamproc_s *processor, char *param)
+{
+    char *cursor;
+    s32 i;
+    if (param != NULL) {
+        if (processor != NULL) {
+            cursor = NuStrIStr(param, str_ScriptToken_ParamLower);
+            if (cursor != NULL) {
+                i = NuAToI(cursor);
+                if ((u32)i < 4) return processor->script->params[i].value;
+            } else if (processor->script != NULL) {
+                for (i = 0; i < 4; i++) {
+                    if (processor->script->params[i].name != NULL &&
+                        strcasecmp(processor->script->params[i].name, param) == 0) {
+                        return processor->script->params[i].value;
+                    }
+                }
+            }
+        }
+        return fn_800077E8(param);
+    }
+    return lbl_8019BF58[0];
+}
+s32 Action_GoToLocator(void* sys, struct aiparamproc_s* processor, u8* packet, char** params, s32 count, s32 firstTime, f32 elapsed)
+{
+    struct aimovevec_s difference;
+    char filename[64];
+    f32 min = lbl_8019BF58[0];
+    s32 personal = 0, indexed = 0, random = 0;
+    f32 max = min;
+    s32 i;
+    u8* object;
+    u8* locator;
+    if (!packet || !(object = *(u8**)(packet + 0x50)) || !*(void**)object || !*(void**)(packet + 0x10c) || !*(void**)(packet + 0x110)) goto complete;
+    if (firstTime) {
+        *(void**)(packet + 0xb4) = *(void**)(packet + 0xfc);
+        if (count) for (i = 0; i < count; i++) {
+            char* found;
+            if (lbl_80408D2C && lbl_80408D2C(params[i],packet + 0xb0)) continue;
+            if (NuStrIStr(params[i],lbl_8019BEEC) || NuStrIStr(params[i],lbl_8019BF24)) {
+                i++;
+                if (i < count) {
+                    if (indexed && *(s8*)(*(u8**)(packet + 0x50) + 0x284) != -1)
+                        sprintf(filename,lbl_8019BF10,params[i],*(s8*)(*(u8**)(packet + 0x50) + 0x284));
+                    else if (personal && *(void**)(*(u8**)(packet + 0x50) + 0x64))
+                        sprintf(filename,lbl_8019BF18,params[i],*(s32*)(*(u8**)(*(u8**)(packet + 0x50) + 0x64) + 0xc));
+                    else if (random) { s32 value = NuRand(0); sprintf(filename,lbl_8019BF10,params[i],value % random); }
+                    else sprintf(filename,params[i]);
+                    *(void**)(packet + 0xb4) = AIPathFindLocator(sys,filename);
+                }
+                if (NuStrIStr(params[i-1],lbl_8019BF24)) {
+                    locator = *(u8**)(packet + 0xb4);
+                    if (locator) *(struct aimovevec_s*)(*(u8**)(packet + 0x50) + 0x6c) = *(struct aimovevec_s*)(locator + 0x10);
+                    goto complete;
+                }
+            } else if (NuStrIStr(params[i],lbl_8019BEF4)) personal = 1;
+            else if (NuStrIStr(params[i],lbl_8019BF00)) indexed = 1;
+            else if ((found = NuStrIStr(params[i],lbl_8019BF08))) { found += 9; random = (s32)aiLocatorParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i],lbl_8019BF30))) { found += 9; processor->actionTimer = aiLocatorParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i],str_ScriptParam_MinTime))) { found += 8; min = aiLocatorParamFloat(processor,found); }
+            else if ((found = NuStrIStr(params[i],str_ScriptParam_MaxTime))) { found += 8; max = aiLocatorParamFloat(processor,found); }
+            else if (!NuStrICmp(params[i],lbl_8019BF3C)) packet[0xb2] = 1;
+            else if (!NuStrICmp(params[i],lbl_8019BF48)) packet[0xb3] = 1;
+            else *(f32*)(packet + 0x134) = aiLocatorParamFloat(processor,params[i]);
+        }
+        if (processor->actionTimer == lbl_8019BF58[0]) {
+            if (min != lbl_8019BF58[0] && max != lbl_8019BF58[0]) processor->actionTimer = fn_8000C038() * (max-min) + min;
+            else processor->actionTimer = lbl_8019BF5C[0];
+        }
+        locator = *(u8**)(packet + 0xb4);
+        if (!locator) goto complete;
+        AIMoveInstruction(packet,locator + 0x10,lbl_8019BF58[0],locator + 0x20,1,*(f32*)(packet + 0x134));
+        {
+            f32 zero = lbl_8019BF58[0];
+            f32 one = lbl_8019BF60[0];
+            struct ailocatorpacket_s { u8 pad[0xc0]; struct aimovevec_s facing; };
+            struct ailocatorpacket_s* view = (struct ailocatorpacket_s*)packet;
+            view->facing.x = zero; view->facing.z = one; view->facing.y = zero;
+        }
+        NuVecRotateY(packet + 0xc0,packet + 0xc0,*(s32*)(locator + 0x1c));
+        NuVecAdd(packet + 0xc0,packet + 0xc0,locator + 0x10);
+    } else {
+        f32 distance, radius;
+        s32 near;
+        locator = *(u8**)(packet + 0xb4);
+        if (!locator) goto complete;
+        near = 0;
+        AIMoveInstruction(packet,locator + 0x10,min,locator + 0x20,1,*(f32*)(packet + 0x134));
+        if (packet[0xb2] && !(*(u8**)(packet + 0x50))[0x285]) goto running;
+        if (packet[0xb3]) distance = fn_8000CDFC(packet + 0x100,locator + 0x10,&difference);
+        else distance = fn_8000CD08(packet + 0x100,locator + 0x10,&difference);
+        radius = *(f32*)(packet + 0x134) + lbl_80408CFC;
+        if (distance < radius * radius) near = 1;
+        if (near) {
+            f32 zero;
+            f32 time;
+            *(void**)(packet + 0x19c) = packet + 0xc0;
+            zero = lbl_8019BF58[0];
+            time = processor->actionTimer;
+            if (time > zero) {
+                time -= elapsed;
+                processor->actionTimer = time;
+                if (time < zero) processor->actionTimer = zero;
+            } else goto complete;
+        }
+    }
+    goto running;
+complete:
+    return 1;
+running:
+    return 0;
 }

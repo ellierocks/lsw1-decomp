@@ -108,9 +108,9 @@ Next hypothesis: introduce a temporary that is produced by the shared tail
 after the switch. Test with a permutation search over declaration order and
 over where `idx` is first assigned, not by adding asm.
 
-## Boundary: `NuAnimCurve2CalcVal` (`0x80016E28`, size `0x704`, 449 insns)
+## Earlier boundary: `NuAnimCurve2CalcVal` (`0x80016E28`, size `0x704`, 449 insns)
 
-Current source has a stub `return 0.0f;` (score 3/449). The retail body is a
+The earlier source had a stub `return 0.0f;` (score 3/449). The retail body is a
 type-dispatch over `r5`:
 
 - `type == 4` (`0x80016E4C`–`0x80016EA4`): frame bit lookup. It uses
@@ -122,8 +122,8 @@ type-dispatch over `r5`:
   `0x10` with header) is a different layout, so the donor's type 1/2 paths
   **do not transfer**.
 
-Recommendation for a future lane: match the type-4 branch as the first verifiable
-piece, once the `0x80016E28` function body can be split, not by naming it. Do not
+The type-4 branch is a useful first comparison block within the complete function.
+Keep its split boundary unchanged; acceptance requires the entire function. Do not
 transplant the donor's `CalcValEx` type 1/2 layout.
 
 ## Other functions in the TU
@@ -153,3 +153,86 @@ The restored files are the same pinned release artifacts (same sizes as before
 for `ProDG/3.9.3/cc1.exe`, `CPP.exe`, `ngccc.exe` and `wibo`), but the old bytes
 were not hash-checked. The chore session should confirm its tools if it
 depends on exact bytes.
+
+
+## nuanim item follow-up, 2026-11-13
+
+Bench run: `t3-64a20ec0-263fa37007ce45cf-1794598235`, baseline `591ab1a`.
+PR 162 and its parked legacy notes were reviewed before this pass. The four
+remaining functions stay `NonMatching`; **new strict matches 0, promoted bytes 0**.
+The four preexisting strict-only functions are reverifications, not new work.
+
+| Function / GC address | Bytes | Start → retained exact instructions | Distinct compiled candidates | Remaining mismatch / next hypothesis |
+|---|---:|---:|---:|---|
+| `NuAnimCurveCalcVal2` / `0x80016C84` | 420 | 78/105 → 85/105 | 29 | First 79 instructions agree; Hermite float live ranges and operation scheduling differ. Keep the recovered mask/step control flow; compare value/time load lifetimes in the Hermite block. |
+| `NuAnimCurve2CalcVal` / `0x80016E28` | 1,796 | 3/449 stub → 340/449 | 54 | Candidate saves f31 and uses a 0x30 frame; target uses 0x28. Diagnostic callback tails merge in the candidate. Scope polynomial temporaries separately from the shared return value, then compare each typed case. |
+| `NuAnimCurve2SetApplyBlendToJoint2TransLoc` / `0x8001752C` | 2,420 | no body → 441/605 | 579 | Frame 0x130 now matches. First differing block assigns the scale/matrix pointers to different saved registers; curve loop address formation and result/type-load scheduling still differ. Recover the second output's indexed store and shared return lifetimes before register tuning. |
+| `NuAnimCurve2SetApplyToJointTransLoc` / `0x80017EA0` | 1,720 | no body → 350/430 | 107 | Frame 0xA0 and instruction count match. Flags/joint saved registers differ first; later the next type byte loads after the previous result store. Test a paired expression that retains the next signed type across that store and explicit zero-store sequencing. |
+
+A sweep of the four functions applied no matches and found no near misses. Its
+legacy draft scored 32/105, unblended joint draft 151/430; evaluator/blended drafts
+failed compilation. Search results with a speculative `volatile` inverse vector
+were rejected in favor of the recovered nonvolatile layout. No permuter was run.
+
+### Recovered layout and donor limits
+
+The evaluator's GC key formats are not the legacy key format:
+
+| Format | Stride | GC fields |
+|---|---:|---|
+| Float key | 16 | time +0, reciprocal +4, value +8, tangent +12 |
+| Packed key | 4 | signed value halfword +0, signed tangent byte +2, time byte +3 |
+| Wide key | 6 | signed value halfword +0, signed tangent byte +2, time halfword +4 |
+
+For `key = popcount(mask prefix)` and chunk index `index`, the first key is:
+float `[index+key-1]`, packed type 2 `[index+key+1]`, wide type 5
+`[index+key+2]`, packed type 6 `[index+key+3]`. Type 3 loads the float
+at byte offset `(index+key-1)*8`. Type 2 has an 8-byte scale header; type 5
+has 12 bytes; type 6 has 16 bytes with its first-key expression overlapping the
+last header-sized slot as encoded by the target. Type 4 has no source `&31` on
+the shift count; copying that donor expression changes code generation.
+
+OpenSaga revision `7bb2402aa902d08f0979892ca23ee80e809e5ee1` was reviewed read-only:
+legacy evaluator at `nu3d_includes.cpp:5941`, `CalcValEx` at 6048 and unblended
+joint at 8620, plus `nuanim3.h`. Legacy tangent/value and joint override accesses
+agree with GC. The donor mask byte order and packed-key layout do not transfer.
+The evaluator has no exact donor name hit; its Japanese PC pair at `0x004F3A90`
+confirms the 0..6 dispatch and Hermite family, not the GC layouts. The blended
+joint has no donor name/search hit and no JP pair; the other two have no JP pair.
+Each target has a `hillclimb.py try --donor-note` ledger entry for this revision.
+
+The blended ABI carries weight in f1 after eight integer/pointer arguments.
+Joint/scale/parent-scale/matrix/override and three optional outputs occupy caller
+stack offsets +8 through +0x24. The corrected wrapper remains a strict 24/24
+match. Joint pivot is +0x40, flags byte +0x51; override rotation/translation/scale
+are +0/+12/+24, signed clamp halfwords +0x24..+0x2E, flags byte +0x31.
+The nine blended vec/angle locals occupy +8..+0x94 in the 0x130 frame.
+The target independently advances curve, float-constant and output cursors;
+combining them initially produced a smaller 0x128 frame and 279/605 instructions.
+
+### Search and tooling handoff
+
+Legacy `PLATEAU` at 29 distinct candidates, evaluator at 54 and unblended joint
+at 107 each led to parking and moving to the next function. Final source
+reverification repeats those notices; no further matching search followed them.
+The blended function printed `PLATEAU` at 579 distinct candidates, best
+449/605 unchanged for the last 161; it was parked. That best search result uses
+a speculative `volatile` inverse vector and was rejected; the retained
+nonvolatile candidate is 441/605. The two bounded blended searches each had
+one compile error.
+
+The first evaluator variant search had 141/250 compile errors: declaration
+permutations moved initialized dependent pointers ahead of their inputs. Reading
+the warning led to separating declarations from assignments; the next search
+had 1/200 errors. Other errors included one C89 declaration after a statement,
+six joint signedness trials conflicting with the existing prototype, one malformed
+scratch brace rewrite (fixed before searching), and two rejected blended search
+variants. Raw diagnostics and experiments remain in ignored `work/`.
+
+The scorer's dropped-later-extern blocker is fixed and measured in
+[workflow gap 18](../workflow_gaps.md#18-body-splicing-dropped-declarations-needed-before-the-new-use).
+The same candidate changes from ERROR to 254/449; no strict match came from the
+fix. m2c's pointer-return inference still loses evaluator float expressions;
+this pass recovered those by hand. Ghidra's local project was unavailable.
+Neither runtime/gameplay naming nor an Ellie question was needed for these
+engine-layout comparisons.

@@ -47,14 +47,17 @@ median of 48 distinct candidates per park.
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour | open |
 | 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes | partly fixed, numath promoted |
 | 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | matched bytes per child-hour (accounting) | accounting fixed, #163; the structural brief is in [sprint workflow](sprint_workflow.md#matching-brief) |
-| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); measured 0.5%, searches 1 / 5,036 |
+| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); measured 0.5%, searches 1 / 5,036; aisys pointer drafts 4/4 → 0/4 errors |
 | 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | fixed: `sprint_finish.py` refuses parks under 25; measured median 48, 3 of 3 parks at the floor |
 | 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | baseline 0.13 s median score, 0.9 s finish build |
 | 14 | [Bench logs were polluted and lost](#14-bench-logs-were-polluted-and-lost) | all (data quality) | fixed |
 | 15 | [Strict-only functions were counted as plan work](#15-strict-only-functions-were-counted-as-plan-work) | functions left (targeting) | fixed: plan functions left 1,306 → 1,147 |
 | 16 | [Children got single functions, not items](#16-children-got-single-functions-not-items) | functions per child | fixed: `plan.py --batch N` and brief rule 6 |
 | 17 | [Plateaued functions kept being scored](#17-plateaued-functions-kept-being-scored) | matched bytes per child-hour | fixed: `score_fn.py` prints a PLATEAU notice |
-| 18 | [Rodata float labels hide literal pools](#18-rodata-float-labels-hide-literal-pools) | exact-instruction gain (sweep) | fixed: `float_literals` repair; nuportal sweep +9 exact over 5 functions |
+| 18 | [Body splicing dropped declarations needed before the new use](#18-body-splicing-dropped-declarations-needed-before-the-new-use) | compile-error rate | fixed: controlled evaluator replay 1/1 → 0/1 errors; two regression tests fail before the fix |
+| 19 | [Fresh worktrees had no Ghidra project](#19-fresh-worktrees-had-no-ghidra-project) | start to first compiling score | fixed: `draft_fn.py` seeds the project; worktrees with `ghidra.c` 0 → all |
+| 20 | [Drafts lost the unit's types](#20-drafts-lost-the-units-types) | compile-error rate; exact-instruction gain | fixed: drafts compile 30/60 → 54/60 |
+| 21 | [Rodata float labels hide literal pools](#21-rodata-float-labels-hide-literal-pools) | exact-instruction gain (sweep) | fixed: `float_literals` repair; nuportal sweep +9 exact over 5 functions |
 
 ## 1. Stale task packs change scores
 
@@ -163,6 +166,11 @@ commits touching its inputs since it ran.
   already defined at the merge base out of accounting with a note (3 unresolved → 0;
   record 11 → 8). Both apiobject children hit the same refusal and passed `--queue` or
   `--deferred` by hand.
+- `score_fn.py --body` failed with a cc1 redefinition when the body carried a `static inline`
+  helper the unit already defined (the nugscn `NuGScnAlloc`/`NuVtxSetStride` drafts after
+  a first `--apply`). The body's helper now replaces the unit's copy in place: rescoring such
+  a body went from a compile error to a score (1 → 0 compile errors per rescore on
+  `fn_80028DAC`, 2026-11-13; `tests/test_draft_score_helpers.py`).
 - `tools/quick_wins.py` reads one hard-coded split file, `auto_01_8001752C_text.s`, which a
   later split can leave behind (see gap 1). It does not feed scoring, so it was left; point
   it at the current units when next touched.
@@ -305,6 +313,26 @@ most functions), and searches started from seeds that already compiled, which th
 check now requires. The logs do not record seed refusals, so how often the refusal itself
 saved a burst is unknown.
 
+**Measured repair (2026-11-13, `aisys-1`).** m2c inferred a local pointer minus
+an integer-loaded base as a pointer, then multiplied it by a reciprocal to recover
+a node index. ProDG rejects that multiplication. The final-stage
+`pointer_byte_differences` repair casts the left operand to the GC address width
+(`u32`) only for this narrow expression shape; ordinary pointer arithmetic and
+pointer-pointer differences stay unchanged.
+
+Replaying the same four drafts against the same baseline source and compiler
+reduced compile errors **4/4 → 0/4 (100% → 0%)**: `Action_GoToNodeRandom`,
+`Action_GoToNode`, `Action_MoveAwayFromNode` and `Action_BlockPath`. The
+`aisys-pointer-before-2026-11-13` and `aisys-pointer-after-2026-11-13` metric
+cohorts select those eight events, excluding an earlier replay against changed
+source declarations. The full 32-function scoped sweep improved **5 → 1 errors
+(15.625% → 3.125%)**; the remaining `AIScriptProcess` draft has a malformed
+callback. This repair produced no automatic matches. All four repaired functions
+subsequently matched after assembly-led layout and control-flow work. Three unit
+tests cover the repair, exclusions and idempotence; all 91 sweep tests passed.
+Local replay evidence is `work/pointer-repair-replay.json` and
+`work/aisys-repair-sweep.log`.
+
 ## 12. Functions are parked before 25 distinct hypotheses
 
 The median number of distinct compiled candidates per unfinished function was 1 in the
@@ -422,7 +450,74 @@ hypothesis class, or move on.
 Before → after: no signal → a notice at the plateau. The replay shows 13.6 minutes of
 no-gain work across three functions, out of about 77 child-minutes in the cohort.
 
-## 18. Rodata float labels hide literal pools
+## 18. Body splicing dropped declarations needed before the new use
+
+The nuanim evaluator draft declared `lbl_80190074` and the diagnostic callback
+factory. Both already had correct extern declarations below the source stub, so
+`score_fn.py --body` discarded the draft declarations. The replacement then used
+an undeclared array and called an implicitly declared integer as a function pointer.
+The candidate never reached the strict comparison.
+
+The splicer now forwards the source's actual types before the replacement when
+its body supplies externs declared later. Literal disabled branches are masked
+when deciding which declarations exist, so a parked `#if 0` declaration cannot
+remove an active body extern. Existing visible declarations are retained once.
+
+Before → after: the identical evaluator candidate goes from compile ERROR to
+254/449 instructions, **1/1 → 0/1 compile errors (100% → 0%)**. The controlled
+replay cohorts `nuanim-forward-extern-before` and `nuanim-forward-extern-after`
+in [workflow metrics config](../config/workflow_metrics.toml) use the same unit,
+compiler, model and body; only the splice implementation changes. This measures
+one blocker, not population throughput. The candidate remains unmatched.
+
+The regression tests cover the real array/callback-factory failure with a host
+C89 compile, disabled later declarations and an existing visible declaration.
+Two tests fail against the original scorer and all three pass after the fix.
+
+## 19. Fresh worktrees had no Ghidra project
+
+The nuanim child (PR 166) reported "the local Ghidra project was unavailable". Ghidra 12.1
+is installed and a shared seed existed, but only `tools/bootstrap.sh` ran
+`ghidra_decompile.py setup`. T3 worktrees run `bash build.sh`, which never did, so
+`draft_fn.py` printed a note and wrote no `ghidra.c`.
+
+`draft_fn.py` now calls `ghidra_decompile.auto_setup()` when it would write `ghidra.c` and
+the project is missing. That copies the shared seed only; a full import (about a minute) is
+never started implicitly, and `LSW1_NO_GHIDRA=1` still opts out. The seed key also covered
+`ghidra_decompile.py` itself, so any edit to the tool orphaned the seed and forced a
+re-import. It now hashes the Java scripts and an `IMPORT_KEY` string, which changes only
+when the ELF layout or the import arguments change.
+
+Before → after: a fresh worktree's first draft had no `ghidra.c` → it has one. The first draft
+takes 45 s once; later drafts with Ghidra take about 7 s, and 0.5 s with `--no-ghidra`.
+
+## 20. Drafts lost the unit's types
+
+The same child reported that "m2c pointer-return inference still loses evaluator float
+expressions". `sweep.py` already gave m2c the unit source, preprocessed, as `--context`.
+`draft_fn.py`, the tool children use by hand, ran m2c with no context. Every float return
+and parameter came back as `void *` and struct fields as raw offsets.
+`NuAnimCurve2CalcVal` drafted as `void *NuAnimCurve2CalcVal(void **, void *, s32)` with an
+unparseable `fn_80009948` declaration. With the unit as context it drafts as
+`f32 NuAnimCurve2CalcVal(struct nuanimcurve2_s *, struct nuanimtime_s *, s32)` with named
+fields.
+
+`draft_fn.py` now passes the owning unit's preprocessed source to m2c. `draft_m2c.c` is the
+typed draft. `draft_m2c_plain.c` keeps the context-free draft for comparison, and
+`--no-context` makes the plain draft the only one.
+
+Before → after, measured on 60 random unmatched functions of 0x40–0x400 bytes (seed 7), each
+scored with `score_fn.py --body` in its unit:
+
+| Draft | Compiles | Mean exact instructions (all 60) |
+|---|---:|---:|
+| plain (before) | 30 / 60 | 21.3% |
+| typed (after) | 54 / 60 | 41.8% |
+
+Every function whose plain draft compiled also compiled typed. Of the 30 that compiled both
+ways, the typed draft scored higher on 3, the same on 26 and lower on 1.
+
+## 21. Rodata float labels hide literal pools
 
 ProDG writes each function's float literals into its own `.rodata` pool, and m2c drafts
 them as `extern f32 lbl_X[];` loads. The label and the literal load the same value, but

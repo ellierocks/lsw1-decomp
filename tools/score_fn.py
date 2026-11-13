@@ -335,10 +335,60 @@ def function_extern(text: str, name: str, body: str) -> str:
     return decl.sub(lambda m: proto, text, count=1)
 
 
+_STATIC_FN = re.compile(r"^static\b[^;{}=]*?\b(\w+)\s*\([^;{}]*\)\s*\{", re.M)
+
+
+def _static_definitions(text: str) -> dict[str, tuple[int, int]]:
+    """File-scope `static` function definitions in TEXT: name -> (start, end) span, end past
+    the closing brace and its newline."""
+    spans: dict[str, tuple[int, int]] = {}
+    for m in _STATIC_FN.finditer(text):
+        depth, i = 0, m.end() - 1
+        while i < len(text):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        end = i + 1
+        if end < len(text) and text[end] == "\n":
+            end += 1
+        spans.setdefault(m.group(1), (m.start(), end))
+    return spans
+
+
+def merge_static_helpers(text: str, body: str) -> tuple[str, str, list[str]]:
+    """Move BODY's `static` helpers (inline allocators, lookups) over TEXT's same-named ones.
+
+    A body rescored after its draft was appended to the unit carries the helper twice, and
+    cc1 rejects the redefinition. The body's copy is the hypothesis, so it replaces the unit's
+    definition in place (callers above it keep compiling) and leaves the body."""
+    have = _static_definitions(text)
+    moved: list[str] = []
+    for name, (b0, b1) in sorted(_static_definitions(body).items(), key=lambda kv: -kv[1][0]):
+        if name not in have:
+            continue
+        t0, t1 = have[name]
+        helper = body[b0:b1]
+        if not helper.endswith("\n"):
+            helper += "\n"
+        text = text[:t0] + helper + text[t1:]
+        # Later spans in TEXT shift; recompute before the next replacement.
+        have = _static_definitions(text)
+        body = body[:b0] + body[b1:]
+        moved.append(name)
+    return text, body, moved
+
+
 def splice_body(text: str, name: str, body: str) -> str:
     from variant_search import VariantError, find_function
     body = body.strip("\n")
     text = function_extern(text, name, body)
+    text, body, moved = merge_static_helpers(text, body)
+    if moved:
+        print(f"note: body helpers replaced SOURCE's definitions in place: {', '.join(moved)}", file=sys.stderr)
     # Keep offsets intact while hiding definitions in literal disabled branches.
     # A parked draft under #if 0 must not swallow the replacement candidate.
     lines = text.splitlines(keepends=True)
@@ -366,13 +416,25 @@ def splice_body(text: str, name: str, body: str) -> str:
         fn = find_function(masked, name)
         start = len(fn.before)
         end = len(masked) - len(fn.tail)
-        context = text[:start] + text[end + 1:]
+        context = masked[:start] + masked[end + 1:]
     except VariantError:
-        fn, context = None, text
+        fn, context = None, masked
+    forwards = []
+    if fn is not None:
+        # A declaration below the replaced definition cannot type its new calls.
+        # Retain SOURCE's type, rather than the draft's guessed extern, before use.
+        later = {m.group(1) or m.group(2): text[m.start():m.end()]
+                 for m in _EXTERN.finditer(masked) if m.start() > end}
+        for m in _EXTERN.finditer(body):
+            ident = m.group(1) or m.group(2)
+            if ident in later and not _declares(masked[:start], ident):
+                forwards.append(later.pop(ident).rstrip())
     body, dropped = drop_redeclared(context, body)
     if dropped:
         print(f"note: dropped body declarations SOURCE already has: {', '.join(dropped)}", file=sys.stderr)
     body = body.strip("\n")
+    if forwards:
+        body = "\n".join(forwards) + "\n\n" + body
     if fn is not None:
         return text[:start] + body + text[end + 1:]
     return text.rstrip("\n") + "\n\n" + body + "\n"
