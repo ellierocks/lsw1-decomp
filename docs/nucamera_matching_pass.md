@@ -49,6 +49,32 @@ corresponding record traversal or triangle construction body. No Japanese
 PC pair is recorded for these targets. No donor layout or gameplay name was
 transferred.
 
+## Typed `fn_8002303C` continuation
+
+The provisional comparison source is now in `src/auto/nu3d/ngc/nucamera.c`.
+Its `camera_record` keeps the GC-supported `0x68` stride: a `0x40` matrix,
+child pointers at `0x40`, `0x44` and `0x48`, vector floats at `0x4C..0x54`,
+a mask at `0x58`, radii at `0x5C` and `0x60`, then count bytes and a group
+byte at `0x64..0x67`. Matrix translation at `0x30..0x38` supplies the distance
+calculation. The first child gets a local copy of the whole matrix; later
+children get a local copy of the vector. Offsets, copy widths and strides are
+target facts; `camera_*` names and meanings of the vector/radii are provisional.
+
+The typed draft initially scored `[1,272,42,-54,0]` (54/283 exact). Hoisting
+the constant scale and retaining the mask's `lbl_80337924` relocation scored
+`[1,256,38,-64,0]` (64/283). Spilling both arguments scored
+`[1,254,36,-70,0]` (70/283) and reproduced the target stores at stack
+`+0x68` and `+0x6C`. The last candidate is checked in. `hillclimb.py` attempt
+2 records the improvement and donor conclusion. Strict verification remains
+MISMATCH: frame `0xD0` versus `0xE0`, saves `r19..r31` versus `r14..r31`, and
+247 versus 283 instructions. Explicitly carrying `i * 0x68` as a record
+offset for the mask and record pointer compiled to the same 247 instructions;
+ProDG canonicalized that expression. An explicit 24-byte chunk loop plus
+16-byte tail for the matrix copy also compiled to 247 instructions, but fell
+to 61 exact and score `[1,270,36,-61,0]`. The remaining copy mismatch is
+therefore a register-lifetime and pointer-origin issue, not simply the copy
+width. No linked match bytes result from this source.
+
 Verification commands used for each target:
 
 ```sh

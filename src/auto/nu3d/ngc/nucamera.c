@@ -528,3 +528,119 @@ void NuVpSetScalingMtx(void)
     lbl_8020E974._32 = 0.0f;
     lbl_8020E974._33 = 1.0f;
 }
+/* Provisional GC record layout for the nonmatching fn_8002303C comparison. */
+struct camera_child40 { u8 data[0x40]; };
+struct camera_child30 { struct nuvec_s corners[4]; };
+struct camera_pair { s32 first; s32 second; };
+struct camera_record {
+    struct numtx_s mtx;
+    struct camera_child30 *children30;
+    struct camera_child40 *children40;
+    struct camera_pair *pairs;
+    f32 vector_x;
+    f32 vector_y;
+    f32 vector_z;
+    u32 mask;
+    f32 outer_radius;
+    f32 inner_radius;
+    u8 count30;
+    u8 count40;
+    u8 count_pair;
+    u8 group;
+};
+
+extern struct camera_record lbl_803378CC[];
+extern u32 lbl_80337924[];
+extern s32 lbl_80407CE0;
+extern s32 lbl_8040AD54;
+extern f32 lbl_80190D70[], lbl_80190D74[], lbl_80190D78[], lbl_80190D7C[];
+extern f32 lbl_80190D80[], lbl_80190D84[], lbl_80190D88[];
+s32 fn_80021784(struct camera_child40 *, struct numtx_s *, struct nuvec_s *);
+s32 fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s *, f32, f32);
+s32 fn_80022A88(struct camera_record *, s32, s32, struct nuvec_s *);
+
+void fn_8002303C(s32 mask, s32 value)
+{
+    struct nuvec_s direction;
+    struct numtx_s copy;
+    struct nuvec_s copy_direction;
+    struct camera_record *rec;
+    s32 previous;
+    s32 i, j;
+    s32 state;
+    s32 active;
+    f32 dx, dy, dz, distance, radius, near_radius;
+    f32 a, b, scale;
+    volatile s32 spilled_mask = mask;
+    volatile s32 spilled_value = value;
+
+    active = 0;
+    previous = -1;
+    lbl_8040AD54 = 0;
+    for (i = 0; i < lbl_80407CE0; i++) {
+        if (lbl_803378CC[i].group != previous) previous = lbl_803378CC[i].group;
+    }
+    previous = -1;
+    state = 1;
+    scale = lbl_80190D88[0];
+    for (i = 0; i < lbl_80407CE0; i++) {
+        rec = &lbl_803378CC[i];
+        if (rec->group != previous) {
+            previous = rec->group;
+            if ((lbl_80337924[i * 0x1a] & spilled_mask) == spilled_value) {
+                dy = rec->mtx._31 - lbl_80313268.mtx._31;
+                dx = rec->mtx._30 - lbl_80313268.mtx._30;
+                dz = rec->mtx._32 - lbl_80313268.mtx._32;
+                distance = dx * dx + dy * dy + dz * dz;
+                radius = rec->inner_radius * rec->inner_radius;
+                near_radius = rec->outer_radius;
+                a = lbl_80190D70[0];
+                b = lbl_80190D74[0];
+                active = 0;
+                if (distance < radius) {
+                    active = 1;
+                    if (rec->vector_x >= lbl_80190D78[0]) {
+                        direction.x = lbl_80190D7C[0];
+                        direction.y = lbl_80190D80[0];
+                        direction.z = direction.x;
+                        fn_80022DE8(&direction);
+                        direction.y = lbl_80190D84[0];
+                        if (state != 5 && rec->vector_z == lbl_80190D7C[0]) state = 5;
+                        b = rec->vector_z;
+                        a = rec->vector_y;
+                    } else {
+                        direction.x = rec->vector_x;
+                        direction.y = rec->vector_y;
+                        direction.z = rec->vector_z;
+                        if (state != 1) state = 1;
+                        fn_80022DE8(&direction);
+                        direction.x *= scale;
+                        direction.y *= scale;
+                        direction.z *= scale;
+                    }
+                    if (distance > near_radius * near_radius) NuFsqrt(distance);
+                }
+            } else active = 0;
+        }
+        if (active) {
+            if (rec->children40) {
+                for (j = 0; j < rec->count40; j++) {
+                    copy = rec->mtx;
+                    copy_direction = direction;
+                    fn_80021784(&rec->children40[j], &copy, &copy_direction);
+                }
+            }
+            if (rec->children30) {
+                for (j = 0; j < rec->count30; j++) {
+                    copy_direction = direction;
+                    fn_800225C4(&rec->children30[j], rec, &copy_direction, a, b);
+                }
+            }
+            if (rec->pairs) {
+                for (j = 0; j < rec->count_pair; j++) {
+                    fn_80022A88(rec, rec->pairs->first, rec->pairs->second, &direction);
+                }
+            }
+        }
+    }
+}
