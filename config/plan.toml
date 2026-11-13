@@ -220,7 +220,7 @@ reason = "Best 135/149, score [1,17,0,-135,0] (NONMATCHING draft in src/auto/nu3
 [[stage.item]]
 id = "nuhgobj"
 units = ["auto/nu3d/NuHGobjEval", "auto/nu3d/ngc/nuhgobj"]
-note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2, NuHGobjEvalAnim2Root, NuHGobjEvalAnimBlend2Root, fn_8001AF8C, fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Keys: the root local is a 12-byte nuvec_s; the scale reset addresses scales[i] from &m; the Blend2Root ANI4 path is an inlined static helper; fn_8001AF8C uses float literals, not rodata externs. Open: NuAnimCurveSetEval (sweep 20/224, no source yet: 7-corner bounding box transform by lbl_8020BF98 into lbl_80313250/lbl_8031325C), NuAnimCurveSetLoad (sweep 61/802), NuGHGReadEx (sweep compile error)."
+note = "Done: every function in both units strictly matches. ngc/nuhgobj is promoted (0x8002A4B0..0x8002B3A0, 3,824 bytes; NuGHGReadEx needs an array local u8 *buf[1] so stores reload it, integer off + (u32)base add order and a pt = &p->pts[i] local). NuHGobjEval stays NonMatching: all 14 functions match and .text is in retail order, but its .rodata split starts 4 mod 8, so fn_8001AF8C's 8-byte-aligned double lands 4 bytes late (0x23C vs 0x238). Only a split/alignment change could fix that, which is out of scope for matching."
 # at revision 1: 12 functions, 12,580 bytes left
 
 [[stage.item]]
