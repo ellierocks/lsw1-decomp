@@ -43,6 +43,11 @@ class FunctionStatsTests(unittest.TestCase):
         self.assertEqual(wm.converted(stats), ["new"])
         self.assertEqual(wm.unfinished(stats), ["left"])
 
+    def test_error_only_function_is_not_unfinished(self):
+        stats = wm.function_stats([score(1, "left", "MISMATCH", 3, codegen="x"),
+                                   score(2, "broken", "ERROR"), score(3, "broken", "ERROR")])
+        self.assertEqual(wm.unfinished(stats), ["left"])
+
     def test_distinct_candidates_prefers_codegen_hashes(self):
         hashed = wm.function_stats([score(1, "a", "MISMATCH", 5, codegen="x"),
                                     score(2, "a", "MISMATCH", 5, codegen="y"),

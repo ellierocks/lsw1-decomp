@@ -198,7 +198,10 @@ def converted(stats: dict[str, dict]) -> list[str]:
 
 
 def unfinished(stats: dict[str, dict]) -> list[str]:
-    return [n for n, f in stats.items() if not f["matched"]]
+    """Functions worked here but not matched. One whose every score is a compile error (a
+    broken file scored in passing, say mid-merge) had no candidate here and is left out, so it
+    neither counts as a park nor drags the distinct-candidate median to zero."""
+    return [n for n, f in stats.items() if not f["matched"] and f["attempts"] > f["errors"]]
 
 
 def distinct_candidates(f: dict) -> tuple[int, bool]:
