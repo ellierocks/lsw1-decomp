@@ -2246,3 +2246,19 @@ reason = "Best 120/137 (nuqfnt_ngc, candidate in source). Second pass tested geo
 [[parked]]
 function = "fn_80027DC8"
 reason = "Best 52/55 (nufont_ngc, candidate in source), up from 47/55. Mtx44/full-copy and inline-helper shapes rejected; a 180 s permuter burst found a local zero row index plus literals that preserves all references. Only first destination address materialization differs: target lis r7, addi r9,r7 and stfs through r7; candidate folds it through r9. Next: recover the first-element lvalue/base lifetime with an array or union view, then strict-verify the complete unit."
+
+[[parked]]
+function = "fn_80090FB0"
+reason = "Best 103/136 (apiobject; OpenSaga APIObjectCollisions by body, donor shape with an extra do{}while(0) from variant_search). Instruction stream and reload pattern agree; the outer/inner loop pointers take different callee-saved registers. variant_search 2000 variants and order_search 6 orderings gave nothing better. Next: give the three outer cursors (objs, mins, maxs) one struct-of-arrays lifetime, or split the inner loop into a static inline helper."
+
+[[parked]]
+function = "fn_800902C0"
+reason = "Best 350/351 (apiobject, 125 distinct candidates). One fmuls is scheduled before the second NuVecDot instead of after. Next: move the scale factor into its own statement after the second dot product, or make the dot product a block-local temporary, then a 180 s permuter burst."
+
+[[parked]]
+function = "fn_8008FCD0"
+reason = "Best 370/380 (apiobject, 25 distinct candidates; possibly OpenSaga APIObjectLOSChecks, which calls QuickNewRayCast = fn_8008FB18). sys->j is reloaded in the target, and the i0/j0 counters swap r21/r22. Next: read sys->j through a per-iteration local, and declare j0 before i0."
+
+[[parked]]
+function = "fn_800913BC"
+reason = "Short park, not attempted (0xC04 bytes, ~740 instructions). OpenSaga has an older, longer AddAnimEffects with the same body shape; matching it needs a long hand climb that did not fit this benchmark pass. Next: start from the donor AddAnimEffects control flow and the Ghidra decompile in work/fn_800913BC."
