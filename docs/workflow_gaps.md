@@ -24,12 +24,13 @@ A fix records the metric's value before and after in its PR and in this table
 
 | Rank | Gap | Metric | Baseline 2026-11-12 | Target |
 |---:|---|---|---|---|
-| 1 | [11. Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | 47.1% overall; 91–94% in search-heavy runs | under 20% per source |
-| 2 | [12. Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates per unfinished function; park recovery | median 1–2 (proxy); 52.9% of the short passes' leftovers matched later | 25 or more; recovery under 10% |
-| 3 | [8. Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour (sweep) | 131 functions, 131,080 B unswept | 0 |
-| 4 | [9. Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes (not per run) | 203 functions, 54,460 B | 0 |
-| 5 | [13. Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | unknown until runs log `seconds` | baseline, then lower |
-| 6 | [7. Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | build/score latency (sweep) | about 1,000 s cold, 238 s warm | lower |
+| 1 | [8. Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour (sweep) | 131 functions, 131,080 B unswept | 0 |
+| 2 | [9. Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes (not per run) | 203 functions, 54,460 B | 0 |
+| 3 | [13. Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | unknown until runs log `seconds` | baseline, then lower |
+| 4 | [7. Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | build/score latency (sweep) | about 1,000 s cold, 238 s warm | lower |
+
+Gaps 11 and 12 were ranked first and second until the fixes below; their measured
+effect on new runs is pending the next benchmark cohort.
 
 ### All gaps
 
@@ -45,8 +46,8 @@ A fix records the metric's value before and after in its PR and in this table
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour | open |
 | 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes | partly fixed, numath promoted |
 | 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | matched bytes per child-hour (accounting) | accounting fixed, #163; the structural brief is in [sprint workflow](sprint_workflow.md#matching-brief) |
-| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | measured (per-source split); open |
-| 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | brief rule added; not enforced |
+| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); benchmark pending |
+| 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | fixed: `sprint_finish.py` refuses parks under 25; benchmark pending |
 | 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | logging added; baseline pending |
 | 14 | [Bench logs were polluted and lost](#14-bench-logs-were-polluted-and-lost) | all (data quality) | fixed |
 
@@ -248,10 +249,31 @@ Search and hand-edit attempts were mixed in the log until now. Score events now 
 `source` (`manual`, `variant_search`, `order_search`), so the rate is reported per
 source.
 
-Next fix: `variant_search.py` and `order_search.py` should score the seed first and
-refuse to search from a seed that does not compile. They should also stop after N
-consecutive ERROR variants and print the most common diagnostic. Measure the
-compile-error rate of `variant_search` before and after.
+**Fix (2026-11-12).** `variant_search.py` and `order_search.py` (search and `--climb`)
+now:
+
+- score the unmodified source first and refuse to search when it does not compile,
+  printing the compiler's diagnostic;
+- stop after 64 consecutive ERROR variants (`--max-error-run`, 0 disables it);
+- warn when more than 20% of a search's variants fail, naming the most common
+  diagnostic;
+- in `variant_search.py`, skip every combination that contains a rewrite which failed
+  on its own.
+
+Before → after, replayed on the logged attempts: a burst whose scores never compiled is
+dropped, and any other burst is cut at its 64th consecutive ERROR.
+
+| Cohort | Compile-error rate | Attempts |
+|---|---|---|
+| recent-2026-11-11 | 47.1% → 4.1% (11×) | 48,978 → 26,953 |
+| sol-short-2026-11-12 | 69.4% → 30.0% (2.3×) | 1,048 → 424 |
+| opus-brief-2026-11-12 | 4.1%, unchanged | 291, unchanged |
+
+Most of the saving is two searches: `NuCameraCreate` (26,913 of 28,925 attempts ERROR)
+and `IpicPlaneDec` (19,896 of 19,899). No logged match is lost. One stopped search,
+`fn_80015BD0`, would have lost an exact-count improvement from 19 to 25, without a match.
+The replay cannot model the pruning, and logs written under `-j` are in completion
+order, so it approximates the seed. Confirm the rate on the next benchmark cohort.
 
 ## 12. Functions are parked before 25 distinct hypotheses
 
@@ -262,11 +284,20 @@ counts, a lower bound, because old events have no codegen hash. The
 functions the short passes left unmatched (52.9%). Seven of those nine took the Opus
 passes 17–25 minutes, so they were not plateaus.
 
-Score events now carry `codegen`, so the count is exact for new runs. The brief rule is
-in place; nothing enforces it yet.
+Score events now carry `codegen`, so the count is exact for new runs.
 
-Next fix: `sprint_finish.py --parked` should warn when a parked function has fewer than
-25 distinct codegen hashes in the run's log. Measure park recovery before and after.
+**Fix (2026-11-12).** `sprint_finish.py` refuses to finish when a `--parked` function has
+fewer than 25 distinct codegen hashes across all discovered bench logs. The refusal names
+each short function and its count. List the function under `--deferred` with the
+hypotheses left, or pass `--short-park REASON` when the floor does not apply (for example
+a function blocked on `.rodata` layout). The finish record keeps `parked_hypotheses` and
+`short_park`. A function whose logs predate codegen hashes reads as unknown and is
+allowed.
+
+Before: all 9 of the 17 Sol leftovers that a later pass matched were under the floor
+(proxy count), as were 16 of the 17 leftovers. Under the rule none of the 9 could have
+been parked without a stated reason. Measure park recovery and distinct candidates on
+the next benchmark cohort.
 
 ## 13. Score latency is not yet measured
 

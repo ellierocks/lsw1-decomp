@@ -145,6 +145,15 @@ The Opus fixes came from recovering types and layout, not from tuning registers:
 
 The 52.9% park recovery shows the Sol parks were premature.
 
+### Search error guard and park floor
+
+[Gap 11](workflow_gaps.md#11-search-attempts-mostly-fail-to-compile) and [gap
+12](workflow_gaps.md#12-functions-are-parked-before-25-distinct-hypotheses) were fixed on
+2026-11-12. Their before numbers are a replay of the logged attempts, not a new cohort:
+compile errors 47.1% → 4.1% for the 2026-11-11 runs and 69.4% → 30.0% for the Sol
+passes; all 9 recovered Sol leftovers were under the park floor. The next benchmark
+cohort records the measured after values.
+
 ## Recording a change
 
 1. Before changing the workflow, find the runs it will affect and note the current value

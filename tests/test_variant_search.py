@@ -181,6 +181,22 @@ class SearchTests(unittest.TestCase):
         result = vs.search("f", SOURCE, scorer, jobs=1, limit=1000)
         self.assertEqual(result["errors"], 1)
 
+    def test_rewrite_that_fails_alone_is_not_combined(self):
+        scored = []
+
+        def scorer(text, index):
+            scored.append(text)
+            return {"verdict": "ERROR", "error": "e"} if "u32 a" in text else report("MISMATCH", 1)
+
+        result = vs.search("f", SOURCE, scorer, jobs=1, limit=1000)
+        self.assertEqual(sum("u32 a" in t for t in scored), 1)
+        self.assertGreater(result["pruned"], 0)
+        self.assertEqual(result["tried"] + result["pruned"], result["total"])
+
+    def test_uncompilable_seed_is_refused(self):
+        with self.assertRaisesRegex(vs.VariantError, "does not compile"):
+            vs.search("f", SOURCE, lambda t, i: {"verdict": "ERROR", "error": "e"}, jobs=2, limit=100)
+
     def test_default_case_dimension(self):
         # An extra label on the default arm rebalances GCC's case tree (fn_80063F80).
         lines = ["    switch (x) {", "    case 2:", "        y = 1;", "        break;", "    case 7:",

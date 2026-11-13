@@ -209,6 +209,17 @@ def distinct_candidates(f: dict) -> tuple[int, bool]:
     return len(f["exacts"]), False
 
 
+def hypothesis_counts(names, runs: dict[str, list[dict]]) -> dict[str, int | None]:
+    """Distinct compiled candidates (codegen hashes) per function over every run in RUNS;
+    None when none of its compiling scores carries a hash (logged before 2026-11-13)."""
+    seen: dict[str, set[str]] = {n: set() for n in names}
+    for events in runs.values():
+        for e in events:
+            if e.get("name") in seen and real_score(e) and e.get("codegen"):
+                seen[e["name"]].add(e["codegen"])
+    return {n: len(h) or None for n, h in seen.items()}
+
+
 def median(values):
     values = [v for v in values if v is not None]
     return statistics.median(values) if values else None

@@ -109,6 +109,28 @@ def validate_queue(queue: list[str], matched: list[str], parked: list[str], defe
                          "context pressure requires a continuation, not an incomplete finish")
 
 
+def park_evidence(names: list[str], runs=None) -> dict[str, int | None]:
+    """Distinct compiled candidates per parked function, from every bench log workflow_metrics
+    can find (this checkout, sibling worktrees, the bench cache). None: no hashed scores."""
+    if not names:
+        return {}
+    import workflow_metrics as wm
+    if runs is None:
+        runs = wm.load_runs(wm.log_paths())
+    return wm.hypothesis_counts(names, runs)
+
+
+def short_parks(evidence: dict[str, int | None], floor: int | None = None) -> list[str]:
+    """Parked functions with fewer than FLOOR distinct compiled candidates on record.
+
+    A later pass matched 53% of the functions short passes left (docs/workflow_gaps.md#12):
+    under the floor a function is unfinished, not a plateau. Unknown counts are not refused."""
+    if floor is None:
+        import workflow_metrics as wm
+        floor = wm.HYPOTHESIS_FLOOR
+    return [f"{fn} ({n})" for fn, n in evidence.items() if n is not None and n < floor]
+
+
 def phase(path: Path, name: str, now: float | None = None, cap: float | None = None) -> dict:
     """Switch the timer phase. Time since the last activity event counts as active only up to
     the idle cap; `paused` stops the clock. Wall-clock is kept beside it."""
@@ -290,6 +312,8 @@ def main(argv=None) -> int:
     ap.add_argument("--timing", "--budget-status", dest="budget_status", action="store_true", help="report measured active time per phase")
     ap.add_argument("--usage", type=Path, help="import provider-reported usage JSON for one run")
     ap.add_argument("--deferred", nargs="*", default=[], help="queue entries not attempted or not finished this run")
+    ap.add_argument("--short-park", metavar="REASON",
+                    help="park functions with fewer than 25 distinct compiled candidates anyway (recorded)")
     args = ap.parse_args(argv)
     if args.rebase and args.merge:
         ap.error("choose --merge or --rebase")
@@ -343,6 +367,13 @@ def main(argv=None) -> int:
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
+    evidence = park_evidence([p.partition("=")[0] for p in args.parked])
+    short = short_parks(evidence)
+    if short and not args.short_park:
+        print(f"error: too few distinct compiled candidates to park: {', '.join(short)}. A plateau needs 25 "
+              "(docs/sprint_workflow.md#matching-brief); keep going, list them under --deferred with the "
+              "hypotheses left, or pass --short-park REASON", file=sys.stderr)
+        return 2
     if args.rebase:
         if not fetch():
             print("error: git fetch failed or timed out", file=sys.stderr)
@@ -395,7 +426,10 @@ def main(argv=None) -> int:
     for fn, ok in results.items():
         print(f"| {fn} | {'VERIFIED' if ok else '**FAILED strict check**'} |")
     for fn, note in parked:
-        print(f"| {fn} | parked {note} |")
+        n = evidence.get(fn)
+        print(f"| {fn} | parked {note} ({n if n is not None else 'unknown'} distinct candidates) |")
+    if short:
+        print(f"\nShort parks ({args.short_park}): {', '.join(short)}")
     for fn in args.deferred:
         print(f"| {fn} | deferred: not finished this run; resume next run |")
     print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
@@ -425,7 +459,8 @@ def main(argv=None) -> int:
     record = {"unit": args.unit, "verified": len(verified_names),
               "verified_bytes": sum(symbol_sizes(verified_names).values()), "parked": len(parked),
               "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures,
-              "parked_names": [p[0] for p in parked], "deferred_names": list(args.deferred)}
+              "parked_names": [p[0] for p in parked], "deferred_names": list(args.deferred),
+              "parked_hypotheses": evidence, "short_park": args.short_park if short else None}
     new_names = new_verified_names(base, results)
     record["new_verified"] = len(new_names) if new_names is not None else None
     record["new_verified_bytes"] = (sum(symbol_sizes(new_names).values())
