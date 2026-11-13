@@ -557,17 +557,100 @@ extern u32 lbl_80337924[];
 extern s32 lbl_80407CE0;
 extern s32 lbl_8040AD54;
 s32 fn_80021784(struct camera_child40 *, struct numtx_s, struct nuvec_s);
-s32 fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s, f32, f32);
+void fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s, f32, f32);
 void fn_80022A88(struct camera_record *, struct nuvec4_s *, struct nuvec4_s *, struct nuvec_s *);
+
+extern struct nuvec_s lbl_803145E0[];
+extern s32 lbl_80407CE4;
+void fn_8000EE70(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+void NuVec4MtxTransformVU0(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+
+/* fn_800225C4: e[0..2] are the transformed box edges, e[3] the ring point's
+ * edge coordinates and e[4] the inverse edge lengths. The ring is
+ * lbl_80337860 from fn_80022DE8. a and b are unused here. */
+void fn_800225C4(struct camera_child30 *box, struct camera_record *rec, struct nuvec_s dir, f32 a, f32 b)
+{
+    struct nuvec_s e[8];
+    struct nuvec4_s v[33];
+    struct nuvec4_s *t;
+    s32 i;
+
+    t = &v[1];
+    v[5].x = box->corners[0].x;
+    v[5].y = box->corners[0].y;
+    v[5].z = box->corners[0].z;
+    v[5].w = 1.0f;
+    NuVec4MtxTransformVU0(&v[0], &v[5], &rec->mtx);
+    v[1].x = box->corners[2].x + box->corners[0].x;
+    v[1].y = box->corners[2].y + box->corners[0].y;
+    v[1].z = box->corners[2].z + box->corners[0].z;
+    v[1].w = 1.0f;
+    NuVec4MtxTransformVU0(t, t, &rec->mtx);
+    e[0].x = v[1].x - v[0].x;
+    e[0].y = v[1].y - v[0].y;
+    e[0].z = v[1].z - v[0].z;
+    v[2].x = box->corners[1].x + box->corners[0].x;
+    v[2].y = box->corners[1].y + box->corners[0].y;
+    v[2].z = box->corners[1].z + box->corners[0].z;
+    v[2].w = 1.0f;
+    NuVec4MtxTransformVU0(&v[2], &v[2], &rec->mtx);
+    e[1].x = v[2].x - v[0].x;
+    e[1].y = v[2].y - v[0].y;
+    e[1].z = v[2].z - v[0].z;
+    v[3].x = box->corners[3].x + box->corners[0].x;
+    v[3].y = box->corners[3].y + box->corners[0].y;
+    v[3].z = box->corners[3].z + box->corners[0].z;
+    v[3].w = 1.0f;
+    NuVec4MtxTransformVU0(&v[3], &v[3], &rec->mtx);
+    e[2].x = v[3].x - v[0].x;
+    e[2].y = v[3].y - v[0].y;
+    e[2].z = v[3].z - v[0].z;
+    e[4].x = 1.0f / NuFsqrt(e[0].x * e[0].x + e[0].y * e[0].y + e[0].z * e[0].z);
+    e[4].y = 1.0f / NuFsqrt(e[1].x * e[1].x + e[1].y * e[1].y + e[1].z * e[1].z);
+    e[4].z = 1.0f / NuFsqrt(e[2].x * e[2].x + e[2].y * e[2].y + e[2].z * e[2].z);
+    for (i = 0; i < 8; i++) {
+        lbl_8040AD54 += 2;
+        e[3].x = (lbl_80337860[i].x * e[0].x + lbl_80337860[i].y * e[0].y + lbl_80337860[i].z * e[0].z) * e[4].x;
+        e[3].y = (lbl_80337860[i].x * e[1].x + lbl_80337860[i].y * e[1].y + lbl_80337860[i].z * e[1].z) * e[4].y;
+        e[3].z = (lbl_80337860[i].x * e[2].x + lbl_80337860[i].y * e[2].y + lbl_80337860[i].z * e[2].z) * e[4].z;
+        v[1].x = e[3].x * e[0].x + e[3].y * e[1].x + e[3].z * e[2].x + v[0].x;
+        v[1].y = e[3].x * e[0].y + e[3].y * e[1].y + e[3].z * e[2].y + v[0].y;
+        v[1].z = e[3].x * e[0].z + e[3].y * e[1].z + e[3].z * e[2].z + v[0].z;
+        e[3].x = (lbl_80337860[(i + 1) & 7].x * e[0].x + lbl_80337860[(i + 1) & 7].y * e[0].y + lbl_80337860[(i + 1) & 7].z * e[0].z) * e[4].x;
+        e[3].y = (lbl_80337860[(i + 1) & 7].x * e[1].x + lbl_80337860[(i + 1) & 7].y * e[1].y + lbl_80337860[(i + 1) & 7].z * e[1].z) * e[4].y;
+        e[3].z = (lbl_80337860[(i + 1) & 7].x * e[2].x + lbl_80337860[(i + 1) & 7].y * e[2].y + lbl_80337860[(i + 1) & 7].z * e[2].z) * e[4].z;
+        v[2].x = e[3].x * e[0].x + e[3].y * e[1].x + e[3].z * e[2].x + v[0].x;
+        v[2].y = e[3].x * e[0].y + e[3].y * e[1].y + e[3].z * e[2].y + v[0].y;
+        v[2].z = e[3].x * e[0].z + e[3].y * e[1].z + e[3].z * e[2].z + v[0].z;
+        v[3].x = v[1].x + dir.x;
+        v[3].y = v[1].y + dir.y;
+        v[3].z = v[1].z + dir.z;
+        v[4].x = v[2].x + dir.x;
+        v[4].y = v[2].y + dir.y;
+        v[4].z = v[2].z + dir.z;
+        lbl_803145E0[lbl_80407CE4].x = v[1].x;
+        lbl_803145E0[lbl_80407CE4].y = v[1].y;
+        lbl_803145E0[lbl_80407CE4].z = v[1].z;
+        lbl_80407CE4++;
+        lbl_803145E0[lbl_80407CE4].x = v[3].x;
+        lbl_803145E0[lbl_80407CE4].y = v[3].y;
+        lbl_803145E0[lbl_80407CE4].z = v[3].z;
+        lbl_80407CE4++;
+        lbl_803145E0[lbl_80407CE4].x = v[4].x;
+        lbl_803145E0[lbl_80407CE4].y = v[4].y;
+        lbl_803145E0[lbl_80407CE4].z = v[4].z;
+        lbl_80407CE4++;
+        lbl_803145E0[lbl_80407CE4].x = v[2].x;
+        lbl_803145E0[lbl_80407CE4].y = v[2].y;
+        lbl_803145E0[lbl_80407CE4].z = v[2].z;
+        lbl_80407CE4++;
+    }
+}
 
 /* fn_80022A88: faces holds one plane point per polygon (w = vertex count);
  * verts->w is the polygon count. The pointer is assigned twice so GCC loses
  * its frame base: the target reloads the scratch vectors after every
  * lbl_803145E0 store, which only happens when the base is unknown. */
-extern struct nuvec_s lbl_803145E0[];
-extern s32 lbl_80407CE4;
-void fn_8000EE70(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
-void NuVec4MtxTransformVU0(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
 
 
 void fn_80022A88(struct camera_record *rec, struct nuvec4_s *faces, struct nuvec4_s *verts, struct nuvec_s *dir)
