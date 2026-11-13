@@ -531,7 +531,15 @@ void NuVpSetScalingMtx(void)
 /* GC record layout read by fn_8002303C (0x68 stride; field names provisional).
  * fn_80021784 and fn_800225C4 take the matrix and direction by value: the
  * caller's copies are the ABI's argument temporaries at sp+0x18/0x58. */
-struct camera_child40 { u8 data[0x40]; };
+/* Bit 0 of the first word (p0.x read as an integer) selects the cylinder path. */
+struct camera_child40 {
+    struct nuvec_s p0;
+    struct nuvec_s a;
+    struct nuvec_s b;
+    f32 unk24;
+    struct nuvec_s c;
+    u8 unk34[0xC];
+};
 struct camera_child30 { struct nuvec_s corners[4]; };
 struct camera_pair { struct nuvec4_s *faces; struct nuvec4_s *verts; };
 struct camera_record {
@@ -564,6 +572,303 @@ extern struct nuvec_s lbl_803145E0[];
 extern s32 lbl_80407CE4;
 void fn_8000EE70(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
 void NuVec4MtxTransformVU0(struct nuvec4_s *dst, struct nuvec4_s *src, struct numtx_s *m);
+
+/* fn_80021784: v[0] is the transformed origin, v[1] the first edge and v[2]
+ * the unit normal (edge x dir). l is reused for |v[2]|^2, its inverse length,
+ * the second dot and the radius; one pseudo keeps all four in f2. */
+void NuVecCross(struct nuvec_s *dst, struct nuvec_s *a, struct nuvec_s *b);
+f32 NuFdiv(f32 a, f32 b);
+
+s32 fn_80021784(struct camera_child40 *box, struct numtx_s mtx, struct nuvec_s dir)
+{
+    struct nuvec_s e[8];
+    struct nuvec4_s v[35];
+    struct nuvec4_s *t;
+    f32 s1, c1, s3, c3;
+    f32 l, k, r;
+    f32 d1;
+    s32 i;
+
+    s1 = NuSinApprox(0x2000);
+    c1 = NuCosApprox(0x2000);
+    s3 = NuSinApprox(0x6000);
+    c3 = NuCosApprox(0x6000);
+    if (*(u32 *)&box->p0.x & 1) {
+        t = &v[3];
+        v[7].x = box->p0.x;
+        v[7].y = box->p0.y;
+        v[7].z = box->p0.z;
+        v[7].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[0], &v[7], &mtx);
+        v[3].x = box->a.x + box->p0.x;
+        v[3].y = box->a.y + box->p0.y;
+        v[3].z = box->a.z + box->p0.z;
+        v[3].w = 1.0f;
+        NuVec4MtxTransformVU0(t, t, &mtx);
+        e[0].x = v[3].x - v[0].x;
+        e[0].y = v[3].y - v[0].y;
+        e[0].z = v[3].z - v[0].z;
+        v[4].x = box->b.x + box->p0.x;
+        v[4].y = box->b.y + box->p0.y;
+        v[4].z = box->b.z + box->p0.z;
+        v[4].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[4], &v[4], &mtx);
+        e[1].x = v[4].x - v[0].x;
+        e[1].y = v[4].y - v[0].y;
+        e[1].z = v[4].z - v[0].z;
+        v[5].x = box->c.x + box->p0.x;
+        v[5].y = box->c.y + box->p0.y;
+        v[5].z = box->c.z + box->p0.z;
+        v[5].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[5], &v[5], &mtx);
+        e[2].x = v[5].x - v[0].x;
+        e[2].y = v[5].y - v[0].y;
+        e[2].z = v[5].z - v[0].z;
+        v[1].x = e[0].x;
+        v[1].y = e[0].y;
+        v[1].z = e[0].z;
+        NuVecCross((struct nuvec_s *)&v[2], &e[0], &dir);
+        l = v[2].x * v[2].x + v[2].y * v[2].y + v[2].z * v[2].z;
+        if (l > 0.0f) {
+            l = NuFdiv(1.0f, NuFsqrt(l));
+        }
+        v[2].x *= l;
+        v[2].y *= l;
+        v[2].z *= l;
+        k = v[1].x * v[1].x + v[1].y * v[1].y + v[1].z * v[1].z;
+        if (k > 0.0f) {
+            k = NuFdiv(1.0f, NuFsqrt(k));
+        } else {
+            k = 0.0f;
+        }
+        l = (v[2].x * e[1].x + v[2].y * e[1].y + v[2].z * e[1].z);
+        d1 = (v[2].x * e[2].x + v[2].y * e[2].y + v[2].z * e[2].z);
+        l = NuFsqrt(l * l + d1 * d1);
+        for (i = 0; i < 10; i++) {
+            lbl_8040AD54 += 2;
+            switch (i) {
+            case 0:
+                v[3].x = v[1].x + v[2].x * l;
+                v[3].y = v[1].y + v[2].y * l;
+                v[3].z = v[1].z + v[2].z * l;
+                v[4].x = -v[1].x + v[2].x * l;
+                v[4].y = -v[1].y + v[2].y * l;
+                v[4].z = -v[1].z + v[2].z * l;
+                break;
+            case 1:
+                v[3].x = -v[1].x + v[2].x * l;
+                v[3].y = -v[1].y + v[2].y * l;
+                v[3].z = -v[1].z + v[2].z * l;
+                v[4].x = -v[1].x + v[2].x * l * c1 - v[1].x * k * l * s1;
+                v[4].y = -v[1].y + v[2].y * l * c1 - v[1].y * k * l * s1;
+                v[4].z = -v[1].z + v[2].z * l * c1 - v[1].z * k * l * s1;
+                break;
+            case 2:
+                v[3].x = -v[1].x + v[2].x * l * c1 - v[1].x * k * l * s1;
+                v[3].y = -v[1].y + v[2].y * l * c1 - v[1].y * k * l * s1;
+                v[3].z = -v[1].z + v[2].z * l * c1 - v[1].z * k * l * s1;
+                v[4].x = -v[1].x - v[1].x * l;
+                v[4].y = -v[1].y - v[1].y * l;
+                v[4].z = -v[1].z - v[1].z * l;
+                break;
+            case 3:
+                v[3].x = -v[1].x - v[1].x * l;
+                v[3].y = -v[1].y - v[1].y * l;
+                v[3].z = -v[1].z - v[1].z * l;
+                v[4].x = -v[1].x + v[2].x * l * c3 - v[1].x * k * l * s3;
+                v[4].y = -v[1].y + v[2].y * l * c3 - v[1].y * k * l * s3;
+                v[4].z = -v[1].z + v[2].z * l * c3 - v[1].z * k * l * s3;
+                break;
+            case 4:
+                v[3].x = -v[1].x + v[2].x * l * c3 - v[1].x * k * l * s3;
+                v[3].y = -v[1].y + v[2].y * l * c3 - v[1].y * k * l * s3;
+                v[3].z = -v[1].z + v[2].z * l * c3 - v[1].z * k * l * s3;
+                v[4].x = -v[1].x - v[2].x * l;
+                v[4].y = -v[1].y - v[2].y * l;
+                v[4].z = -v[1].z - v[2].z * l;
+                break;
+            case 5:
+                v[3].x = -v[1].x - v[2].x * l;
+                v[3].y = -v[1].y - v[2].y * l;
+                v[3].z = -v[1].z - v[2].z * l;
+                v[4].x = v[1].x - v[2].x * l;
+                v[4].y = v[1].y - v[2].y * l;
+                v[4].z = v[1].z - v[2].z * l;
+                break;
+            case 6:
+                v[3].x = v[1].x - v[2].x * l;
+                v[3].y = v[1].y - v[2].y * l;
+                v[3].z = v[1].z - v[2].z * l;
+                v[4].x = v[1].x - v[2].x * l * c1 + v[1].x * k * l * s1;
+                v[4].y = v[1].y - v[2].y * l * c1 + v[1].y * k * l * s1;
+                v[4].z = v[1].z - v[2].z * l * c1 + v[1].z * k * l * s1;
+                break;
+            case 7:
+                v[3].x = v[1].x - v[2].x * l * c1 + v[1].x * k * l * s1;
+                v[3].y = v[1].y - v[2].y * l * c1 + v[1].y * k * l * s1;
+                v[3].z = v[1].z - v[2].z * l * c1 + v[1].z * k * l * s1;
+                v[4].x = v[1].x + v[1].x * l;
+                v[4].y = v[1].y + v[1].y * l;
+                v[4].z = v[1].z + v[1].z * l;
+                break;
+            case 8:
+                v[3].x = v[1].x + v[1].x * l;
+                v[3].y = v[1].y + v[1].y * l;
+                v[3].z = v[1].z + v[1].z * l;
+                v[4].x = v[1].x - v[2].x * l * c3 + v[1].x * k * l * s3;
+                v[4].y = v[1].y - v[2].y * l * c3 + v[1].y * k * l * s3;
+                v[4].z = v[1].z - v[2].z * l * c3 + v[1].z * k * l * s3;
+                break;
+            case 9:
+                v[3].x = v[1].x - v[2].x * l * c3 + v[1].x * k * l * s3;
+                v[3].y = v[1].y - v[2].y * l * c3 + v[1].y * k * l * s3;
+                v[3].z = v[1].z - v[2].z * l * c3 + v[1].z * k * l * s3;
+                v[4].x = v[1].x + v[2].x * l;
+                v[4].y = v[1].y + v[2].y * l;
+                v[4].z = v[1].z + v[2].z * l;
+                break;
+            }
+            v[3].x += v[0].x;
+            v[3].y += v[0].y;
+            v[3].z += v[0].z;
+            v[4].x += v[0].x;
+            v[4].y += v[0].y;
+            v[4].z += v[0].z;
+            v[5].x = v[3].x + dir.x * 5.0f;
+            v[5].y = v[3].y + dir.y * 5.0f;
+            v[5].z = v[3].z + dir.z * 5.0f;
+            v[6].x = v[4].x + dir.x * 5.0f;
+            v[6].y = v[4].y + dir.y * 5.0f;
+            v[6].z = v[4].z + dir.z * 5.0f;
+            lbl_803145E0[lbl_80407CE4].x = v[3].x;
+            lbl_803145E0[lbl_80407CE4].y = v[3].y;
+            lbl_803145E0[lbl_80407CE4].z = v[3].z;
+            lbl_803145E0[lbl_80407CE4 + 1].x = v[5].x;
+            lbl_803145E0[lbl_80407CE4 + 1].y = v[5].y;
+            lbl_803145E0[lbl_80407CE4 + 1].z = v[5].z;
+            lbl_803145E0[lbl_80407CE4 + 2].x = v[6].x;
+            lbl_803145E0[lbl_80407CE4 + 2].y = v[6].y;
+            lbl_803145E0[lbl_80407CE4 + 2].z = v[6].z;
+            lbl_803145E0[lbl_80407CE4 + 3].x = v[4].x;
+            lbl_803145E0[lbl_80407CE4 + 3].y = v[4].y;
+            lbl_803145E0[lbl_80407CE4 + 3].z = v[4].z;
+            lbl_80407CE4 += 4;
+        }
+    } else {
+        t = &v[3];
+        v[7].x = box->p0.x;
+        v[7].y = box->p0.y;
+        v[7].z = box->p0.z;
+        v[7].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[0], &v[7], &mtx);
+        v[3].x = box->a.x + box->p0.x;
+        v[3].y = box->a.y + box->p0.y;
+        v[3].z = box->a.z + box->p0.z;
+        v[3].w = 1.0f;
+        NuVec4MtxTransformVU0(t, t, &mtx);
+        e[0].x = v[3].x - v[0].x;
+        e[0].y = v[3].y - v[0].y;
+        e[0].z = v[3].z - v[0].z;
+        v[4].x = box->b.x + box->p0.x;
+        v[4].y = box->b.y + box->p0.y;
+        v[4].z = box->b.z + box->p0.z;
+        v[4].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[4], &v[4], &mtx);
+        e[1].x = v[4].x - v[0].x;
+        e[1].y = v[4].y - v[0].y;
+        e[1].z = v[4].z - v[0].z;
+        v[5].x = box->c.x + box->p0.x;
+        v[5].y = box->c.y + box->p0.y;
+        v[5].z = box->c.z + box->p0.z;
+        v[5].w = 1.0f;
+        NuVec4MtxTransformVU0(&v[5], &v[5], &mtx);
+        e[2].x = v[5].x - v[0].x;
+        e[2].y = v[5].y - v[0].y;
+        e[2].z = v[5].z - v[0].z;
+        v[1].x = e[0].x;
+        v[1].y = e[0].y;
+        v[1].z = e[0].z;
+        NuVecCross((struct nuvec_s *)&v[2], &e[0], &dir);
+        l = v[2].x * v[2].x + v[2].y * v[2].y + v[2].z * v[2].z;
+        if (l > 0.0f) {
+            l = NuFdiv(1.0f, NuFsqrt(l));
+        }
+        v[2].x *= l;
+        v[2].y *= l;
+        v[2].z *= l;
+        k = v[1].x * v[1].x + v[1].y * v[1].y + v[1].z * v[1].z;
+        if (k > 0.0f) {
+            k = NuFdiv(1.0f, NuFsqrt(k));
+        }
+        l = (v[2].x * e[1].x + v[2].y * e[1].y + v[2].z * e[1].z);
+        d1 = (v[2].x * e[2].x + v[2].y * e[2].y + v[2].z * e[2].z);
+        l = NuFsqrt(l * l + d1 * d1);
+        v[2].x *= l;
+        v[2].y *= l;
+        v[2].z *= l;
+        for (i = 0; i < 4; i++) {
+            switch (i) {
+            case 0:
+                v[3].x = v[1].x + v[2].x;
+                v[3].y = v[1].y + v[2].y;
+                v[3].z = v[1].z + v[2].z;
+                v[4].x = -v[1].x + v[2].x;
+                v[4].y = -v[1].y + v[2].y;
+                v[4].z = -v[1].z + v[2].z;
+                break;
+            case 1:
+                v[3].x = -v[1].x + v[2].x;
+                v[3].y = -v[1].y + v[2].y;
+                v[3].z = -v[1].z + v[2].z;
+                v[4].x = -v[1].x - v[2].x;
+                v[4].y = -v[1].y - v[2].y;
+                v[4].z = -v[1].z - v[2].z;
+                break;
+            case 2:
+                v[3].x = -v[1].x - v[2].x;
+                v[3].y = -v[1].y - v[2].y;
+                v[3].z = -v[1].z - v[2].z;
+                v[4].x = v[1].x - v[2].x;
+                v[4].y = v[1].y - v[2].y;
+                v[4].z = v[1].z - v[2].z;
+                break;
+            case 3:
+                v[3].x = v[1].x - v[2].x;
+                v[3].y = v[1].y - v[2].y;
+                v[3].z = v[1].z - v[2].z;
+                v[4].x = v[1].x + v[2].x;
+                v[4].y = v[1].y + v[2].y;
+                v[4].z = v[1].z + v[2].z;
+                break;
+            }
+            v[3].x += v[0].x;
+            v[3].y += v[0].y;
+            v[3].z += v[0].z;
+            v[4].x += v[0].x;
+            v[4].y += v[0].y;
+            v[4].z += v[0].z;
+            v[5].x = v[3].x + dir.x * 5.0f;
+            v[5].y = v[3].y + dir.y * 5.0f;
+            v[5].z = v[3].z + dir.z * 5.0f;
+            v[6].x = v[4].x + dir.x * 5.0f;
+            v[6].y = v[4].y + dir.y * 5.0f;
+            v[6].z = v[4].z + dir.z * 5.0f;
+            lbl_803145E0[lbl_80407CE4].x = v[3].x;
+            lbl_803145E0[lbl_80407CE4].y = v[3].y;
+            lbl_803145E0[lbl_80407CE4].z = v[3].z;
+            lbl_803145E0[lbl_80407CE4 + 1].x = v[5].x;
+            lbl_803145E0[lbl_80407CE4 + 1].y = v[5].y;
+            lbl_803145E0[lbl_80407CE4 + 1].z = v[5].z;
+            lbl_803145E0[lbl_80407CE4 + 2].x = v[6].x;
+            lbl_803145E0[lbl_80407CE4 + 2].y = v[6].y;
+            lbl_803145E0[lbl_80407CE4 + 2].z = v[6].z;
+            lbl_803145E0[lbl_80407CE4 + 3].x = v[4].x;
+            lbl_803145E0[lbl_80407CE4 + 3].y = v[4].y;
+            lbl_803145E0[lbl_80407CE4 + 3].z = v[4].z;
+            lbl_80407CE4 += 4;
+        }
+    }
+}
 
 /* fn_800225C4: e[0..2] are the transformed box edges, e[3] the ring point's
  * edge coordinates and e[4] the inverse edge lengths. The ring is

@@ -2,10 +2,51 @@
 
 Baseline at `f691955`: 459,240 / 1,612,280 matched code bytes and 2,826 / 4,318
 functions. The ProDG 3.9.3 comparison unit is `auto/nu3d/ngc/nucamera`.
-All four previously unattempted bodies were scored with `score_fn.py` and
-recorded with `hillclimb.py try`. None is VERIFIED or PROMOTED, and this pass
-does not change the linked code count. The candidate bodies, task packs and
-hillclimb ledgers are in this checkout's ignored `work/` directory.
+
+**Result:** all four previously unattempted bodies are now strict
+`verify_fn.py --strict-symbols` MATCHes (VERIFIED, not PROMOTED):
+`fn_8002303C` (1,132 B, 283/283), `fn_80022A88` (864 B, 216/216),
+`fn_800225C4` (1,220 B, 305/305) and `fn_80021784` (3,648 B, 912/912), 6,864 B
+in total. The unit stays NonMatching because `fn_80022DE8` is still a parked
+NONMATCHING draft, so the linked code count is unchanged. The candidate bodies,
+task packs and hillclimb ledgers are in this checkout's ignored `work/`
+directory. The first-attempt table below records the starting scores.
+
+## Strict matches
+
+What fixed each body, confirmed against target assembly:
+
+- `fn_8002303C`: see the typed continuation below. The record layout there is
+  the one now in source.
+- `fn_80022A88`: write the aligned scratch pointer twice from non-self sources
+  (`v = (struct nuvec4_s *)buffer; v = aligned(v);`). This drops its frame
+  base, so the global stores alias the scratch and force the target's
+  reloads. A 79-variant permutation of the buffer-write order found
+  `v2, v3, w2, w3, b0, b2, b3, b1`. The inner loop advances `p++` in the
+  for-increment and reads `p[1]` in the else branch, which avoids `lwzu`.
+  The prototype is `void (struct camera_record *, struct nuvec4_s *faces,
+  struct nuvec4_s *verts, struct nuvec_s *dir)`.
+- `fn_800225C4`: the locals are `struct nuvec_s e[8]` and
+  `struct nuvec4_s v[33]`, which gives the `0x300` frame. Keeping `t = &v[1]`
+  as a call argument holds that address in `r29`. Indexing the ring as
+  `lbl_80337860[i]` and `[(i + 1) & 7]`, rather than through a pointer, gives
+  the separate `+4`/`+8` base registers. It returns `void` and takes the
+  direction by value.
+- `fn_80021784`: the cylinder flag is bit 0 of `box->p0.x` read as an
+  integer, and `struct camera_child40` gains its `unk24` pad so that `c`
+  sits at `+0x28`. Sin and cos of `0x2000` and `0x6000` are computed first.
+  Both branches build `v[0]` (origin), `v[1]` (first edge) and `v[2]` (unit
+  normal of edge x dir). The key fix is a single float `l` reused for
+  `|v[2]|^2`, its inverse length, the `e[1]` dot and the radius
+  `NuFsqrt(l * l + d1 * d1)`, with `d1` the `e[2]` dot computed second. One
+  pseudo puts all four in `f2` and frees a callee-saved FPR, which moved the
+  sin/cos registers to `f21..f24` (601 to 900 of 912). Buffer writes index
+  `lbl_80407CE4 + k` and finish with `lbl_80407CE4 += 4`.
+
+All four use the donor note "OpenSaga 7bb2402 nucamera.c: no name hit; no JP
+PC pair listed" in their `hillclimb.py try` records.
+
+## First attempts
 
 | Function and range | Size | Best strict score | Exact instructions | First difference | Next hypothesis |
 | --- | ---: | --- | ---: | --- | --- |
@@ -82,6 +123,6 @@ python3 tools/score_fn.py NAME src/auto/nu3d/ngc/nucamera.c --body work/NAME/try
 python3 tools/hillclimb.py try NAME --unit auto/nu3d/ngc/nucamera --source src/auto/nu3d/ngc/nucamera.c --body work/NAME/try.c --hypothesis 'Test recovered m2c sweep draft and establish register/frame baseline' --donor-note 'OpenSaga reviewed; no name hit; GC assembly owns offsets and call order'
 ```
 
-No `verify_fn.py --strict-symbols` acceptance is claimed: all four strict
-scores are mismatches. The unit remains NonMatching; promotion requires the
-separate section, relocation and linked-range gates.
+The first-attempt scores above were all mismatches. The strict matches
+section records the later acceptance. The unit remains NonMatching;
+promotion requires the separate section, relocation and linked-range gates.
