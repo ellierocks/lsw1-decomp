@@ -398,3 +398,78 @@ void *fn_8008FB18(struct nuvec_s *start, struct nuvec_s *delta, f32 radius, f32 
 fallback:
     return fn_80059C44(start, delta, radius, arg);
 }
+
+extern void (*fn_80009948(char *, int))(char *, ...);
+extern char lbl_8019DE8C[];
+extern char lbl_8019DECC[];
+extern void fn_80095234(void *entry);
+struct apientry_s { u8 pad0[8]; void *a; void *b; void *c; u8 pad14[0x54 - 0x14]; };
+struct apisys_s {
+    s32 count0; s32 entry_count; s32 count8; u8 padC[8]; s32 count14;
+    struct apientry_s *entries; s16 *array1c; s32 field20; void *array24;
+    u8 pad28[0x34 - 0x28]; s32 field34;
+};
+extern struct apisys_s *lbl_80408DF0;
+void fn_80091FC0(u32 *buf, s32 unused, s32 count0, s32 entry_count, s32 count8, s32 count14,
+                 s32 field20, s32 field34)
+{
+    s32 i;
+    if (lbl_80408DF0 != NULL) {
+        fn_80009948(lbl_8019DE8C, 0x7F6)(lbl_8019DECC);
+    }
+    {
+        struct apisys_s *p = (struct apisys_s *)((*buf + 0xF) & ~0xF);
+        lbl_80408DF0 = p;
+        *buf = (u32)p + 0x38;
+        memset(p, 0, 0x38);
+    }
+    {
+        struct apisys_s *sys = lbl_80408DF0;
+        sys->count0 = count0;
+        sys->count8 = count8;
+        sys->count14 = count14;
+        sys->entry_count = entry_count;
+        if (entry_count != 0) {
+            sys->entries = (struct apientry_s *)((*buf + 3) & ~3);
+            *buf = (*buf + 3) & ~3;
+            *buf += sys->entry_count * 0x54;
+            memset(sys->entries, 0, sys->entry_count * 0x54);
+            for (i = 0; i < lbl_80408DF0->entry_count; i++) {
+                struct apisys_s *s2 = lbl_80408DF0;
+                struct apientry_s *entry = &s2->entries[i];
+                if (s2->count8 != 0) {
+                    entry->a = (void *)((*buf + 3) & ~3);
+                    *buf = (*buf + 3) & ~3;
+                    *buf += s2->count8 * 4;
+                    entry->b = (void *)*buf;
+                    *buf = (*buf + 3) & ~3;
+                    *buf += s2->count8 * 4;
+                    entry->c = (void *)*buf;
+                    *buf = (*buf + 3) & ~3;
+                    *buf += s2->count8 * 4;
+                }
+                fn_80095234(entry);
+            }
+        }
+    }
+    {
+        struct apisys_s *sys = lbl_80408DF0;
+        if (sys->count0 != 0) {
+            sys->array1c = (s16 *)((*buf + 3) & ~3);
+            *buf = (*buf + 3) & ~3;
+            *buf += sys->count0 * 2;
+            memset(sys->array1c, 0, sys->count0 * 2);
+        }
+    }
+    {
+        struct apisys_s *sys = lbl_80408DF0;
+        if (sys->count14 != 0) {
+            sys->array24 = (void *)((*buf + 3) & ~3);
+            *buf = (*buf + 3) & ~3;
+            *buf += sys->count14 * 0x34;
+            memset(sys->array24, 0, sys->count14 * 0x34);
+        }
+    }
+    lbl_80408DF0->field20 = field20;
+    lbl_80408DF0->field34 = field34;
+}
