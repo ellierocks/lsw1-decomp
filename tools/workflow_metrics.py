@@ -43,7 +43,7 @@ import sprint_metrics  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config" / "workflow_metrics.toml"
 IDLE_CAP = sprint_metrics.DEFAULT_IDLE_CAP
-HYPOTHESIS_FLOOR = 25  # distinct compiling candidates before a park is credible (docs/sprint_workflow.md)
+HYPOTHESIS_FLOOR = sprint_metrics.PARK_FLOOR  # distinct candidates before a park is credible
 
 
 @dataclass(frozen=True)
@@ -122,9 +122,7 @@ def parse_time(value) -> float | None:
     return datetime.fromisoformat(str(value)).timestamp()
 
 
-def real_score(e: dict) -> bool:
-    """Score events from unit tests (target 0, e.g. the stub function `f`) are not attempts."""
-    return e.get("kind") == "score" and (e.get("verdict") == "ERROR" or (e.get("target") or 0) > 0)
+real_score = sprint_metrics.real_score
 
 
 @dataclass

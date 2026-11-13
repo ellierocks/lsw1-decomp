@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 NEAR_MISS_RATIO = 0.95
+PARK_FLOOR = 25  # distinct compiling candidates before a park is credible (docs/sprint_workflow.md)
 
 
 DEFAULT_IDLE_CAP = 900.0  # seconds; a gap between activity events counts only up to this
@@ -173,3 +174,36 @@ def usage_report(records):
     result['cost_usd'] = (sum(r['cost_usd'] for r in records.values())
                           if all(r['cost_usd'] is not None for r in records.values()) else None)
     return result
+
+
+def real_score(e: dict) -> bool:
+    """Score events from unit tests (target 0, e.g. the stub function `f`) are not attempts."""
+    return e.get("kind") == "score" and (e.get("verdict") == "ERROR" or (e.get("target") or 0) > 0)
+
+
+PLATEAU_WINDOW = 10  # distinct candidates since the last best-score gain that make a plateau
+
+
+def plateau(events: list[dict], name: str, floor: int = PARK_FLOOR,
+            window: int = PLATEAU_WINDOW) -> dict | None:
+    """{"distinct", "best", "target", "since"} once NAME has FLOOR distinct compiled candidates
+    in EVENTS and the last WINDOW of them did not raise the best exact count; else None.
+
+    fn_80090FB0 took 9.3 more minutes after it plateaued
+    (docs/workflow_gaps.md#17-plateaued-functions-kept-being-scored)."""
+    seen: dict[str, int] = {}
+    target = 0
+    for e in events:
+        if e.get("name") == name and real_score(e) and e.get("verdict") != "ERROR" and e.get("codegen"):
+            if e.get("verdict") == "MATCH":
+                return None
+            seen.setdefault(e["codegen"], int(e.get("exact") or 0))
+            target = int(e.get("target") or target)
+    exacts = list(seen.values())
+    if len(exacts) < floor:
+        return None
+    best = max(exacts)
+    since = len(exacts) - 1 - exacts.index(best)
+    if since < window:
+        return None
+    return {"distinct": len(exacts), "best": best, "target": target, "since": since}

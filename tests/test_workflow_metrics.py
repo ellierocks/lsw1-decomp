@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools import order_search, score_fn, sprint_bench as sb
-from tools import workflow_metrics as wm
+from tools import sprint_metrics, workflow_metrics as wm
 
 
 def score(t, name, verdict, exact=0, target=10, **extra):
@@ -56,6 +56,19 @@ class FunctionStatsTests(unittest.TestCase):
         self.assertEqual(wm.distinct_candidates(hashed["a"]), (2, True))
         proxy = wm.function_stats([score(1, "a", "MISMATCH", 5, codegen="x"), score(2, "a", "MISMATCH", 6)])
         self.assertEqual(wm.distinct_candidates(proxy["a"]), (2, False))
+
+
+class PlateauTests(unittest.TestCase):
+    def test_plateau_needs_the_floor_and_a_flat_window(self):
+        def run(exacts):
+            return [score(i, "f", "MISMATCH", x, 50, codegen=f"h{i}") for i, x in enumerate(exacts)]
+        self.assertIsNone(sprint_metrics.plateau(run([40] * 20), "f"))  # under the floor
+        flat = run(list(range(10, 25)) + [24] * 15)  # best 24 first at candidate 14 of 30
+        self.assertEqual(sprint_metrics.plateau(flat, "f"), {"distinct": 30, "best": 24, "target": 50, "since": 15})
+        self.assertIsNone(sprint_metrics.plateau(run(list(range(30))), "f"))  # still improving
+        dup = flat + [score(99, "f", "MISMATCH", 24, 50, codegen="h0")] * 5 + [score(98, "f", "ERROR")]
+        self.assertEqual(sprint_metrics.plateau(dup, "f")["distinct"], 30)  # repeats and errors do not count
+        self.assertIsNone(sprint_metrics.plateau(flat + [score(100, "f", "MATCH", 50, 50, codegen="m")], "f"))
 
 
 class MeasureTests(unittest.TestCase):
