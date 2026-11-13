@@ -288,6 +288,54 @@ void fn_8001D0D8(void)
     lbl_80314470._22 = w;
     lbl_80314470._23 = w;
 }
+
+typedef struct { NuPortalVec4 rows[4]; } NuPortalMtx;
+typedef struct { struct nuvec_s normal; f32 pad0c; struct nuvec_s point; } NuPortalCamPlane;
+f32 fn_8000ED40(f32 value);
+extern struct numtx_s lbl_801B1638;
+extern NuPortalCamPlane lbl_80313288;
+extern NuPortalMtx lbl_803144B0;
+extern NuPortalMtx lbl_803144F0;
+extern NuPortalVec4 lbl_80314530;
+extern NuPortalVec4 lbl_80314540;
+extern NuPortalMtx lbl_80314550;
+extern NuPortalMtx lbl_80314590;
+
+static inline void portal_abs_row(NuPortalVec4* out, NuPortalVec4* in)
+{
+    out->x = fn_8000ED40(in->x);
+    out->y = fn_8000ED40(in->y);
+    out->z = fn_8000ED40(in->z);
+    out->w = fn_8000ED40(in->w);
+}
+
+static inline void portal_set_row(NuPortalVec4* row, f32 x, f32 y, f32 z, f32 w)
+{
+    row->x = x;
+    row->y = y;
+    row->z = z;
+    row->w = w;
+}
+
+static inline void portal_abs_mtx(NuPortalMtx* out, NuPortalMtx* in)
+{
+    portal_abs_row(&out->rows[0], &in->rows[0]);
+    portal_abs_row(&out->rows[1], &in->rows[1]);
+    portal_abs_row(&out->rows[2], &in->rows[2]);
+    portal_set_row(&out->rows[3], 0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+void fn_8001D25C(void)
+{
+    NuMtxMul((struct numtx_s*)&lbl_803144B0, &lbl_801B1638, &lbl_80314430);
+    NuMtxMul((struct numtx_s*)&lbl_803144F0, &lbl_801B1638, &lbl_80314470);
+    *(struct nuvec_s*)&lbl_80314530 = lbl_80313288.normal;
+    lbl_80314530.w = -NuVecDot(&lbl_80313288.point, &lbl_80313288.normal);
+    portal_abs_row(&lbl_80314540, &lbl_80314530);
+    lbl_80314540.w = 0.0f;
+    portal_abs_mtx(&lbl_80314550, &lbl_803144B0);
+    portal_abs_mtx(&lbl_80314590, &lbl_803144F0);
+}
 typedef struct {
     u8 pad0[0x1c];
     u16 count;
