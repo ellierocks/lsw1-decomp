@@ -61,9 +61,26 @@ with `numkeys` as the upper bound.
 
 ## Candidate and scores
 
+### 2026-11-12 continuation
+
+The current ProDG candidate improves `NuAnimCurveCalcVal2` to **78/105 exact
+instructions** (106 emitted). `python3 tools/score_fn.py NuAnimCurveCalcVal2
+src/nu3dx/nuanim.c` and `python3 tools/verify_fn.py NuAnimCurveCalcVal2 --unit
+nu3dx/nuanim --build --strict-symbols` agree that it remains a mismatch. Its
+four mask-count cases match the retail body through instruction 53. Explicit
+accumulation in cases 2 and 3 reproduces the target's `r5` count register;
+forming the previous key first improves the alignment after the switch. The
+first remaining difference is an extra `slwi r9,r5,4` before the key pointer
+load. Next, test source forms that schedule the key-array load before the shift
+while retaining the `r5` count and the step-path pointer shape. The later
+Hermite loads and float schedule still differ. No function or unit was
+promoted; the built DOL remains byte-identical through fallback assembly.
+
+The earlier 43/105 experiments below document the starting candidate.
+
 All scores use `tools/score_fn.py` (ProDG 3.9.3, `-O2`, configure cflags) and
 the official `verify_fn.py --unit nu3dx/nuanim --build --strict-symbols`. The
-two agree on the in-tree candidate (43/105).
+two agreed on the earlier in-tree candidate (43/105).
 
 | Attempt | Shape | Exact | Insns (mine/target) | First difference |
 |---|---|---|---|---|
@@ -79,7 +96,7 @@ Recorded with `hillclimb.py try`, ledger `work/hillclimb/nuanim-prodg-wiring/`
 (MWCC wiring) and `1ea1430b8b4f…` are **superseded**. The MWCC object was not
 the game-code oracle.
 
-### Remaining mismatch and next hypothesis
+### Earlier mismatch and hypothesis
 
 Target: `idx` lives in `r5` from the initial `li r5,0`. Candidate: `idx` is in
 `r7`. Every case block then differs in register, not in instruction sequence.
