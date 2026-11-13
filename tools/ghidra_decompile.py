@@ -258,6 +258,29 @@ def project_ready() -> bool:
     return (PROJECT_DIR / f"{PROJECT_NAME}.gpr").exists() and (PROJECT_DIR / f"{PROJECT_NAME}.rep").is_dir()
 
 
+def auto_setup() -> bool:
+    """Seed this checkout's project from the shared analysed seed when one exists (about 6 s).
+
+    Fresh worktrees run build.sh, not bootstrap.sh, so they never got the project and drafts
+    went without ghidra.c. A full import (minutes) is never started implicitly."""
+    if project_ready() or os.environ.get("LSW1_NO_GHIDRA") or not DOL.is_file():
+        return project_ready()
+    try:
+        find_analyze_headless()
+        check_location()
+        if not (seed_dir() / "project" / f"{PROJECT_NAME}.gpr").exists():
+            return False
+    except SystemExit:
+        return False
+    r = subprocess.run([sys.executable, str(Path(__file__).resolve()), "setup", "--if-missing"],
+                       cwd=ROOT, capture_output=True, text=True)
+    if r.returncode or not project_ready():
+        print(f"note: Ghidra auto-setup failed: {(r.stdout + r.stderr).strip()[-300:]}", file=sys.stderr)
+        return False
+    print(f"seeded the Ghidra project from the shared analysis ({display(PROJECT_DIR)})")
+    return True
+
+
 def headless(args: list[str], quiet: bool = True, project: tuple[Path, str] | None = None) -> str:
     project_dir, project_name = project or (PROJECT_DIR, PROJECT_NAME)
     cmd = [find_analyze_headless(), str(project_dir), project_name, "-scriptPath", str(SCRIPTS_DIR), *args]
@@ -281,10 +304,16 @@ def check_location() -> None:
                          "set LSW1_GHIDRA_DIR to a path without them")
 
 
+# Everything in this file that changes an import's analysis: the ELF layout and the import
+# arguments. Bump it when build_elf or the cmd_setup import changes; other edits keep the seed.
+IMPORT_KEY = "elf-v1 PowerPC:BE:32:default SetSdaRegisters"
+
+
 def seed_dir() -> Path:
     """Seed location keyed by everything an import's analysis depends on except the names."""
     h = hashlib.sha1(DOL.read_bytes())
-    for f in sorted(SCRIPTS_DIR.glob("*.java")) + [Path(__file__)]:
+    h.update(IMPORT_KEY.encode())
+    for f in sorted(SCRIPTS_DIR.glob("*.java")):
         h.update(f.name.encode() + f.read_bytes())
     return SEED_ROOT / h.hexdigest()[:12]
 
