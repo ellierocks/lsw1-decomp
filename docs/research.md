@@ -266,7 +266,10 @@ State lives in `<primary checkout>/build/ghidra/<checkout>-<hash>/`, because Ghi
 project paths that contain a `.`-prefixed element such as `.claude/worktrees`.
 The first full import also publishes its analysed project to `build/ghidra/seed/<key>/`
 (keyed by the DOL and the Ghidra scripts). Later checkouts copy that project and re-apply
-their own `symbols.txt` names; `setup --force` re-imports from scratch.
+their own `symbols.txt` names; `setup --force` re-imports from scratch. A checkout that only ran
+`build.sh` (such as a fresh T3 worktree) gets the same copy on its first `draft_fn.py`, which
+seeds the project whenever a matching seed exists (about 45 s once). It never starts a
+full import implicitly.
 
 **Headless (batch).** Use it for the sprint queue and for questions about globals:
 

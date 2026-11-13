@@ -55,6 +55,8 @@ median of 48 distinct candidates per park.
 | 16 | [Children got single functions, not items](#16-children-got-single-functions-not-items) | functions per child | fixed: `plan.py --batch N` and brief rule 6 |
 | 17 | [Plateaued functions kept being scored](#17-plateaued-functions-kept-being-scored) | matched bytes per child-hour | fixed: `score_fn.py` prints a PLATEAU notice |
 | 18 | [Body splicing dropped declarations needed before the new use](#18-body-splicing-dropped-declarations-needed-before-the-new-use) | compile-error rate | fixed: controlled evaluator replay 1/1 → 0/1 errors; two regression tests fail before the fix |
+| 19 | [Fresh worktrees had no Ghidra project](#19-fresh-worktrees-had-no-ghidra-project) | start to first compiling score | fixed: `draft_fn.py` seeds the project; worktrees with `ghidra.c` 0 → all |
+| 20 | [Drafts lost the unit's types](#20-drafts-lost-the-units-types) | compile-error rate; exact-instruction gain | fixed: drafts compile 30/60 → 54/60 |
 
 ## 1. Stale task packs change scores
 
@@ -422,7 +424,6 @@ hypothesis class, or move on.
 Before → after: no signal → a notice at the plateau. The replay shows 13.6 minutes of
 no-gain work across three functions, out of about 77 child-minutes in the cohort.
 
-
 ## 18. Body splicing dropped declarations needed before the new use
 
 The nuanim evaluator draft declared `lbl_80190074` and the diagnostic callback
@@ -446,3 +447,46 @@ one blocker, not population throughput. The candidate remains unmatched.
 The regression tests cover the real array/callback-factory failure with a host
 C89 compile, disabled later declarations and an existing visible declaration.
 Two tests fail against the original scorer and all three pass after the fix.
+
+## 19. Fresh worktrees had no Ghidra project
+
+The nuanim child (PR 166) reported "the local Ghidra project was unavailable". Ghidra 12.1
+is installed and a shared seed existed, but only `tools/bootstrap.sh` ran
+`ghidra_decompile.py setup`. T3 worktrees run `bash build.sh`, which never did, so
+`draft_fn.py` printed a note and wrote no `ghidra.c`.
+
+`draft_fn.py` now calls `ghidra_decompile.auto_setup()` when it would write `ghidra.c` and
+the project is missing. That copies the shared seed only; a full import (about a minute) is
+never started implicitly, and `LSW1_NO_GHIDRA=1` still opts out. The seed key also covered
+`ghidra_decompile.py` itself, so any edit to the tool orphaned the seed and forced a
+re-import. It now hashes the Java scripts and an `IMPORT_KEY` string, which changes only
+when the ELF layout or the import arguments change.
+
+Before → after: a fresh worktree's first draft had no `ghidra.c` → it has one. The first draft
+takes 45 s once; later drafts with Ghidra take about 7 s, and 0.5 s with `--no-ghidra`.
+
+## 20. Drafts lost the unit's types
+
+The same child reported that "m2c pointer-return inference still loses evaluator float
+expressions". `sweep.py` already gave m2c the unit source, preprocessed, as `--context`.
+`draft_fn.py`, the tool children use by hand, ran m2c with no context. Every float return
+and parameter came back as `void *` and struct fields as raw offsets.
+`NuAnimCurve2CalcVal` drafted as `void *NuAnimCurve2CalcVal(void **, void *, s32)` with an
+unparseable `fn_80009948` declaration. With the unit as context it drafts as
+`f32 NuAnimCurve2CalcVal(struct nuanimcurve2_s *, struct nuanimtime_s *, s32)` with named
+fields.
+
+`draft_fn.py` now passes the owning unit's preprocessed source to m2c. `draft_m2c.c` is the
+typed draft. `draft_m2c_plain.c` keeps the context-free draft for comparison, and
+`--no-context` makes the plain draft the only one.
+
+Before → after, measured on 60 random unmatched functions of 0x40–0x400 bytes (seed 7), each
+scored with `score_fn.py --body` in its unit:
+
+| Draft | Compiles | Mean exact instructions (all 60) |
+|---|---:|---:|
+| plain (before) | 30 / 60 | 21.3% |
+| typed (after) | 54 / 60 | 41.8% |
+
+Every function whose plain draft compiled also compiled typed. Of the 30 that compiled both
+ways, the typed draft scored higher on 3, the same on 26 and lower on 1.
