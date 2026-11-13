@@ -340,14 +340,22 @@ NuPortalFrustum* NuFrustrumAlloc(s32 count)
 typedef struct {
     u8 pad0[4];
     NuPortalPlane* planes;
-    u8 pad8[6];
+    s16* portal_indices;
+    u8 pad0c[2];
     u8 plane_count;
+    u8 portal_count;
+    s32 flags;
+    u8 priority;
+    u8 pad15[3];
 } NuPortalRoom;
 f32 NuPlnLine3(void* plane, struct nuvec_s* origin, struct nuvec_s* dir, struct nuvec_s* out);
 typedef struct {
     NuPortalPlane plane;
     struct nuvec_s* vertices;
     s16 vertex_count;
+    s16 front_room;
+    s16 back_room;
+    u8 pad1a[6];
 } NuPortalPortal;
 extern s32 lbl_80407C90;
 extern struct nuvec_s lbl_8020D8E8;
@@ -515,6 +523,88 @@ void drawClippedPortal(NuPortalPlane* portal, NuPortalRoom* room, NuPortalVec3* 
         }
         NuPs2CreateSkin();
     }
+}
+
+typedef struct {
+    u8 pad0[4];
+    NuPortalPortal* portals;
+    s32 num_rooms;
+    NuPortalRoom* rooms;
+} NuPortalRoomSet;
+extern char lbl_80190A08[];
+
+static inline s32 portal_room_contains(NuPortalRoom* room, NuPortalVec3* position)
+{
+    f32 distance = 0.0f;
+    s16 j;
+    for (j = 0; j < room->plane_count; j++) {
+        NuPortalPlane* plane = &room->planes[j];
+        distance = position->x * plane->x + position->y * plane->y + position->z * plane->z + plane->d;
+        if (distance > 0.0f)
+            goto done;
+    }
+done:
+    {
+        s32 r = 0;
+        if (distance <= 0.0f)
+            r = 1;
+        return r;
+    }
+}
+
+s32 NuPortalWhichRoom(u8* scene, NuPortalVec3* position)
+{
+    NuPortalRoomSet* set = (NuPortalRoomSet*)(scene + 0x88);
+    s16 candidates[2] = {0, 0};
+    s16 count = 0;
+    s16 i;
+    s16 j;
+    f32 distance;
+    NuPortalRoom* room;
+    NuPortalPlane* plane;
+    NuPortalRoom* first;
+    NuPortalRoom* second;
+    NuPortalPortal* portal;
+    s16 index;
+    for (i = 0; i < set->num_rooms; i++) {
+        if (portal_room_contains(&set->rooms[i], position)) {
+            first = &set->rooms[candidates[0]];
+            second = &set->rooms[candidates[1]];
+            if (count == 2) {
+                if (first->priority == second->priority)
+                    fn_80009948(lbl_80190974, 0x20f)(lbl_80190A08);
+                if (first->priority < second->priority) {
+                    if (first->flags >= 0)
+                        fn_80009948(lbl_80190974, 0x214)(lbl_80190A08);
+                    candidates[0] = i;
+                } else {
+                    if (second->flags >= 0)
+                        fn_80009948(lbl_80190974, 0x21b)(lbl_80190A08);
+                    candidates[1] = i;
+                }
+            }
+            candidates[count++] = i;
+            if (count == 2 && first->flags >= 0 && second->flags >= 0)
+                break;
+        }
+    }
+    if (count == 1)
+        return candidates[0];
+    if (count == 0)
+        return -1;
+    for (i = 0; i < set->rooms[candidates[0]].portal_count; i++) {
+        index = set->rooms[candidates[0]].portal_indices[i];
+        for (j = 0; j < set->rooms[candidates[1]].portal_count; j++) {
+            if (index == set->rooms[candidates[1]].portal_indices[j]) {
+                portal = &set->portals[index];
+                if (portal->plane.x * position->x + portal->plane.y * position->y + portal->plane.z * position->z
+                        + portal->plane.d < 0.0f)
+                    return portal->front_room;
+                return portal->back_room;
+            }
+        }
+    }
+    return -1;
 }
 
 s32 clipTestBox(NuPortalVec3* minimum, NuPortalVec3* maximum, NuPortalPlane* planes, s32 count)
