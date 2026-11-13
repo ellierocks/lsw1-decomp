@@ -206,6 +206,13 @@ class QueueTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'outside queue=.*z'):
             validate_queue(['a'], ['a', 'z'], [])
 
+    def test_prior_matches_leave_the_queue_unless_named(self):
+        from tools.sprint_finish import drop_prior_matches
+        queue, dropped = drop_prior_matches(['new', 'old', 'parked', 'again'], {'new', 'parked', 'again'},
+                                            {'old', 'again'})
+        self.assertEqual((queue, dropped), (['new', 'parked', 'again'], ['old']))
+        validate_queue(queue, ['new', 'again'], ['parked=1/2: regs; next: x'])
+
     def test_score_fn_adds_scored_function(self):
         from tools import score_fn
         with tempfile.TemporaryDirectory() as directory:

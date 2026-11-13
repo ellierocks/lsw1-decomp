@@ -195,15 +195,30 @@ def global_functions(text: str) -> list[str]:
                               if not re.search(r"\bstatic\b", specs)))
 
 
+def _unit_path(unit: str) -> Path:
+    path = Path(unit)
+    return path if path.is_absolute() else ROOT / path
+
+
+def defined_at_base(unit: str, base: str | None = None) -> set[str]:
+    """Functions UNIT already defined at the merge base (matched before this branch)."""
+    rel = _unit_path(unit).resolve().relative_to(ROOT)
+    old = run(["git", "show", f"{base or merge_base()}:{rel.as_posix()}"])
+    return set(defined_functions(old.stdout)) if old.returncode == 0 else set()
+
+
 def matched_from_diff(unit: str, base: str | None = None) -> list[str]:
     """Non-static functions defined in UNIT now that were not defined there at the merge base."""
-    path = Path(unit)
-    if not path.is_absolute():
-        path = ROOT / path
-    rel = path.resolve().relative_to(ROOT)
-    old = run(["git", "show", f"{base or merge_base()}:{rel.as_posix()}"])
-    before = set(defined_functions(old.stdout)) if old.returncode == 0 else set()
-    return [fn for fn in global_functions(path.read_text()) if fn not in before]
+    before = defined_at_base(unit, base)
+    return [fn for fn in global_functions(_unit_path(unit).read_text()) if fn not in before]
+
+
+def drop_prior_matches(queue: list[str], named: set[str], prior: set[str]) -> tuple[list[str], list[str]]:
+    """(queue, dropped): queue names already defined before this branch and not named in this
+    finish. score_fn queues every function it scores, so rechecking an old match would otherwise
+    fail queue accounting; it is a reverification, not progress, so it is not counted matched."""
+    dropped = [n for n in queue if n in prior and n not in named]
+    return [n for n in queue if n not in dropped], dropped
 
 
 def tool_commits(base: str | None = None) -> list[str]:
@@ -361,9 +376,15 @@ def main(argv=None) -> int:
     if not args.unit:
         ap.error("finish requires --unit and the complete --queue")
     if args.unit:
+        queue = metrics.dedupe(args.queue or (base or {}).get("queue", []))
+        if args.matched_from_diff:
+            named = set(args.functions) | parked_names
+            queue, dropped = drop_prior_matches(queue, named, defined_at_base(args.unit))
+            if dropped:
+                print(f"queue: {', '.join(dropped)} already matched before this branch "
+                      "(reverified while scoring, not progress); left out of accounting", file=sys.stderr)
         try:
-            validate_queue(metrics.dedupe(args.queue or (base or {}).get("queue", [])), args.functions,
-                           args.parked, args.deferred)
+            validate_queue(queue, args.functions, args.parked, args.deferred)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
