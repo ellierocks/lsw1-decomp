@@ -108,7 +108,7 @@ s32 fn_80013890(void *arg0, void *arg1) {
 void *NuMemAlloc(s32, s32 *, s32);
 extern s32 lbl_8018FC1C[];
 
-void fn_80015C88(s32 *arg0, s32 arg1, s32 arg2, s32 arg3) {
+s32 fn_80015C88(s32 *arg0, s32 arg1, s32 arg2, s32 arg3) {
     s32 var_r0;
     s32 var_r3;
 
@@ -136,6 +136,7 @@ void fn_80015C88(s32 *arg0, s32 arg1, s32 arg2, s32 arg3) {
         }
         (*(s32 *)((s8 *)(var_r3) + (0xE8))) = var_r0;
     }
+    return var_r3;
 }
 
 /* Instance animation behind a special handle (levels.h: nuinstanim_s). Through the

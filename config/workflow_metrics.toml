@@ -91,6 +91,24 @@ before = "opus-brief-2026-11-12"
 after = "opus-gapfix-2026-11-13"
 metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]
 
+# Controlled replay: identical nuanim evaluator body, same unit/compiler/model.
+# One ERROR before and one compiled mismatch after; narrow windows exclude matching search.
+[[cohort]]
+name = "nuanim-forward-extern-before"
+label = "Original scorer drops later externs before their new use"
+segments = [{ run = "t3-64a20ec0-263fa37007ce45cf-1794598235", since = "2026-11-13T19:50:41.170+00:00", until = "2026-11-13T19:50:41.172+00:00" }]
+
+[[cohort]]
+name = "nuanim-forward-extern-after"
+label = "Scorer forwards the source types before the replacement body"
+segments = [{ run = "t3-64a20ec0-263fa37007ce45cf-1794598235", since = "2026-11-13T19:50:41.399+00:00", until = "2026-11-13T19:50:41.401+00:00" }]
+
+[[comparison]]
+title = "NuAnim evaluator extern-order repair"
+subtitle = "controlled replay of one unchanged candidate; no matching throughput claim"
+before = "nuanim-forward-extern-before"
+after = "nuanim-forward-extern-after"
+metrics = ["compile_error_rate"]
 # Thread t3/lsw1-plan-batch-decomp, 2026-11-13. Batch of four plan items after gap fixes 15-17
 # (plan.py --batch, PLATEAU notice, strict-only targets dropped): two Opus children
 # (nuportal, nurndr-nugscn) and two Codex gpt-6.1-sol children at high effort (nuanim,
