@@ -57,6 +57,7 @@ median of 48 distinct candidates per park.
 | 18 | [Body splicing dropped declarations needed before the new use](#18-body-splicing-dropped-declarations-needed-before-the-new-use) | compile-error rate | fixed: controlled evaluator replay 1/1 → 0/1 errors; two regression tests fail before the fix |
 | 19 | [Fresh worktrees had no Ghidra project](#19-fresh-worktrees-had-no-ghidra-project) | start to first compiling score | fixed: `draft_fn.py` seeds the project; worktrees with `ghidra.c` 0 → all |
 | 20 | [Drafts lost the unit's types](#20-drafts-lost-the-units-types) | compile-error rate; exact-instruction gain | fixed: drafts compile 30/60 → 54/60 |
+| 21 | [Rodata float labels hide literal pools](#21-rodata-float-labels-hide-literal-pools) | exact-instruction gain (sweep) | fixed: `float_literals` repair; nuportal sweep +9 exact over 5 functions |
 
 ## 1. Stale task packs change scores
 
@@ -515,3 +516,25 @@ scored with `score_fn.py --body` in its unit:
 
 Every function whose plain draft compiled also compiled typed. Of the 30 that compiled both
 ways, the typed draft scored higher on 3, the same on 26 and lower on 1.
+
+## 21. Rodata float labels hide literal pools
+
+ProDG writes each function's float literals into its own `.rodata` pool, and m2c drafts
+them as `extern f32 lbl_X[];` loads. The label and the literal load the same value, but
+GCC schedules literal-pool loads differently: the `lis` order, and whether a constant
+stays in a register across calls. In the nuportal sprint (s2-nu3d, 2026-11-13) three
+hand matches needed only this change once their structure was right: `buildFrustrum`
+(704 B), `drawViewFrustrum` (332 B) and `NuAnimCurveEval` (172 B), which had plateaued
+at 145 candidates with labels.
+
+`tools/sweep_repairs/literals.py` adds a final-stage `float_literals` repair. It reads
+every single-`.float` 4-byte `.rodata` object from the retail assembly and rewrites a
+label as the shortest C literal that rounds to the same bits, but only when every use is
+`label[0]`. It produces the all-literal draft first, then each label alone. Near
+`FLT_MAX`, dtk prints `3.4028235e38`, which is out of range for `struct.pack` and makes old
+GCC warn, so the repair writes the truncated `3.4028234e+38f` instead.
+
+Before → after (same unit source, nuportal sweep, exact instructions):
+`NuAnimCurveEval` 33 → 36, `NuAnimCurveSetApplyBlendToJoint2` 256 → 258,
+`NuAnimData2Fixup` 86 → 89, `NuAnimData2Relocate` 98 → 99 and `drawViewFrustrum`
+44 → 45. No function scored lower. Tests: `tests/test_sweep_literals.py`.
