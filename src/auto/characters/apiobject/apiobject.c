@@ -353,3 +353,48 @@ struct aimessage_s *CheckAIMessage(struct aimessagesys_s *sys, char *name, struc
     }
     return result;
 }
+
+#include "numath/numath.h"
+extern s32 lbl_80408DEC;
+extern f32 lbl_80408DE8;
+extern f32 NuFsqrt(f32);
+extern f32 NuFdiv(f32, f32);
+extern void *fn_80059C44(struct nuvec_s *pos, struct nuvec_s *delta, f32 radius, void *arg);
+void *fn_8008FB18(struct nuvec_s *start, struct nuvec_s *delta, f32 radius, f32 maxdist, void *arg)
+{
+    f32 len;
+    struct nuvec_s dir;
+    struct nuvec_s moved;
+    struct nuvec_s pos;
+    struct nuvec_s step;
+    void *hit;
+    if (lbl_80408DEC == 0) goto fallback;
+    len = delta->x * delta->x + delta->y * delta->y + delta->z * delta->z;
+    if (len > maxdist * maxdist) return NULL;
+    if (len < lbl_80408DE8 * lbl_80408DE8) goto fallback;
+    len = NuFsqrt(len);
+    NuVecScale(&dir, delta, NuFdiv(1.0f, len));
+    moved.x = 0.0f;
+    moved.y = 0.0f;
+    moved.z = 0.0f;
+    pos = *start;
+    while (len > 0.0f) {
+        if (len >= lbl_80408DE8) {
+            NuVecScale(&step, &dir, lbl_80408DE8);
+            len -= lbl_80408DE8;
+        } else {
+            NuVecScale(&step, &dir, len);
+            len = 0.0f;
+        }
+        hit = fn_80059C44(&pos, &step, radius, arg);
+        if (hit != NULL) {
+            NuVecAdd(delta, &moved, &step);
+            return hit;
+        }
+        NuVecAdd(&pos, &pos, &step);
+        NuVecAdd(&moved, &moved, &step);
+    }
+    return NULL;
+fallback:
+    return fn_80059C44(start, delta, radius, arg);
+}
