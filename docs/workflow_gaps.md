@@ -162,6 +162,11 @@ commits touching its inputs since it ran.
   already defined at the merge base out of accounting with a note (3 unresolved → 0;
   record 11 → 8). Both apiobject children hit the same refusal and passed `--queue` or
   `--deferred` by hand.
+- `score_fn.py --body` failed with a cc1 redefinition when the body carried a `static inline`
+  helper the unit already defined (the nugscn `NuGScnAlloc`/`NuVtxSetStride` drafts after
+  a first `--apply`). The body's helper now replaces the unit's copy in place: rescoring such
+  a body went from a compile error to a score (1 → 0 compile errors per rescore on
+  `fn_80028DAC`, 2026-11-13; `tests/test_draft_score_helpers.py`).
 - `tools/quick_wins.py` reads one hard-coded split file, `auto_01_8001752C_text.s`, which a
   later split can leave behind (see gap 1). It does not feed scoring, so it was left; point
   it at the current units when next touched.

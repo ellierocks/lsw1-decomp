@@ -66,6 +66,25 @@ class DropRedeclaredTest(unittest.TestCase):
         self.assertIn("extern void (*other)(s32);", out)
 
 
+class StaticHelperTest(unittest.TestCase):
+    def test_body_helper_replaces_unit_definition_in_place(self):
+        text = ("static inline s32 H(s32 x)\n{\n    return x;\n}\n\nvoid g(void) { H(1); }\n\n"
+                "void f(void)\n{\n    H(2);\n}\n")
+        body = "static inline s32 H(s32 x)\n{\n    return x + 1;\n}\n\nvoid f(void)\n{\n    H(3);\n}\n"
+        out = score_fn.splice_body(text, "f", body)
+        self.assertEqual(out.count("static inline s32 H"), 1)
+        self.assertLess(out.index("return x + 1;"), out.index("void g(void)"))
+        self.assertIn("H(3);", out)
+        self.assertNotIn("H(2);", out)
+
+    def test_new_helper_stays_in_body(self):
+        text = "void f(void)\n{\n}\n"
+        body = "static inline s32 H(void)\n{\n    return 0;\n}\n\nvoid f(void)\n{\n    H();\n}\n"
+        out = score_fn.splice_body(text, "f", body)
+        self.assertEqual(out.count("static inline s32 H"), 1)
+        self.assertLess(out.index("static inline s32 H"), out.index("void f(void)"))
+
+
 class FunctionExternTest(unittest.TestCase):
     def test_array_extern_becomes_the_definitions_prototype(self):
         text = "extern s32 fn_A[];\nvoid g(void) { h(fn_A); }\n"
