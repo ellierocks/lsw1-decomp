@@ -18,8 +18,10 @@ typedef struct { f32 x, y, z, d; } NuPortalPlane;
 typedef struct {
     f32 transposed[32];
     NuPortalPlane* planes;
-    u8 pad84[0x18];
+    NuPortalVec3 minimum;
+    NuPortalVec3 maximum;
     s16 plane_count;
+    s16 room_id;
 } NuPortalFrustum;
 extern NuPortalPlane lbl_803145D0;
 extern NuPortalVariptr lbl_8040A328;
@@ -394,9 +396,6 @@ void drawSquare(NuPortalVec3* minimum, NuPortalVec3* maximum, u32 colour)
 }
 
 extern s32 lbl_80407C90;
-extern f32 lbl_801909F4[];
-extern f32 lbl_801909F8[];
-extern f32 lbl_801909FC[];
 extern struct nuvec_s lbl_8020D8E8;
 void NuCameraEnableClipping(struct nuvec_s* out, f32 x, f32 y);
 void NuCameraTransformScreenClip(void);
@@ -409,13 +408,13 @@ void drawViewFrustrum(void)
     struct nuvec_s points[4];
     s32 i;
     if (lbl_80407C90 != 0) {
-        NuCameraEnableClipping(&corners[0], lbl_801909F4[0], lbl_801909F4[0]);
-        NuCameraEnableClipping(&corners[1], lbl_801909F4[0], lbl_801909F8[0]);
-        NuCameraEnableClipping(&corners[2], lbl_801909F8[0], lbl_801909F8[0]);
-        NuCameraEnableClipping(&corners[3], lbl_801909F8[0], lbl_801909F4[0]);
+        NuCameraEnableClipping(&corners[0], -1.0f, -1.0f);
+        NuCameraEnableClipping(&corners[1], -1.0f, 1.0f);
+        NuCameraEnableClipping(&corners[2], 1.0f, 1.0f);
+        NuCameraEnableClipping(&corners[3], 1.0f, -1.0f);
         for (i = 0; i < 4; i++) {
             struct nuvec_s* p = &points[i];
-            NuVecScale(p, &corners[i], lbl_801909FC[0]);
+            NuVecScale(p, &corners[i], 0.2f);
             NuVecAdd(p, p, &lbl_8020D8E8);
         }
         NuCameraTransformScreenClip();
@@ -545,4 +544,80 @@ void transposeClipPlanes(void *arg0) {
             }
         }
     }
+}
+
+typedef struct {
+    u8 pad0[0x40];
+    f32 fov;
+    f32 aspect;
+} NuPortalCamera;
+extern NuPortalCamera* lbl_8040A320;
+extern struct numtx_s lbl_8020D898;
+extern const f32 lbl_80190A34[];
+extern const f32 lbl_80190A38[];
+f32 NuSinApprox(s32 angle);
+f32 NuCosApprox(s32 angle);
+void NuTexLoadTextureFromDDSFile(NuPortalPlane* out, NuPortalPlane* in, struct numtx_s* m);
+
+static inline f32 portal_tan(f32 x)
+{
+    s32 angle = (s32)x;
+    return NuSinApprox(angle) / NuCosApprox(angle);
+}
+
+NuPortalFrustum* buildFrustrum(NuPortalVec3* minimum, NuPortalVec3* maximum, s16 room_id)
+{
+    NuPortalFrustum* frustum = NuFrustrumAlloc(4);
+    NuPortalPlane* planes;
+    NuPortalVec3 pos;
+    f32 tangent, horizontal, edge, inv;
+    s32 angle;
+    planes = frustum->planes;
+    frustum->minimum = *minimum;
+    frustum->maximum = *maximum;
+    frustum->room_id = room_id;
+    tangent = portal_tan(lbl_8040A320->fov * 0.5f * 10430.378f);
+    horizontal = tangent / lbl_8040A320->aspect;
+
+    edge = tangent * minimum->y;
+    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
+    planes[2].x = lbl_80190A38[0];
+    planes[2].d = lbl_80190A38[0];
+    planes[2].y = inv;
+    planes[2].z = -edge * inv;
+
+    edge = tangent * maximum->y;
+    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
+    planes[3].x = lbl_80190A38[0];
+    planes[3].d = lbl_80190A38[0];
+    planes[3].z = edge * inv;
+    planes[3].y = -inv;
+
+    edge = horizontal * maximum->x;
+    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
+    planes[0].y = lbl_80190A38[0];
+    planes[0].d = lbl_80190A38[0];
+    planes[0].z = edge * inv;
+    planes[0].x = -inv;
+
+    edge = horizontal * minimum->x;
+    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
+    planes[1].y = lbl_80190A38[0];
+    planes[1].d = lbl_80190A38[0];
+    planes[1].x = inv;
+    planes[1].z = -edge * inv;
+
+    pos.x = lbl_8020D898._30;
+    pos.y = lbl_8020D898._31;
+    pos.z = lbl_8020D898._32;
+    NuTexLoadTextureFromDDSFile(&planes[0], &planes[0], &lbl_8020D898);
+    planes[0].d = -(pos.x * planes[0].x + pos.y * planes[0].y + pos.z * planes[0].z);
+    NuTexLoadTextureFromDDSFile(&planes[1], &planes[1], &lbl_8020D898);
+    planes[1].d = -(pos.x * planes[1].x + pos.y * planes[1].y + pos.z * planes[1].z);
+    NuTexLoadTextureFromDDSFile(&planes[2], &planes[2], &lbl_8020D898);
+    planes[2].d = -(pos.x * planes[2].x + pos.y * planes[2].y + pos.z * planes[2].z);
+    NuTexLoadTextureFromDDSFile(&planes[3], &planes[3], &lbl_8020D898);
+    planes[3].d = -(pos.x * planes[3].x + pos.y * planes[3].y + pos.z * planes[3].z);
+    transposeClipPlanes(frustum);
+    return frustum;
 }
