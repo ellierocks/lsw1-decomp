@@ -10,8 +10,6 @@ extern void* lbl_80407C38;
 extern f32 lbl_801905E8[];
 extern void NuAnimData2Clone(void*, void*, void*, f32);
 extern f32* NuCameraGetProjectionMtx(void);
-extern f32 lbl_80190824[];
-extern f32 lbl_80190828[];
 typedef struct { f32 x, y, z, w; } NuPortalVec4;
 typedef struct { f32 x, y, z; } NuPortalVec3;
 typedef struct { f32 x, y, z, d; } NuPortalPlane;
@@ -61,7 +59,6 @@ typedef struct {
     u8 pad18[0x64];
     u8 num_joints;
 } NuPortalHGobj;
-extern f32 lbl_801905DC[];
 void NuAnimData2Apply(void* anim, NuPortalAnimBuff* buffer, s32 count, s32 first, f32 time);
 void NuAnimData2CalcMatrix(void* anim, NuPortalAnimBuff* buffer, s32 count, s32 first, NuPortalVec3* root, f32 time);
 
@@ -83,14 +80,14 @@ void NuAnimBuffEvaluate(NuPortalAnimBuff* buffer, void* anim, f32 time, s32 appl
         end = hgobj->num_joints;
     }
     if (apply) {
-        NuAnimData2Apply(anim, buffer, end - start, start, time - lbl_801905DC[0]);
+        NuAnimData2Apply(anim, buffer, end - start, start, time - 1.0f);
         if (root != NULL) {
             root->x = buffer->data[0];
             root->y = buffer->data[1];
             root->z = -buffer->data[2];
         }
     } else {
-        NuAnimData2CalcMatrix(anim, buffer, end - start, start, root, time - lbl_801905DC[0]);
+        NuAnimData2CalcMatrix(anim, buffer, end - start, start, root, time - 1.0f);
     }
 }
 
@@ -103,8 +100,6 @@ typedef struct {
     u8 pad0[0x34];
     u8* flags;
 } NuPortalAnimData;
-extern f32 lbl_801905E0[];
-extern f32 lbl_801905E4[];
 void fn_8000EB24(struct numtx_s* m, struct nuangvec_s* ang);
 void fn_8000EA94(struct numtx_s* m, struct nuvec_s* scale);
 void NuMtxTranslate(struct numtx_s* m, struct nuvec_s* t);
@@ -114,11 +109,11 @@ void fn_8001BE94(NuPortalAnimData* anim, s32 joint, struct numtx_s* m, f32 time)
     NuPortalJointKey* key = (NuPortalJointKey*)((NuPortalAnimBuff*)lbl_80407C38)->data;
     u8 flags = anim->flags[joint];
     struct nuangvec_s ang;
-    NuAnimData2Clone(anim, key, (void*)joint, time - lbl_801905E0[0]);
+    NuAnimData2Clone(anim, key, (void*)joint, time - 1.0f);
     if (flags & 1) {
-        ang.x = key->r.x * lbl_801905E4[0];
-        ang.y = key->r.y * lbl_801905E4[0];
-        ang.z = key->r.z * lbl_801905E4[0];
+        ang.x = key->r.x * 10430.378f;
+        ang.y = key->r.y * 10430.378f;
+        ang.z = key->r.z * 10430.378f;
         fn_8000EB24(m, &ang);
     } else {
         NuMtxSetIdentity(m);
@@ -187,10 +182,7 @@ void fn_8001C110(char* fmt, ...)
 void NuAnimCurveEval(f32* out)
 {
     f32* projection = NuCameraGetProjectionMtx();
-    f32 first = projection[0];
-    f32 one = lbl_80190828[0];
-    f32 zero = lbl_80190824[0];
-    out[0] = -first;
+    out[0] = -projection[0];
     out[4] = projection[1];
     out[8] = -projection[2];
     out[1] = -projection[4];
@@ -199,10 +191,10 @@ void NuAnimCurveEval(f32* out)
     out[2] = -projection[8];
     out[6] = projection[9];
     out[10] = -projection[10];
-    out[11] = zero;
-    out[7] = zero;
-    out[3] = zero;
-    out[15] = one;
+    out[11] = 0.0f;
+    out[7] = 0.0f;
+    out[3] = 0.0f;
+    out[15] = 1.0f;
 }
 
 s32 clipTestSphere(NuPortalVec4* sphere, NuPortalFrustum* frustum)
@@ -231,7 +223,6 @@ extern f32 lbl_8040AD44;
 extern f32 lbl_8040AD48;
 extern struct numtx_s lbl_80314430;
 extern struct numtx_s lbl_80314470;
-extern const f32 lbl_80190918[];
 extern s32 lbl_80407C88;
 void fn_8000DBA0(struct numtx_s* m);
 
@@ -261,8 +252,8 @@ void fn_8001D0D8(void)
     a = portal_mul(scale, lbl_8040AD40);
     b = portal_mul(scale, lbl_8040AD3C);
     lbl_80407C88 = 1;
-    inv_a = lbl_80190918[0] / NuFsqrt(portal_mul(a, a) + scale_sq);
-    inv_b = lbl_80190918[0] / NuFsqrt(portal_mul(b, b) + scale_sq);
+    inv_a = 1.0f / NuFsqrt(portal_mul(a, a) + scale_sq);
+    inv_b = 1.0f / NuFsqrt(portal_mul(b, b) + scale_sq);
     fn_8000DBA0(&lbl_80314430);
     c = portal_mul(scale, lbl_8040AD44);
     d = portal_mul(scale, lbl_8040AD48);
@@ -278,8 +269,8 @@ void fn_8001D0D8(void)
     lbl_80314430._13 = -y;
     lbl_80314430._22 = w;
     lbl_80314430._23 = w;
-    inv_c = lbl_80190918[0] / NuFsqrt(portal_mul(c, c) + scale_sq);
-    inv_d = lbl_80190918[0] / NuFsqrt(portal_mul(d, d) + scale_sq);
+    inv_c = 1.0f / NuFsqrt(portal_mul(c, c) + scale_sq);
+    inv_d = 1.0f / NuFsqrt(portal_mul(d, d) + scale_sq);
     fn_8000DBA0(&lbl_80314470);
     x = portal_mul(-scale, inv_c);
     y = portal_mul(scale, inv_d);
@@ -348,49 +339,47 @@ typedef struct {
     u32 colour;
     f32 u, v;
 } NuPortalLineVertex2D;
-extern f32 lbl_801909EC[];
-extern f32 lbl_801909F0[];
 void fn_80027824(NuPortalLineVertex2D* lines, void* unused, s32 count);
 
 void drawSquare(NuPortalVec3* minimum, NuPortalVec3* maximum, u32 colour)
 {
     NuPortalLineVertex2D lines[8];
     f32 left, top, right, bottom;
-    left = minimum->x * lbl_801909EC[0] + lbl_801909EC[0];
-    top = -minimum->y * lbl_801909EC[0] + lbl_801909EC[0];
-    bottom = -maximum->y * lbl_801909EC[0] + lbl_801909EC[0];
-    right = maximum->x * lbl_801909EC[0] + lbl_801909EC[0];
+    left = minimum->x * 0.5f + 0.5f;
+    top = -minimum->y * 0.5f + 0.5f;
+    bottom = -maximum->y * 0.5f + 0.5f;
+    right = maximum->x * 0.5f + 0.5f;
     lines[0].x = left;
     lines[0].y = top;
-    lines[0].z = lbl_801909F0[0];
+    lines[0].z = 1.0f;
     lines[0].colour = colour;
     lines[1].x = left;
     lines[1].y = bottom;
-    lines[1].z = lbl_801909F0[0];
+    lines[1].z = 1.0f;
     lines[1].colour = colour;
     lines[2].x = left;
     lines[2].y = bottom;
-    lines[2].z = lbl_801909F0[0];
+    lines[2].z = 1.0f;
     lines[2].colour = colour;
     lines[3].x = right;
     lines[3].y = bottom;
-    lines[3].z = lbl_801909F0[0];
+    lines[3].z = 1.0f;
     lines[3].colour = colour;
     lines[4].x = right;
     lines[4].y = bottom;
-    lines[4].z = lbl_801909F0[0];
+    lines[4].z = 1.0f;
     lines[4].colour = colour;
     lines[5].x = right;
     lines[5].y = top;
-    lines[5].z = lbl_801909F0[0];
+    lines[5].z = 1.0f;
     lines[5].colour = colour;
     lines[6].x = right;
     lines[6].y = top;
-    lines[6].z = lbl_801909F0[0];
+    lines[6].z = 1.0f;
     lines[6].colour = colour;
     lines[7].x = left;
     lines[7].y = top;
-    lines[7].z = lbl_801909F0[0];
+    lines[7].z = 1.0f;
     lines[7].colour = colour;
     fn_80027824(lines, 0, 8);
 }
@@ -553,8 +542,6 @@ typedef struct {
 } NuPortalCamera;
 extern NuPortalCamera* lbl_8040A320;
 extern struct numtx_s lbl_8020D898;
-extern const f32 lbl_80190A34[];
-extern const f32 lbl_80190A38[];
 f32 NuSinApprox(s32 angle);
 f32 NuCosApprox(s32 angle);
 void NuTexLoadTextureFromDDSFile(NuPortalPlane* out, NuPortalPlane* in, struct numtx_s* m);
@@ -580,30 +567,30 @@ NuPortalFrustum* buildFrustrum(NuPortalVec3* minimum, NuPortalVec3* maximum, s16
     horizontal = tangent / lbl_8040A320->aspect;
 
     edge = tangent * minimum->y;
-    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
-    planes[2].x = lbl_80190A38[0];
-    planes[2].d = lbl_80190A38[0];
+    inv = 1.0f / NuFsqrt(edge * edge + 1.0f);
+    planes[2].x = 0.0f;
+    planes[2].d = 0.0f;
     planes[2].y = inv;
     planes[2].z = -edge * inv;
 
     edge = tangent * maximum->y;
-    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
-    planes[3].x = lbl_80190A38[0];
-    planes[3].d = lbl_80190A38[0];
+    inv = 1.0f / NuFsqrt(edge * edge + 1.0f);
+    planes[3].x = 0.0f;
+    planes[3].d = 0.0f;
     planes[3].z = edge * inv;
     planes[3].y = -inv;
 
     edge = horizontal * maximum->x;
-    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
-    planes[0].y = lbl_80190A38[0];
-    planes[0].d = lbl_80190A38[0];
+    inv = 1.0f / NuFsqrt(edge * edge + 1.0f);
+    planes[0].y = 0.0f;
+    planes[0].d = 0.0f;
     planes[0].z = edge * inv;
     planes[0].x = -inv;
 
     edge = horizontal * minimum->x;
-    inv = lbl_80190A34[0] / NuFsqrt(edge * edge + lbl_80190A34[0]);
-    planes[1].y = lbl_80190A38[0];
-    planes[1].d = lbl_80190A38[0];
+    inv = 1.0f / NuFsqrt(edge * edge + 1.0f);
+    planes[1].y = 0.0f;
+    planes[1].d = 0.0f;
     planes[1].x = inv;
     planes[1].z = -edge * inv;
 
