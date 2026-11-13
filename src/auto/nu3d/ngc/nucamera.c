@@ -528,7 +528,9 @@ void NuVpSetScalingMtx(void)
     lbl_8020E974._32 = 0.0f;
     lbl_8020E974._33 = 1.0f;
 }
-/* Provisional GC record layout for the nonmatching fn_8002303C comparison. */
+/* GC record layout read by fn_8002303C (0x68 stride; field names provisional).
+ * fn_80021784 and fn_800225C4 take the matrix and direction by value: the
+ * caller's copies are the ABI's argument temporaries at sp+0x18/0x58. */
 struct camera_child40 { u8 data[0x40]; };
 struct camera_child30 { struct nuvec_s corners[4]; };
 struct camera_pair { s32 first; s32 second; };
@@ -550,29 +552,23 @@ struct camera_record {
 };
 
 extern struct camera_record lbl_803378CC[];
+/* lbl_80337924 is lbl_803378CC[0].mask; the target relocation names it. */
 extern u32 lbl_80337924[];
 extern s32 lbl_80407CE0;
 extern s32 lbl_8040AD54;
-extern f32 lbl_80190D70[], lbl_80190D74[], lbl_80190D78[], lbl_80190D7C[];
-extern f32 lbl_80190D80[], lbl_80190D84[], lbl_80190D88[];
-s32 fn_80021784(struct camera_child40 *, struct numtx_s *, struct nuvec_s *);
-s32 fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s *, f32, f32);
+s32 fn_80021784(struct camera_child40 *, struct numtx_s, struct nuvec_s);
+s32 fn_800225C4(struct camera_child30 *, struct camera_record *, struct nuvec_s, f32, f32);
 s32 fn_80022A88(struct camera_record *, s32, s32, struct nuvec_s *);
 
 void fn_8002303C(s32 mask, s32 value)
 {
     struct nuvec_s direction;
-    struct numtx_s copy;
-    struct nuvec_s copy_direction;
-    struct camera_record *rec;
     s32 previous;
     s32 i, j;
     s32 state;
     s32 active;
     f32 dx, dy, dz, distance, radius, near_radius;
-    f32 a, b, scale;
-    volatile s32 spilled_mask = mask;
-    volatile s32 spilled_value = value;
+    f32 a, b;
 
     active = 0;
     previous = -1;
@@ -582,63 +578,60 @@ void fn_8002303C(s32 mask, s32 value)
     }
     previous = -1;
     state = 1;
-    scale = lbl_80190D88[0];
     for (i = 0; i < lbl_80407CE0; i++) {
-        rec = &lbl_803378CC[i];
-        if (rec->group != previous) {
-            previous = rec->group;
-            if ((lbl_80337924[i * 0x1a] & spilled_mask) == spilled_value) {
-                dy = rec->mtx._31 - lbl_80313268.mtx._31;
-                dx = rec->mtx._30 - lbl_80313268.mtx._30;
-                dz = rec->mtx._32 - lbl_80313268.mtx._32;
+        if (lbl_803378CC[i].group != previous) {
+            previous = lbl_803378CC[i].group;
+            if ((lbl_80337924[i * 0x1a] & mask) == value) {
+                dx = lbl_803378CC[i].mtx._30 - lbl_80313268.mtx._30;
+                dy = lbl_803378CC[i].mtx._31 - lbl_80313268.mtx._31;
+                dz = lbl_803378CC[i].mtx._32 - lbl_80313268.mtx._32;
                 distance = dx * dx + dy * dy + dz * dz;
-                radius = rec->inner_radius * rec->inner_radius;
-                near_radius = rec->outer_radius;
-                a = lbl_80190D70[0];
-                b = lbl_80190D74[0];
+                radius = lbl_803378CC[i].inner_radius * lbl_803378CC[i].inner_radius;
+                a = 10000000.0f;
+                b = -10000000.0f;
+                near_radius = lbl_803378CC[i].outer_radius;
                 active = 0;
-                if (distance < radius) {
+                if (!(distance >= radius)) {
                     active = 1;
-                    if (rec->vector_x >= lbl_80190D78[0]) {
-                        direction.x = lbl_80190D7C[0];
-                        direction.y = lbl_80190D80[0];
+                    if (lbl_803378CC[i].vector_x >= 65536.0f) {
+                        direction.x = 0.0f;
+                        direction.y = -1.0f;
                         direction.z = direction.x;
                         fn_80022DE8(&direction);
-                        direction.y = lbl_80190D84[0];
-                        if (state != 5 && rec->vector_z == lbl_80190D7C[0]) state = 5;
-                        b = rec->vector_z;
-                        a = rec->vector_y;
+                        direction.y = -4.0f;
+                        if (state != 5 && lbl_803378CC[i].vector_z == 0.0f) state = 5;
+                        a = lbl_803378CC[i].vector_y;
+                        b = lbl_803378CC[i].vector_z;
                     } else {
-                        direction.x = rec->vector_x;
-                        direction.y = rec->vector_y;
-                        direction.z = rec->vector_z;
+                        direction.x = lbl_803378CC[i].vector_x;
+                        direction.y = lbl_803378CC[i].vector_y;
+                        direction.z = lbl_803378CC[i].vector_z;
                         if (state != 1) state = 1;
                         fn_80022DE8(&direction);
-                        direction.x *= scale;
-                        direction.y *= scale;
-                        direction.z *= scale;
+                        direction.x *= 4.0f;
+                        direction.y *= 4.0f;
+                        direction.z *= 4.0f;
                     }
-                    if (distance > near_radius * near_radius) NuFsqrt(distance);
+                    if (active) {
+                        if (distance > near_radius * near_radius) NuFsqrt(distance);
+                    }
                 }
             } else active = 0;
         }
         if (active) {
-            if (rec->children40) {
-                for (j = 0; j < rec->count40; j++) {
-                    copy = rec->mtx;
-                    copy_direction = direction;
-                    fn_80021784(&rec->children40[j], &copy, &copy_direction);
+            if (lbl_803378CC[i].children40) {
+                for (j = 0; j < lbl_803378CC[i].count40; j++) {
+                    fn_80021784(&lbl_803378CC[i].children40[j], lbl_803378CC[i].mtx, direction);
                 }
             }
-            if (rec->children30) {
-                for (j = 0; j < rec->count30; j++) {
-                    copy_direction = direction;
-                    fn_800225C4(&rec->children30[j], rec, &copy_direction, a, b);
+            if (lbl_803378CC[i].children30) {
+                for (j = 0; j < lbl_803378CC[i].count30; j++) {
+                    fn_800225C4(&lbl_803378CC[i].children30[j], &lbl_803378CC[i], direction, a, b);
                 }
             }
-            if (rec->pairs) {
-                for (j = 0; j < rec->count_pair; j++) {
-                    fn_80022A88(rec, rec->pairs->first, rec->pairs->second, &direction);
+            if (lbl_803378CC[i].pairs) {
+                for (j = 0; j < lbl_803378CC[i].count_pair; j++) {
+                    fn_80022A88(&lbl_803378CC[i], lbl_803378CC[i].pairs->first, lbl_803378CC[i].pairs->second, &direction);
                 }
             }
         }
