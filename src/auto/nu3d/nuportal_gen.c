@@ -421,6 +421,56 @@ void drawViewFrustrum(void)
     }
 }
 
+typedef struct {
+    u8 pad0[4];
+    NuPortalPlane* planes;
+    u8 pad8[6];
+    u8 plane_count;
+} NuPortalRoom;
+f32 NuPlnLine3(void* plane, struct nuvec_s* origin, struct nuvec_s* dir, struct nuvec_s* out);
+
+void drawClippedPortal(NuPortalPlane* portal, NuPortalRoom* room, NuPortalVec3* minimum, NuPortalVec3* maximum)
+{
+    struct nuvec_s rays[4];
+    struct nuvec_s hits[4];
+    struct nuvec_s point;
+    struct nuvec_s nearest_point;
+    f32 nearest;
+    f32 distance;
+    s32 i;
+    s32 j;
+    if (lbl_80407C90 != 0) {
+        NuCameraEnableClipping(&rays[0], minimum->x, minimum->y);
+        NuCameraEnableClipping(&rays[1], minimum->x, maximum->y);
+        NuCameraEnableClipping(&rays[2], maximum->x, maximum->y);
+        NuCameraEnableClipping(&rays[3], maximum->x, minimum->y);
+        for (i = 0; i < 4; i++) {
+            NuPlnLine3(portal, &lbl_8020D8E8, &rays[i], &hits[i]);
+        }
+        NuCameraTransformScreenClip();
+        drawSquare(minimum, maximum, 0xff00);
+        for (i = 0; i < 4; i++) {
+            struct nuvec_s* a = &hits[i];
+            struct nuvec_s* b = &hits[(i + 1) % 4];
+            fn_8002782C(0xff0000ff, a->x, a->y, a->z, b->x, b->y, b->z);
+        }
+        for (i = 0; i < 4; i++) {
+            NuVecNorm(&rays[i], &rays[i]);
+            nearest = 3.4028234e+38f;
+            for (j = 0; j < room->plane_count; j++) {
+                distance = NuPlnLine3(&room->planes[j], &hits[i], &rays[i], &point);
+                if (distance > 0.0f && distance < nearest) {
+                    nearest_point = point;
+                    nearest = distance;
+                }
+            }
+            fn_8002782C(0xff0000ff, nearest_point.x, nearest_point.y, nearest_point.z,
+                hits[i].x, hits[i].y, hits[i].z);
+        }
+        NuPs2CreateSkin();
+    }
+}
+
 s32 clipTestBox(NuPortalVec3* minimum, NuPortalVec3* maximum, NuPortalPlane* planes, s32 count)
 {
     NuPortalVec3 corners[8];
