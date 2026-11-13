@@ -372,6 +372,11 @@ These shapes were confirmed by strict matches in `auto/game/main`:
   member.
 - **Inline helper arguments.** A `static inline` helper's arguments are loaded before
   its body. That reproduces early `lis`/`addi` pairs shared by several thin wrappers.
+  In `nuportal_gen` camera setup, projection helpers instead write direct globals:
+  passing the destination as an argument materializes its address too early.
+- **Inclusive inline range ends.** `NuAnimBuffEvaluate` matches with an inline
+  last-joint helper that returns `end - 1` at each exit, followed by `+ 1` in the
+  caller. A single shared return lets ProDG cancel the retail `subi; addi` pair.
 - **Early `return 1` branches that share a tail.** GCC cross-jumps
   `if (...) { call(x); return 1; }` chains into a single call site. A `goto` to one
   shared block does not produce the same code.
