@@ -29,15 +29,17 @@ struct nuhgobj_s {
     u8 num_joint_ixs;             /* 0x7D */
 };
 
-extern void NuHGobjEvalAnimBlend2Root(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f, s32 g, s32 h);
-
 typedef void (*NuHGobjRootFn)(struct numtx_s *mtx, void *data, struct nuvec_s *t, struct nuvec_s *r,
                               struct nuvec_s *loc, f32 f);
 void NuHGobjEvalAnim2Root(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim, f32 time, s32 njanims,
                           struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array, NuHGobjRootFn rootfn,
                           void *rootdata);
-extern void NuAnimBuffEvaluate(s32 a, struct nuanimdata2_s *anim, s32 b, s32 c, struct nuhgobj_s *hgobj, s32 d,
-                               f32 time, f32 blend);
+void NuHGobjEvalAnimBlend2Root(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim1, f32 time1,
+                               struct nuanimdata2_s *anim2, f32 time2, f32 blend, s32 njanims,
+                               struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array, NuHGobjRootFn rootfn,
+                               void *rootdata);
+extern void NuAnimBuffEvaluate(s32 buffer, struct nuanimdata2_s *anim, f32 time, s32 first, f32 blend, s32 start,
+                               struct nuhgobj_s *hgobj, struct nuvec_s *root);
 extern void fn_8001AF8C(s32 a, struct nuhgobj_s *hgobj, s32 njanims, struct NUJOINTANIM_s *janim);
 extern void NuAnimData2Fixup(s32 a, struct nuhgobj_s *hgobj, struct numtx_s *mtx_array, struct nuanimdata2_s *anim1,
                              struct nuanimdata2_s *anim2, NuHGobjRootFn rootfn, void *buf, void *rootdata);
@@ -46,6 +48,16 @@ extern void NuAnimCurve2SetApplyToJoint(struct nuanimcurve2_s *curves, char *typ
                                         struct nuanimtime_s *atime, struct nujointdata_s *joint,
                                         struct nuvec_s *scale, struct nuvec_s *pscale, struct numtx_s *m,
                                         struct NUJOINTANIM_s *janim);
+extern void NuAnimData2Relocate(s32 a, struct nuhgobj_s *hgobj, struct numtx_s *mtx_array, struct nuanimdata2_s *anim1,
+                                struct nuanimdata2_s *anim2, NuHGobjRootFn rootfn, void *buf, void *rootdata,
+                                struct nuvec_s *root1, struct nuvec_s *root2, f32 blend);
+extern void NuAnimCurve2SetApplyBlendToJoint2TransLoc();
+extern void NuAnimCurve2SetApplyBlendToJoint2(struct nuanimcurve2_s *curves1, char *types1, s32 flags1,
+                                              struct nuanimtime_s *atime1, struct nuanimcurve2_s *curves2,
+                                              char *types2, s32 flags2, struct nuanimtime_s *atime2, f32 blend,
+                                              struct nujointdata_s *joint, struct nuvec_s *scale,
+                                              struct nuvec_s *pscale, struct numtx_s *m,
+                                              struct NUJOINTANIM_s *janim);
 extern s32 lbl_80407C20;
 extern struct numtx_s lbl_801B0F08;
 
@@ -129,9 +141,11 @@ void NuHGobjEvalAnim2(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim, f32 t
     NuHGobjEvalAnim2Root(hgobj, anim, time, njanims, janim, mtx_array, NULL, NULL);
 }
 
-void NuHGobjEvalAnimBlend2(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f)
+void NuHGobjEvalAnimBlend2(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim1, f32 time1,
+                           struct nuanimdata2_s *anim2, f32 time2, f32 blend, s32 njanims,
+                           struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array)
 {
-    NuHGobjEvalAnimBlend2Root(a, b, c, d, e, f, 0, 0);
+    NuHGobjEvalAnimBlend2Root(hgobj, anim1, time1, anim2, time2, blend, njanims, janim, mtx_array, NULL, NULL);
 }
 
 f32 **NuHGobjEvalDwa2(s32 nlayers, s16 *layers, struct nuanimdata2_s *vtxanim, f32 vtxtime)
@@ -284,40 +298,39 @@ f32 **NuHGobjEvalDwaBlend2(s32 nlayers, s16 *layers, struct nuanimdata2_s *vtxan
     return dwa;
 }
 
-/* NuHGobjEvalAnim2Root draft: best 83/251 (frame 0x10 too large, register allocation); not built. */
-#if 0
 void NuHGobjEvalAnim2Root(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim, f32 time, s32 njanims,
                           struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array, NuHGobjRootFn rootfn,
                           void *rootdata)
 {
     struct numtx_s m;
-    struct nuvec_s scale[256];
+    struct nuvec_s scales[256];
     struct nuanimtime_s atime;
     struct NUJOINTANIM_s *janims[256];
     struct nuvec_s t;
     struct nuvec_s loc;
-    u8 buf[0x14];
+    struct nuvec_s root_t;
     u8 i;
     u8 joint_ix;
     struct numtx_s *T;
     struct NUJOINTANIM_s *offset;
     struct nuanimcurve2_s *curves;
     char *types;
+    struct numtx_s *mp;
     s32 flags;
     u8 parent;
 
     if (*(s32 *)anim == 0x414E4934) {
-        NuAnimBuffEvaluate(0, anim, 1, 0, hgobj, 0, time, 0.0f);
+        NuAnimBuffEvaluate(0, anim, time, 1, 0.0f, 0, hgobj, NULL);
         if (njanims != 0) {
             fn_8001AF8C(0, hgobj, njanims, janim);
         }
-        NuAnimData2Fixup(0, hgobj, mtx_array, anim, anim, rootfn, buf, rootdata);
+        NuAnimData2Fixup(0, hgobj, mtx_array, anim, anim, rootfn, &root_t, rootdata);
         return;
     }
     if (hgobj->num_joints > lbl_80407C20) {
         lbl_80407C20 = hgobj->num_joints;
     }
-    scale[255].z = scale[255].y = scale[255].x = 1.0f;
+    scales[255].z = scales[255].y = scales[255].x = 1.0f;
     NuAnimData2CalcTime(anim, &atime, time);
     if (njanims != 0) {
         memset(janims, 0, hgobj->num_joints * 4);
@@ -341,32 +354,138 @@ void NuHGobjEvalAnim2Root(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim, f
         types = anim->curveflags + anim->ncurves * i;
         flags = anim->curvesetflags[i];
         if (i == 0) {
-            NuAnimCurve2SetApplyToJointTransLoc(curves, types, flags, &atime, &hgobj->joints[i], &scale[i],
-                                                &scale[hgobj->joints[i].parent_ix], &m, offset, &t, &loc);
-            if (rootfn != NULL) {
-                rootfn(&m, rootdata, &t, NULL, &loc, 0.0f);
-            }
+            NuAnimCurve2SetApplyToJointTransLoc(curves, types, flags, &atime, &hgobj->joints[i], &scales[i],
+                                                &scales[hgobj->joints[i].parent_ix], &m, offset, &t, &loc);
         } else {
-            NuAnimCurve2SetApplyToJoint(curves, types, flags, &atime, &hgobj->joints[i], &scale[i],
-                                        &scale[hgobj->joints[i].parent_ix], &m, offset);
+            NuAnimCurve2SetApplyToJoint(curves, types, flags, &atime, &hgobj->joints[i], &scales[i],
+                                        &scales[hgobj->joints[i].parent_ix], &m, offset);
+        }
+        mp = &m;
+        if (i == 0 && rootfn != NULL) {
+            rootfn(mp, rootdata, &t, NULL, &loc, 0.0f);
         }
         parent = hgobj->joints[i].parent_ix;
         if (parent == 0xFF) {
             if ((flags & 0x40) != 0) {
-                scale[i].x = scale[i].z = scale[i].y = 1.0f;
+                /* GC addresses scales[i] from &m (scales sits directly after m). */
+                ((struct nuvec_s *)(&m + 1))[i].z = ((struct nuvec_s *)(&m + 1))[i].y =
+                    ((struct nuvec_s *)(&m + 1))[i].x = 1.0f;
             }
-            *T = m;
+            *T = *mp;
         } else {
-            fn_8000EB44(T, &m, &mtx_array[parent]);
+            fn_8000EB44(T, mp, &mtx_array[parent]);
         }
     }
 }
-#endif
 
-/* fn_8001AF8C draft: best 160/168; conversion constants use opposite f6/f7 registers. */
-#if 0
-extern const f32 lbl_801904CC[];
-extern const f32 lbl_801904D8[];
+/* ANI4 path; inlined (its locals sit above the main path's on the GC frame). */
+static inline void NuHGobjEvalAnimBlend2Root_3(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim1, f32 time1,
+                                               struct nuanimdata2_s *anim2, f32 time2, f32 blend, s32 njanims,
+                                               struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array,
+                                               NuHGobjRootFn rootfn, void *rootdata)
+{
+    struct nuvec_s root_t;
+    struct nuvec_s root1;
+    struct nuvec_s root2;
+
+    NuAnimBuffEvaluate(0, anim1, time1, 1, 0.0f, 0, hgobj, &root1);
+    NuAnimBuffEvaluate(0, anim2, time2, 0, blend, 0, hgobj, &root2);
+    if (njanims != 0) {
+        fn_8001AF8C(0, hgobj, njanims, janim);
+    }
+    NuAnimData2Relocate(0, hgobj, mtx_array, anim1, anim2, rootfn, &root_t, rootdata, &root1, &root2, blend);
+}
+
+void NuHGobjEvalAnimBlend2Root(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim1, f32 time1,
+                               struct nuanimdata2_s *anim2, f32 time2, f32 blend, s32 njanims,
+                               struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array, NuHGobjRootFn rootfn,
+                               void *rootdata)
+{
+    struct numtx_s m;
+    struct nuvec_s scales[256];
+    struct nuanimtime_s atime1;
+    struct nuanimtime_s atime2;
+    struct NUJOINTANIM_s *janims[256];
+    struct nuvec_s t;
+    struct nuvec_s r;
+    struct nuvec_s loc;
+    u8 i;
+    u8 joint_ix;
+    struct numtx_s *T;
+    struct NUJOINTANIM_s *offset;
+    struct nuanimcurve2_s *curves1;
+    char *types1;
+    s32 flags1;
+    struct nuanimcurve2_s *curves2;
+    char *types2;
+    s32 flags2;
+    struct numtx_s *mp;
+    s32 is_root;
+    u8 parent;
+
+    if (*(s32 *)anim1 == 0x414E4934) {
+        NuHGobjEvalAnimBlend2Root_3(hgobj, anim1, time1, anim2, time2, blend, njanims, janim, mtx_array, rootfn,
+                                    rootdata);
+        return;
+    }
+    if (hgobj->num_joints > lbl_80407C20) {
+        lbl_80407C20 = hgobj->num_joints;
+    }
+    scales[255].z = scales[255].y = scales[255].x = 1.0f;
+    NuAnimData2CalcTime(anim1, &atime1, time1);
+    NuAnimData2CalcTime(anim2, &atime2, time2);
+    if (njanims != 0) {
+        memset(janims, 0, hgobj->num_joints * 4);
+        for (i = 0; i < njanims; i++) {
+            if (janim[i].joint_id < hgobj->num_joint_ixs) {
+                joint_ix = hgobj->joint_ixs[janim[i].joint_id];
+                if (joint_ix != 0xFF) {
+                    janims[joint_ix] = &janim[i];
+                }
+            }
+        }
+    }
+    for (i = 0; i < hgobj->num_joints; i++) {
+        T = &mtx_array[i];
+        if (i >= anim1->nnodes || i >= anim2->nnodes) {
+            *T = lbl_801B0F08;
+            continue;
+        }
+        offset = njanims != 0 ? janims[i] : NULL;
+        curves1 = &anim1->curves[anim1->ncurves * i];
+        types1 = anim1->curveflags + anim1->ncurves * i;
+        flags1 = anim1->curvesetflags[i];
+        curves2 = &anim2->curves[anim2->ncurves * i];
+        types2 = anim2->curveflags + anim2->ncurves * i;
+        flags2 = anim2->curvesetflags[i];
+        if (i == 0) {
+            NuAnimCurve2SetApplyBlendToJoint2TransLoc(curves1, types1, flags1, &atime1, curves2, types2, flags2,
+                                                      &atime2, blend, &hgobj->joints[i], &scales[i],
+                                                      &scales[hgobj->joints[i].parent_ix], &m, offset, &t, &r,
+                                                      &loc);
+        } else {
+            NuAnimCurve2SetApplyBlendToJoint2(curves1, types1, flags1, &atime1, curves2, types2, flags2, &atime2,
+                                              blend, &hgobj->joints[i], &scales[i],
+                                              &scales[hgobj->joints[i].parent_ix], &m, offset);
+        }
+        mp = &m;
+        if (i == 0 && rootfn != NULL) {
+            rootfn(mp, rootdata, &t, &r, &loc, blend);
+        }
+        parent = hgobj->joints[i].parent_ix;
+        is_root = parent == 0xFF;
+        if (is_root) {
+            if ((flags1 & 0x40) != 0) {
+                ((struct nuvec_s *)(&m + 1))[i].z = ((struct nuvec_s *)(&m + 1))[i].y =
+                    ((struct nuvec_s *)(&m + 1))[i].x = 1.0f;
+            }
+            *T = *mp;
+        } else {
+            fn_8000EB44(T, mp, &mtx_array[parent]);
+        }
+    }
+}
+
 extern void *lbl_80407C38;
 
 void fn_8001AF8C(s32 buffer, struct nuhgobj_s *hgobj, s32 count, struct NUJOINTANIM_s *joint)
@@ -390,10 +509,10 @@ void fn_8001AF8C(s32 buffer, struct nuhgobj_s *hgobj, s32 count, struct NUJOINTA
             out[3] += joint->rx;
             out[4] += joint->ry;
             out[5] += joint->rz;
-            rot = (s32)(out[3] * lbl_801904CC[0]);
+            rot = (s32)(out[3] * 10430.378f);
             angle[0] = rot;
-            angle[1] = (s32)(out[4] * lbl_801904CC[0]);
-            angle[2] = (s32)(out[5] * lbl_801904CC[0]);
+            angle[1] = (s32)(out[4] * 10430.378f);
+            angle[2] = (s32)(out[5] * 10430.378f);
             if (flags & 8) {
                 angle[0] = (u16)rot;
                 if (angle[0] > 0x7fff) angle[0] -= 0x10000;
@@ -412,9 +531,9 @@ void fn_8001AF8C(s32 buffer, struct nuhgobj_s *hgobj, s32 count, struct NUJOINTA
                 if (angle[2] > joint->max_rz) angle[2] = joint->max_rz;
                 else if (angle[2] < joint->min_rz) angle[2] = joint->min_rz;
             }
-            out[3] = (f32)angle[0] * lbl_801904D8[0];
-            out[4] = (f32)angle[1] * lbl_801904D8[0];
-            out[5] = (f32)angle[2] * lbl_801904D8[0];
+            out[3] = (f32)angle[0] * 9.58738e-5f;
+            out[4] = (f32)angle[1] * 9.58738e-5f;
+            out[5] = (f32)angle[2] * 9.58738e-5f;
         }
         if (flags & 4) {
             out[6] += joint->sx;
@@ -428,4 +547,3 @@ void fn_8001AF8C(s32 buffer, struct nuhgobj_s *hgobj, s32 count, struct NUJOINTA
         }
     }
 }
-#endif
