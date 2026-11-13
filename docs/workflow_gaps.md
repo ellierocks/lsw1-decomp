@@ -51,6 +51,9 @@ median of 48 distinct candidates per park.
 | 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | fixed: `sprint_finish.py` refuses parks under 25; measured median 48, 3 of 3 parks at the floor |
 | 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | baseline 0.13 s median score, 0.9 s finish build |
 | 14 | [Bench logs were polluted and lost](#14-bench-logs-were-polluted-and-lost) | all (data quality) | fixed |
+| 15 | [Strict-only functions were counted as plan work](#15-strict-only-functions-were-counted-as-plan-work) | functions left (targeting) | fixed: plan functions left 1,306 → 1,147 |
+| 16 | [Children got single functions, not items](#16-children-got-single-functions-not-items) | functions per child | fixed: `plan.py --batch N` and brief rule 6 |
+| 17 | [Plateaued functions kept being scored](#17-plateaued-functions-kept-being-scored) | matched bytes per child-hour | fixed: `score_fn.py` prints a PLATEAU notice |
 
 ## 1. Stale task packs change scores
 
@@ -369,3 +372,51 @@ Two problems damaged the logs:
 
 Parked and deferred function names now go into the finish record, so park recovery no
 longer has to be inferred from scores alone.
+
+## 15. Strict-only functions were counted as plan work
+
+The apiobject pass of 2026-11-13 (`opus-gapfix-2026-11-13`) left `fn_8009098C` as the
+item's only function. objdiff scored it 99.6%, but it already passed the strict verifier:
+it waits on `.rodata` layout ([gap 9](#9-strict-only-functions-wait-on-rodata-layout)), not
+on matching. Across the plan, 159 of the 162 open functions at 90% or more were strict-only.
+`plan.py`, `kickoff.py` and `next_target.py` sent children to those functions, and an item
+could not close.
+
+`plan.py` now leaves strict-only functions out of an item's targets and lists them on a
+`strict-only` line. `strict_gap.verified()` caches the verifier's answers in
+`build/GL5E4F/strict_verified.json`, keyed on the report's mtime and size. The first call
+after a build takes about 10 s; later calls take 0.2 s. `sprint_finish.py` and
+`strict_gap.py` use the same cache.
+
+Before → after: plan functions left 1,306 → 1,147 (1,005,800 → 959,992 bytes); closed
+items 18 → 19 (apiobject closed).
+
+## 16. Children got single functions, not items
+
+The same pass matched 8 functions, against 14–25 in earlier runs. Each child received one
+large function: child 2 spent its 12 minutes on `APILoadCharacterModels` alone. Once a
+child finishes or parks its only function, it stops. `plan.py --next` names one item, so a
+parent starting several children had no list of separate items to hand out.
+
+`plan.py --batch N` lists up to N free items, each with its `kickoff.py --start --item`
+command. It uses the current stage first, then looks ahead. Rule 6 of the [matching
+brief](sprint_workflow.md#matching-brief) gives each child a whole item or queue.
+
+Before → after: 1 item per `plan.py` call → N distinct items. Re-measure functions per
+child in the next cohort.
+
+## 17. Plateaued functions kept being scored
+
+`fn_80090FB0` cost the parent 9.3 minutes after its best score stopped rising. Over that
+cohort's logs, `sprint_metrics.plateau()` (25 distinct compiled candidates, the last 10
+without a better exact count) fires on four functions. On three it fired before
+2.2–11.4 minutes of further work with no gain: `fn_80090FB0`, `fn_800902C0` and
+`fn_8008FCD0`. `APILoadCharacterModels` fired at 758/762 and still matched 4.6 minutes
+later. The notice is therefore advice, not a stop.
+
+`score_fn.py` prints `PLATEAU: ...` on hand-run scores once the rule holds. Search tools
+set `$LSW1_BENCH_SOURCE` and stay quiet. Brief rule 6 says what to do next: park, try a new
+hypothesis class, or move on.
+
+Before → after: no signal → a notice at the plateau. The replay shows 13.6 minutes of
+no-gain work across three functions, out of about 77 child-minutes in the cohort.
