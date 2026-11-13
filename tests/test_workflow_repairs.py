@@ -54,6 +54,13 @@ class DraftRepairs(unittest.TestCase):
         self.assertIn('extern void (*cb)(void);', out)
         self.assertIn('return 2;', out)
 
+    def test_splice_appends_after_parked_disabled_draft(self):
+        source = ('int before(void) { return 1; }\n#if 0\n'
+                  'int target(void) { return 2; }\n#endif\n')
+        out = score_fn.splice_body(source, 'target', 'int target(void) { return 3; }')
+        self.assertIn('#if 0\nint target(void) { return 2; }\n#endif', out)
+        self.assertIn('#endif\n\nint target(void) { return 3; }', out)
+
 
 class GitTransport(unittest.TestCase):
     def invoke(self, results):

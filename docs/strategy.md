@@ -176,6 +176,13 @@ Stage 2 runs `ngc_mtl` and `nutexanm` side by side. The CrashWOC GameCube decomp
 (`src/nu3dx/*.c`, `src/system/gs/*.c` and its alpha NGC DWARF dump) is the main donor for
 the Nu3d items: take algorithms, layouts and call order from it, not codegen.
 
+Revision 8 records the zero-match nuhgobj run reported by `plan.py`. Source and
+target assembly resolve `fn_80015C88`'s return as `s32` with its existing
+46/46 strict match intact. A scorer fix now exposes parked `#if 0` candidates
+to `--body` scoring. The remaining nuhgobj functions have measured plateaus and
+next hypotheses in `plan.toml`; their item stays in stage 2, in its original
+order, while the typed legacy animation and GHG layouts remain unresolved.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle. Never weaken

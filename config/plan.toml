@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 7
+revision = 8
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -220,7 +220,7 @@ reason = "Best 135/149, score [1,17,0,-135,0] (NONMATCHING draft in src/auto/nu3
 [[stage.item]]
 id = "nuhgobj"
 units = ["auto/nu3d/NuHGobjEval", "auto/nu3d/ngc/nuhgobj"]
-note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2, fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Open: NuHGobjEvalAnim2Root (one draft, best 83/251: stack frame 0x10 too large and register allocation differ; kept under #if 0), NuHGobjEvalAnimBlend2Root, NuAnimCurveSetEval, NuAnimCurveSetLoad, fn_8001AF8C, NuGHGReadEx (not attempted)."
+note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2 (strict 167/167, fuzzy due pool refs), fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Open: NuHGobjEvalAnim2Root (best 89/251: 4-byte scratch fixes frame; next align saved-register pressure and joint loop), NuHGobjEvalAnimBlend2Root (85/301: donor modern-only wrapper does not cover GC legacy loop; next type the two time and scale arrays), NuAnimCurveSetEval (22/224: frame fixed but generated code saves four FPRs absent in retail; next write typed matrix/bounds loop), NuAnimCurveSetLoad (61/802: draft frame 0x118 too small; next recover pointer and local array layout), fn_8001AF8C (guarded 160/168 candidate in #157), NuGHGReadEx (265/662 after fixing pointer arithmetic and callee return type; next model 0x200-byte path buffer and nested GHG records)."
 # at revision 1: 12 functions, 12,580 bytes left
 
 [[stage.item]]
