@@ -46,6 +46,62 @@ What fixed each body, confirmed against target assembly:
 All four use the donor note "OpenSaga 7bb2402 nucamera.c: no name hit; no JP
 PC pair listed" in their `hillclimb.py try` records.
 
+## Unit .rodata layout and `fn_80022DE8`
+
+A third pass made the unit own its float pools. ProDG emits each function's
+constant pool in definition order, and the SN linker dead-strips unused
+functions but keeps the whole `.rodata` of each translation unit. The nucamera
+`.rodata` split (`0x80190C90..0x80191200`, 0x570 B) therefore also carries the
+pools of stripped functions, the `numath/VuMath.h` `VuMtxInitRot` strings
+copied into each including TU, and the strings of the fully stripped
+`nuscene.c`. The fix:
+
+- Function definitions in `src/auto/nu3d/ngc/nucamera.c` now follow retail
+  `.text` order, with all declarations, structs and static inlines first.
+- The `.rodata` of stripped code is reproduced by `static const`
+  placeholders from `tools/rodata_layout.py placeholders`, put where retail
+  has them. Each `#include "numath/VuMath.h"` emits its stub strings where it
+  is included. A never-called `static inline` holding the nucamera.c path
+  literal (`unk_nucamera_file`) emits that string at its definition, and
+  identical literals are shared within the TU.
+- Pool entry order follows the first mention of each constant during RTL
+  expansion. `NuVpSetScalingMtx` declares `f32 zero = 0.0f; f32 depth =
+  16777214.0f;` so that its pool comes out in retail order; the code is
+  unchanged.
+
+The unit `.rodata` is now byte-identical to retail. Objdiff puts the unit at
+100% data, and seven of the eight strict-only functions are at 100%:
+`NuCameraClipTestBoundingSphere`, `NuCameraCreate`,
+`NuCameraEnableClipping`, `NuVpInit`, `NuVpSetScalingMtx`, `NuVpUpdate` and
+`fn_800234A8`. `fn_80023628` stays at 99.96% for one reason: its farclip read
+relocates as `lbl_80313268+0x4c`, where the retail split names that same
+address `lbl_803132B4`. The 0x20-byte `lbl_80313268` symbol is smaller than
+`struct nucam_s`. The linked address is identical.
+
+`fn_80022DE8` improved from 135/149 to 146/149 (`[1,6,0,-146,0]`). The fix was
+to make `rot_xy` write straight through `v` instead of returning through
+locals, which removed the loop instance's x/y register swap. One difference
+is left, in the block after the second `NuFsqrt`. Retail stores `p->x`
+directly after `fctiwz` and loads `ang.y` (`lfs f31,12(r1)`) before
+`mr r3,r30`. The draft stores `p->y` first, and puts `p->x` and the `mr` one
+slot later. This has plateaued. More than 25 distinct hypotheses did not
+improve it:
+
+- store forms: split or chained zero stores in each order, `p->y = p->x`, a
+  `len` temporary with each store order, and comma expressions
+- a ternary clamp
+- `f32 ang[2]`/`[3]` and anonymous-struct angles
+- an `ang`-pointer variant of the inline
+- local declaration orders and loop-initialiser forms
+
+A 13k-iteration 180 s permuter burst on the block found nothing better than
+the base. `hillclimb.py` reached `PARK`.
+
+The draft stays unguarded as `NONMATCHING 146/149`. Guarding it would drop
+its `8192.0f`/`0.0f` pool entries and break the now-exact `.rodata`. With
+30/31 functions strict VERIFIED and `.text` differing only in those three
+scheduled instructions, the unit is still not promoted.
+
 ## First attempts
 
 | Function and range | Size | Best strict score | Exact instructions | First difference | Next hypothesis |
@@ -124,5 +180,6 @@ python3 tools/hillclimb.py try NAME --unit auto/nu3d/ngc/nucamera --source src/a
 ```
 
 The first-attempt scores above were all mismatches. The strict matches
-section records the later acceptance. The unit remains NonMatching;
+section records the later acceptance, and the .rodata section above the
+third pass. The unit remains NonMatching;
 promotion requires the separate section, relocation and linked-range gates.

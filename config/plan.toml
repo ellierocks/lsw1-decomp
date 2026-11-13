@@ -178,44 +178,16 @@ note = "nuqfnt-2 (2026-11-12) strictly VERIFIED createPortalFrustrum (756 B) and
 [[stage.item]]
 id = "nucamera"
 units = ["auto/nu3d/ngc/nucamera"]
-note = "The nucamera run (2026-11-12) strictly matched 15 functions / 4,156 B. Misattributed symbols found there were renamed in the follow-up cleanup (NuVpInit/NuVpUpdate/NuVpSetScalingMtx, NuCosApprox/NuSinApprox, NuVec4MtxTransform, NuMtxSetIdentity). NuAnimCurveSetApplyBlendToJoint2 is really NuCameraSet, but keeps its name because 0x800D149C already carries that name. The second pass (PR 158) strictly VERIFIED the four remaining camera/light bodies: fn_8002303C (0x46C), fn_80022A88 (0x360), fn_800225C4 (0x4C4) and fn_80021784 (0xE40), 6,864 B. The fixes are recorded in docs/nucamera_matching_pass.md. The unit is still not promoted: fn_80022DE8 is parked with a NONMATCHING draft, and eight functions are strict-only (float-pool fuzzy) and parked until the unit can own its .rodata pools. Next: match fn_80022DE8, then attempt unit promotion (sections, relocations and linked ranges). Layouts come from CrashWOC nu3dx/nucamera.c and OpenSaga nucamera.c, with LSW1 offsets and outcode bits confirmed in asm."
+note = "The nucamera run (2026-11-12) strictly matched 15 functions / 4,156 B. Misattributed symbols found there were renamed in the follow-up cleanup (NuVpInit/NuVpUpdate/NuVpSetScalingMtx, NuCosApprox/NuSinApprox, NuVec4MtxTransform, NuMtxSetIdentity). NuAnimCurveSetApplyBlendToJoint2 is really NuCameraSet, but keeps its name because 0x800D149C already carries that name. The second pass (PR 158) strictly VERIFIED the four remaining camera/light bodies: fn_8002303C (0x46C), fn_80022A88 (0x360), fn_800225C4 (0x4C4) and fn_80021784 (0xE40), 6,864 B. The fixes are recorded in docs/nucamera_matching_pass.md. The third pass reordered nucamera.c into retail .text order with static const placeholders for the dead-stripped pools and VuMath.h copies, so the unit .rodata (0x570 B) is byte-identical to retail and seven of the eight strict-only functions reach 100% in objdiff; fn_80023628 stays at 99.96% from a .bss symbol-name relocation. fn_80022DE8 improved from 135/149 to 146/149 and is parked at a plateau, so 30/31 functions are strict VERIFIED and the unit is not promoted (.text differs by 3 scheduled instructions in fn_80022DE8). Next: match fn_80022DE8's first-block schedule, then promote. Layouts come from CrashWOC nu3dx/nucamera.c and OpenSaga nucamera.c, with LSW1 offsets and outcode bits confirmed in asm."
 # at revision 1: 20 functions, 11,616 bytes left
 
 [[parked]]
-function = "fn_800234A8"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
 function = "fn_80023628"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuCameraCreate"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuCameraClipTestBoundingSphere"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuCameraEnableClipping"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuVpInit"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuVpUpdate"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
-
-[[parked]]
-function = "NuVpSetScalingMtx"
-reason = "Strict VERIFIED; objdiff below 100% only from the per-function .rodata float pool, which the unit cannot own while nucamera stays NonMatching. Next: promote nucamera once its remaining functions and pools are reproduced."
+reason = "Strict VERIFIED and its .rodata pool now matches; objdiff stays at 99.96% only because the farclip read relocates as lbl_80313268+0x4c where the retail split names the same address lbl_803132B4 (struct nucam_s spans the 0x20-byte lbl_80313268 symbol). The linked address is identical. Next: settle the .bss symbol boundary at 0x80313268 with runtime or caller evidence, never by faking a separate extern."
 
 [[parked]]
 function = "fn_80022DE8"
-reason = "Best 135/149, score [1,17,0,-135,0] (NONMATCHING draft in src/auto/nu3d/ngc/nucamera.c). Builds the lbl_80337860 ring: yaw/pitch from fn_8000ABDC (atan2), pitch clamped to 8192, then a rot_xy inline applied to the input and each of 8 ring points. Angles must live in a struct nuvec_s local (stack-resident). The loop's inline instance assigns x/y to f12/f13 the other way round from the first instance, and the first z store is scheduled one slot early. Two 180 s permuter bursts did not improve it. Next: write the second rotation out by hand (or as a macro) with a different load order, keeping the first as the inline."
+reason = "Best 146/149, score [1,6,0,-146,0] (NONMATCHING draft in src/auto/nu3d/ngc/nucamera.c, kept unguarded because its 8192.0f/0.0f pool entries are part of the unit .rodata). Writing rot_xy straight through v fixed the loop instance register swap. The only remaining difference is the first block after the second NuFsqrt: retail schedules the p->x store directly after fctiwz and loads ang.y (lfs f31) before mr r3,r30. Plateau: over 25 distinct hypotheses (store orders, chained/split zero stores, a len temporary, ternary clamp, f32 ang[2]/[3], ang pointer inline, local declaration orders, comma expressions) and a 13k-iteration 180 s permuter burst on the block found nothing better. Next: a scheduler-aware search (e.g. different inline parameter shapes for the first call only) or a different source form for the first rotation."
 
 [[stage.item]]
 id = "nuhgobj"
