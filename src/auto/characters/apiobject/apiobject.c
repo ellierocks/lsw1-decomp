@@ -31,6 +31,98 @@ void fn_8008F454(s32 a)
     lbl_80408D34 = a;
 }
 
+struct aivec_s { f32 x, y, z; };
+struct aigroup_s {
+    void *leader;
+    u8 pad4[0x4C];
+    u32 flags_hi : 3;
+    u32 is_in_formation : 1;
+};
+struct aipathroute_s {
+    u8 pad0[0x18];
+    u64 character_mask;
+    u8 pad20[8];
+};
+struct aipath_s {
+    u8 pad0[0x14];
+    u8 route_count;
+    u8 pad15[0x84 - 0x15];
+    struct aipathroute_s *routes;
+};
+struct aipathcnx_s {
+    u8 pad0[0x16];
+    u16 route_mask;
+};
+struct aipathinfo_s {
+    struct aipath_s *path;
+    struct aipathcnx_s *connection;
+    s32 w[4];
+};
+struct aipacket_s {
+    u8 pad0[0x50];
+    void *owner;
+    u8 pad54[0xA0 - 0x54];
+    s16 inside_path_node;
+    u8 padA2[6];
+    u64 character_type_mask;
+    u8 padB0[0xF0 - 0xB0];
+    struct aigroup_s *group;
+    u8 padF4[0x10C - 0xF4];
+    struct aipathinfo_s path_info;
+    u8 pad124[0x168 - 0x124];
+    u16 available_routes;
+    u8 current_route;
+    u8 next_route;
+    u8 pad16C[0x170 - 0x16C];
+    struct aivec_s fallback_destination;
+    f32 fallback_stopping_distance;
+    f32 movement_parameter;
+    struct aipathinfo_s fallback_path_info;
+    u8 pad19C[4];
+    u32 movement_mode : 3;
+};
+
+extern void* memset();
+
+void AISysCharacterSetPath(struct aipacket_s *packet, struct aipath_s *path)
+{
+    s32 i;
+    if (packet->path_info.path == path) return;
+    memset(&packet->path_info, 0, sizeof(packet->path_info));
+    packet->path_info.path = path;
+    packet->available_routes = 0;
+    packet->inside_path_node = -1;
+    packet->current_route = 0xff;
+    packet->next_route = 0;
+    if (path == NULL) return;
+    for (i = 0; i < path->route_count; i++) {
+        struct aipathroute_s *route = &path->routes[i];
+        if (route->character_mask & packet->character_type_mask)
+            packet->available_routes |= (u16)(1LL << i);
+    }
+}
+
+/* OpenSaga AISysFindRoute: pick the next route the connection allows, round robin. */
+void fn_8008F660(struct aipacket_s *packet)
+{
+    s32 count = packet->path_info.path->route_count;
+    s32 route, first;
+    if (count == 0) return;
+    if ((packet->path_info.connection->route_mask & packet->available_routes) == 0) return;
+    first = packet->next_route;
+    if (first < 0 || first >= count) first = 0;
+    route = first;
+    do {
+        if ((u32)((u64)(packet->path_info.connection->route_mask & packet->available_routes) >> route) & 1) {
+            packet->current_route = route;
+            packet->next_route = route + 1;
+            return;
+        }
+        route++;
+        if (route >= packet->path_info.path->route_count) route = 0;
+    } while (route != first);
+}
+
 struct object_entry3c { char bytes[0x3c]; };
 struct object_entry38 { char bytes[0x38]; };
 struct object_joint {
@@ -121,7 +213,6 @@ struct object_pool {
     u8 list[8];
     u8 otherList[8];
 };
-extern void* memset();
 extern void fn_80007610(void*, void*);
 void fn_8008F968(struct object_pool* pool)
 {
@@ -179,38 +270,25 @@ void fn_8009083C(struct NUAPIOBJECT_s* a, struct NUAPIOBJECT_s* b)
     b->responseZ = b->velocityZ;
 }
 
-void *CheckAIMessage();
+struct aimessage_s {
+    u8 links[8];
+    char name[0x20];
+    f32 value;
+};
+struct aimessagesys_s {
+    u8 pad0[8];
+    u8 free_list[8];
+    u8 active_list[8];
+};
+struct aimessage_s *CheckAIMessage(struct aimessagesys_s *sys, char *name, struct aimessage_s *message);
 
-void SetAIMessage(f32 farg0) {
-    void *temp_r3;
-
-    temp_r3 = CheckAIMessage();
-    if (temp_r3 != NULL) {
-        (*(f32 *)((s8 *)(temp_r3) + (0x28))) = farg0;
+void SetAIMessage(struct aimessagesys_s *sys, char *name, f32 value, struct aimessage_s *message)
+{
+    message = CheckAIMessage(sys, name, message);
+    if (message != NULL) {
+        message->value = value;
     }
 }
-
-struct aivec_s { f32 x, y, z; };
-struct aipathinfo_s { s32 w[6]; };
-struct aigroup_s {
-    void *leader;
-    u8 pad4[0x4C];
-    u32 flags_hi : 3;
-    u32 is_in_formation : 1;
-};
-struct aipacket_s {
-    u8 pad0[0x50];
-    void *owner;
-    u8 pad54[0xF0 - 0x54];
-    struct aigroup_s *group;
-    u8 padF4[0x170 - 0xF4];
-    struct aivec_s fallback_destination;
-    f32 fallback_stopping_distance;
-    f32 movement_parameter;
-    struct aipathinfo_s fallback_path_info;
-    u8 pad19C[4];
-    u32 movement_mode : 3;
-};
 
 extern void AIFormationFollow(struct aipacket_s *packet);
 extern void fn_8008CDE8(struct aigroup_s *group, void (*move)());
@@ -242,4 +320,36 @@ void AIMoveInstruction(struct aipacket_s *packet, struct aivec_s *destination,
     packet->fallback_stopping_distance = stopping_distance;
     packet->movement_parameter = movement_parameter;
     packet->movement_mode = mode;
+}
+
+extern void *fn_800076C4(void *list);
+extern void *fn_800076CC(void *list, void *link);
+extern s32 fn_800076E4(char *a, char *b, s32 n);
+extern void fn_80007680(void *list, void *link);
+extern void NuStrNCpy(char *dst, char *src, s32 n);
+struct aimessage_s *CheckAIMessage(struct aimessagesys_s *sys, char *name, struct aimessage_s *message)
+{
+    struct aimessage_s *result = NULL;
+    if (sys != NULL) {
+        if (message != NULL) {
+            result = message;
+        } else if (name != NULL) {
+            for (message = fn_800076C4(sys->active_list); message != NULL;
+                 message = fn_800076CC(sys->active_list, message)) {
+                if (fn_800076E4(name, message->name, 0x20) == 0) {
+                    result = message;
+                    break;
+                }
+            }
+        }
+        if (result == NULL) {
+            result = fn_800076C4(sys->free_list);
+            if (result != NULL) {
+                fn_80007680(sys->free_list, result);
+                fn_80007610(sys->active_list, result);
+                NuStrNCpy(result->name, name, 0x20);
+            }
+        }
+    }
+    return result;
 }
