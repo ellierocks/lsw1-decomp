@@ -90,10 +90,14 @@ def summarize(events: list[dict]) -> dict:
         "attempts_per_match": round(len(scores) / len(matched_names), 1) if matched_names else None,
     }
     if finish:
-        out.update({k: finish[k] for k in ("verified", "verified_bytes", "parked", "deferred", "code_bytes_delta",
+        out.update({k: finish[k] for k in ("new_verified", "new_verified_bytes", "verified", "verified_bytes", "parked", "deferred", "code_bytes_delta",
                                            "active_seconds", "phases", "tool_commits") if k in finish})
         active = finish.get("active_seconds") or out["wall_seconds"]
         if active:
+            if finish.get("new_verified") is not None:
+                out["new_verified_per_active_hour"] = round(finish["new_verified"] * 3600 / active, 1)
+            if finish.get("new_verified_bytes") is not None:
+                out["new_verified_bytes_per_active_hour"] = round(finish["new_verified_bytes"] * 3600 / active)
             out["verified_per_active_hour"] = round(finish.get("verified", 0) * 3600 / active, 1)
             if "verified_bytes" in finish:
                 out["verified_bytes_per_active_hour"] = round(finish["verified_bytes"] * 3600 / active)
@@ -130,8 +134,8 @@ def finish(record: dict) -> Path | None:
 
 
 COMPARE_KEYS = ("run_id", "model", "lane", "unit", "item", "off_plan", "started_at", "verified", "verified_bytes",
-                "code_bytes_delta", "parked", "active_seconds", "verified_per_active_hour",
-                "verified_bytes_per_active_hour", "attempts_per_match", "first_match_seconds",
+                "new_verified", "new_verified_bytes", "code_bytes_delta", "parked", "active_seconds", "verified_per_active_hour",
+                "verified_bytes_per_active_hour", "new_verified_per_active_hour", "new_verified_bytes_per_active_hour", "attempts_per_match", "first_match_seconds",
                 "startup", "steps_seconds")
 
 

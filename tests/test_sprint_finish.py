@@ -10,6 +10,14 @@ from tools.sprint_finish import validate_queue, phase, rebase_refusal, merge_mai
 
 
 class SprintFinishTests(unittest.TestCase):
+    def test_reverification_is_not_new_progress(self):
+        baseline = {"strict_baseline": {"existing": True, "new": False}}
+        self.assertEqual(sprint_finish.new_verified_names(
+            baseline, {"existing": True, "new": True}), ["new"])
+        self.assertEqual(sprint_finish.new_verified_names(baseline, {"existing": True}), [])
+        self.assertIsNone(sprint_finish.new_verified_names({}, {"existing": True}))
+        self.assertIsNone(sprint_finish.new_verified_names(baseline, {"later_added": True}))
+
     def test_pr52_omitted_candidates_are_rejected(self):
         matched = ['fn_8000556C', 'fn_800034A0', 'fn_800055EC', 'NuFileBeginBlkRead']
         queue = matched + ['NuDatFileOpenSize', 'NuFileSeek', 'NuDatFileSeek',
@@ -210,6 +218,7 @@ class BaselineTimerTests(unittest.TestCase):
             with mock.patch.object(sprint_finish, 'ROOT', root), \
                     mock.patch.object(sprint_finish, 'BASELINE', root / 'work' / 'sprint_baseline.json'), \
                     mock.patch.object(sprint_finish, 'snapshot', return_value=snap), \
+                    mock.patch.object(sprint_finish, 'verify', return_value=False), \
                     mock.patch('sys.stdout'):
                 self.assertEqual(sprint_finish.main(['--baseline', '--allow-behind', '--queue', 'a']), 0)
             self.assertEqual(json.loads(timing.read_text())['active'], 'matching')

@@ -228,6 +228,7 @@ def record_baseline(queue: list[str], allow_behind: bool = False, idle_cap: floa
             return 2
     snap = snapshot()
     snap["queue"] = metrics.dedupe(queue)
+    snap["strict_baseline"] = {name: verify(name) for name in snap["queue"]}
     snap.update(extra or {})
     BASELINE.parent.mkdir(exist_ok=True)
     BASELINE.write_text(json.dumps(snap, indent=2))
@@ -239,6 +240,19 @@ def record_baseline(queue: list[str], allow_behind: bool = False, idle_cap: floa
         phase(timing, "matching", cap=idle_cap)
         print("timer: setup -> matching")
     return 0
+
+
+def new_verified_names(base: dict | None, results: dict[str, bool]) -> list[str] | None:
+    """New strict matches only when every successful result was checked at kickoff.
+
+    Legacy baselines and later queue additions cannot prove novelty. Do not infer
+    it from the report delta: strict-only matches and main drift make that unsafe.
+    """
+    before = (base or {}).get("strict_baseline")
+    names = [name for name, ok in results.items() if ok]
+    if before is None or any(name not in before for name in names):
+        return None
+    return [name for name in names if not before[name]]
 
 
 def symbol_sizes(names) -> dict[str, int]:
@@ -411,6 +425,12 @@ def main(argv=None) -> int:
     record = {"unit": args.unit, "verified": len(verified_names),
               "verified_bytes": sum(symbol_sizes(verified_names).values()), "parked": len(parked),
               "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures}
+    new_names = new_verified_names(base, results)
+    record["new_verified"] = len(new_names) if new_names is not None else None
+    record["new_verified_bytes"] = (sum(symbol_sizes(new_names).values())
+                                    if new_names is not None else None)
+    print("- New strict matches: " + (str(len(new_names)) if new_names is not None
+                                     else "unknown (no complete strict baseline)"))
     if base:
         record["code_bytes_delta"] = snap["code"] - base["code"]
     if timing.exists():

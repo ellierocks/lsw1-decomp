@@ -118,11 +118,11 @@ class NextItemTests(unittest.TestCase):
         self.assertTrue(any("stage s2" in w for w in s["warnings"]))
 
     def test_zero_verified_bench_run_and_yield(self):
-        records = [{"run_id": "r1", "item": "core", "verified": 0, "verified_bytes": 0, "active_seconds": 1800},
-                   {"run_id": "r2", "item": "hub", "verified": 4, "verified_bytes": 400, "active_seconds": 1800},
+        records = [{"run_id": "r1", "item": "core", "verified": 0, "verified_bytes": 0, "new_verified": 0, "new_verified_bytes": 0, "active_seconds": 1800},
+                   {"run_id": "r2", "item": "hub", "verified": 4, "verified_bytes": 400, "new_verified": 4, "new_verified_bytes": 400, "active_seconds": 1800},
                    {"run_id": "r3", "unit": "old", "verified": 0, "active_seconds": 60}]
         s = state_with(records=records)
-        self.assertIn("bench run r1 on item core verified no functions", s["warnings"])
+        self.assertIn("bench run r1 on item core added no new strict matches", s["warnings"])
         self.assertEqual(len([w for w in s["warnings"] if "bench run" in w]), 1)
         y = s["yield"]["s1"]
         self.assertEqual((y["runs"], y["verified"], y["fn_per_hour"], y["bytes_per_hour"]), (2, 4, 4.0, 400.0))

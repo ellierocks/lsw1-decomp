@@ -16,6 +16,7 @@ delete the row when nothing remains to say.
 | 7 | [Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | partly fixed, #119 |
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | open |
 | 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | partly fixed, numath promoted |
+| 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | accounting fixed; structural matching work continues |
 
 ## 1. Stale task packs change scores
 
@@ -166,3 +167,36 @@ Open: the other units are not code-complete, and most reference strings through
 still raise strict-only functions in incomplete units once the functions before them
 emit their pools. `nustring` also needs its string order explained and its range start
 corrected.
+
+## 10. Verification counts were mistaken for new progress
+
+The 2026-11-12 Nu3d continuation exposed two separate problems. Short passes
+ended while useful structural hypotheses remained, and the benchmark overstated
+what those passes achieved. The `nuanim` run behind PR #162 reverified four
+baseline matches (2,136 bytes) while adding zero matched report bytes. Kickoff
+nevertheless displayed about 11,400 verified bytes per active hour as yield.
+`sprint_finish.py` counted every successful final verification, and kickoff and
+plan used that total to rank progress. The same issue credited PR #159's
+pre-existing `fn_80015C88` match as a new result.
+
+Kickoff now records strict results for the starting queue. Finish retains total
+verification counts as validation evidence and separately records new strict
+matches. Yield and plan warnings use the latter. Old baselines and newly added
+queue entries without a baseline result remain unknown; report byte deltas
+cannot replace the strict baseline because constant-pool differences and main
+changes affect them. Historical logs are preserved, not retroactively guessed.
+
+The benchmark logs also locate the effort problem: the second nuhgobj pass made
+only 2–4 scoring calls per unfinished function, while the nuportal pass spent
+724 calls on `NuAnimCurveEval` without a strict match. These counts include
+mechanical variants, not independent hypotheses. Their recorded finish builds
+took under a second, so those builds do not explain the low yield. The broad
+sweep was also 58 input commits stale, limiting its value as a starting point.
+
+Continuation should reconstruct types and control flow before tuning register
+allocation. A low-scoring generated body is a draft, not a plateau; matching a
+frame by adding scratch padding does not establish the target's local types.
+Keep a child on its current unit while useful hypotheses remain, preserve each
+measured candidate, and explain the unresolved instruction or data-layout issue
+before deferring it. Do not count fresh worktrees, PRs, or reverified baseline
+functions as matching gains.

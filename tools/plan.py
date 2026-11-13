@@ -343,12 +343,12 @@ def stage_yield(state: dict, records: list[dict]) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for rec in records:
         item = find_item(state, rec.get("item") or "")
-        if not item or not rec.get("active_seconds") or rec.get("verified") is None:
+        if not item or not rec.get("active_seconds") or rec.get("new_verified") is None:
             continue
         y = out.setdefault(item["stage"], {"runs": 0, "verified": 0, "verified_bytes": 0, "active_hours": 0.0})
         y["runs"] += 1
-        y["verified"] += rec["verified"] or 0
-        y["verified_bytes"] += rec.get("verified_bytes") or 0
+        y["verified"] += rec["new_verified"] or 0
+        y["verified_bytes"] += rec.get("new_verified_bytes") or 0
         y["active_hours"] += rec["active_seconds"] / 3600
     for y in out.values():
         y["fn_per_hour"] = y["verified"] / y["active_hours"]
@@ -371,8 +371,8 @@ def status(remote: bool = True, plan: dict | None = None, report: dict | None = 
         state["warnings"].append(f"stage {cur['id']} is not closed but has no recommendable item "
                                  "(what is left is claimed, parked or blocked)")
     for rec in records:
-        if rec.get("item") and rec.get("verified") == 0:
-            state["warnings"].append(f"bench run {rec.get('run_id')} on item {rec['item']} verified no functions")
+        if rec.get("item") and rec.get("new_verified") == 0:
+            state["warnings"].append(f"bench run {rec.get('run_id')} on item {rec['item']} added no new strict matches")
     state["yield"] = stage_yield(state, records)
     return state
 
