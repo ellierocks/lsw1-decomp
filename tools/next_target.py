@@ -198,7 +198,7 @@ def rank_units(rows, owned=frozenset(), limit=None):
 
 def print_by_unit(rows, args, owned=frozenset()) -> int:
     """One line per unit: ready targets, bytes, size range and how many functions the unit has left."""
-    order, skipped = rank_units(rows, owned, args.limit)
+    order, skipped = rank_units(rows, owned, args.limit or None)
     if args.json:
         print(json.dumps([{"unit": u, "ready": len(rs), "left": rs[0]["unit_left"],
                            "finishable": rs[0]["unit_left"] <= FINISHABLE,
@@ -329,7 +329,8 @@ def main(argv=None) -> int:
     ap.add_argument("--min-size", type=lambda s: int(s, 0), default=0, help="smallest size in bytes (default 0)")
     ap.add_argument("--unit", action="append", default=[], metavar="PREFIX",
                     help="only units starting with PREFIX, e.g. auto/game/ (repeatable)")
-    ap.add_argument("--limit", type=int, default=15)
+    ap.add_argument("--limit", type=int, default=None,
+                    help="rows to print (default: every plan target; 15 with --all)")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--by-unit", action="store_true",
                     help="summarize ready targets per unit to scope a sprint (first-wave bytes descending; units owned by an open t3/sprint-* PR are skipped)")
@@ -357,6 +358,9 @@ def main(argv=None) -> int:
         print(f"off plan: {args.off_plan}", file=sys.stderr)
     if args.max_size is None:
         args.max_size = 0x200 if scope is None else 0x100000
+    if args.limit is None:
+        # A plan item is the child's whole work list: never cut it silently (gap 22).
+        args.limit = 15 if scope is None else 0
     if scope is not None and args.by_unit:
         return print_plan_items(state, scope, args)
     try:
@@ -368,7 +372,7 @@ def main(argv=None) -> int:
     rows_all = rows
     if args.by_unit:
         return print_by_unit(rows_all, args, owned_units(rows_all, remote=not args.no_remote))
-    rows = rows[:args.limit]
+    rows = rows[:args.limit] if args.limit > 0 else rows
     if scope is not None and not args.json:
         whose = "claimed by this checkout" if scope["mine"] else "the plan's next item"
         print(f"Plan item {scope['item']} (stage {scope['stage_id']}, {whose}): {len(scope['functions'])} functions "
@@ -397,6 +401,8 @@ def main(argv=None) -> int:
         print(f"  python3 tools/score_fn.py {top['name']} {src}")
         print(f"  python3 tools/hillclimb.py try {top['name']} --unit {top['unit']} --source {src} "
               "--hypothesis '<one falsifiable change>' --donor-note '<GC-grounded donor review or limit>'")
+    if len(rows) < len(rows_all):
+        print(f"\n{len(rows_all) - len(rows)} more not shown (--limit {args.limit}); --limit 0 lists all.")
     print(f"\n{len(rows_all)} {'plan' if scope else 'ready'} targets lie in split units. {skipped_unit} unmatched "
           f"functions within --max-size are outside any split unit and cannot be verified yet "
           f"(docs/workflow_gaps.md).")

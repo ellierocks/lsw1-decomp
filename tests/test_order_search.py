@@ -243,3 +243,51 @@ class ClimbTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AutoBlockTests(unittest.TestCase):
+    """Gap 26: os_.py --auto marks runs itself and writes only the definition."""
+
+    SRC = """#include "types.h"
+extern s32 g;
+void other(void) { g = 1; g = 2; }
+s32 fn(struct s* p, s32 n)
+{
+    s32 i;
+    struct s* q = p;
+
+    p->a = 0;
+    p->b = -1;
+    if (n != 0) {
+        q->c = 1;
+        q->d = 2;
+        q->e = 3;
+    }
+label:
+    g = n;
+    other();
+    return 0;
+}
+"""
+
+    def test_runs_at_any_depth_skip_decls_control_and_labels(self):
+        blocks, start, end = os_.auto_blocks(self.SRC, "fn")
+        self.assertEqual([b.statements for b in blocks],
+                         [["p->a = 0;", "p->b = -1;"], ["q->c = 1;", "q->d = 2;", "q->e = 3;"]])
+        self.assertEqual(blocks[1].indent, "        ")
+        self.assertTrue(self.SRC[start:end].lstrip().startswith("s32 i;"))
+        swapped = os_.render(os_.Template(self.SRC, blocks, None), ((1, 0), (2, 1, 0)), ())
+        self.assertIn("    p->b = -1;\n    p->a = 0;\n    if", swapped)
+        self.assertIn("        q->e = 3;\n        q->d = 2;\n        q->c = 1;\n    }", swapped)
+        self.assertIn("void other(void) { g = 1; g = 2; }", swapped)
+
+    def test_nearest_block_follows_the_first_difference(self):
+        blocks, start, end = os_.auto_blocks(self.SRC, "fn")
+        self.assertEqual(os_.nearest_block(blocks, (start, end), 0.0), 0)
+        self.assertEqual(os_.nearest_block(blocks, (start, end), 0.6), 1)
+
+    def test_no_run_is_an_error_and_definition_drops_the_unit(self):
+        with self.assertRaisesRegex(os_.SearchError, "mark one by hand"):
+            os_.auto_blocks(self.SRC, "other")
+        self.assertTrue(os_.definition(self.SRC, "fn").startswith("s32 fn(struct s* p, s32 n)\n{"))
+        self.assertNotIn("void other(void)", os_.definition(self.SRC, "fn"))

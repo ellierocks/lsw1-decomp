@@ -133,6 +133,29 @@ def short_parks(evidence: dict[str, int | None], floor: int | None = None) -> li
     return [f"{fn} ({n})" for fn, n in evidence.items() if n is not None and n < floor]
 
 
+def floor_refusal(parked: dict[str, int | None], deferred: dict[str, int | None],
+                  short_park: str | None, short_handoff: str | None) -> str | None:
+    """The error for parks or handoffs under the hypothesis floor without a stated reason, else
+    None. A handoff (`--deferred`) of an attempted function below the floor stops as early as a
+    short park does: the 2026-11-13 aisys-1 pass handed off 7 functions after 2-8 candidates
+    (docs/workflow_gaps.md#25-handoffs-skipped-the-hypothesis-floor). Unattempted functions
+    (no compiled candidate on record) are not refused."""
+    errors = []
+    short = short_parks(parked)
+    if short and not short_park:
+        errors.append(f"too few distinct compiled candidates to park: {', '.join(short)}; keep going or "
+                      "pass --short-park REASON")
+    short = short_parks(deferred)
+    if short and not short_handoff:
+        errors.append(f"too few distinct compiled candidates to hand off: {', '.join(short)}; keep going or "
+                      "pass --short-handoff REASON (what stopped the pass: time, rate limit, a named blocker) "
+                      "and list the hypotheses left in the PR")
+    if not errors:
+        return None
+    return ("error: " + ". ".join(errors) + ". Under 25 a function is unfinished, not a plateau "
+            "(docs/sprint_workflow.md#matching-brief)")
+
+
 def phase(path: Path, name: str, now: float | None = None, cap: float | None = None) -> dict:
     """Switch the timer phase. Time since the last activity event counts as active only up to
     the idle cap; `paused` stops the clock. Wall-clock is kept beside it."""
@@ -331,6 +354,9 @@ def main(argv=None) -> int:
     ap.add_argument("--deferred", nargs="*", default=[], help="queue entries not attempted or not finished this run")
     ap.add_argument("--short-park", metavar="REASON",
                     help="park functions with fewer than 25 distinct compiled candidates anyway (recorded)")
+    ap.add_argument("--short-handoff", metavar="REASON",
+                    help="hand off (--deferred) attempted functions with fewer than 25 distinct compiled "
+                         "candidates anyway (recorded)")
     args = ap.parse_args(argv)
     if args.rebase and args.merge:
         ap.error("choose --merge or --rebase")
@@ -390,13 +416,16 @@ def main(argv=None) -> int:
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
-    evidence = park_evidence([p.partition("=")[0] for p in args.parked])
-    short = short_parks(evidence)
-    if short and not args.short_park:
-        print(f"error: too few distinct compiled candidates to park: {', '.join(short)}. A plateau needs 25 "
-              "(docs/sprint_workflow.md#matching-brief); keep going, list them under --deferred with the "
-              "hypotheses left, or pass --short-park REASON", file=sys.stderr)
+    import workflow_metrics as wm
+    runs = wm.load_runs(wm.log_paths()) if args.parked or args.deferred else {}
+    evidence = park_evidence([p.partition("=")[0] for p in args.parked], runs)
+    handoffs = park_evidence(list(args.deferred), runs)
+    refusal = floor_refusal(evidence, handoffs, args.short_park, args.short_handoff)
+    if refusal:
+        print(refusal, file=sys.stderr)
         return 2
+    short = short_parks(evidence)
+    short_handoff = short_parks(handoffs)
     if args.rebase:
         if not fetch():
             print("error: git fetch failed or timed out", file=sys.stderr)
@@ -454,7 +483,11 @@ def main(argv=None) -> int:
     if short:
         print(f"\nShort parks ({args.short_park}): {', '.join(short)}")
     for fn in args.deferred:
-        print(f"| {fn} | deferred: not finished this run; resume next run |")
+        n = handoffs.get(fn)
+        print(f"| {fn} | deferred: not finished this run ({n if n is not None else 'no'} distinct candidates); "
+              "resume next run |")
+    if short_handoff:
+        print(f"\nShort handoffs ({args.short_handoff}): {', '.join(short_handoff)}")
     print("\n- Promoted: none (promotion requires a separate complete-unit gate)")
     if base:
         drift = " (includes main drift)" if args.rebase or args.merge or base["head"] != snap["head"] else ""
@@ -483,7 +516,8 @@ def main(argv=None) -> int:
               "verified_bytes": sum(symbol_sizes(verified_names).values()), "parked": len(parked),
               "deferred": len(args.deferred), "tool_commits": len(tools), "failed": failures,
               "parked_names": [p[0] for p in parked], "deferred_names": list(args.deferred),
-              "parked_hypotheses": evidence, "short_park": args.short_park if short else None}
+              "parked_hypotheses": evidence, "short_park": args.short_park if short else None,
+              "deferred_hypotheses": handoffs, "short_handoff": args.short_handoff if short_handoff else None}
     new_names = new_verified_names(base, results)
     record["new_verified"] = len(new_names) if new_names is not None else None
     record["new_verified_bytes"] = (sum(symbol_sizes(new_names).values())

@@ -32,6 +32,7 @@ import statistics
 import subprocess
 import sys
 import tomllib
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -296,6 +297,9 @@ def measure(segments: list[Segment], all_runs: dict[str, list[dict]] | None = No
         "matched_bytes_per_hour": round(conv_bytes / hours) if hours else None,
         "exact_gain_per_hour": round(gain / hours) if hours else None,
         "compile_error_rate": round(100 * errors / len(scores), 1) if scores else None,
+        # Logged since gap 25; older ERROR events carry no diagnostic and are left out.
+        "error_classes": Counter(e["error"] for e in scores
+                                 if e.get("verdict") == "ERROR" and e.get("error")).most_common(5),
         "distinct_per_unfinished": median(distinct),
         "first_compile_seconds": round(median(first_compile)) if first_compile else None,
         "park_recovery_rate": round(100 * recovered / len(last_seen), 1) if recovered is not None else None,

@@ -30,6 +30,22 @@ class SprintFinishTests(unittest.TestCase):
         self.assertEqual(sprint_finish.short_parks(evidence), ["shallow (2)"])
         self.assertEqual(sprint_finish.park_evidence([], runs), {})
 
+    def test_short_handoffs_need_a_reason(self):
+        # The aisys-1 pass (PR 169) handed off 7 functions after 2-8 distinct candidates (gap 25).
+        aisys = {"AIScriptResolveReferences": 3, "fn_8007E97C": 3, "fn_8007EBD0": 5,
+                 "AIScriptProcessorInit": 2, "fn_8007EFA0": 4, "fn_8007F130": 8, "AIScriptProcess": 3}
+        refusal = sprint_finish.floor_refusal({}, aisys, None, None)
+        self.assertIn("to hand off: AIScriptResolveReferences (3)", refusal)
+        self.assertIn("--short-handoff REASON", refusal)
+        self.assertIn("AIScriptProcess (3)", refusal)
+        self.assertIsNone(sprint_finish.floor_refusal({}, aisys, None, "rate limit at 03:10"))
+        # Unattempted or deep handoffs pass; short parks still need --short-park.
+        self.assertIsNone(sprint_finish.floor_refusal({}, {"untouched": None, "deep": 25}, None, None))
+        refusal = sprint_finish.floor_refusal({"p": 4}, {"d": 4}, None, "time")
+        self.assertIn("to park: p (4)", refusal)
+        self.assertNotIn("hand off", refusal)
+        self.assertNotIn("list them under --deferred", refusal)
+
     def test_pr52_omitted_candidates_are_rejected(self):
         matched = ['fn_8000556C', 'fn_800034A0', 'fn_800055EC', 'NuFileBeginBlkRead']
         queue = matched + ['NuDatFileOpenSize', 'NuFileSeek', 'NuDatFileSeek',

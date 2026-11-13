@@ -128,11 +128,14 @@ locals, ternary against if/else, `s32`/`u32` for each integer, at most two chang
 python3 tools/variant_search.py NAME src/UNIT.c -j 8
 ```
 
-If only the order of independent stores or loads differs, mark those statements
-with `/* order: begin */` and `/* order: end */` in a scratch copy and search every
-ordering ([order search](code_matching_workflow.md#store-and-load-order-search)):
+If only the order of independent stores or loads differs, search every ordering
+([order search](code_matching_workflow.md#store-and-load-order-search)). `--auto`
+finds the runs of plain statements in your draft itself; mark a range with
+`/* order: begin */` and `/* order: end */` in a scratch copy when you want a
+different one:
 
 ```sh
+python3 tools/order_search.py NAME src/UNIT.c --body work/NAME/try.c --auto -j 8
 python3 tools/order_search.py NAME work/NAME/order.c --const-locals -j 8
 ```
 

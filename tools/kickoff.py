@@ -189,6 +189,21 @@ def available(rows: list[dict], low: float, high: float, ready: set[str] | None,
     return sorted(out, key=lambda r: -r.get("size", 0) * closeness(r))
 
 
+def sweep_matched(rows: list[dict] | None, names) -> list[dict]:
+    """Sweep rows among NAMES whose draft already strict-matches (verdict MATCH), in NAMES order.
+    The report does not know them until the draft is applied and built, so plan targets still
+    list them; they are a `sweep.py --apply`, not hand work (gap 23)."""
+    by = {r["name"]: r for r in rows or [] if r.get("verdict") == "MATCH"}
+    return [by[n] for n in dict.fromkeys(names) if n in by]
+
+
+def sweep_apply_line(matched: list[dict]) -> str:
+    units = sorted({r["unit"] for r in matched})
+    names = " ".join(r["name"] for r in matched[:8]) + (" ..." if len(matched) > 8 else "")
+    cmd = " && ".join([f"python3 tools/sweep.py --unit {u} --apply" for u in units] + ["bash build.sh"])
+    return (f"  sweep already strict-matches {len(matched)} of them ({names}); apply, don't hand-match: {cmd}")
+
+
 def top_units(rows: list[dict], n: int = 3) -> list[tuple[str, int]]:
     by: dict[str, int] = {}
     for r in rows:
@@ -374,6 +389,9 @@ def plan_lines(state: dict) -> list[str]:
         lines.append(f"  first, the sweep is {state['sweep']['state']} ({state['sweep']['why']}): " + " && ".join(pre))
     if not nxt.get("mine"):
         lines.append(f"  python3 tools/kickoff.py --start --item {item['id']}")
+    matched = sweep_matched(state.get("rows"), item.get("functions", []))
+    if matched:
+        lines.append(sweep_apply_line(matched))
     lines.append(f"  python3 tools/plan.py --item {item['id']}    # its functions")
     return lines
 
@@ -498,7 +516,10 @@ def build_queue(lane: str, unit: str | None, names: list[str], rows: list[dict] 
     """Given names, else the lane's default queue (docs/sprint_workflow.md#kickoff). SCOPE (plan
     target names, ordered) restricts and orders the near-miss lane; the plan lane is SCOPE."""
     if lane == "plan":
-        return metrics.dedupe(names + list(scope or []))
+        # Sweep matches stay queued (finish accounts for them once applied) but go last.
+        swept = {r["name"] for r in sweep_matched(rows, scope or [])}
+        return metrics.dedupe(names + [n for n in scope or [] if n not in swept]
+                              + [n for n in scope or [] if n in swept])
     if names or lane == "sweep":
         return metrics.dedupe(names)
     ready = {r["name"] for r in ready_rows} if ready_rows is not None else None
@@ -624,6 +645,9 @@ def start(lane: str, unit: str | None, names: list[str], args, item_id: str | No
                           off_plan=args.off_plan)
         print(f"bench: opened run {opened['run_id']} (lane {lane}{f', item {item_id}' if item_id else ''}, "
               f"model {args.model})")
+    swept = sweep_matched(rows, queue) if lane == "plan" else []
+    if swept:
+        print(sweep_apply_line(swept).strip())
     print(f"queue: {len(queue)} names" + (f": {' '.join(queue[:12])}{' ...' if len(queue) > 12 else ''}"
                                           if queue else ""))
     print("\nNext:")
@@ -631,10 +655,12 @@ def start(lane: str, unit: str | None, names: list[str], args, item_id: str | No
         print("  python3 tools/sweep.py --apply && bash build.sh")
         print("  python3 tools/sprint_finish.py FN... --unit sweep --queue FN... --merge")
     elif lane == "plan":
-        first = next((r for r in ready_rows if queue and r["name"] == queue[0]), None)
+        swept_names = {r["name"] for r in swept}
+        head = next((n for n in queue if n not in swept_names), None)
+        first = next((r for r in ready_rows if r["name"] == head), None)
         src = (first or {}).get("source_path") or "src/UNIT.c"
         print(f"  python3 tools/next_target.py           # the item's targets, ranked")
-        print(f"  python3 tools/score_fn.py {queue[0] if queue else 'NAME'} {src} --diff")
+        print(f"  python3 tools/score_fn.py {head or 'NAME'} {src} --diff")
         print(f"  python3 tools/sprint_finish.py --unit {src} --matched-from-diff --merge "
               "--parked 'FN=score: mismatch; next: idea' --deferred FN ...")
     else:
