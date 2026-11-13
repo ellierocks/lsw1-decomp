@@ -445,6 +445,31 @@ Control-flow evidence:
     so the tail is a 3-float vector, not padding
 
 
+### Camera setup and extents matching (nuportal pass 2)
+
+The bodies at `0x8001C20C` (`NuAnimCurveSetApplyBlendToJoint2`) and
+`0x8001CA54` (`NuAnimCurveSetApplyToJoint2`) strictly match camera setup and
+generic extents clipping. Their current symbols remain historical misattributions.
+OpenSaga `nu3d_includes.cpp` at `7bb2402aa902d08f0979892ca23ee80e809e5ee1`
+and CrashWOC `nucamera.c` supply the algorithm leads; GC assembly decides the
+fast path, projection variants and outcode tests.
+
+Camera setup copies the complete `0x68`-byte camera. Its tail vector at `+0x5C`
+feeds `NuVec4MtxTransformVU0x4`, whose body scales a matrix, supporting `scale`
+in the local `nucam_s` view. The older shared view still calls this field `pos`.
+The clip test reads `nearclip` at `+0x48` in its first pass and the alias
+`lbl_803132B0` (`+0x48` relative to the camera base) in its second;
+these two references reach the same field but retain their retail source forms.
+A zero far-clip argument falls back to `lbl_803132B4` (`+0x4C`). Flag 2 skips
+near-plane rejection and flag 1 skips the second, scissor-plane pass.
+
+The camera setup calls `fn_8000ABDC` with two floats, no matrix argument.
+`fn_80027BE4` and `NuTexReadBitmapMM` return `s32`; treating either as `void`
+changes the caller's scheduling. These prototypes were checked against their
+current source bodies and the target call sequence. The projection builders
+write their globals directly; an output-pointer helper keeps those addresses
+live too early and changes register allocation.
+
 ## Recovering types and boundaries
 
 Use access width, offsets, allocation/copy size, callers and callees together.

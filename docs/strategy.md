@@ -190,6 +190,14 @@ leads by body, not only by name. `fn_8008F660` is `AISysFindRoute`, `fn_8008FB18
 `APICharacterSysInit` and `fn_800913BC` is an earlier and longer `AddAnimEffects`. This
 revision also parks the `apiobject` plateaus with their best scores.
 
+Revision 9 (2026-11-13) records the second `nuportal` pass: three new strict
+matches / 3,908 B and four measured plateaus, each above the 25-candidate floor.
+The item has no unattempted functions; promotion still needs the remaining bodies
+and unit-wide section/relocation/range checks. The stale scaffold note is replaced
+with the current result. The zero-yield `nuanim` bench warning was reviewed; this
+pass supplies no evidence to reorder stages or reclassify its unfinished work.
+Stage 2 keeps its existing order, continuing at the next unclaimed item.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle. Never weaken

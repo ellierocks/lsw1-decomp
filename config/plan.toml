@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 8
+revision = 9
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -198,7 +198,7 @@ note = "Done: every function in both units strictly matches. ngc/nuhgobj is prom
 [[stage.item]]
 id = "nuportal"
 units = ["auto/nu3d/nuportal_gen"]
-note = "No source file yet: scaffold it; OpenSaga leads."
+note = "Pass 2 (2026-11-13) adds three strict VERIFIED functions / 3,908 B: NuAnimBuffEvaluate, NuAnimCurveSetApplyBlendToJoint2 (camera setup) and NuAnimCurveSetApplyToJoint2 (generic extents clipping). No unit promoted. All four remaining functions reached the 25-distinct-candidate plateau floor and are parked below; no unattempted functions remain. Local drafts and donor limits are retained under work/, with durable camera/compiler findings in docs/nu2_engine_reference.md and docs/code_matching_workflow.md."
 # at revision 1: 26 functions, 15,348 bytes left
 
 [[stage.item]]
@@ -2234,3 +2234,19 @@ reason = "Best 370/380 (apiobject, 25 distinct candidates; possibly OpenSaga API
 [[parked]]
 function = "fn_800913BC"
 reason = "Short park, not attempted (0xC04 bytes, ~740 instructions). OpenSaga has an older, longer AddAnimEffects with the same body shape; matching it needs a long hand climb that did not fit this benchmark pass. Next: start from the donor AddAnimEffects control flow and the Ghidra decompile in work/fn_800913BC."
+
+[[parked]]
+function = "NuAnimData2Fixup"
+reason = "Best 334/367 (nuportal pass 2, 372 distinct compiled candidates). Object/scales saved-register lifetimes and parent-scale base addressing differ; next: inline vector operations and recover the scale-array/parent pointer scopes."
+
+[[parked]]
+function = "NuAnimData2Relocate"
+reason = "Best 216/336 (nuportal pass 2, 393 distinct compiled candidates). Temporary matrix pointer and parameter-spill lifetimes differ; next: split rotation from scale/translation helpers and recover the temporary matrix scope."
+
+[[parked]]
+function = "drawClippedPortal"
+reason = "Best 132/137 (nuportal pass 2, 185 distinct compiled candidates). First debug-edge loop swaps address registers and loads float arguments in a different order; next: recover the array-element pointer or debug-line inline boundary."
+
+[[parked]]
+function = "NuPortalWhichRoom"
+reason = "Best 204/207 (nuportal pass 2, 62 distinct compiled candidates). Zero-constant address and final boolean initialization are scheduled differently; next: split containment return from the caller to recover constant lifetimes."

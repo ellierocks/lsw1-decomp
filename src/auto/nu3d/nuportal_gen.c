@@ -62,23 +62,32 @@ typedef struct {
 void NuAnimData2Apply(void* anim, NuPortalAnimBuff* buffer, s32 count, s32 first, f32 time);
 void NuAnimData2CalcMatrix(void* anim, NuPortalAnimBuff* buffer, s32 count, s32 first, NuPortalVec3* root, f32 time);
 
+static inline s32 portal_last_joint(NuPortalHGobj* hgobj, s32 start)
+{
+    u8 parent = hgobj->joints[start].parent_ix;
+    s32 end = start + 1;
+    for (; end < hgobj->num_joints; end++) {
+        if (hgobj->joints[end].parent_ix == parent)
+            return end - 1;
+    }
+    return end - 1;
+}
+
+static inline NuPortalAnimBuff* portal_buffer(NuPortalAnimBuff* buffer)
+{
+    if (!buffer)
+        return lbl_80407C38;
+    return buffer;
+}
+
 void NuAnimBuffEvaluate(NuPortalAnimBuff* buffer, void* anim, f32 time, s32 apply, f32 blend, s32 start,
                         NuPortalHGobj* hgobj, NuPortalVec3* root)
 {
     s32 end;
-    if (buffer == NULL)
-        buffer = lbl_80407C38;
+    buffer = portal_buffer(buffer);
     buffer->count = hgobj->num_joints;
     if (start != 0) {
-        u8 parent = hgobj->joints[start].parent_ix;
-        end = start + 1;
-        if (end < hgobj->num_joints) {
-            do {
-                if (hgobj->joints[end].parent_ix == parent)
-                    break;
-                end++;
-            } while (end < hgobj->num_joints);
-        }
+        end = portal_last_joint(hgobj, start) + 1;
     } else {
         end = hgobj->num_joints;
     }
@@ -1038,4 +1047,304 @@ NuPortalFrustum* buildFrustrum(NuPortalVec3* minimum, NuPortalVec3* maximum, s16
     planes[3].d = -(pos.x * planes[3].x + pos.y * planes[3].y + pos.z * planes[3].z);
     transposeClipPlanes(frustum);
     return frustum;
+}
+
+static inline void portal_clear_codes(void* p)
+{
+    ((u32*)p)[0] = 0;
+    ((u32*)p)[1] = 0;
+}
+
+extern struct numtx_s lbl_801B0F08;
+struct nucam_s {
+    struct numtx_s mtx;
+    f32 fov, aspect, nearclip, farclip, nearclip_alt, farclip_alt, unk58;
+    struct nuvec_s scale;
+};
+extern struct nucam_s lbl_80313268;
+void fn_8000D134(struct numtx_s*, struct numtx_s*, struct numtx_s*);
+void* memset(void*, int, unsigned int);
+
+/* Historical symbol: this body is the generic camera extents clip test. */
+s32 NuAnimCurveSetApplyToJoint2(struct nuvec_s* minimum, struct nuvec_s* maximum, struct numtx_s* world, s32 flags, f32* minimum_depth, f32 far_clip)
+{
+    struct nuvec_s corners[8];
+    struct nuvec_s view[8];
+    struct numtx_s transform;
+    u8 outcode[8];
+    u8* codes = outcode;
+    s32 i;
+    if (far_clip == 0.0f)
+        far_clip = lbl_803132B4[0];
+    if (world == NULL || world == &lbl_801B0F08)
+        transform = lbl_801B1638;
+    else
+        fn_8000D134(&transform, world, &lbl_801B1638);
+    corners[0].x = minimum->x;
+    corners[0].y = minimum->y;
+    corners[0].z = minimum->z;
+    corners[1].x = maximum->x;
+    corners[1].y = maximum->y;
+    corners[1].z = maximum->z;
+    corners[2].x = minimum->x;
+    corners[2].y = minimum->y;
+    corners[2].z = maximum->z;
+    corners[3].x = maximum->x;
+    corners[3].y = maximum->y;
+    corners[3].z = minimum->z;
+    corners[4].x = minimum->x;
+    corners[4].y = maximum->y;
+    corners[4].z = minimum->z;
+    corners[5].x = minimum->x;
+    corners[5].y = maximum->y;
+    corners[5].z = maximum->z;
+    corners[6].x = maximum->x;
+    corners[6].y = minimum->y;
+    corners[6].z = minimum->z;
+    corners[7].x = maximum->x;
+    corners[7].y = minimum->y;
+    corners[7].z = maximum->z;
+    NuVecMtxTransform(&view[0], &corners[0], &transform);
+    NuVecMtxTransform(&view[1], &corners[1], &transform);
+    NuVecMtxTransform(&view[2], &corners[2], &transform);
+    NuVecMtxTransform(&view[3], &corners[3], &transform);
+    NuVecMtxTransform(&view[4], &corners[4], &transform);
+    NuVecMtxTransform(&view[5], &corners[5], &transform);
+    NuVecMtxTransform(&view[6], &corners[6], &transform);
+    NuVecMtxTransform(&view[7], &corners[7], &transform);
+    portal_clear_codes(codes);
+    *minimum_depth = 3.4028234e+38f;
+    for (i = 0; i < 8; i++) {
+        if (view[i].z < *minimum_depth)
+            *minimum_depth = view[i].z;
+        if (view[i].z < lbl_80313268.nearclip && !(flags & 2))
+            outcode[i] |= 0x20;
+        if (view[i].z > far_clip)
+            outcode[i] |= 0x10;
+        if (view[i].x < -view[i].z * lbl_8040AD40)
+            outcode[i] |= 1;
+        if (view[i].x > view[i].z * lbl_8040AD40)
+            outcode[i] |= 2;
+        if (view[i].y < -view[i].z * lbl_8040AD3C)
+            outcode[i] |= 8;
+        if (view[i].y > view[i].z * lbl_8040AD3C)
+            outcode[i] |= 4;
+    }
+    if (outcode[0] & outcode[1] & outcode[2] & outcode[3] & outcode[4] & outcode[5] & outcode[6] & outcode[7])
+        return 0;
+    if ((outcode[0] | outcode[1] | outcode[2] | outcode[3] | outcode[4] | outcode[5] | outcode[6] | outcode[7]) == 0)
+        return 1;
+    if (flags & 1)
+        return 2;
+    portal_clear_codes(codes);
+    for (i = 0; i < 8; i++) {
+        if (view[i].z < lbl_803132B0[0] && !(flags & 2))
+            outcode[i] |= 0x20;
+        if (view[i].z > far_clip)
+            outcode[i] |= 0x10;
+        if (view[i].x < -view[i].z * lbl_8040AD44)
+            outcode[i] |= 1;
+        if (view[i].x > view[i].z * lbl_8040AD44)
+            outcode[i] |= 2;
+        if (view[i].y < -view[i].z * lbl_8040AD48)
+            outcode[i] |= 8;
+        if (view[i].y > view[i].z * lbl_8040AD48)
+            outcode[i] |= 4;
+    }
+    if (!(outcode[0] & outcode[1] & outcode[2] & outcode[3] & outcode[4] & outcode[5] & outcode[6] & outcode[7])) {
+        if (outcode[0] | outcode[1] | outcode[2] | outcode[3] | outcode[4] | outcode[5] | outcode[6] | outcode[7])
+            return 2;
+    }
+    return 1;
+}
+
+struct nuportal_viewport_s {
+    u8 pad0[0x30];
+    f32 clip_w, clip_h, scis_w, scis_h;
+};
+extern struct numtx_s lbl_803142D4;
+extern struct numtx_s lbl_801B1678, lbl_801B16B8, lbl_801B16F8;
+extern struct numtx_s lbl_801B1738, lbl_801B1778, lbl_801B17B8;
+extern struct numtx_s lbl_801B17F8, lbl_801B1838, lbl_801B1878, lbl_8020D7D8;
+extern s32 lbl_80407C50, lbl_80407C60, lbl_80407C64;
+extern f32 lbl_80407C5C, lbl_80408118, lbl_8040811C;
+extern s32 lbl_8040AD4C, lbl_8040AD50;
+s32 fn_8000ABDC(f32, f32);
+void fn_80039BE0(void);
+void NuVpUpdate(void);
+void fn_8000EBE8(struct numtx_s*, struct numtx_s*);
+void NuVec4MtxTransformVU0x4(struct numtx_s*, struct nuvec_s*);
+void fn_8000E6B0(struct numtx_s*, struct numtx_s*);
+void fn_800234A8(struct numtx_s*, f32, f32, f32, f32);
+struct nuportal_viewport_s* NuGlassRenderStatic(void);
+void fn_8000EB44(struct numtx_s*, struct numtx_s*, struct numtx_s*);
+void NuGlassClose(struct numtx_s*);
+s32 fn_80027BE4(struct numtx_s*, struct numtx_s*, struct numtx_s*);
+s32 NuTexReadBitmapMM(struct nuvec_s*, struct nuvec_s*);
+void fn_8002D0FC(void);
+
+static inline f32 portal_cotan(f32 angle)
+{
+    s32 a = angle * 0.5f * 10430.378f;
+    return NuCosApprox(a) / NuSinApprox(a);
+}
+
+static inline void portal_projection_clip(struct nucam_s* cam)
+{
+    struct nuportal_viewport_s* vp = NuGlassRenderStatic();
+    f32 farclip;
+    f32 nearclip;
+    f32 aspect;
+    f32 cot;
+    f32 x;
+    f32 y;
+    f32 depth;
+    if (cam->farclip_alt == 0.0f)
+        farclip = cam->farclip - lbl_80407C5C;
+    else
+        farclip = cam->farclip_alt - lbl_80407C5C;
+    nearclip = cam->nearclip_alt != 0.0f ? cam->nearclip_alt : cam->nearclip;
+    aspect = cam->aspect;
+    cot = portal_cotan(cam->fov);
+    x = vp->clip_w * (aspect * cot);
+    y = vp->clip_h * cot;
+    memset(&lbl_801B17B8, 0, 0x40);
+    depth = farclip - nearclip;
+    lbl_801B17B8._00 = x;
+    lbl_801B17B8._11 = y;
+    lbl_801B17B8._23 = 1.0f;
+    lbl_801B17B8._22 = (farclip + nearclip) / depth;
+    lbl_801B17B8._32 = (farclip * -2.0f * nearclip) / depth;
+}
+
+static inline void portal_projection_scissor(struct nucam_s* cam)
+{
+    struct nuportal_viewport_s* vp = NuGlassRenderStatic();
+    f32 farclip;
+    f32 nearclip;
+    f32 aspect;
+    f32 cot;
+    f32 x;
+    f32 y;
+    f32 depth;
+    if (cam->farclip_alt == 0.0f)
+        farclip = cam->farclip - lbl_80407C5C;
+    else
+        farclip = cam->farclip_alt - lbl_80407C5C;
+    nearclip = cam->nearclip_alt != 0.0f ? cam->nearclip_alt : cam->nearclip;
+    aspect = cam->aspect;
+    cot = portal_cotan(cam->fov);
+    x = vp->scis_w * aspect * cot;
+    y = vp->scis_h * cot;
+    memset(&lbl_8020D7D8, 0, 0x40);
+    depth = farclip - nearclip;
+    lbl_8020D7D8._00 = x;
+    lbl_8020D7D8._11 = y;
+    lbl_8020D7D8._23 = 1.0f;
+    lbl_8020D7D8._22 = (farclip + nearclip) / depth;
+    lbl_8020D7D8._32 = (farclip * -2.0f * nearclip) / depth;
+}
+
+static inline void portal_view_projection(struct numtx_s* out, struct numtx_s* view,
+    struct nucam_s* cam, s32 fast, s32 scissor)
+{
+    if (!fast) {
+        if (scissor)
+            portal_projection_scissor(cam);
+        else
+            portal_projection_clip(cam);
+    }
+    if (scissor)
+        fn_8000EB44(out, view, &lbl_8020D7D8);
+    else
+        fn_8000EB44(out, view, &lbl_801B17B8);
+}
+
+static inline f32 portal_plane_x(struct nucam_s* cam)
+{
+    f32 x = lbl_801B1878._22 / lbl_801B1878._12;
+    return x / cam->aspect;
+}
+
+static inline void portal_fix_axes(struct numtx_s* m)
+{
+    fn_8000ABDC(-m->_20, -m->_22);
+}
+
+/* Historical symbol: camera setup (NuCameraSet in the donors). */
+void NuAnimCurveSetApplyBlendToJoint2(struct nucam_s* cam, s32 fast)
+{
+    struct numtx_s inverse;
+    struct numtx_s reflect_inverse;
+    struct numtx_s reflect;
+    lbl_80313268 = *cam;
+    portal_fix_axes(&lbl_80313268.mtx);
+    fn_80039BE0();
+    if (!fast)
+        NuVpUpdate();
+    if (!lbl_80407C50) {
+        fn_8000EBE8(&lbl_801B1638, &lbl_80313268.mtx);
+        NuVec4MtxTransformVU0x4(&lbl_801B1638, &lbl_80313268.scale);
+    } else {
+        reflect = lbl_801B0F08;
+        reflect._11 = -1.0f;
+        fn_8000E6B0(&inverse, &lbl_80313268.mtx);
+        fn_8000E6B0(&reflect_inverse, &lbl_803142D4);
+        lbl_801B1638 = reflect_inverse;
+        if (lbl_80407C50 == 1)
+            fn_8000D134(&lbl_801B1638, &lbl_801B1638, &reflect);
+        fn_8000D134(&lbl_801B1638, &lbl_801B1638, &lbl_803142D4);
+        fn_8000D134(&lbl_801B1638, &lbl_801B1638, &inverse);
+    }
+    if (!fast)
+        fn_800234A8(&lbl_801B1678, lbl_80313268.fov, lbl_80313268.aspect, lbl_80313268.nearclip, lbl_80313268.farclip);
+    portal_view_projection(&lbl_801B1778, &lbl_801B1638, &lbl_80313268, fast, 0);
+    if (lbl_80407C60 != lbl_80407C64) {
+        lbl_80407C64 = lbl_80407C60;
+        fast = 0;
+    }
+    if (lbl_80407C60) {
+        portal_view_projection(&lbl_801B1738, &lbl_801B1638, &lbl_80313268, fast, 0);
+    } else {
+        portal_view_projection(&lbl_801B1738, &lbl_801B1638, &lbl_80313268, fast, 1);
+    }
+    NuGlassClose(&lbl_801B16B8);
+    NuMtxMul(&lbl_801B16F8, &lbl_801B1638, &lbl_801B1678);
+    NuMtxMul(&lbl_801B17F8, &lbl_801B16F8, &lbl_801B16B8);
+    NuMtxMul(&lbl_801B1838, &lbl_801B1678, &lbl_801B16B8);
+    if (!fast) {
+        s32 a = lbl_80313268.fov * 0.5f * 10430.378f;
+        f32 tangent = NuSinApprox(a) / NuCosApprox(a);
+        f32 zero = 0.0f;
+        f32 one;
+        f32 x;
+        f32 inv;
+        lbl_801B1878._02 = zero;
+        lbl_8040AD3C = tangent;
+        lbl_8040AD40 = tangent / lbl_80313268.aspect;
+        lbl_801B1878._12 = NuCosApprox(a);
+        lbl_801B1878._22 = NuSinApprox(a);
+        lbl_801B1878._23 = lbl_801B1878._22;
+        lbl_801B1878._32 = zero;
+        lbl_801B1878._03 = zero;
+        lbl_801B1878._33 = zero;
+        lbl_801B1878._13 = -lbl_801B1878._12;
+        x = portal_plane_x(cam);
+        one = 1.0f;
+        inv = one / NuFsqrt(x * x + one);
+        lbl_801B1878._10 = zero;
+        lbl_801B1878._30 = zero;
+        lbl_801B1878._11 = zero;
+        lbl_801B1878._31 = zero;
+        lbl_801B1878._01 = inv;
+        lbl_8040AD44 = (lbl_8040AD40 * lbl_80408118) / (f32)lbl_8040AD4C;
+        x = x * inv;
+        lbl_8040AD48 = (lbl_8040AD3C * lbl_8040811C) / (f32)lbl_8040AD50;
+        lbl_801B1878._00 = -inv;
+        lbl_801B1878._20 = x;
+        lbl_801B1878._21 = x;
+    }
+    fn_80027BE4(&lbl_801B17F8, &lbl_801B1778, &lbl_801B1738);
+    NuTexReadBitmapMM(0, 0);
+    fn_8002D0FC();
 }
