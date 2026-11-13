@@ -188,8 +188,10 @@ changes affect them. Historical logs are preserved, not retroactively guessed.
 
 The benchmark logs also locate the effort problem: the second nuhgobj pass made
 only 2–4 scoring calls per unfinished function, while the nuportal pass spent
-724 calls on `NuAnimCurveEval` without a strict match. These counts include
-mechanical variants, not independent hypotheses. Their recorded finish builds
+724 calls on `NuAnimCurveEval` without a strict match: 684 returned ERROR
+and only 40 produced compiling mismatches. Raw call counts therefore greatly
+overstate the explored source shapes; a variant search needs a compiling seed
+and its diagnostics inspected before treating its output as evidence of a plateau. Their recorded finish builds
 took under a second, so those builds do not explain the low yield. The broad
 sweep was also 58 input commits stale, limiting its value as a starting point.
 
