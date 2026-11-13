@@ -337,9 +337,48 @@ void fn_8001D25C(void)
     portal_abs_mtx(&lbl_80314590, &lbl_803144F0);
 }
 typedef struct {
-    u8 pad0[0x1c];
+    struct nuvec_s minimum;
+    f32 pad0c;
+    struct nuvec_s maximum;
+    f32 pad1c;
+} NuPortalBox;
+typedef struct {
+    u16 box;
+    u16 total_leaves;
+    u16 child_count;
+    u16 first_child;
+    u16 leaf_count;
+    u16 first_leaf;
+} NuPortalNode;
+typedef struct {
+    u8 pad0[8];
+    u16* leaves;
+    NuPortalBox* leaf_boxes;
+    u8 pad10[4];
+    NuPortalNode* nodes;
+    NuPortalBox* node_boxes;
     u16 count;
+    u8 pad1e[2];
+    u16* roots;
+    f32* distances;
+    u8 pad28[4];
+    u16* leaf_lods;
 } NuPortalSet;
+typedef struct {
+    s32 count;
+    u32* items;
+    u8 pad8[4];
+} NuPortalLodItems;
+typedef struct {
+    u8 pad0[0x14];
+    NuPortalLodItems* lods;
+    u8 pad18[0x10];
+    f32* lod_distances;
+    u8 pad2c[4];
+    u8* lod_bits[10];
+    u8* item_bits[4];
+    s32 buffer;
+} NuPortalLodObj;
 typedef struct {
     u8 pad0[0x14];
     NuPortalSet* set;
@@ -352,7 +391,100 @@ typedef struct {
 extern s32 lbl_80407C80;
 void fn_8001D0D8(void);
 void fn_8001D25C(void);
-void fn_8001D7EC(NuPortalSet* set, s32 index, s32 arg2, s32 arg3);
+s32 fn_8001D4B8(struct nuvec_s* minimum, struct nuvec_s* maximum, f32 distance, s32 leaf);
+void fn_8002C24C(NuPortalLodObj* obj, s32 leaf, u32 lod, s32 visibility, ...);
+extern f32 lbl_803132B4[];
+extern struct nuvec_s lbl_80313298;
+
+static inline void portal_select_lod(u32* lod, f32* distances, struct nuvec_s* position)
+{
+    struct nuvec_s delta;
+    f32 distance;
+    if (distances[*lod] != 0.0f) {
+        NuVecSub(&delta, position, &lbl_80313298);
+        distance = NuVecMagSqr(&delta);
+        while (distance < distances[*lod])
+            (*lod)++;
+    }
+}
+
+static inline void portal_add_leaf(NuPortalSet* set, NuPortalLodObj* obj, u32 leaf, NuPortalBox* box, s32 visibility)
+{
+    u32 lod = set->leaf_lods[leaf];
+    NuPortalLodItems* items;
+    u32* item;
+    u32* end;
+    u8* bits;
+    u8* lod_bits;
+    portal_select_lod(&lod, obj->lod_distances, &box->minimum);
+    fn_8002C24C(obj, leaf, lod, visibility);
+    bits = obj->item_bits[obj->buffer];
+    items = &obj->lods[lod];
+    item = items->items;
+    end = item + items->count;
+    for (; item != end; item++)
+        bits[*item >> 3] |= 1 << (*item & 7);
+    lod_bits = obj->lod_bits[obj->buffer];
+    lod_bits[lod >> 2] |= visibility << ((lod & 3) * 2);
+}
+
+static inline void portal_add_all(NuPortalSet* set, NuPortalLodObj* obj, NuPortalNode* node, u8* mask)
+{
+    u16* leaf = &set->leaves[node->first_leaf];
+    u16* end = leaf + node->total_leaves;
+    NuPortalBox* box = &set->leaf_boxes[node->first_leaf];
+    for (; leaf != end; box++) {
+        u16 id = *leaf++;
+        if (mask != NULL && !((s8)mask[id >> 3] >> (id & 7) & 1))
+            continue;
+        portal_add_leaf(set, obj, id, box, 1);
+    }
+}
+
+void fn_8001D7EC(NuPortalSet* set, s32 index, NuPortalLodObj* obj, u8* mask)
+{
+    NuPortalNode* stack[100];
+    NuPortalNode** top = &stack[1];
+    NuPortalNode* node;
+    f32 distance;
+    s32 visibility;
+    u16* leaf;
+    u16* end;
+    NuPortalBox* box;
+    stack[0] = &set->nodes[set->roots[index]];
+    distance = set->distances[index];
+    if (distance == 0.0f)
+        distance = lbl_803132B4[0];
+    while (top != stack) {
+        node = *--top;
+        visibility = fn_8001D4B8(&set->node_boxes[node->box].minimum, &set->node_boxes[node->box].maximum, distance, 0);
+        if (visibility == 0)
+            continue;
+        if (visibility == 1) {
+            portal_add_all(set, obj, node, mask);
+        } else {
+            if (node->child_count != 0) {
+                NuPortalNode* child = &set->nodes[node->first_child];
+                NuPortalNode* child_end = child + node->child_count;
+                for (; child != child_end; child++)
+                    *top++ = child;
+            }
+            if (node->leaf_count != 0) {
+                leaf = &set->leaves[node->first_leaf];
+                end = leaf + node->leaf_count;
+                box = &set->leaf_boxes[node->first_leaf];
+                for (; leaf != end; box++) {
+                    u16 id = *leaf++;
+                    if (mask != NULL && !((s8)mask[id >> 3] >> (id & 7) & 1))
+                        continue;
+                    visibility = fn_8001D4B8(&box->minimum, &box->maximum, distance, 1);
+                    if (visibility != 0)
+                        portal_add_leaf(set, obj, id, box, visibility);
+                }
+            }
+        }
+    }
+}
 
 void fn_8001DC4C(NuPortalOwner* owner, u8* scene)
 {
@@ -364,7 +496,7 @@ void fn_8001DC4C(NuPortalOwner* owner, u8* scene)
         fn_8001D25C();
         i = owner->set->count;
         while (--i >= 0)
-            fn_8001D7EC(owner->set, i, *(s32*)(scene + 0x1a0), owner->unk24);
+            fn_8001D7EC(owner->set, i, *(NuPortalLodObj**)(scene + 0x1a0), (u8*)owner->unk24);
     }
 }
 
