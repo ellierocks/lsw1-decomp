@@ -90,3 +90,31 @@ subtitle = "Opus both sides; different unit: apiobject vs nucamera/nuhgobj"
 before = "opus-brief-2026-11-12"
 after = "opus-gapfix-2026-11-13"
 metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]
+
+# Identical baseline source and four m2c drafts, repaired pointer-minus-integer multiply.
+[[cohort]]
+name = "aisys-pointer-before-2026-11-13"
+label = "aisys pointer byte-difference repair: before (four fixed-source replays)"
+segments = [
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:10.591600+00:00", until = "2026-11-13T19:52:10.592400+00:00" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:10.956600+00:00", until = "2026-11-13T19:52:10.957400+00:00" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:11.369600+00:00", until = "2026-11-13T19:52:11.370400+00:00" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:11.734600+00:00", until = "2026-11-13T19:52:11.735400+00:00" },
+]
+
+[[cohort]]
+name = "aisys-pointer-after-2026-11-13"
+label = "aisys pointer byte-difference repair: after (four fixed-source replays)"
+segments = [
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:10.803600+00:00", until = "2026-11-13T19:52:10.804400+00:00" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:11.194600+00:00", until = "2026-11-13T19:52:11.195400+00:00" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:11.584600+00:00", until = "2026-11-13T19:52:11.585400+00:00" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243", since = "2026-11-13T19:52:11.952600+00:00", until = "2026-11-13T19:52:11.953400+00:00" },
+]
+
+[[comparison]]
+title = "aisys pointer byte-difference repair"
+subtitle = "same source/drafts/compiler; four reciprocal-index pointer multiply failures"
+before = "aisys-pointer-before-2026-11-13"
+after = "aisys-pointer-after-2026-11-13"
+metrics = ["compile_error_rate"]

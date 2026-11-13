@@ -47,7 +47,7 @@ median of 48 distinct candidates per park.
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour | open |
 | 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes | partly fixed, numath promoted |
 | 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | matched bytes per child-hour (accounting) | accounting fixed, #163; the structural brief is in [sprint workflow](sprint_workflow.md#matching-brief) |
-| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); measured 0.5%, searches 1 / 5,036 |
+| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); measured 0.5%, searches 1 / 5,036; aisys pointer drafts 4/4 → 0/4 errors |
 | 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | fixed: `sprint_finish.py` refuses parks under 25; measured median 48, 3 of 3 parks at the floor |
 | 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | baseline 0.13 s median score, 0.9 s finish build |
 | 14 | [Bench logs were polluted and lost](#14-bench-logs-were-polluted-and-lost) | all (data quality) | fixed |
@@ -303,6 +303,26 @@ Confounds: Opus rather than Sol, a different unit (apiobject, with OpenSaga bodi
 most functions), and searches started from seeds that already compiled, which the seed
 check now requires. The logs do not record seed refusals, so how often the refusal itself
 saved a burst is unknown.
+
+**Measured repair (2026-11-13, `aisys-1`).** m2c inferred a local pointer minus
+an integer-loaded base as a pointer, then multiplied it by a reciprocal to recover
+a node index. ProDG rejects that multiplication. The final-stage
+`pointer_byte_differences` repair casts the left operand to the GC address width
+(`u32`) only for this narrow expression shape; ordinary pointer arithmetic and
+pointer-pointer differences stay unchanged.
+
+Replaying the same four drafts against the same baseline source and compiler
+reduced compile errors **4/4 → 0/4 (100% → 0%)**: `Action_GoToNodeRandom`,
+`Action_GoToNode`, `Action_MoveAwayFromNode` and `Action_BlockPath`. The
+`aisys-pointer-before-2026-11-13` and `aisys-pointer-after-2026-11-13` metric
+cohorts select those eight events, excluding an earlier replay against changed
+source declarations. The full 32-function scoped sweep improved **5 → 1 errors
+(15.625% → 3.125%)**; the remaining `AIScriptProcess` draft has a malformed
+callback. This repair produced no automatic matches. All four repaired functions
+subsequently matched after assembly-led layout and control-flow work. Three unit
+tests cover the repair, exclusions and idempotence; all 91 sweep tests passed.
+Local replay evidence is `work/pointer-repair-replay.json` and
+`work/aisys-repair-sweep.log`.
 
 ## 12. Functions are parked before 25 distinct hypotheses
 
