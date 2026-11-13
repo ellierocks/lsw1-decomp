@@ -70,11 +70,14 @@ void NuAnimBuffEvaluate(NuPortalAnimBuff* buffer, void* anim, f32 time, s32 appl
         buffer = lbl_80407C38;
     buffer->count = hgobj->num_joints;
     if (start != 0) {
-        NuPortalJoint* joints = hgobj->joints;
-        u8 parent = joints[start].parent_ix;
-        for (end = start + 1; end < hgobj->num_joints; end++) {
-            if (joints[end].parent_ix == parent)
-                break;
+        u8 parent = hgobj->joints[start].parent_ix;
+        end = start + 1;
+        if (end < hgobj->num_joints) {
+            do {
+                if (hgobj->joints[end].parent_ix == parent)
+                    break;
+                end++;
+            } while (end < hgobj->num_joints);
         }
     } else {
         end = hgobj->num_joints;
