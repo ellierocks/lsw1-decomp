@@ -181,6 +181,15 @@ Stage 2 runs `ngc_mtl` and `nutexanm` side by side. The CrashWOC GameCube decomp
 (`src/nu3dx/*.c`, `src/system/gs/*.c` and its alpha NGC DWARF dump) is the main donor for
 the Nu3d items: take algorithms, layouts and call order from it, not codegen.
 
+Revision 8 (2026-11-12) adds no new item. `tools/plan.py` reported that stage `s2-nu3d` has no
+recommendable item. Five of its items are still open (`nucamera`, `nuhgobj`, `nuportal`,
+`nurndr-nugscn`, `nuanim`), and each is claimed by an in-flight worktree. Stage `s3-objects-ai`
+therefore starts by look-ahead with `apiobject` while those runs finish. The unit has OpenSaga
+leads by body, not only by name. `fn_8008F660` is `AISysFindRoute`, `fn_8008FB18` is
+`QuickNewRayCast`, `fn_80090FB0` is `APIObjectCollisions`, `fn_80091FC0` is
+`APICharacterSysInit` and `fn_800913BC` is an earlier and longer `AddAnimEffects`. This
+revision also parks the `apiobject` plateaus with their best scores.
+
 ## Rules that do not change
 
 - The strict verifier, pinned compilers and the retail DOL are the oracle. Never weaken

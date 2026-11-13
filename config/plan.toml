@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 7
+revision = 8
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
