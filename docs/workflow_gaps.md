@@ -54,8 +54,8 @@ median of 48 distinct candidates per park.
 | 15 | [Strict-only functions were counted as plan work](#15-strict-only-functions-were-counted-as-plan-work) | functions left (targeting) | fixed: plan functions left 1,306 → 1,147 |
 | 16 | [Children got single functions, not items](#16-children-got-single-functions-not-items) | functions per child | fixed: `plan.py --batch N` and brief rule 6 |
 | 17 | [Plateaued functions kept being scored](#17-plateaued-functions-kept-being-scored) | matched bytes per child-hour | fixed: `score_fn.py` prints a PLATEAU notice |
-| 18 | [Fresh worktrees had no Ghidra project](#18-fresh-worktrees-had-no-ghidra-project) | start to first compiling score | fixed: `draft_fn.py` seeds the project; worktrees with `ghidra.c` 0 → all |
-| 19 | [Drafts lost the unit's types](#19-drafts-lost-the-units-types) | compile-error rate; exact-instruction gain | fixed: drafts compile 30/60 → 54/60 |
+| 19 | [Fresh worktrees had no Ghidra project](#19-fresh-worktrees-had-no-ghidra-project) | start to first compiling score | fixed: `draft_fn.py` seeds the project; worktrees with `ghidra.c` 0 → all |
+| 20 | [Drafts lost the unit's types](#20-drafts-lost-the-units-types) | compile-error rate; exact-instruction gain | fixed: drafts compile 30/60 → 54/60 |
 
 ## 1. Stale task packs change scores
 
@@ -423,7 +423,7 @@ hypothesis class, or move on.
 Before → after: no signal → a notice at the plateau. The replay shows 13.6 minutes of
 no-gain work across three functions, out of about 77 child-minutes in the cohort.
 
-## 18. Fresh worktrees had no Ghidra project
+## 19. Fresh worktrees had no Ghidra project
 
 The nuanim child (PR 166) reported "the local Ghidra project was unavailable". Ghidra 12.1
 is installed and a shared seed existed, but only `tools/bootstrap.sh` ran
@@ -440,7 +440,7 @@ when the ELF layout or the import arguments change.
 Before → after: a fresh worktree's first draft had no `ghidra.c` → it has one. The first draft
 takes 45 s once; later drafts with Ghidra take about 7 s, and 0.5 s with `--no-ghidra`.
 
-## 19. Drafts lost the unit's types
+## 20. Drafts lost the unit's types
 
 The same child reported that "m2c pointer-return inference still loses evaluator float
 expressions". `sweep.py` already gave m2c the unit source, preprocessed, as `--context`.
