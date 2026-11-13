@@ -47,6 +47,47 @@ class NextTargetTests(unittest.TestCase):
         self.assertFalse(nt.in_units("auto/gamelib/glutils", ["auto/game/"]))
 
 
+def _rows(n):
+    return [{"opensaga": {"matches": False, "result": "-"}, "name": f"fn_{i:02d}", "address": f"0x{i:08X}",
+             "size": 4 * (i + 1), "unit": "auto/nu3d/nuportal_gen", "callees": 0, "callee_names": [],
+             "source": None, "source_path": "src/x.c", "claimed": False, "attempts": 0, "defined": False,
+             "ledger_verified": False, "unit_left": n, "jp": None} for i in range(n)]
+
+
+class PlanListingTests(unittest.TestCase):
+    """The nuportal item had 22 unmatched functions; the default --limit 15 printed 15 (gap 22)."""
+
+    def run_main(self, argv, scope):
+        import plan
+        out = io.StringIO()
+        with mock.patch.object(plan, "status", return_value={}), \
+             mock.patch.object(plan, "plan_targets", return_value=scope), \
+             mock.patch.object(nt, "collect", return_value=(_rows(22), 0)), \
+             contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(nt.main(argv), 0)
+        return out.getvalue()
+
+    def scope(self):
+        return {"item": "nuportal", "stage_id": "s2-nu3d", "mine": True,
+                "functions": [f"fn_{i:02d}" for i in range(22)], "stage": []}
+
+    def test_plan_item_lists_every_function_by_default(self):
+        listed = json.loads(self.run_main(["--json", "--no-remote"], self.scope()))
+        self.assertEqual(len(listed), 22)
+        text = self.run_main(["--no-remote"], self.scope())
+        self.assertEqual(sum(f"fn_{i:02d} " in text for i in range(22)), 22)
+        self.assertNotIn("more not shown", text)
+
+    def test_explicit_limit_says_what_it_cut(self):
+        text = self.run_main(["--no-remote", "--limit", "5"], self.scope())
+        self.assertIn("17 more not shown (--limit 5)", text)
+
+    def test_global_ranking_keeps_default_of_15(self):
+        text = self.run_main(["--all", "--no-remote"], None)
+        self.assertEqual(sum(f"fn_{i:02d} " in text for i in range(22)), 15)
+        self.assertIn("7 more not shown", text)
+
+
 class ScoreFnPreflightTests(unittest.TestCase):
     def test_missing_toolchain_names_each_absent_prodg_tool(self):
         with tempfile.TemporaryDirectory() as tmp:

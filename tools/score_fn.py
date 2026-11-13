@@ -463,6 +463,8 @@ def main(argv=None) -> int:
                              args.cc1_native.resolve() if args.cc1_native else None)
         if err:
             print(f"error: compile failed\n{err}", file=sys.stderr)
+            if args.apply:
+                print(f"not applied to {args.source}: the candidate does not compile", file=sys.stderr)
             if not args.no_queue and not args.compile_only:
                 bench_note(args.name, "ERROR", seconds=time.monotonic() - started)
             return vf.EXIT_ERROR
@@ -488,6 +490,8 @@ def main(argv=None) -> int:
     rep = json.loads(buf.getvalue())
     if rep.get("verdict") == "ERROR":
         print(f"error: {rep.get('error')}", file=sys.stderr)
+        if args.apply:
+            print(f"not applied to {args.source}: the verifier returned ERROR", file=sys.stderr)
         return code
     rep["score"] = score(rep)
     if not args.no_queue:
@@ -496,7 +500,7 @@ def main(argv=None) -> int:
                    seconds=time.monotonic() - started, codegen=codegen)
     if args.json:
         print(json.dumps(rep, indent=2))
-        return code
+        return apply_result(args, replaced, code, rep, sys.stderr)
     first = rep["differences"][0] if rep["differences"] else None
     detail = f"  first: {first['kind']} @{first.get('index_t')}: {first.get('detail', '')}" if first else ""
     print(f"{rep['verdict']}  score={rep['score']}  exact={rep['exact_insns']}/{rep['target_insns']}"
@@ -509,9 +513,20 @@ def main(argv=None) -> int:
         plateau_notice(args.name)
     if listing and code != 0:
         print(listing)
-    if args.apply and code == 0:
+    return apply_result(args, replaced, code, rep, sys.stdout)
+
+
+def apply_result(args, replaced: str | None, code: int, rep: dict, out) -> int:
+    """--apply: write a strict MATCH into SOURCE, else say why nothing was written (gap 24)."""
+    if not args.apply:
+        return code
+    if code == 0 and rep.get("verdict") == "MATCH":
         args.source.write_text(replaced)
-        print(f"applied to {args.source}")
+        print(f"applied to {args.source}", file=out)
+    else:
+        print(f"not applied to {args.source}: verdict {rep.get('verdict')}, score={rep.get('score')}, "
+              f"exact={rep.get('exact_insns')}/{rep.get('target_insns')}; --apply writes only a strict MATCH",
+              file=out)
     return code
 
 

@@ -292,6 +292,18 @@ class StartTests(unittest.TestCase):
         code, out = self.run_main("--start", "--item", "second", "--restart")  # now the next item
         self.assertEqual(code, 0, out)
 
+    def test_item_start_puts_sweep_matches_last_and_says_apply(self):
+        # transposeClipPlanes (2026-11-13): the sweep had strict-matched it, kickoff queued it as hand work.
+        (self.root / "work" / "sweep" / "results.json").write_text(json.dumps(
+            [row("t2", "auto/u", 0x40, 16, 16, verdict="MATCH"), row("t1", "auto/u", 0x40, 10, 16)]))
+        code, out = self.run_main("--start", "--item", "first")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads(sf.BASELINE.read_text())["queue"], ["t1", "t2"])
+        self.assertIn("sweep already strict-matches 1 of them (t2)", out)
+        self.assertIn("python3 tools/sweep.py --unit auto/u --apply && bash build.sh", out)
+        self.assertIn("score_fn.py t1 ", out)
+        self.assertNotIn("score_fn.py t2 ", out)
+
     def test_near_miss_lane_defaults_to_the_plan_scope(self):
         rows = [row("t1", "auto/u", 0x10, 19, 20), row("near1", "auto/u", 0x80, 19, 20),
                 row("other", "auto/v", 0x400, 19, 20)]
