@@ -362,3 +362,70 @@ void NuHGobjEvalAnim2Root(struct nuhgobj_s *hgobj, struct nuanimdata2_s *anim, f
     }
 }
 #endif
+
+/* fn_8001AF8C draft: best 160/168; conversion constants use opposite f6/f7 registers. */
+#if 0
+extern const f32 lbl_801904CC[];
+extern const f32 lbl_801904D8[];
+extern void *lbl_80407C38;
+
+void fn_8001AF8C(s32 buffer, struct nuhgobj_s *hgobj, s32 count, struct NUJOINTANIM_s *joint)
+{
+    s32 angle[3];
+    u8 id, flags, ix;
+    s32 i, rot;
+    f32 *out;
+
+    if (buffer == 0) {
+        buffer = (s32)lbl_80407C38;
+    }
+    for (i = 0; i < count; i++, joint++) {
+        id = joint->joint_id;
+        if (id >= hgobj->num_joint_ixs) continue;
+        ix = hgobj->joint_ixs[id];
+        if (ix == 0xff) continue;
+        out = (f32 *)((u8 *)*(void **)((u8 *)buffer + 8) + ix * 0x24);
+        flags = joint->flags;
+        if (flags & 1) {
+            out[3] += joint->rx;
+            out[4] += joint->ry;
+            out[5] += joint->rz;
+            rot = (s32)(out[3] * lbl_801904CC[0]);
+            angle[0] = rot;
+            angle[1] = (s32)(out[4] * lbl_801904CC[0]);
+            angle[2] = (s32)(out[5] * lbl_801904CC[0]);
+            if (flags & 8) {
+                angle[0] = (u16)rot;
+                if (angle[0] > 0x7fff) angle[0] -= 0x10000;
+                if (angle[0] > joint->max_rx) angle[0] = joint->max_rx;
+                else if (angle[0] < joint->min_rx) angle[0] = joint->min_rx;
+            }
+            if (flags & 0x10) {
+                angle[1] = (u16)angle[1];
+                if (angle[1] > 0x7fff) angle[1] -= 0x10000;
+                if (angle[1] > joint->max_ry) angle[1] = joint->max_ry;
+                else if (angle[1] < joint->min_ry) angle[1] = joint->min_ry;
+            }
+            if (flags & 0x20) {
+                angle[2] = (u16)angle[2];
+                if (angle[2] > 0x7fff) angle[2] -= 0x10000;
+                if (angle[2] > joint->max_rz) angle[2] = joint->max_rz;
+                else if (angle[2] < joint->min_rz) angle[2] = joint->min_rz;
+            }
+            out[3] = (f32)angle[0] * lbl_801904D8[0];
+            out[4] = (f32)angle[1] * lbl_801904D8[0];
+            out[5] = (f32)angle[2] * lbl_801904D8[0];
+        }
+        if (flags & 4) {
+            out[6] += joint->sx;
+            out[7] += joint->sy;
+            out[8] += joint->sz;
+        }
+        if (flags & 2) {
+            out[0] += joint->tx;
+            out[1] += joint->ty;
+            out[2] += joint->tz;
+        }
+    }
+}
+#endif

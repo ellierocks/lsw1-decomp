@@ -220,7 +220,7 @@ reason = "Best 135/149, score [1,17,0,-135,0] (NONMATCHING draft in src/auto/nu3
 [[stage.item]]
 id = "nuhgobj"
 units = ["auto/nu3d/NuHGobjEval", "auto/nu3d/ngc/nuhgobj"]
-note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2, fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Open: NuHGobjEvalAnim2Root (one draft, best 83/251: stack frame 0x10 too large and register allocation differ; kept under #if 0), NuHGobjEvalAnimBlend2Root, NuAnimCurveSetEval, NuAnimCurveSetLoad, fn_8001AF8C, NuGHGReadEx (not attempted)."
+note = "OpenSaga leads. Matched: NuHGobjEval, NuHGobjEvalDwa2, NuHGobjEvalDwaBlend2, fn_8002A4B0, fn_8002A5A0, fn_8002A5DC. Open: NuHGobjEvalAnim2Root (one draft, best 83/251: stack frame 0x10 too large and register allocation differ; kept under #if 0); fn_8001AF8C best 160/168 (typed guarded draft; 8 floating-register operands differ, next test conversion constant load order), NuHGobjEvalAnimBlend2Root (sweep 85/301), NuAnimCurveSetEval (sweep 20/224), NuAnimCurveSetLoad (sweep 61/802), NuGHGReadEx (sweep compile error)."
 # at revision 1: 12 functions, 12,580 bytes left
 
 [[stage.item]]
