@@ -366,13 +366,25 @@ def splice_body(text: str, name: str, body: str) -> str:
         fn = find_function(masked, name)
         start = len(fn.before)
         end = len(masked) - len(fn.tail)
-        context = text[:start] + text[end + 1:]
+        context = masked[:start] + masked[end + 1:]
     except VariantError:
-        fn, context = None, text
+        fn, context = None, masked
+    forwards = []
+    if fn is not None:
+        # A declaration below the replaced definition cannot type its new calls.
+        # Retain SOURCE's type, rather than the draft's guessed extern, before use.
+        later = {m.group(1) or m.group(2): text[m.start():m.end()]
+                 for m in _EXTERN.finditer(masked) if m.start() > end}
+        for m in _EXTERN.finditer(body):
+            ident = m.group(1) or m.group(2)
+            if ident in later and not _declares(masked[:start], ident):
+                forwards.append(later.pop(ident).rstrip())
     body, dropped = drop_redeclared(context, body)
     if dropped:
         print(f"note: dropped body declarations SOURCE already has: {', '.join(dropped)}", file=sys.stderr)
     body = body.strip("\n")
+    if forwards:
+        body = "\n".join(forwards) + "\n\n" + body
     if fn is not None:
         return text[:start] + body + text[end + 1:]
     return text.rstrip("\n") + "\n\n" + body + "\n"
