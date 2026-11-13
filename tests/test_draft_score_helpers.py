@@ -66,6 +66,25 @@ class DropRedeclaredTest(unittest.TestCase):
         self.assertIn("extern void (*other)(s32);", out)
 
 
+class StaticHelperTest(unittest.TestCase):
+    def test_body_helper_replaces_unit_definition_in_place(self):
+        text = ("static inline s32 H(s32 x)\n{\n    return x;\n}\n\nvoid g(void) { H(1); }\n\n"
+                "void f(void)\n{\n    H(2);\n}\n")
+        body = "static inline s32 H(s32 x)\n{\n    return x + 1;\n}\n\nvoid f(void)\n{\n    H(3);\n}\n"
+        out = score_fn.splice_body(text, "f", body)
+        self.assertEqual(out.count("static inline s32 H"), 1)
+        self.assertLess(out.index("return x + 1;"), out.index("void g(void)"))
+        self.assertIn("H(3);", out)
+        self.assertNotIn("H(2);", out)
+
+    def test_new_helper_stays_in_body(self):
+        text = "void f(void)\n{\n}\n"
+        body = "static inline s32 H(void)\n{\n    return 0;\n}\n\nvoid f(void)\n{\n    H();\n}\n"
+        out = score_fn.splice_body(text, "f", body)
+        self.assertEqual(out.count("static inline s32 H"), 1)
+        self.assertLess(out.index("static inline s32 H"), out.index("void f(void)"))
+
+
 class FunctionExternTest(unittest.TestCase):
     def test_array_extern_becomes_the_definitions_prototype(self):
         text = "extern s32 fn_A[];\nvoid g(void) { h(fn_A); }\n"
@@ -158,3 +177,18 @@ class UnitMwSettingsTest(unittest.TestCase):
             self.assertEqual(score_fn.unit_mw_settings(score_fn.ROOT / "src/dolphin/x/b.c", ninja)[0],
                              "1.2.5n")
             self.assertIsNone(score_fn.unit_mw_settings(score_fn.ROOT / "src/dolphin/x/c.c", ninja))
+
+
+class DraftContextTest(unittest.TestCase):
+    def test_unit_context_preprocesses_the_owning_unit(self):
+        """m2c gets the unit source as --context, so declared float returns survive."""
+        if not draft_fn.vf.SYMBOLS.is_file() or draft_fn.vf.lookup_unit(0x80016E28) is None:
+            self.skipTest("needs the configured splits")
+        with tempfile.TemporaryDirectory() as tmp:
+            ctx = draft_fn.unit_context("NuAnimCurve2CalcVal", Path(tmp))
+            self.assertIsNotNone(ctx)
+            self.assertRegex(ctx.read_text(), r"f32 NuAnimCurve2CalcVal\s*\(")
+
+    def test_unknown_function_has_no_context(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(draft_fn.unit_context("no_such_function_xyz", Path(tmp)))

@@ -91,6 +91,64 @@ before = "opus-brief-2026-11-12"
 after = "opus-gapfix-2026-11-13"
 metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]
 
+# Controlled replay: identical nuanim evaluator body, same unit/compiler/model.
+# One ERROR before and one compiled mismatch after; narrow windows exclude matching search.
+[[cohort]]
+name = "nuanim-forward-extern-before"
+label = "Original scorer drops later externs before their new use"
+segments = [{ run = "t3-64a20ec0-263fa37007ce45cf-1794598235", since = "2026-11-13T19:50:41.170+00:00", until = "2026-11-13T19:50:41.172+00:00" }]
+
+[[cohort]]
+name = "nuanim-forward-extern-after"
+label = "Scorer forwards the source types before the replacement body"
+segments = [{ run = "t3-64a20ec0-263fa37007ce45cf-1794598235", since = "2026-11-13T19:50:41.399+00:00", until = "2026-11-13T19:50:41.401+00:00" }]
+
+[[comparison]]
+title = "NuAnim evaluator extern-order repair"
+subtitle = "controlled replay of one unchanged candidate; no matching throughput claim"
+before = "nuanim-forward-extern-before"
+after = "nuanim-forward-extern-after"
+metrics = ["compile_error_rate"]
+# Thread t3/lsw1-plan-batch-decomp, 2026-11-13. Batch of four plan items after gap fixes 15-17
+# (plan.py --batch, PLATEAU notice, strict-only targets dropped): two Opus children
+# (nuportal, nurndr-nugscn) and two Codex gpt-6.1-sol children at high effort (nuanim,
+# aisys-1), each a whole item in its own worktree and bench run.
+[[cohort]]
+name = "opus-batch-2026-11-13"
+label = "Opus children, whole plan items, gap 15-17 tools (nuportal, nurndr-nugscn)"
+segments = [
+  { run = "t3-8d366e88-0c95f582323f6749-1794597768" },
+  { run = "t3-c5909755-e18a1da30c7a2492-1794597774" },
+]
+
+[[cohort]]
+name = "sol-batch-2026-11-13"
+label = "Codex gpt-6.1-sol children, whole plan items, gap 15-17 tools (nuanim, aisys-1)"
+segments = [
+  { run = "t3-64a20ec0-263fa37007ce45cf-1794598235" },
+  { run = "t3-d590fc6c-5d871e0c18916104-1794598243" },
+]
+
+[[comparison]]
+title = "Gap 15-17 batch vs gap 11-13 tools"
+subtitle = "Opus both sides; nuportal/nurndr-nugscn vs apiobject"
+before = "opus-gapfix-2026-11-13"
+after = "opus-batch-2026-11-13"
+metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate", "distinct_per_unfinished", "first_compile_seconds", "score_seconds", "build_seconds"]
+
+[[comparison]]
+title = "Gap 15-17 batch vs structural brief"
+subtitle = "Opus both sides; nuportal/nurndr-nugscn vs nucamera/nuhgobj"
+before = "opus-brief-2026-11-12"
+after = "opus-batch-2026-11-13"
+metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate", "distinct_per_unfinished"]
+
+[[comparison]]
+title = "Codex Sol vs Opus, same batch"
+subtitle = "same brief and tools, different items: nuanim/aisys-1 vs nuportal/nurndr-nugscn"
+before = "opus-batch-2026-11-13"
+after = "sol-batch-2026-11-13"
+metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate", "distinct_per_unfinished", "first_compile_seconds", "score_seconds", "build_seconds"]
 # Identical baseline source and four m2c drafts, repaired pointer-minus-integer multiply.
 [[cohort]]
 name = "aisys-pointer-before-2026-11-13"

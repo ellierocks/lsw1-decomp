@@ -76,3 +76,31 @@ class BuildElfTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SeedTest(unittest.TestCase):
+    def test_seed_key_ignores_edits_outside_the_import(self):
+        """Editing this tool must not orphan the shared seed (it forced a minute-long re-import)."""
+        source = Path(gd.__file__).read_text()
+        self.assertNotIn("[Path(__file__)]", source)
+        self.assertIn("IMPORT_KEY", source)
+
+    def test_auto_setup_never_starts_a_full_import(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(gd, "project_ready", return_value=False), \
+                mock.patch.object(gd, "find_analyze_headless", return_value="/bin/true"), \
+                mock.patch.object(gd, "check_location"), \
+                mock.patch.object(gd, "seed_dir", return_value=Path(tmp) / "absent"), \
+                mock.patch.object(gd, "DOL", Path(__file__)), \
+                mock.patch.object(gd.subprocess, "run") as run:
+            self.assertFalse(gd.auto_setup())
+            run.assert_not_called()
+
+    def test_auto_setup_respects_opt_out(self):
+        from unittest import mock
+        with mock.patch.object(gd, "project_ready", return_value=False), \
+                mock.patch.dict(gd.os.environ, {"LSW1_NO_GHIDRA": "1"}), \
+                mock.patch.object(gd.subprocess, "run") as run:
+            self.assertFalse(gd.auto_setup())
+            run.assert_not_called()
