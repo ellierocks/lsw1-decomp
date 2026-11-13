@@ -151,8 +151,54 @@ The 52.9% park recovery shows the Sol parks were premature.
 12](workflow_gaps.md#12-functions-are-parked-before-25-distinct-hypotheses) were fixed on
 2026-11-12. Their before numbers are a replay of the logged attempts, not a new cohort:
 compile errors 47.1% → 4.1% for the 2026-11-11 runs and 69.4% → 30.0% for the Sol
-passes; all 9 recovered Sol leftovers were under the park floor. The next benchmark
-cohort records the measured after values.
+passes; all 9 recovered Sol leftovers were under the park floor.
+
+The first cohort that used them is `opus-gapfix-2026-11-13`: an Opus parent and two
+Opus children on apiobject, each in its own worktree and bench run (1.28 active hours).
+
+| Metric | sol-short-2026-11-12 → opus-gapfix | opus-brief-2026-11-12 → opus-gapfix |
+|---|---|---|
+| New matched bytes per child-hour | 374 → **5,312 B/h** (14×) | 14,481 → **5,312 B/h** (0.4×) |
+| Exact-instruction gain per child-hour | 324 → **345 insn/h** (1.1×) | 1,397 → **345 insn/h** (0.2×) |
+| Compile-error rate of scored attempts | 69.4% → **0.5%** (139×) | 4.1% → **0.5%** (8.2×) |
+
+Other cohort figures:
+
+- 8 new functions, 6,808 B: `APILoadCharacterModels` 3,048 B, `fn_8009098C`, `fn_80091FC0`,
+  `fn_800911D0`, `fn_8008FB18`, `AISysCharacterSetPath`, `CheckAIMessage` and `fn_8008F660`.
+- Distinct candidates per unfinished function: median 48 (25, 48, 125), all three parks at
+  the floor, plus one `--short-park` for an unattempted 0xC04-byte function.
+- `score_fn` latency: 0.13 s median, the first baseline. Finish build 0.9 s.
+- Start to first compiling score: 81 s.
+
+What the numbers show:
+
+- **The compile-error fix holds.** It came in below both replay predictions (4.1% and
+  30.0%). Search sources failed 1 time in 5,036 attempts; the remaining errors are hand
+  edits (9.9%).
+- **Throughput is not comparable across these cohorts.** The yield metrics are lower than
+  the structural brief's, but the cohorts differ in more than the tools:
+  - Unit: apiobject here, nucamera and nuhgobj there. The opus-brief children resumed Sol
+    drafts that were already close.
+  - Pass length and shape: a parent that orchestrated, merged and verified (0.67 h), plus
+    children of 0.42 h and 0.20 h. The parent's active time includes merge and finish
+    work.
+  - Starting drafts: exact gain counts from the first scored draft. `APILoadCharacterModels`
+    started at 745/762 from a donor-shaped draft, so its 3,048 B match adds only 17
+    instructions.
+  - Model: Opus here and in opus-brief; Sol in sol-short.
+- **The park floor cost little.** One refusal (`fn_8008FCD0` at 23) cost two more
+  candidates with no gain. Whether these parks are real plateaus shows only when a later
+  pass tries them (park recovery 0% so far).
+
+Two fixes during the run changed the figures above:
+
+- `workflow_metrics.py` counted functions with only ERROR scores in a segment as
+  unfinished with 0 candidates; the median went 25 → 48.
+- Two sol-short segments had no `until`, so later work in those worktrees (22:58–23:01)
+  leaked in: 413 B/h and 28.1% instead of the documented 374 B/h and 69.4%. They are now
+  cut at 19:30 like the others. Sol park recovery is now 64.7% (11 / 17), up from 52.9%,
+  because later passes matched two more leftovers.
 
 ## Recording a change
 

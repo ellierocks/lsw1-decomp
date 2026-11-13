@@ -26,11 +26,12 @@ A fix records the metric's value before and after in its PR and in this table
 |---:|---|---|---|---|
 | 1 | [8. Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour (sweep) | 131 functions, 131,080 B unswept | 0 |
 | 2 | [9. Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes (not per run) | 203 functions, 54,460 B | 0 |
-| 3 | [13. Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | unknown until runs log `seconds` | baseline, then lower |
+| 3 | [13. Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | 0.13 s median (opus-gapfix-2026-11-13) | lower |
 | 4 | [7. Sweep runtime and cache invalidation](#7-sweep-runtime-and-cache-invalidation) | build/score latency (sweep) | about 1,000 s cold, 238 s warm | lower |
 
-Gaps 11 and 12 were ranked first and second until the fixes below; their measured
-effect on new runs is pending the next benchmark cohort.
+Gaps 11 and 12 were ranked first and second until the fixes below. The first cohort
+that used them (`opus-gapfix-2026-11-13`, apiobject) measured 0.5% compile errors and a
+median of 48 distinct candidates per park.
 
 ### All gaps
 
@@ -46,9 +47,9 @@ effect on new runs is pending the next benchmark cohort.
 | 8 | [Functions without a source unit are not swept](#8-functions-without-a-source-unit-are-not-swept) | matched bytes per child-hour | open |
 | 9 | [Strict-only functions wait on `.rodata` layout](#9-strict-only-functions-wait-on-rodata-layout) | promoted bytes | partly fixed, numath promoted |
 | 10 | [Verification counts were mistaken for new progress](#10-verification-counts-were-mistaken-for-new-progress) | matched bytes per child-hour (accounting) | accounting fixed, #163; the structural brief is in [sprint workflow](sprint_workflow.md#matching-brief) |
-| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); benchmark pending |
-| 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | fixed: `sprint_finish.py` refuses parks under 25; benchmark pending |
-| 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | logging added; baseline pending |
+| 11 | [Search attempts mostly fail to compile](#11-search-attempts-mostly-fail-to-compile) | compile-error rate | fixed: searches refuse a failing seed and stop error runs; replay 47.1% → 4.1% (11×); measured 0.5%, searches 1 / 5,036 |
+| 12 | [Functions are parked before 25 distinct hypotheses](#12-functions-are-parked-before-25-distinct-hypotheses) | distinct candidates; park recovery | fixed: `sprint_finish.py` refuses parks under 25; measured median 48, 3 of 3 parks at the floor |
+| 13 | [Score latency is not yet measured](#13-score-latency-is-not-yet-measured) | `score_fn` latency | baseline 0.13 s median score, 0.9 s finish build |
 | 14 | [Bench logs were polluted and lost](#14-bench-logs-were-polluted-and-lost) | all (data quality) | fixed |
 
 ## 1. Stale task packs change scores
@@ -151,6 +152,13 @@ commits touching its inputs since it ran.
   (`fn_80076DF0`). The oracle is right; these wait for `.rodata` ownership (gap 9).
 - The git guard blocks commits whose command runs in the main checkout. Use
   `git -C <worktree>`.
+- `score_fn.py` adds every function it scores to the sprint queue, so rechecking a function
+  main already matched (AIMoveInstruction, SetAIMessage and `fn_8008F968` in the apiobject
+  benchmark) failed `sprint_finish.py --matched-from-diff` queue accounting. The workaround,
+  naming them, listed 11 matches where 8 were new. Finish now leaves functions the unit
+  already defined at the merge base out of accounting with a note (3 unresolved → 0;
+  record 11 → 8). Both apiobject children hit the same refusal and passed `--queue` or
+  `--deferred` by hand.
 - `tools/quick_wins.py` reads one hard-coded split file, `auto_01_8001752C_text.s`, which a
   later split can leave behind (see gap 1). It does not feed scoring, so it was left; point
   it at the current units when next touched.
@@ -273,7 +281,25 @@ Most of the saving is two searches: `NuCameraCreate` (26,913 of 28,925 attempts 
 and `IpicPlaneDec` (19,896 of 19,899). No logged match is lost. One stopped search,
 `fn_80015BD0`, would have lost an exact-count improvement from 19 to 25, without a match.
 The replay cannot model the pruning, and logs written under `-j` are in completion
-order, so it approximates the seed. Confirm the rate on the next benchmark cohort.
+order, so it approximates the seed.
+
+**Measured (2026-11-13, `opus-gapfix-2026-11-13`).** Three Opus runs on apiobject (parent
+and two children, 1.28 active hours) scored 5,268 attempts, 24 of them ERROR (0.5%):
+
+| Source | Attempts | ERROR | Rate |
+|---|---:|---:|---:|
+| `variant_search` | 4,790 | 1 | 0.02% |
+| `order_search` | 246 | 0 | 0% |
+| `manual` | 232 | 23 | 9.9% (parent 16.0%, children 5.1% and 0%) |
+
+That is below both replay predictions (4.1% for the 2026-11-11 runs, 30.0% for the Sol
+passes) and below the structural-brief Opus cohort (4.1%). The searches account for 96%
+of attempts and almost none of the errors; the error-run stop never had to fire. Hand
+edits now carry the errors, and at least 3 of the parent's 20 came from scoring a mid-merge file.
+Confounds: Opus rather than Sol, a different unit (apiobject, with OpenSaga bodies for
+most functions), and searches started from seeds that already compiled, which the seed
+check now requires. The logs do not record seed refusals, so how often the refusal itself
+saved a burst is unknown.
 
 ## 12. Functions are parked before 25 distinct hypotheses
 
@@ -296,8 +322,24 @@ allowed.
 
 Before: all 9 of the 17 Sol leftovers that a later pass matched were under the floor
 (proxy count), as were 16 of the 17 leftovers. Under the rule none of the 9 could have
-been parked without a stated reason. Measure park recovery and distinct candidates on
-the next benchmark cohort.
+been parked without a stated reason.
+
+**Measured (2026-11-13, `opus-gapfix-2026-11-13`).** Distinct codegen hashes (exact) per
+unfinished function:
+
+| Function | Best | Distinct candidates | Park |
+|---|---|---:|---|
+| `fn_800902C0` | 350/351 | 125 | parked |
+| `fn_80090FB0` | 103/136 | 48 | parked |
+| `fn_8008FCD0` | 370/380 | 25 | parked; refused at 23, two more candidates, no gain |
+| `fn_800913BC` | not attempted | none | `--short-park`: 0xC04 bytes, a long donor hand climb outside the pass |
+
+The median is 48 (Sol short passes: 2, proxy). All three parks reached the floor, and
+the one refusal cost two candidates. Park recovery is 0% so far, since no later pass has
+run. Re-measure it when the next apiobject pass picks these up.
+`workflow_metrics.py` first reported 25 here: two functions scored only while the merged
+file failed to compile counted as unfinished with 0 candidates. It now skips
+functions with no compiling score in a segment (cohort median 25 → 48).
 
 ## 13. Score latency is not yet measured
 
@@ -305,6 +347,12 @@ the next benchmark cohort.
 finish builds were timed (median 0.8–0.9 s). Score events now carry `seconds`. Record the
 first cohort's median here, then rank latency fixes (cache hits, compiling only the
 function's TU) against it.
+
+**Baseline (2026-11-13, `opus-gapfix-2026-11-13`).** The median `score_fn` wall time is
+0.13 s (per run 0.14, 0.11 and 0.14 s, over 5,268 scores). The finish build median is 0.9 s.
+At that cost 4,790 variant scores take about 10 minutes of compile time. Latency is not
+what limits a pass now; hypothesis quality is. Keep the gap open for the sweep (gap 7),
+where builds are long.
 
 ## 14. Bench logs were polluted and lost
 

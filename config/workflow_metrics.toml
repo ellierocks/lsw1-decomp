@@ -41,8 +41,8 @@ segments = [
   { run = "t3-d0bd4e08-6316cfdddce4db52-1794535298", until = "2026-11-12T18:09:10-08:00" },
   { run = "t3-f7f562b6-d944dc6fd053e915-1794535983", until = "2026-11-12T18:30:00-08:00" },
   { run = "t3-f7f562b6-d944dc6fd053e915-1794535983", since = "2026-11-12T18:43:00-08:00" },
-  { run = "t3-bd4d6cd9-78b17c668f8c2042-1794536060" },
-  { run = "t3-fa22d343-97b9e695ae7c78e8-1794536762" },
+  { run = "t3-bd4d6cd9-78b17c668f8c2042-1794536060", until = "2026-11-12T19:30:00-08:00" },
+  { run = "t3-fa22d343-97b9e695ae7c78e8-1794536762", until = "2026-11-12T19:30:00-08:00" },
   { run = "t3-54b00346-8848ee0a705540b9-1794536822" },
 ]
 
@@ -62,4 +62,31 @@ title = "Structural brief vs short passes"
 subtitle = "same units, same day: nucamera and nuhgobj"
 before = "sol-short-2026-11-12"
 after = "opus-brief-2026-11-12"
+metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]
+
+# PR 164 benchmark, 2026-11-12/13 (thread t3-bench-gap-fixes). Opus parent plus two Opus
+# children on apiobject, each child in its own worktree and bench run, with the gap 11-13
+# tool changes: seed and error-run guards, failed-rewrite pruning, 25-candidate park floor,
+# score events with seconds and codegen.
+[[cohort]]
+name = "opus-gapfix-2026-11-13"
+label = "Opus parent + 2 children on apiobject with the gap 11-13 tools"
+segments = [
+  { run = "t3-bench-gap-fixes-9f5c11c5e09d98ec-1794553396" },
+  { run = "t3-93ca2746-c03cdc3a1aefd264-1794553972" },
+  { run = "t3-969dba53-9f2747452663ae88-1794554475" },
+]
+
+[[comparison]]
+title = "Gap 11-13 tools vs short passes"
+subtitle = "different unit: apiobject vs nucamera/nuhgobj"
+before = "sol-short-2026-11-12"
+after = "opus-gapfix-2026-11-13"
+metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]
+
+[[comparison]]
+title = "Gap 11-13 tools vs structural brief"
+subtitle = "Opus both sides; different unit: apiobject vs nucamera/nuhgobj"
+before = "opus-brief-2026-11-12"
+after = "opus-gapfix-2026-11-13"
 metrics = ["matched_bytes_per_hour", "exact_gain_per_hour", "compile_error_rate"]
