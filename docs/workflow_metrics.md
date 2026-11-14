@@ -210,3 +210,19 @@ Two fixes during the run changed the figures above:
    headline one.
 4. State what changed besides the workflow (model, units, starting drafts). If a change
    moved the wrong metric, record that too.
+
+### NuMtlRender declaration parser repair
+
+The same compiling `nugscn` source and body were replayed with ProDG, eight jobs
+and a 300-candidate limit, changing only declaration recognition. The old parser
+included `count = NuFileReadInt(fh);` in declaration permutations; the corrected
+parser searches only the four actual declarations.
+
+| Metric | Before → after | Change |
+|---|---|---|
+| Compile-error rate of scored attempts | 34.4% → **0%** | 96/279 → 0/183 errors |
+
+`workflow_metrics.py compare` reports the row above from the
+`nugscn-decl-before-2026-11-13` and `nugscn-decl-after-2026-11-13` cohorts.
+Best exact score stays 81/93, so the fix restores valid hypotheses without a
+matching-byte claim. See [gap 27](workflow_gaps.md#27-declaration-search-permuted-assignments).

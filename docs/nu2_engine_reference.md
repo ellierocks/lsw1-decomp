@@ -153,6 +153,25 @@ pointer counted from NULL in 0xD0 steps when `displayScene` is set; the donor st
 NULL. Two `symbols.txt` names are wrong by body: `NuSpecialFindMultiWC` is DrawAt and
 `NuSpecialGetInstAnim` is GetName. They are not renamed yet.
 
+### GameCube scene-loader allocation and fixups
+
+`auto/nu3d/ngc/nugscn.c` uses the shared `variptr_u` address view from
+[`nucore/numem.h`](../src/nucore/numem.h) for `lbl_8040A350`, the scene-buffer
+end. `fn_80028444` reserves a 16-byte-aligned environment through the cursor
+pointed to by `lbl_8040A34C`; its unsigned end comparison is at `0x800285EC`.
+The union view preserves the target load after the environment-pointer store,
+giving a strict 156/156 match. All 18 previously strict functions in the unit
+remain strict; this is a function verification, with no unit promotion.
+
+The same target confirms 0x20-byte texture-animation records: ID pointer +0x08,
+signed ID count +0x0C, allocation flag +0x0E, material +0x10, environment +0x14,
+name +0x18 and program name +0x1C. The loader remaps IDs, fixes names/materials,
+creates environments and links the animation list. OpenSaga's `NuReadGraphicsData`
+corroborates that sequence, but its scene layout and pointer-block loader differ.
+The remaining GC loaders use 0x0C-byte vertex-set records (`fn_80028DAC`) and
+0x3C-byte texture descriptors (`NuMtlRender`); their current nonmatches are
+recorded in [`config/plan.toml`](../config/plan.toml).
+
 ### Portal and packed-animation evidence (`nuqfnt`)
 
 The local views in [`auto/nu3d/nuqfnt.c`](../src/auto/nu3d/nuqfnt.c) extend the

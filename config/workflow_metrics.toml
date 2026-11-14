@@ -176,3 +176,20 @@ subtitle = "same source/drafts/compiler; four reciprocal-index pointer multiply 
 before = "aisys-pointer-before-2026-11-13"
 after = "aisys-pointer-after-2026-11-13"
 metrics = ["compile_error_rate"]
+
+[[cohort]]
+name = "nugscn-decl-before-2026-11-13"
+label = "NuMtlRender declaration parser: before"
+segments = [{ run = "t3-1a0be543-26d91a4ae1b9931e-1794637629", since = "2026-11-14T06:37:01.097617+00:00", until = "2026-11-14T06:37:08.705176+00:00" }]
+
+[[cohort]]
+name = "nugscn-decl-after-2026-11-13"
+label = "NuMtlRender declaration parser: after"
+segments = [{ run = "t3-1a0be543-26d91a4ae1b9931e-1794637629", since = "2026-11-14T06:37:08.705212+00:00", until = "2026-11-14T06:37:14.183982+00:00" }]
+
+[[comparison]]
+title = "NuMtlRender declaration parser repair"
+subtitle = "same candidate, ProDG, 300-candidate budget and 8 jobs; declaration discovery only"
+before = "nugscn-decl-before-2026-11-13"
+after = "nugscn-decl-after-2026-11-13"
+metrics = ["compile_error_rate"]

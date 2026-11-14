@@ -1,4 +1,5 @@
 #include "types.h"
+#include "nucore/numem.h"
 #include "nu3dx/nu3dx.h"
 #include "nu3dx/nuanim.h"
 
@@ -10,7 +11,7 @@ extern f32 lbl_8040AD8C;
 extern f32 lbl_8040AD90;
 extern s32 lbl_8040AD94;
 extern u32* lbl_8040A34C;
-extern u32 lbl_8040A350;
+extern union variptr_u lbl_8040A350;
 extern struct nugscn_s* lbl_8040A364;
 extern char lbl_8019177C[];
 extern char lbl_8019178C[];
@@ -38,7 +39,7 @@ void fn_80011070(struct nudisplayscene_s* display);
 static inline void* NuGScnAlloc(s32 size, s32 align)
 {
     u32 p = (*lbl_8040A34C + (align - 1)) & ~(align - 1);
-    if (p + size < lbl_8040A350) {
+    if (p + size < lbl_8040A350.addr) {
         *lbl_8040A34C = p + size;
         return (void*)p;
     }
@@ -159,7 +160,6 @@ void* NuTexAnimProgFind(char* name);
 void* fn_80015C88(u32* buf, struct numtl_s* mtl, s16* tids, void* prog);
 void fn_80015DD0(struct nutexanim_s* texanims);
 
-/* NONMATCHING 155/156: one scheduling slot; see work/fn_80028444/status.md. */
 void fn_80028444(s32 fh)
 {
     s16* tids;
@@ -392,7 +392,7 @@ static inline s32 NuVtxSetStride(char* name)
     return 0xC;
 }
 
-/* NONMATCHING 166/169: register/schedule residue; see work/fn_80028DAC/status.md. */
+/* NONMATCHING 166/169: string-offset load order; see config/plan.toml. */
 void fn_80028DAC(s32 fh)
 {
     s32 size;
@@ -430,9 +430,9 @@ void fn_80028DAC(s32 fh)
         }
     }
     if (lbl_8040A358 != 0) {
-        lbl_8040A350 = lbl_8040A35C;
+        lbl_8040A350.addr = lbl_8040A35C;
     } else {
-        lbl_8040A350 = lbl_8040A354;
+        lbl_8040A350.addr = lbl_8040A354;
     }
 }
 
@@ -571,7 +571,7 @@ struct nughgtex_s {
 void* memset(void* p, s32 c, u32 n);
 s32 fn_80024F44(struct nughgtex_s* tex);
 
-/* NONMATCHING 80/93: register allocation in the texture loop; see work/NuMtlRender/status.md. */
+/* NONMATCHING 81/93: register allocation in the texture loop; see config/plan.toml. */
 void NuMtlRender(s32 fh)
 {
   s32 count;

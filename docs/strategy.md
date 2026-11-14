@@ -83,6 +83,10 @@ Its items can run beside stage-1 items.
 Large units are sliced into items of about 20 KB so one child can finish one. Items
 overlap only where a hub function also belongs to its unit's item.
 
+The revision 9 `nurndr-nugscn` follow-up verifies the 624-byte texture-animation
+loader and records two measured `nugscn` plateaus. Its six unfinished functions in
+`nurndr`, `nustream` and `nuspecial` remain in the item; the stage order is unchanged.
+
 ## How an item is worked
 
 One item per thread, one PR, its own worktree, branch `t3/plan-<item>`.

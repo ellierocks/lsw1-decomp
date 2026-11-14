@@ -55,7 +55,7 @@ DEFAULT_LIMIT = 2000
 MAX_DECLS = 6
 MAX_DO_WHILE = 16
 SIGN_PAIRS = {"s32": "u32", "u32": "s32", "s16": "u16", "u16": "s16", "s8": "u8", "u8": "s8"}
-DECL_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<type>(?:struct \w+|[A-Za-z_]\w*)\s*\**)\s*(?P<name>\w+)"
+DECL_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<type>(?:struct \w+|[A-Za-z_]\w*)(?:[ \t]+\**|[ \t]*\*+))[ \t]*(?P<name>\w+)"
                      r"(?P<array>\[\w*\])?(?:\s*=\s*[^;]+)?;[ \t]*$")
 TERNARY_RE = re.compile(r"^(?P<indent>[ \t]+)(?P<lhs>[^=?;{}()]+?)\s=\s(?P<cond>[^?;{}]+?)\s\?\s"
                         r"(?P<a>[^?:;{}]+?)\s:\s(?P<b>[^?:;{}]+?);[ \t]*$")
