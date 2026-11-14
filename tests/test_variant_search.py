@@ -61,6 +61,26 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(len(order), 1)
         self.assertEqual(len(order[0].options[0]), vs.MAX_DECLS)
 
+    def test_assignment_after_texture_locals_is_not_a_declaration(self):
+        src = ("void NuMtlRender(s32 fh)\n{\n"
+               "    s32 count;\n    s32 i;\n    s32 k;\n"
+               "    struct nughgtex_s *tex;\n"
+               "    count = NuFileReadInt(fh);\n    use(tex, count);\n}\n")
+        fn = vs.find_function(src, "NuMtlRender")
+        dims, lines = vs.build_dimensions(fn)
+        self.assertEqual(vs.leading_decls(lines), (1, 5))
+        for choice in vs.combos(dims, 1):
+            out = vs.render(fn, dims, lines, choice)
+            self.assertLess(out.index("*tex;"), out.index("count = NuFileReadInt(fh);"))
+
+    def test_declarations_require_a_type_name_separator(self):
+        for line in ("    count = read();", "    value = 0;", "    texture = NULL;"):
+            with self.subTest(line=line):
+                self.assertIsNone(vs.DECL_RE.match(line))
+        for line in ("    s32 count = read();", "    s32*p;", "    struct tex *p;"):
+            with self.subTest(line=line):
+                self.assertIsNotNone(vs.DECL_RE.match(line))
+
     def test_combos_try_fewest_changes_first_and_respect_the_cap(self):
         fn = vs.find_function(SOURCE, "f")
         dims, _ = vs.build_dimensions(fn)

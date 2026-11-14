@@ -63,6 +63,7 @@ median of 48 distinct candidates per park.
 | 24 | [`score_fn.py --apply` skipped silently](#24-score_fnpy---apply-skipped-silently) | start to first compiling score | fixed: unexplained skips 3 paths → 0; `--json` MATCH applied 0 → 1 |
 | 25 | [Handoffs skipped the hypothesis floor](#25-handoffs-skipped-the-hypothesis-floor) | distinct candidates; compile-error rate | fixed: aisys-1 short handoffs accepted without a reason 7 → 0; ERROR events with a diagnostic class 0% → all new |
 | 26 | [Order search needed hand markers](#26-order-search-needed-hand-markers) | distinct candidates | fixed: markers needed 1+ → 0; `--body` output 1,992-line unit → 76-line definition |
+| 27 | [Declaration search permuted assignments](#27-declaration-search-permuted-assignments) | compile-error rate | fixed: same NuMtlRender seed, 96/279 errors (34.4%) → 0/183; no additional match |
 
 ## 1. Stale task packs change scores
 
@@ -641,3 +642,19 @@ Before → after: markers needed 1+ → 0. On the `Action_SetViewDistance` draft
 found 3 runs (8 variants, 0 compile errors), and `best.c` went from the 1,992-line unit to
 the 76-line definition, which scores the same through `--body`. Tests: `AutoBlockTests` in
 `tests/test_order_search.py`.
+
+## 27. Declaration search permuted assignments
+
+`variant_search.py` accepted an absent separator between a type and a local name.
+For `count = NuFileReadInt(fh);` in `NuMtlRender`, regex backtracking invented type
+`coun` and variable `t`. The declaration-order dimension then moved that assignment
+before `struct nughgtex_s *tex;`, producing C89 parse errors from a compiling seed.
+
+Require whitespace or a pointer star between the type and name. Two regression
+tests reproduce the real texture-loader case and reject plain assignments; both
+fail with the previous parser. A controlled replay of the same source, compiler,
+300-candidate budget and eight jobs gives 96/279 errors (34.4%) before and 0/183
+after. The valid search is smaller because it permutes four declarations rather
+than four declarations and an assignment. Best score stays 81/93; no match is
+attributed to this tool fix. The cohorts and comparison live in
+[`config/workflow_metrics.toml`](../config/workflow_metrics.toml).
