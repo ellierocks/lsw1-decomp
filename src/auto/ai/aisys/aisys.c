@@ -2107,7 +2107,7 @@ extern f32 lbl_80408D54;
 extern f32 lbl_80408D58;
 
 
-void fn_80087F98(void *object, void *region, void *relative, f32 radius)
+void AISysCheckAntinode_Circle(void *object, void *region, void *relative, f32 radius)
 {
     f32 temp_f0;
     f32 temp_f0_2;
@@ -2318,7 +2318,7 @@ f32 NuCosApprox(s32);
 f32 NuSinApprox(s32);
 void NuVecScale(void *, void *, f32);
 
-void fn_800881D4(void *arg0, f32 *arg1, f32 *arg2, f32 farg0)
+void AISysCheckAntinode_Ellipse(void *arg0, f32 *arg1, f32 *arg2, f32 farg0)
 {
     f32 boundary[3];
     f32 tangent[3];
@@ -2456,7 +2456,7 @@ void fn_800881D4(void *arg0, f32 *arg1, f32 *arg2, f32 farg0)
 f32 fn_8000ED40(f32);
 extern f32 lbl_8019C818[];
 
-void fn_800885CC(void *arg0, void *arg1, f32 *arg2, f32 farg0)
+void AISysCheckAntinode_Rectangle(void *arg0, void *arg1, f32 *arg2, f32 farg0)
 {
     f32 tangent[3];
     f32 sp18[3];
