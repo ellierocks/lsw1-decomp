@@ -24,9 +24,11 @@ whole unit is needed:
 
     python3 tools/order_search.py fn_X src/auto/u.c --body try.c -j 4
 
-With `--auto`, no markers are needed: every run of two or more plain statements
-(assignments and calls, each on its own line, at any brace depth; not declarations,
-control flow or labels) in NAME's definition becomes a block. A product over
+With `--auto`, no markers are needed: runs of two or more plain assignments
+(each on its own line, at any brace depth) become blocks. Calls and direct scalar
+dependencies or repeated memory expressions end a run. This catches obvious
+dependencies, not memory aliasing; review the result against assembly before
+accepting it. A product over
 `--limit` keeps the run nearest the seed's first score difference; `--climb`
 searches them all. The output is then NAME's definition (with `--body`, the body
 file's own externs too), ready for `score_fn.py NAME SOURCE --body best.c --apply`:
@@ -258,10 +260,63 @@ def movable(stmt: str) -> bool:
             and not CONTROL.match(stmt) and not DECLARATION.match(stmt) and not LABEL.match(stmt))
 
 
+CALL = re.compile(r"\b[A-Za-z_]\w*\s*\(")
+SCALAR_WRITE = re.compile(r"^([A-Za-z_]\w*)\s*(?:<<=|>>=|[+\-*/%&|^]?=(?!=)|\+\+|--)")
+UPDATE = re.compile(r"\+\+|--")
+ASSIGNMENT = re.compile(r"(?<![=!<>])(?:<<=|>>=|[+\-*/%&|^]?=)(?!=)")
+SIMPLE_CAST = re.compile(r"(?:(?:const|volatile|unsigned|signed)\s+)*"
+                         r"(?:void|char|short|int|long|float|double|[us](?:8|16|32|64)|f(?:32|64)|"
+                         r"(?:struct|union)\s+[A-Za-z_]\w*)\s*(?:\*\s*)*")
+
+
+def has_call(stmt: str) -> bool:
+    """Calls end automatic runs; distinguish indirect calls from m2c's raw casts."""
+    if CALL.search(stmt):
+        return True
+    for match in re.finditer(r"\)\s*\(", stmt):
+        depth, i = 1, match.start() - 1
+        while i >= 0 and depth:
+            depth += (stmt[i] == ")") - (stmt[i] == "(")
+            i -= 1
+        if depth or not SIMPLE_CAST.fullmatch(stmt[i + 2:match.start()].strip()):
+            return True
+    return False
+
+
+def scalar_dependency(left: str, right: str) -> bool:
+    """Keep a direct scalar write before every other use or write of that name.
+
+    Memory aliases and callees need assembly review; this is deliberately only the
+    obvious local def/use case, including the loader's `result = 0; result = alloc()`.
+    """
+    for writer, other in ((left, right), (right, left)):
+        match = SCALAR_WRITE.match(writer)
+        if match and re.search(rf"\b{re.escape(match[1])}\b", other):
+            return True
+    return False
+
+
+def memory_dependency(left: str, right: str) -> bool:
+    """Preserve a store relative to the exact same lvalue expression.
+
+    This catches `p->b = p->a` and raw m2c pointer copies, without pretending to
+    prove that distinct expressions cannot alias.
+    """
+    for writer, other in ((left, right), (right, left)):
+        match = ASSIGNMENT.search(writer)
+        if match:
+            lhs = re.sub(r"\s+", "", writer[:match.start()])
+            if lhs and lhs in re.sub(r"\s+", "", other):
+                return True
+    return False
+
+
 def auto_blocks(text: str, name: str, min_run: int = 2) -> tuple[list[Block], int, int]:
-    """Order blocks for NAME's definition without hand markers (gap 26): every run of MIN_RUN or
-    more consecutive movable statements at any brace depth, each on lines of its own. Returns the blocks
-    and the body's [start, end) offsets."""
+    """Runs of MIN_RUN+ assignments without obvious dependencies (gaps 26, 28).
+
+    Each statement occupies its own line, at any brace depth. Returns the blocks
+    and the body's [start, end) offsets; memory aliases still need manual review.
+    """
     from variant_search import VariantError, find_function
     try:
         fn = find_function(text, name)
@@ -314,7 +369,10 @@ def walk_runs(text: str, body: str, base: int, min_run: int, blocks: list[Block]
         nl = text.find("\n", b)
         own_line = (not text[text.rfind("\n", 0, a) + 1:a].strip()
                     and not text[b:len(text) if nl < 0 else nl].strip())
-        if movable(stmt) and own_line:
+        if movable(stmt) and own_line and not has_call(stmt) and not UPDATE.search(stmt):
+            if any(scalar_dependency(previous, stmt) or memory_dependency(previous, stmt)
+                   for _, _, previous in run):
+                close()
             run.append((a, b, stmt))
             continue
         close()
@@ -630,7 +688,7 @@ def main(argv=None) -> int:
                     help="take the marked definition from FILE (as for score_fn.py --body) and splice "
                          "it into SOURCE, without editing SOURCE")
     ap.add_argument("--auto", action="store_true",
-                    help="no markers needed: search runs of plain statements in NAME's definition; without "
+                    help="no markers needed: search assignment runs with call/dependency barriers; without "
                          "--climb, a product over --limit keeps the run nearest the first score difference")
     ap.add_argument("--dry-run", action="store_true", help="print the variant count and exit")
     ap.add_argument("--climb", action="store_true",

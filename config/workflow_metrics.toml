@@ -200,3 +200,27 @@ subtitle = "same source/drafts/compiler; exact instructions 240 to 248, no new s
 before = "aisys-array-before-2026-11-13"
 after = "aisys-array-after-2026-11-13"
 metrics = ["compile_error_rate"]
+
+# aisys-2b: same three captured drafts, source and search budgets (250/200/200).
+[[cohort]]
+name = "aisys-order-before-2026-11-14"
+label = "aisys automatic ordering before dependency barriers"
+segments = [
+  { run = "t3-c08da200-9cebbdadc00c8165-1794642623", since = "2026-11-14T08:06:38.725500+00:00", until = "2026-11-14T08:07:06.837500+00:00" },
+  { run = "t3-c08da200-9cebbdadc00c8165-1794642623", since = "2026-11-14T08:09:05.045500+00:00", until = "2026-11-14T08:09:06.295500+00:00" },
+  { run = "t3-c08da200-9cebbdadc00c8165-1794642623", since = "2026-11-14T08:09:06.296500+00:00", until = "2026-11-14T08:09:29.721500+00:00" },
+]
+
+[[cohort]]
+name = "aisys-order-after-2026-11-14"
+label = "aisys automatic ordering with dependency barriers"
+segments = [
+  { run = "t3-c08da200-9cebbdadc00c8165-1794642623", since = "2026-11-14T08:15:34.978500+00:00", until = "2026-11-14T08:16:10.360500+00:00" },
+]
+
+[[comparison]]
+title = "aisys automatic order dependencies"
+subtitle = "same drafts and budgets; native fixture wrong results 12/24 to 0/2; no new strict matches"
+before = "aisys-order-before-2026-11-14"
+after = "aisys-order-after-2026-11-14"
+metrics = ["compile_error_rate", "score_seconds"]

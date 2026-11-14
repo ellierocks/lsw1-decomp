@@ -222,6 +222,34 @@ do not measure matching throughput. The source additions elsewhere in the unit
 also changed the broad sweep comparison, so that comparison is not the controlled
 measurement. See [gap 27](workflow_gaps.md#27-pointer-array-cursors-retained-byte-displacements).
 
+## Automatic order dependency barriers
+
+Aisys-2b replayed three captured drafts against the same source and ProDG 3.9.3,
+with unchanged search budgets of 250/200/200. Cohorts
+`aisys-order-before-2026-11-14` and `aisys-order-after-2026-11-14` exclude the
+manual matching and intermediate guard implementation.
+
+| Measure | Before → after |
+|---|---|
+| Wrong-result native allocation variants | 12/24 → 0/2 |
+| Real target variants scored | 650 → 650 |
+| Compile-error rate of scored attempts | 0% → **0%** |
+| score_fn latency (median) | 0.4 s → **0.5 s** |
+| New strict matches from replay | 0 → 0 |
+
+The native fixture is retained in `tests/test_order_search_dependencies.py` and
+executes generated C. The old automatic block builder fails its allocation-order
+regression. This measures removal of a demonstrated invalid search class, not a
+matching-throughput gain. Search concurrency differed: the earlier path-loader
+run was separate from the other two; all three ran together afterward. The
+latency increase therefore is not attributable to the guard alone.
+
+The three lexicographically best search results have exact counts
+704/504/367 → 699/505/375. Some earlier winners violated dependencies; the lower
+path-loader score is not a matching regression. None is accepted source, and
+memory aliasing remains a manual review obligation. See
+[gap 28](workflow_gaps.md#28-automatic-ordering-crossed-dependencies).
+
 ## Recording a change
 
 1. Before changing the workflow, find the runs it will affect and note the current value

@@ -242,7 +242,7 @@ Do not project whole-project completion from one easy-function run.
 | `score_fn.py NAME src/UNIT.c --body try.c --diff --apply` | scores `try.c` in place of NAME's definition, prints the TARGET/MINE listing on a mismatch, writes the unit only on a strict MATCH |
 | `hillclimb.py try` | ledger of recorded candidates; configurable `--patience`, `--max-attempts` and verifier `--timeout` ([defaults](code_matching_workflow.md#measure-and-iterate)) |
 | `variant_search.py NAME src/UNIT.c -j 8` | searches source rewrites; over `--limit` it tries the fewest-change variants first; refuses a seed that does not compile and stops after `--max-error-run` (64) ERRORs in a row |
-| `order_search.py` | `--auto` marks plain-statement runs itself and writes only the definition; exhaustive statement-order search defaults to `--limit 5040` (7!); `--climb` handles larger spaces with a configurable `--budget` (default 2000 scored variants); same seed check and `--max-error-run` |
+| `order_search.py` | `--auto` marks assignment runs with call/dependency barriers and writes only the definition; exhaustive statement-order search defaults to `--limit 5040` (7!); `--climb` handles larger spaces with a configurable `--budget` (default 2000 scored variants); same seed check and `--max-error-run` |
 | Permuter | searches candidate rewrites; `/* permute: begin */` focuses mutations. Choose runtime and parallelism for the target and available resources |
 
 The first `hillclimb.py try` records `--donor-note`. When the pinned OpenSaga checkout has
