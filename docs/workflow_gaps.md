@@ -63,6 +63,7 @@ median of 48 distinct candidates per park.
 | 24 | [`score_fn.py --apply` skipped silently](#24-score_fnpy---apply-skipped-silently) | start to first compiling score | fixed: unexplained skips 3 paths → 0; `--json` MATCH applied 0 → 1 |
 | 25 | [Handoffs skipped the hypothesis floor](#25-handoffs-skipped-the-hypothesis-floor) | distinct candidates; compile-error rate | fixed: aisys-1 short handoffs accepted without a reason 7 → 0; ERROR events with a diagnostic class 0% → all new |
 | 26 | [Order search needed hand markers](#26-order-search-needed-hand-markers) | distinct candidates | fixed: markers needed 1+ → 0; `--body` output 1,992-line unit → 76-line definition |
+| 28 | [Automatic ordering crossed dependencies](#28-automatic-ordering-crossed-dependencies) | usable search candidates | direct scalar/call/repeated-lvalue barriers added; native fixture wrong results 12/24 → 0/2; aliases still require review |
 
 ## 1. Stale task packs change scores
 
@@ -632,7 +633,8 @@ the whole spliced unit to `best.c`, which then had to be cut back to the definit
 
 `--auto` marks the blocks itself: every run of two or more plain statements (assignments
 and calls on lines of their own, at any brace depth; not declarations, control flow or
-labels). When the runs together exceed `--limit`, it keeps the one nearest the seed's
+labels). [Gap 28](#28-automatic-ordering-crossed-dependencies) later restricted
+automatic runs to preserve calls and obvious dependencies. When runs exceed `--limit`, it keeps the one nearest the seed's
 first score difference (source position against instruction position, a rough mapping),
 and `--climb` searches them all. With `--body` or `--auto`, `best.c` holds the definition
 plus the body file's own externs, ready for `score_fn.py NAME SOURCE --body best.c --apply`.
@@ -664,3 +666,29 @@ See the [measurement](workflow_metrics.md#pointer-array-byte-cursor-repair).
 Tests: `tests/test_sweep_pointer_arrays.py` covers captured cursor/offset forms,
 idempotence, decimal/hex steps, and preservation of normal indexing and unrelated
 arithmetic. Disabling the repair makes the captured regression fail.
+
+## 28. Automatic ordering crossed dependencies
+
+Both #173 and #174 used gap 27; this follow-up uses the next free number, 28.
+On aisys-2b, automatic ordering's winning ai2-loader candidate moved `result = 0`
+after `result = allocate()`, erasing the allocation. Another path-loader winner
+moved a backup copy before the store it consumed. Compiling successfully and
+improving an instruction score did not preserve semantics. Both were rejected.
+
+Automatic runs now stop at calls, increments/decrements, direct scalar def/use
+conflicts and repeated lvalue expressions (including raw m2c pointer syntax).
+Explicit markers retain their author-reviewed behavior. This is a bounded
+syntactic guard: different expressions may still alias and every result still
+needs target-assembly review.
+
+A native C replay of the captured allocation pattern generated 24 candidates,
+12 with the wrong return value, before; it generates two, both correct, after.
+The captured regression fails with the old automatic block builder. Six tests
+in `tests/test_order_search_dependencies.py` cover the allocation, reader order,
+scalar dependencies, raw memory copies and execution of generated C.
+
+The same three real drafts were replayed with unchanged budgets (250/200/200):
+650 → 650 scored variants, zero compile errors and zero strict matches both ways.
+The previous ai2-loader winner's scalar reset and path-loader backup inversion
+are no longer candidates. The new best TestPathCnx draft scores 375/771 and is
+unapplied. See the [measurement](workflow_metrics.md#automatic-order-dependency-barriers).

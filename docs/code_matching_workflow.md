@@ -259,9 +259,10 @@ variants (default 7! = 5040, about two minutes with `-j 8`). `--dry-run` prints 
 count. The best variant goes to `work/order_search/NAME/best.c`; port it into the
 unit source and accept it with `verify_fn.py --build --strict-symbols`.
 
-Without markers, `--auto` takes every run of two or more plain statements
-(assignments and calls on their own lines, at any brace depth; not declarations,
-control flow or labels) in the definition as a block. When the runs together exceed
+Without markers, `--auto` takes runs of two or more plain assignments on their
+own lines, at any brace depth. Calls, updates, direct scalar dependencies and
+repeated lvalue expressions end a run. Other memory aliases still need manual
+review against target assembly. When the runs together exceed
 `--limit`, it keeps the run nearest the seed's first score difference, a rough
 source-to-instruction mapping, and `--climb` searches them all. With `--body` or
 `--auto`, `best.c` holds only the definition (plus the body file's own externs), so

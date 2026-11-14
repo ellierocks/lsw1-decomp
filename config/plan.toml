@@ -298,7 +298,7 @@ functions = [
   "fn_8008911C",
   "AISysCharacterTestPathCnx",
 ]
-note = "12 more strict VERIFIED (4,936 B); 9 remain. See docs/symbol_donors/aisys_2_matching.md; include/game/ai.h."
+note = "Follow-up: 1 new strict VERIFIED (1,612 B); 8 remain. Prior pass: 12 (4,936 B). See docs/symbol_donors/aisys_2b_matching.md; include/game/ai.h."
 # at revision 1: 33 functions, 20,652 bytes left
 
 [[stage.item]]
