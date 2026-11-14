@@ -20,7 +20,7 @@
 # reports that the plan needs revision, or when evidence changes the order. Parking a function
 # needs a reason that names its best score and the next hypothesis.
 
-revision = 8
+revision = 9
 # The `# at revision N` comments record each item's size when the plan was written; they are
 # not read by tools.
 
@@ -182,6 +182,15 @@ note = "The nucamera run (2026-11-12) strictly matched 15 functions / 4,156 B. M
 # at revision 1: 20 functions, 11,616 bytes left
 
 [[parked]]
+function = "fn_80028DAC"
+reason = "Best 166/169 (nugscn, candidate in source), 232 distinct compiled candidates in this follow-up; statement-order search and a 180 s permuter burst did not improve the strict score. The strings base/serialized name-offset loads have different order and operand registers. Byte cursors, variptr views, explicit string locals and inline offset helpers rejected. Next: model the serialized count/name pair as one record and inspect its load dependencies across the NuVtxSetStride inline boundary; keep the 0xc-byte output record and signed-short count/stride."
+
+[[parked]]
+function = "NuMtlRender"
+reason = "Best 81/93 (nugscn, candidate in source), up from 80/93 through shared variptr_u end-address typing; 351 distinct compiled candidates. Corrected declaration search (183 variants, no errors), statement-order search and a 180 s permuter burst leave the outer index/texture-base/palette-result allocation different. Inline fixup helpers, separate palette locals and pointer/union descriptor views rejected. Next: recover the common self-relative fixup inline boundary and separate level-loop and palette-result lifetimes; GC descriptor is 0x3c bytes, nlevels at +0xa, levels +0xc, palette +0x38."
+
+
+[[parked]]
 function = "fn_80023628"
 reason = "Strict VERIFIED and its .rodata pool now matches; objdiff stays at 99.96% only because the farclip read relocates as lbl_80313268+0x4c where the retail split names the same address lbl_803132B4 (struct nucam_s spans the 0x20-byte lbl_80313268 symbol). The linked address is identical. Next: settle the .bss symbol boundary at 0x80313268 with runtime or caller evidence, never by faking a separate extern."
 
@@ -204,6 +213,7 @@ note = "No source file yet: scaffold it; OpenSaga leads."
 [[stage.item]]
 id = "nurndr-nugscn"
 units = ["auto/nu3d/ngc/nurndr", "auto/nu3d/ngc/nugscn", "auto/nu3d/ngc/nustream", "auto/nu3d/nuspecial"]
+note = "nugscn follow-up: fn_80028444 VERIFIED (624 B), two measured plateaus below. Remaining units: nurndr (fn_80024F68, fn_80026710, fn_80026F0C), nustream (fn_8002C644), nuspecial (fn_80012C44, NuSpecialFind); next pass owns one unit per PR."
 # at revision 1: 32 functions, 18,980 bytes left
 
 [[stage.item]]
