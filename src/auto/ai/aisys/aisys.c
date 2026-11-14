@@ -684,7 +684,6 @@ f32 Condition_PlayerToOrigin(u8* sys, void* process, u8* packet)
 
 extern void* fn_800076C4(void*);
 extern void* fn_800076CC(void*, void*);
-extern s32 NuStrICmp(char*, char*);
 extern f32 lbl_8019C674[], lbl_8019C678[];f32 Condition_IAm(void* sys, void* process, u8* packet, char* name, void* actor)
 {
     u8* owner;
@@ -1989,4 +1988,610 @@ complete:
     return 1;
 running:
     return 0;
+}
+
+extern s32 fn_8000ABDC(f32, f32);
+extern f32 lbl_8019C628[], lbl_8019C62C[];
+f32 Condition_YawToOpponent(void *sys, void *process, u8 *packet)
+{
+    f32 relative[3];
+    u8 *opponent;
+    u8 *owner;
+    if (packet && (opponent = *(u8 **)(packet + 0x64))) {
+        owner = *(u8 **)(packet + 0x50);
+        relative[0] = *(f32 *)(opponent + 0x6c) - *(f32 *)(owner + 0x6c);
+        relative[2] = *(f32 *)(opponent + 0x74) - *(f32 *)(owner + 0x74);
+        NuVecRotateY(relative, relative, -*(u16 *)(owner + 0x27e));
+        return (f32)fn_8000ABDC(relative[0], relative[2]) * lbl_8019C628[0];
+    }
+    return lbl_8019C62C[0];
+}
+
+static inline void *aiFindState(char *name, u8 *script)
+{
+    u8 *entry = fn_800076C4(script + 0x10);
+    if (!name) return 0;
+    for (; entry; entry = fn_800076CC(script + 0x10, entry))
+        if (!NuStrICmp(name, *(char **)(entry + 0x18))) return entry;
+    return 0;
+}
+s32 Action_SetState(void *sys, u8 *process, void *packet, char **params, s32 count, s32 firstTime)
+{
+    if (firstTime && count)
+        *(void **)(process + 0x10) = aiFindState(params[0], *(u8 **)(process + 4));
+    return 0;
+}
+
+s32 Action_SetMoveRadius(void *sys, struct aiparamproc_s *process, u8 *packet, char **params, s32 count, s32 firstTime)
+{
+    u8 *owner;
+    if (packet && (owner = *(u8 **)(packet + 0x50)) && *(void **)(packet + 0x10c) && *(void **)(packet + 0x110) && firstTime) {
+        *(f32 *)(packet + 0x9c) = 2.0f * *(f32 *)(owner + 0xbc);
+        if (count && NuStrICmp(params[0], str_ScriptToken_Default))
+            *(f32 *)(packet + 0x9c) = aiParamFloat(process, params[0]);
+    }
+    return 1;
+}
+
+extern char lbl_8019BFE0[];
+struct aiignorebits_s { u32 pad0:17; u32 value:1; u32 pad18:14; };
+s32 Action_SetIgnoreAntinodes(void *sys, void *process, u8 *packet, char **params, s32 count, s32 firstTime)
+{
+    u8 *object = 0;
+    s32 ignore = 1;
+    s32 i;
+    char *value;
+    if (firstTime) {
+        if (packet && *(u8 **)(packet + 0x50)) object = *(u8 **)(packet + 0x50);
+        for (i = 0; i < count; i++) {
+            value = NuStrIStr(params[i], lbl_8019BFE0);
+            if (value) {
+                value += 10;
+                if (lbl_80408DA4) object = lbl_80408DA4(sys, value);
+            } else if (NuStrICmp(lbl_8019BFA0, params[0]) == 0) ignore = 0;
+        }
+        if (object) ((struct aiignorebits_s *)(object + 0x20c))->value = ignore;
+    }
+    return 1;
+}
+
+extern f32 lbl_8019C684[];
+static inline f32 aiParamFloatFace(struct aiparamproc_s *processor, char *param)
+{
+    char *cursor;
+    s32 i;
+    if (param != NULL) {
+        if (processor != NULL) {
+            cursor = NuStrIStr(param, str_ScriptToken_ParamLower);
+            if (cursor != NULL) {
+                i = NuAToI(cursor);
+                if ((u32)i < 4) return processor->script->params[i].value;
+            } else if (processor->script != NULL) {
+                for (i = 0; i < 4; i++) {
+                    if (processor->script->params[i].name != NULL &&
+                        strcasecmp(processor->script->params[i].name, param) == 0) {
+                        return processor->script->params[i].value;
+                    }
+                }
+            }
+        }
+        return fn_800077E8(param);
+    }
+    return lbl_8019C684[0];
+}
+s32 Action_FacePlayer(u8 *sys, struct aiparamproc_s *process, u8 *packet, char **params, s32 count, s32 firstTime, f32 elapsed)
+{
+    u8 *player;
+    f32 timer, zero;
+    if (!packet) return 1;
+    if (firstTime && count) process->actionTimer = aiParamFloatFace(process, params[0]);
+    player = *(u8 **)(sys + 0x1380);
+    if (player) *(void **)(packet + 0x19c) = player + 0x6c;
+    timer = process->actionTimer;
+    zero = lbl_8019C684[0];
+    if (timer > zero) {
+        timer -= elapsed;
+        process->actionTimer = timer;
+        if (timer <= zero) {
+            process->actionTimer = zero;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+struct aiturnbits_s { u32 pad0:16; u32 value:1; u32 pad17:15; };
+s32 NuAngAdd(s32, s32);
+s32 NuAngSub(s32, s32);
+extern f32 lbl_80408D54;
+extern f32 lbl_80408D58;
+
+
+void fn_80087F98(void *object, void *region, void *relative, f32 radius)
+{
+    f32 temp_f0;
+    f32 temp_f0_2;
+    f32 temp_f0_3;
+    f32 temp_f12;
+    f32 temp_f13;
+    f32 temp_f13_2;
+    f32 temp_f1;
+    f32 temp_f1_2;
+    s32 startAngle;
+    s32 endAngle;
+    s32 angle;
+    s32 var_r0;
+    s32 maxTurn;
+    s32 turn;
+    void *temp_r11;
+    void *temp_r9;
+    void *temp_r9_2;
+
+    temp_f0 = *(f32 *)((u8 *)relative + 8);
+    temp_f13 = *(f32 *)((u8 *)relative + 0);
+    if (((temp_f13 * temp_f13) + (temp_f0 * temp_f0)) < (radius * radius)) {
+        temp_f1 = *(f32 *)((u8 *)object + 0x6c) - *(f32 *)((u8 *)region + 0);
+        *(f32 *)((u8 *)relative + 0) = temp_f1;
+        temp_f13_2 = *(f32 *)((u8 *)region + 8);
+        temp_f0_2 = *(f32 *)((u8 *)object + 0x74) - temp_f13_2;
+        *(f32 *)((u8 *)relative + 8) = temp_f0_2;
+        startAngle = fn_8000ABDC(temp_f1, temp_f0_2);
+        temp_f1_2 = (*(f32 *)((s8 *)((*(void **)((s8 *)(object) + (4)))) + (0x80))) - *(f32 *)((u8 *)region + 0);
+        *(f32 *)((u8 *)relative + 0) = temp_f1_2;
+        temp_f0_3 = (*(f32 *)((s8 *)((*(void **)((s8 *)(object) + (4)))) + (0x88))) - *(f32 *)((u8 *)region + 8);
+        *(f32 *)((u8 *)relative + 8) = temp_f0_3;
+        angle = fn_8000ABDC(temp_f1_2, temp_f0_3);
+        turn = NuAngSub(angle, startAngle);
+        temp_r11 = (*(void **)((s8 *)(object) + (4)));
+        temp_f12 = *(f32 *)((u8 *)temp_r11 + 0x140);
+        if (temp_f12 > 0.0f) {
+            if ((((s32) (*(s32 *)((u8 *)temp_r11 + 0x118) & 0xC000) == 0x4000) || (*(f32 *)((u8 *)object + 0x1e8) > 1.0f)) && (temp_f12 < lbl_80408D54)) {
+                ((struct aiturnbits_s *)((u8 *)temp_r11 + 0x1a0))->value = !((struct aiturnbits_s *)((u8 *)temp_r11 + 0x1a0))->value;
+                (*(f32 *)((s8 *)((*(void **)((s8 *)(object) + (4)))) + (0x140))) = (f32) (lbl_80408D58 + lbl_80408D54);
+            }
+            if ((*(s32 *)((s8 *)((*(void **)((s8 *)(object) + (4)))) + (0x1A0))) & 0x8000) {
+                if (turn < 0) {
+                    turn += 0x10000;
+                }
+            } else if (turn > 0) {
+                turn += 0xFFFF0000;
+            }
+        } else {
+            if (turn > 0) {
+                var_r0 = *(s32 *)((u8 *)temp_r11 + 0x1a0) | 0x8000;
+            } else {
+                var_r0 = *(s32 *)((u8 *)temp_r11 + 0x1a0) & 0xFFFF7FFF;
+            }
+            *(s32 *)((u8 *)temp_r11 + 0x1a0) = var_r0;
+        }
+        if (!(*(u8 *)((u8 *)region + 0x49) & 2)) {
+            temp_r9 = (*(void **)((s8 *)(object) + (4)));
+            if (*(f32 *)((u8 *)temp_r9 + 0x140) < lbl_80408D54) {
+                *(f32 *)((u8 *)temp_r9 + 0x140) = (f32) lbl_80408D54;
+            }
+        }
+        maxTurn = (s32) ((lbl_80408CFC / radius) * 10430.378f);
+        if ((turn > maxTurn) || (maxTurn = -maxTurn, ((turn < maxTurn) != 0))) {
+            turn = maxTurn;
+        }
+        endAngle = NuAngAdd(startAngle, turn);
+        *(f32 *)((u8 *)relative + 0) = (f32) 0.0f;
+        *(f32 *)((u8 *)relative + 4) = (f32) 0.0f;
+        *(f32 *)((u8 *)relative + 8) = radius;
+        NuVecRotateY(relative, relative, endAngle);
+        (*(f32 *)((s8 *)((*(void **)((s8 *)(object) + (4)))) + (0x90))) = (f32) (*(f32 *)((u8 *)relative + 0) + *(f32 *)((u8 *)region + 0));
+        temp_r9_2 = (*(void **)((s8 *)(object) + (4)));
+        *(f32 *)((u8 *)temp_r9_2 + 0x94) = (f32) *(f32 *)((u8 *)temp_r9_2 + 0x84);
+        (*(f32 *)((s8 *)((*(void **)((s8 *)(object) + (4)))) + (0x98))) = (f32) (*(f32 *)((u8 *)relative + 8) + *(f32 *)((u8 *)region + 8));
+    }
+}
+
+struct aipointertable_s { u8 pad0[0xc]; void *entries[16]; };
+
+void fn_800868B4(void *arg0, void *arg1)
+{
+    f32 temp_f0;
+    f32 temp_f7;
+    s32 temp_r9;
+    s32 var_r7;
+    u32 temp_r10;
+    u8 temp_r11;
+    u8 temp_r9_2;
+
+    if ((arg0 != NULL) && (arg1 != NULL)) {
+        temp_r11 = (*(u8 *)((s8 *)(arg0) + (7)));
+        if (temp_r11 <= 0xFU) {
+            temp_r10 = (*(u8 *)((s8 *)(arg0) + (8)));
+            temp_r9 = temp_r11 + 1;
+            var_r7 = temp_r9 / (s32) temp_r10;
+            if (temp_r9 != (s32) (var_r7 * temp_r10)) {
+                var_r7 += 1;
+            }
+            if (var_r7 <= 4) {
+                if ((s32) temp_r11 == 0) {
+                    temp_f7 = (*(f32 *)((s8 *)(arg0) + (0x128)));
+                    (*(void **)((s8 *)(arg0) + (0))) = arg1;
+                    if (temp_f7 > 0.0f) {
+                        temp_f0 = temp_f7 * ((f32) (f64) temp_r10 - 1.0f) * 0.5f;
+                        (*(f32 *)((s8 *)(arg0) + (0x124))) = temp_f0;
+                        (*(s16 *)((s8 *)(arg0) + (4))) = (s16) (((*(f32 *)((s8 *)(arg0) + (0x130))) / (temp_f0 * 6e+01f)) * 10430.378f);
+                    } else {
+                        (*(f32 *)((s8 *)(arg0) + (0x124))) = (f32) 0.0f;
+                        (*(s16 *)((s8 *)(arg0) + (4))) = 0x64;
+                    }
+                }
+                (*(s8 *)((s8 *)(arg0) + (6))) = (s8) var_r7;
+                (*(void **)((s8 *)((*(void **)((s8 *)(arg1) + (4)))) + (0xF0))) = arg0;
+                (*(u8 *)((s8 *)((*(void **)((s8 *)(arg1) + (4)))) + (0xF4))) = (u8) (*(u8 *)((s8 *)(arg0) + (7)));
+                (*(s8 *)((s8 *)((*(void **)((s8 *)(arg1) + (4)))) + (0xF6))) = (s8) ((u8) (*(u8 *)((s8 *)(arg0) + (7))) / (u8) (*(u8 *)((s8 *)(arg0) + (8))));
+                (*(s8 *)((s8 *)((*(void **)((s8 *)(arg1) + (4)))) + (0xF5))) = (s8) ((*(u8 *)((s8 *)(arg0) + (7))) % (*(u8 *)((s8 *)(arg0) + (8))));
+                ((struct aipointertable_s *)arg0)->entries[(*(u8 *)((u8 *)arg0 + 7))++] = arg1;
+            }
+        }
+    }
+}
+
+struct aioriginobject_s {
+    u8 pad0[0x6c];
+    struct aimovevec_s position;
+    u8 pad78[0x190];
+    u32 flags208;
+};
+struct aiorigincreature_s {
+    u8 pad0[0x30];
+    struct aimovevec_s position;
+    u8 pad3c[0x6c];
+};
+struct aioriginsys_s {
+    u8 pad0[0x14];
+    struct aiorigincreature_s *creatures;
+};
+struct aioriginpacket_s {
+    u8 pad0[0x50];
+    struct aioriginobject_s *owner;
+    u8 pad54[0x52];
+    u8 index;
+};
+
+s32 Action_ResetToOrigin(struct aioriginsys_s *sys, void *process, struct aioriginpacket_s *packet)
+{
+    struct aioriginobject_s *owner = packet->owner;
+    if ((owner->flags208 & 0x400) && packet->index != 0xff) {
+        struct aiorigincreature_s *creature = sys->creatures + packet->index;
+        owner->position = creature->position;
+    }
+    return 1;
+}
+
+extern f32 lbl_8019C68C[];
+
+s32 Action_FollowPath(void *sys, void *process, void *packet, char **params, s32 count, s32 firstTime)
+{
+    s32 *owner;
+    char **param;
+    s32 remaining;
+
+    if ((packet == NULL) || (owner = (*(s32 **)((s8 *)(packet) + (0x50))), ((owner == NULL) != 0)) || ((s32) *owner == 0)) {
+        return 1;
+    }
+    if (!*(void **)((u8 *)packet + 0x10c) || !*(void **)((u8 *)packet + 0x110)) return 0;
+    {
+        if (firstTime != 0) {
+            (*(s32 *)((s8 *)(packet) + (0x13C))) = 0;
+            if (count > 0) {
+                param = params;
+                remaining = count;
+                do {
+                    if (lbl_80408D2C != NULL) {
+                        lbl_80408D2C(*param, packet + 0xB0);
+                    }
+                    param += 1;
+                    remaining -= 1;
+                } while (remaining != 0);
+            }
+        }
+        AIMoveInstruction(packet, 0, lbl_8019C68C[0], 0, 4, (*(f32 *)((s8 *)(packet) + (0x134))));
+    }
+    return 0;
+}
+
+f32 Condition_EitherPlayerInTriggerArea(u8 *sys, void *process, u8 *packet, char *params, u8 *inputArea)
+{
+    u8 *area = 0;
+    u8 *player;
+
+    if (sys) {
+        if (inputArea) area = inputArea;
+        else if (packet) area = *(u8 **)(packet + 0xf8);
+        if (area) {
+            player = *(u8 **)(sys + 0x1380);
+            if (player && (*(u64 *)(area + 0x30) & __ashldi3(1ULL, player[0x291])))
+                return lbl_8019C5E0[0];
+            if (*(u8 **)(sys + 0x1384) && (*(u64 *)(area + 0x30) & __ashldi3(1ULL, (*(u8 **)(sys + 0x1384))[0x291])))
+                return lbl_8019C5E0[0];
+        }
+    }
+    return lbl_8019C5E4[0];
+}
+
+f32 NuCosApprox(s32);
+f32 NuSinApprox(s32);
+void NuVecScale(void *, void *, f32);
+
+void fn_800881D4(void *arg0, f32 *arg1, f32 *arg2, f32 farg0)
+{
+    f32 boundary[3];
+    f32 tangent[3];
+    f32 outer[3];
+    f32 sp38[3];
+    f32 sp48[3];
+    f32 sp58[3];
+    f32 *temp_r3;
+    f32 *temp_r3_2;
+    f32 temp_f0;
+    f32 x1, x2;
+    f32 temp_f0_2;
+    f32 temp_f12;
+    f32 temp_f13;
+    f32 temp_f13_2;
+    f32 temp_f1;
+    f32 temp_f1_2;
+    f32 temp_f1_3;
+    f32 temp_f1_4;
+    f32 temp_f1_5;
+    f32 temp_f1_6;
+    f32 temp_f1_7;
+    f32 temp_f1_8;
+    f32 temp_f29;
+    f32 temp_f30;
+    f32 temp_f31;
+    s32 temp_r0;
+    s32 angle;
+    s32 temp_r0_2;
+    s32 temp_r27;
+
+    s32 temp_r9_2;
+    s32 var_r0;
+    s32 var_r31;
+    void *temp_r11;
+    void *temp_r9;
+
+    temp_f0 = (*(f32 *)((s8 *)(arg2) + (8)));
+    temp_f13 = (*(f32 *)((s8 *)(arg2) + (0)));
+    temp_f29 = (temp_f13 * temp_f13) + (temp_f0 * temp_f0);
+    if (temp_f29 < (farg0 * farg0)) {
+        temp_f13_2 = (*(f32 *)((s8 *)(arg1) + (0x44)));
+        temp_f30 = 0.0f;
+        temp_f31 = temp_f13_2 / (*(f32 *)((s8 *)(arg1) + (0x40)));
+        (*(f32 *)((s8 *)(arg2) + (4))) = temp_f30;
+        NuVecRotateY(sp38, arg2, -(*(s32 *)((s8 *)(arg1) + (0x38))));
+        temp_r27 = fn_8000ABDC(sp38[0] * temp_f31, sp38[2]);
+        temp_f1 = NuSinApprox(temp_r27);
+        outer[1] = temp_f30;
+        temp_f1_2 = temp_f1 * (*(f32 *)((s8 *)(arg1) + (0x40)));
+        outer[0] = temp_f1_2;
+        temp_f1_3 = NuCosApprox(temp_r27) * (*(f32 *)((s8 *)(arg1) + (0x44)));
+        outer[2] = temp_f1_3;
+        NuVecNorm(arg2, &outer[0]);
+        NuVecScale(arg2, arg2, (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x9C))));
+        NuVecAdd(&outer[0], &outer[0], arg2);
+        if (temp_f29 < ((outer[0] * outer[0]) + (outer[2] * outer[2]))) {
+            x1 = (*(f32 *)((s8 *)(arg0) + (0x6C))) - (*(f32 *)((s8 *)(arg1) + (0)));
+            (*(f32 *)((s8 *)(arg2) + (4))) = temp_f30;
+            (*(f32 *)((s8 *)(arg2) + (0))) = x1;
+            (*(f32 *)((s8 *)(arg2) + (8))) = (f32) ((*(f32 *)((s8 *)(arg0) + (0x74))) - (*(f32 *)((s8 *)(arg1) + (8))));
+            NuVecRotateY(sp48, arg2, -(*(s32 *)((s8 *)(arg1) + (0x38))));
+            temp_r27 = fn_8000ABDC(sp48[0] * temp_f31, sp48[2]);
+            temp_f1_4 = NuSinApprox(temp_r27);
+            boundary[1] = temp_f30;
+            temp_f1_5 = temp_f1_4 * (*(f32 *)((s8 *)(arg1) + (0x40)));
+            boundary[0] = temp_f1_5;
+            temp_f1_6 = NuCosApprox(temp_r27) * (*(f32 *)((s8 *)(arg1) + (0x44)));
+            boundary[2] = temp_f1_6;
+            NuVecNorm(arg2, &boundary[0]);
+            NuVecScale(arg2, arg2, (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x9C))));
+            NuVecAdd(&boundary[0], &boundary[0], arg2);
+            x2 = (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x80))) - (*(f32 *)((s8 *)(arg1) + (0)));
+            (*(f32 *)((s8 *)(arg2) + (4))) = temp_f30;
+            (*(f32 *)((s8 *)(arg2) + (0))) = x2;
+            (*(f32 *)((s8 *)(arg2) + (8))) = (f32) ((*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x88))) - (*(f32 *)((s8 *)(arg1) + (8))));
+            NuVecRotateY(sp58, arg2, -(*(s32 *)((s8 *)(arg1) + (0x38))));
+            angle = fn_8000ABDC(sp58[0] * temp_f31, sp58[2]);
+            var_r31 = NuAngSub(angle, temp_r27);
+            temp_r11 = (*(void **)((s8 *)(arg0) + (4)));
+            temp_f12 = (*(f32 *)((s8 *)(temp_r11) + (0x140)));
+            if (temp_f12 > temp_f30) {
+                if ((((s32) ((*(s32 *)((s8 *)(temp_r11) + (0x118))) & 0xC000) == 0x4000) || ((*(f32 *)((s8 *)(arg0) + (0x1E8))) > 1.0f)) && (temp_f12 < lbl_80408D54)) {
+                    temp_r0 = (*(s32 *)((s8 *)(temp_r11) + (0x1A0)));
+                    ((struct aiturnbits_s *)((u8 *)temp_r11 + 0x1a0))->value = !((struct aiturnbits_s *)((u8 *)temp_r11 + 0x1a0))->value;
+                    (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x140))) = (f32) (lbl_80408D58 + lbl_80408D54);
+                }
+                if ((*(s32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x1A0))) & 0x8000) {
+                    if (var_r31 < 0) {
+                        var_r31 += 0x10000;
+                    }
+                } else if (var_r31 > 0) {
+                    var_r31 += 0xFFFF0000;
+                }
+            } else {
+                if (var_r31 > 0) {
+                    var_r0 = (*(s32 *)((s8 *)(temp_r11) + (0x1A0))) | 0x8000;
+                } else {
+                    var_r0 = (*(s32 *)((s8 *)(temp_r11) + (0x1A0))) & 0xFFFF7FFF;
+                }
+                (*(s32 *)((s8 *)(temp_r11) + (0x1A0))) = var_r0;
+            }
+            if (!((*(u8 *)((s8 *)(arg1) + (0x49))) & 2)) {
+                temp_r9 = (*(void **)((s8 *)(arg0) + (4)));
+                if ((*(f32 *)((s8 *)(temp_r9) + (0x140))) < lbl_80408D54) {
+                    (*(f32 *)((s8 *)(temp_r9) + (0x140))) = (f32) lbl_80408D54;
+                }
+            }
+            temp_f1_7 = NuCosApprox(temp_r27) * (*(f32 *)((s8 *)(arg1) + (0x40)));
+            tangent[0] = temp_f1_7;
+            temp_f1_8 = -NuSinApprox(temp_r27) * (*(f32 *)((s8 *)(arg1) + (0x44)));
+            tangent[2] = temp_f1_8;
+            if (var_r31 < 0) {
+                tangent[2] = -temp_f1_8;
+                tangent[0] = -tangent[0];
+            }
+            temp_r9_2 = var_r31 >> 0x1F;
+            temp_r0_2 = (temp_r9_2 ^ var_r31) - temp_r9_2;
+            if (temp_r0_2 <= 0x71B) {
+                temp_f0_2 = (f32) (f64) temp_r0_2 / 1.82e+03f;
+                tangent[0] *= temp_f0_2;
+                tangent[2] *= temp_f0_2;
+            }
+            (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x90))) = (f32) (boundary[0] + tangent[0]);
+            (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x94))) = (f32) 0.0f;
+            (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x98))) = (f32) (boundary[2] + tangent[2]);
+            temp_r3 = (*(void **)((s8 *)(arg0) + (4))) + 0x90;
+            NuVecRotateY(temp_r3, temp_r3, (*(s32 *)((s8 *)(arg1) + (0x38))));
+            temp_r3_2 = (*(void **)((s8 *)(arg0) + (4))) + 0x90;
+            NuVecAdd(temp_r3_2, temp_r3_2, arg1);
+        }
+    }
+}
+
+f32 fn_8000ED40(f32);
+extern f32 lbl_8019C818[];
+
+void fn_800885CC(void *arg0, void *arg1, f32 *arg2, f32 farg0)
+{
+    f32 tangent[3];
+    f32 sp18[3];
+    f32 sp28[3];
+    f32 *temp_r3_2;
+    f32 temp_f0;
+    f32 x;
+    f32 sinAngle;
+    f32 cosAngle;
+    f32 temp_f0_2;
+    f32 temp_f0_3;
+    f32 temp_f12;
+    f32 temp_f12_2;
+    f32 temp_f31;
+    s32 temp_r0;
+    s32 angle;
+    s32 temp_r0_2;
+    s32 temp_r28;
+    s32 temp_r31;
+    s32 temp_r9_5;
+    s32 var_r0;
+    s32 var_r27;
+    void *temp_r11;
+    void *temp_r11_4;
+    void *temp_r11_5;
+    void *temp_r3_3;
+    void *temp_r9;
+
+    temp_f0 = (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x90))) - (*(f32 *)((s8 *)(arg1) + (0)));
+    (*(f32 *)((s8 *)(arg2) + (0))) = temp_f0;
+    if (!(temp_f0 > farg0)) {
+        temp_f12 = -farg0;
+        if (!(temp_f0 < temp_f12)) {
+            temp_f0_2 = (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x98))) - (*(f32 *)((s8 *)(arg1) + (8)));
+            (*(f32 *)((s8 *)(arg2) + (8))) = temp_f0_2;
+            if (!(temp_f0_2 > farg0) && !(temp_f0_2 < temp_f12) && !((*(f32 *)((s8 *)(arg0) + (0x18C))) > (*(f32 *)((s8 *)(arg1) + (0x18)))) && !((*(f32 *)((s8 *)(arg1) + (0x10))) > (*(f32 *)((s8 *)(arg0) + (0x198))))) {
+                NuVecRotateY(arg2, arg2, -(*(s32 *)((s8 *)(arg1) + (0x38))));
+                if ((fn_8000ED40((*(f32 *)((s8 *)(arg2) + (0)))) < ((*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x9C))) + (*(f32 *)((s8 *)(arg1) + (0x40))))) && (fn_8000ED40((*(f32 *)((s8 *)(arg2) + (8)))) < ((*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x9C))) + (*(f32 *)((s8 *)(arg1) + (0x44)))))) {
+                    temp_f31 = 0.0f;
+                    (*(f32 *)((s8 *)(arg2) + (0))) = (*(f32 *)((s8 *)(arg0) + (0x6C))) - (*(f32 *)((s8 *)(arg1) + (0)));
+                    (*(f32 *)((s8 *)(arg2) + (4))) = temp_f31;
+                    (*(f32 *)((s8 *)(arg2) + (8))) = (f32) ((*(f32 *)((s8 *)(arg0) + (0x74))) - (*(f32 *)((s8 *)(arg1) + (8))));
+                    NuVecRotateY(sp18, arg2, -(*(s32 *)((s8 *)(arg1) + (0x38))));
+                    temp_r28 = fn_8000ABDC(sp18[0], sp18[2]);
+                    x = (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x80))) - (*(f32 *)((s8 *)(arg1) + (0)));
+                    (*(f32 *)((s8 *)(arg2) + (4))) = temp_f31;
+                    (*(f32 *)((s8 *)(arg2) + (0))) = x;
+                    (*(f32 *)((s8 *)(arg2) + (8))) = (f32) ((*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x88))) - (*(f32 *)((s8 *)(arg1) + (8))));
+                    NuVecRotateY(sp28, arg2, -(*(s32 *)((s8 *)(arg1) + (0x38))));
+                    angle = fn_8000ABDC(sp28[0], sp28[2]);
+                    var_r27 = NuAngSub(angle, temp_r28);
+                    temp_r11 = (*(void **)((s8 *)(arg0) + (4)));
+                    temp_f12_2 = (*(f32 *)((s8 *)(temp_r11) + (0x140)));
+                    if (temp_f12_2 > temp_f31) {
+                        if ((((s32) ((*(s32 *)((s8 *)(temp_r11) + (0x118))) & 0xC000) == 0x4000) || ((*(f32 *)((s8 *)(arg0) + (0x1E8))) > 1.0f)) && (temp_f12_2 < lbl_80408D54)) {
+                            temp_r0 = (*(s32 *)((s8 *)(temp_r11) + (0x1A0)));
+                            ((struct aiturnbits_s *)((u8 *)temp_r11 + 0x1a0))->value = !((struct aiturnbits_s *)((u8 *)temp_r11 + 0x1a0))->value;
+                            (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x140))) = (f32) (lbl_80408D58 + lbl_80408D54);
+                        }
+                        if ((*(s32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x1A0))) & 0x8000) {
+                            if (var_r27 < 0) {
+                                var_r27 += 0x10000;
+                            }
+                        } else if (var_r27 > 0) {
+                            var_r27 += 0xFFFF0000;
+                        }
+                    } else {
+                        if (var_r27 > 0) {
+                            var_r0 = (*(s32 *)((s8 *)(temp_r11) + (0x1A0))) | 0x8000;
+                        } else {
+                            var_r0 = (*(s32 *)((s8 *)(temp_r11) + (0x1A0))) & 0xFFFF7FFF;
+                        }
+                        (*(s32 *)((s8 *)(temp_r11) + (0x1A0))) = var_r0;
+                    }
+                    if (!((*(u8 *)((s8 *)(arg1) + (0x49))) & 2)) {
+                        temp_r9 = (*(void **)((s8 *)(arg0) + (4)));
+                        if ((*(f32 *)((s8 *)(temp_r9) + (0x140))) < lbl_80408D54) {
+                            (*(f32 *)((s8 *)(temp_r9) + (0x140))) = (f32) lbl_80408D54;
+                        }
+                    }
+                    temp_r31 = fn_8000ABDC((*(f32 *)((s8 *)(arg1) + (0x40))), (*(f32 *)((s8 *)(arg1) + (0x44))));
+                    temp_r28 = NuAngAdd(temp_r28, 0);
+                    if (temp_r28 > (s32)(0x8000U - temp_r31)) {
+                        tangent[0] = -1.0f;
+                        tangent[2] = 0.0f;
+                        sinAngle = NuSinApprox(temp_r28);
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x90) = (*(f32 *)((u8 *)arg1 + 0x40) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c)) * sinAngle;
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x98) = -(*(f32 *)((u8 *)arg1 + 0x44) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c));
+                    } else if (temp_r28 > temp_r31) {
+                        tangent[0] = 0.0f;
+                        tangent[2] = -1.0f;
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x90) = *(f32 *)((u8 *)arg1 + 0x40) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c);
+                        cosAngle = NuCosApprox(temp_r28);
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x98) = (*(f32 *)((u8 *)arg1 + 0x44) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c)) * cosAngle;
+                    } else if (temp_r28 > -temp_r31) {
+                        tangent[0] = 1.0f;
+                        tangent[2] = 0.0f;
+                        sinAngle = NuSinApprox(temp_r28);
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x90) = (*(f32 *)((u8 *)arg1 + 0x40) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c)) * sinAngle;
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x98) = *(f32 *)((u8 *)arg1 + 0x44) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c);
+                    } else if (temp_r28 > temp_r31 - 0x8000) {
+                        tangent[0] = 0.0f;
+                        tangent[2] = 1.0f;
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x90) = -(*(f32 *)((u8 *)arg1 + 0x40) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c));
+                        cosAngle = NuCosApprox(temp_r28);
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x98) = (*(f32 *)((u8 *)arg1 + 0x44) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c)) * cosAngle;
+                    } else {
+                        tangent[0] = -1.0f;
+                        tangent[2] = 0.0f;
+                        sinAngle = NuSinApprox(temp_r28);
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x90) = (*(f32 *)((u8 *)arg1 + 0x40) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c)) * sinAngle;
+                        *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x98) = -(*(f32 *)((u8 *)arg1 + 0x44) + *(f32 *)(*(u8 **)((u8 *)arg0 + 4) + 0x9c));
+                    }
+                    if (var_r27 < 0) {
+                        tangent[0] = -tangent[0];
+                        tangent[2] = -tangent[2];
+                    }
+                    temp_r9_5 = var_r27 >> 0x1F;
+                    temp_r0_2 = (temp_r9_5 ^ var_r27) - temp_r9_5;
+                    if (temp_r0_2 <= 0x71B) {
+                        temp_f0_3 = (f32) (f64) temp_r0_2 / lbl_8019C818[0];
+                        tangent[0] *= temp_f0_3;
+                        tangent[2] *= temp_f0_3;
+                    }
+                    temp_r11_4 = (*(void **)((s8 *)(arg0) + (4)));
+                    (*(f32 *)((s8 *)(temp_r11_4) + (0x90))) = (f32) ((*(f32 *)((s8 *)(temp_r11_4) + (0x90))) + tangent[0]);
+                    (*(f32 *)((s8 *)((*(void **)((s8 *)(arg0) + (4)))) + (0x94))) = (f32) 0.0f;
+                    temp_r11_5 = (*(void **)((s8 *)(arg0) + (4)));
+                    (*(f32 *)((s8 *)(temp_r11_5) + (0x98))) = (f32) ((*(f32 *)((s8 *)(temp_r11_5) + (0x98))) + tangent[2]);
+                    temp_r3_2 = (*(void **)((s8 *)(arg0) + (4))) + 0x90;
+                    NuVecRotateY(temp_r3_2, temp_r3_2, (*(s32 *)((s8 *)(arg1) + (0x38))));
+                    temp_r3_3 = (*(void **)((s8 *)(arg0) + (4))) + 0x90;
+                    NuVecAdd(temp_r3_3, temp_r3_3, arg1);
+                }
+            }
+        }
+    }
 }
