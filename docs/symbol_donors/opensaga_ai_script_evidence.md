@@ -226,7 +226,9 @@ parked drafts and four untouched targets. The consumed views stay local to
   `+0x1380/+0x1384`; donor membership layout and mask direction do not transfer.
 - IgnoreAntinodes writes object `+0x20c` bit `0x4000`. Its parameter loop
   compares the false token against `params[0]`, including later iterations.
-- The unnamed region handlers use 12-byte vectors, AI pointer at object `+4`,
+- The region handlers, subsequently named
+  [AISysCheckAntinode_Circle/Ellipse/Rectangle](aisys_shape_handlers.md),
+  use 12-byte vectors, AI pointer at object `+4`,
   timer at AI `+0x140`, and the `0x8000` bit at AI `+0x1a0`. Negation of that
   one-bit field precedes the timer store. The second atan result is the first
   NuAngSub argument. The rectangle handler subsequently calls NuAngAdd with
@@ -237,5 +239,6 @@ parked drafts and four untouched targets. The consumed views stay local to
   conversion; the entry assignment postincrements the byte count.
 
 The pinned OpenSaga bodies corroborate selected control flow and geometry, not
-modern fields, flags, callbacks or completion extensions. Gameplay meanings and
-unnamed target identities remain parked; see the record's Ellie question.
+modern fields, flags, callbacks or completion extensions. The
+[antinode naming investigation](aisys_shape_handlers.md) resolves the three shape
+identities; other unnamed target identities remain parked.

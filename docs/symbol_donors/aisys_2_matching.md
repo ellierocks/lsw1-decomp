@@ -99,7 +99,9 @@ No donor source was copied.
 
 Ellie question: Do you recognize situations where characters steer around circular,
 elliptical or rectangular invisible AI boundaries? Examples would help name the
-three unnamed geometry handlers. Their gameplay names remain parked. No runtime
+three unnamed geometry handlers. Their gameplay names remained parked in this
+matching pass. The [subsequent naming investigation](aisys_shape_handlers.md)
+resolves their antinode identities and records Ellie's answers. No runtime
 session was driven and no gameplay assumption was used to justify a match.
 
 ## Workflow repair and verification
