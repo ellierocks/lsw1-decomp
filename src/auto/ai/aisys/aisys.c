@@ -2595,3 +2595,244 @@ void fn_800885CC(void *arg0, void *arg1, f32 *arg2, f32 farg0)
         }
     }
 }
+
+struct aiprocessbits_s {
+    u32 upper:17;
+    u32 initialized:1;
+    u32 mid:3;
+    u32 transient:4;
+    u32 lower:2;
+    u32 source:2;
+    u32 active:1;
+    u32 bit1:1;
+    u32 bit0:1;
+};
+
+struct aiprocessnode_s {
+    u8 pad0[0x2a];
+    u8 field2a;
+    u8 pad2b[0x2d];
+};
+
+struct aiprocesspath_s {
+    u8 pad0[0x18];
+    u8 updated[0x40];
+    u8 inside[0x20];
+    struct aiprocessnode_s *nodes;
+};
+
+struct aiprocesspacket_s {
+    u8 pad0[4];
+    void *script;
+    void *state;
+    u8 padc[0x74];
+    struct aimovevec_s destination;
+    f32 stopping;
+    struct aimovevec_s result;
+    f32 step;
+    s16 node;
+    u8 pada2[4];
+    u8 creature;
+    u8 fielda7;
+    u8 pada8[0x54];
+    u8 *locator;
+    u8 pad100[0xc];
+    struct aiprocesspath_s *path;
+    u8 *connection;
+    u32 field114;
+    u32 flags118;
+    u8 pad11c[8];
+    struct aimovevec_s position;
+    u8 pad130[8];
+    void *field138;
+    u8 pad13c[0x60];
+    u32 field19c;
+    union {
+        u32 flags;
+        struct aiprocessbits_s bits;
+    };
+    u32 flags1a4;
+    f32 radius;
+    u32 field1ac;
+    u32 field1b0;
+    u8 pad1b4[0xc];
+    f32 timeOffPath;
+};
+
+struct aiprocessowner_s {
+    u8 pad0[0x6c];
+    struct aimovevec_s position;
+    u8 pad78[0x190];
+    u32 flags208;
+    u32 flags20c;
+    u8 pad210[0x72];
+    s16 field282;
+};
+
+extern void AIPathNodeUpdatePos(void *, struct aiprocesspath_s *, struct aiprocessnode_s *);
+extern void AISysGetCharacterPathPos(void *, void *, void *, s32, s32);
+extern s32 fn_8007EBD0(void *, void *);
+extern void AIScriptProcess(void *, void *, void *, void *, f32);
+extern void fn_8008EAC4(void *, void *, void *, s32);
+extern f32 NuVecDot(void *, void *);
+extern f32 NuFdiv(f32, f32);
+extern void NuVecSub(void *, void *, void *);
+extern u8 lbl_8019C7D0[];
+extern s32 (*lbl_80408D30)(void *);
+extern s32 lbl_80408D50;
+
+void AISysProcessCharacter(void *system, struct aiprocessowner_s *object,
+    struct aiprocesspacket_s *packet, s32 checks, f32 elapsed, s32 use3d)
+{
+    struct aimovevec_s delta, movement;
+    struct aiprocesspath_s *path;
+    struct aiprocessnode_s *first, *second;
+    struct aimovevec_s *position, *destination;
+    f32 clearance, distance, step, stopping;
+    u32 flags;
+
+    if ((packet->flags & 0x20) || ((object->flags20c & 0x20000000) &&
+        (packet->flags118 & 0x8000) && object->field282 == -1)) {
+        path = packet->path;
+        if (path && packet->connection) {
+            u32 nodeIndex = packet->connection[0];
+            first = &path->nodes[nodeIndex];
+            second = &path->nodes[packet->connection[1]];
+            if (first->field2a && !((path->updated[nodeIndex >> 3] >> (nodeIndex & 7)) & 1)) {
+                AIPathNodeUpdatePos(system, path, first);
+            }
+            if (second->field2a && !((packet->path->updated[packet->connection[1] >> 3] >>
+                (packet->connection[1] & 7)) & 1)) {
+                AIPathNodeUpdatePos(system, packet->path, second);
+            }
+        }
+        if (packet->node != -1 && packet->path) {
+            s16 byteIndex = packet->node / 8;
+            s16 bitIndex = packet->node % 8;
+            packet->path->inside[byteIndex] |= 1 << bitIndex;
+        }
+        packet->timeOffPath = 0.0f;
+    } else {
+        if (packet->path) {
+            if (object->flags20c & 0x2000) {
+                AISysGetCharacterPathPos(system, object, packet, 0, checks);
+            } else {
+                AISysGetCharacterPathPos(system, object, packet, lbl_80408D50, checks);
+            }
+        } else {
+            packet->position = object->position;
+        }
+        if (packet->flags118 & 0x8000) {
+            packet->timeOffPath = 0.0f;
+        } else {
+            packet->timeOffPath += elapsed;
+        }
+    }
+    flags = packet->flags & 0xefdff7df;
+    packet->field19c = 0;
+    packet->flags = flags;
+    if (!packet->bits.initialized) {
+        void *saved = packet->state;
+        if (fn_8007EBD0(packet, lbl_8019C7D0)) {
+            AIScriptProcess(system, object, packet, packet, 0.0f);
+            fn_800838EC(packet, saved);
+        }
+        packet->flags |= 0x4000;
+    }
+    if ((object->flags20c & 0x1800000) == 0x1000000) {
+        packet->fielda7 = 0;
+        packet->field138 = 0;
+        packet->destination = object->position;
+        position = &object->position;
+        destination = &packet->destination;
+        packet->flags &= 0xfffff87f;
+        packet->flags &= ~1;
+        packet->flags1a4 &= 0x3fffffff;
+    } else {
+        if (lbl_80408D30 && lbl_80408D30(object)) return;
+        if (system && packet->script) AIScriptProcess(system, object, packet, packet, elapsed);
+        packet->field1b0 = 0;
+        packet->flags &= 0xfffff87f;
+        packet->bits.bit0 = 0;
+        packet->flags1a4 &= 0x3fffffff;
+        if (packet->bits.active) {
+            switch (packet->bits.source) {
+            case 1:
+                if (packet->creature != 0xff) {
+                    u8 *creature = *(u8 **)((u8 *)system + 0x14) + packet->creature * 0xa8;
+                    AIMoveInstruction(packet, creature + 0x30, 0.0f, creature + 0x40, 1, 0.0f);
+                }
+                break;
+            case 2:
+                if (packet->locator) AIMoveInstruction(packet, packet->locator + 0x10, 0.0f, packet->locator + 0x20, 1, 0.0f);
+                break;
+            default: packet->flags &= ~4; break;
+            }
+        }
+        fn_8008EAC4(system, packet, object, checks);
+        if (((packet->flags >> 3) & 3) && !packet->field138 && packet->radius > 0.0f &&
+            (object->flags208 & 0x400)) {
+            struct aimovevec_s *source = 0;
+            switch ((packet->flags >> 3) & 3) {
+            case 1:
+                source = (struct aimovevec_s *)(*(u8 **)((u8 *)system + 0x14) +
+                    packet->creature * 0xa8 + 0x30);
+                break;
+            case 2:
+                if (packet->locator) source = (struct aimovevec_s *)(packet->locator + 0x10);
+                break;
+            }
+            position = &object->position;
+            destination = &packet->destination;
+            if (source) {
+                distance = fn_8000CDFC(source, position, &delta);
+                if (packet->flags & 4) {
+                    if (distance < packet->radius * packet->radius) packet->flags &= ~4;
+                } else {
+                    f32 radius = packet->radius;
+                    if (distance > radius * radius) {
+                        f32 release = radius + 0.5f;
+                        if (distance > release * release) packet->flags |= 4;
+                        else {
+                            f32 zero = 0.0f;
+                            movement.x = packet->destination.x - object->position.x;
+                            movement.y = zero;
+                            movement.z = packet->destination.z - object->position.z;
+                            if (NuVecDot(&movement, &delta) < zero) {
+                                packet->destination = object->position;
+                                packet->stopping = zero;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    position = &object->position;
+    destination = &packet->destination;
+    if (packet->stopping == 0.0f) clearance = 0.0f;
+    else clearance = packet->step;
+    if (use3d) {
+        distance = NuVecDist(destination, position, &delta);
+        step = packet->step;
+        stopping = packet->stopping;
+        if (distance > clearance + step + stopping) {
+            NuVecScale(&delta, &delta, NuFdiv(step, distance));
+            NuVecAdd(&packet->result, position, &delta);
+        } else {
+            NuVecScale(&delta, &delta, NuFdiv(clearance + stopping, distance));
+            NuVecSub(&packet->result, destination, &delta);
+        }
+    } else {
+        distance = NuVecXZDist(destination, position, &delta);
+        step = packet->step;
+        stopping = packet->stopping;
+        if (distance > clearance + step + stopping) {
+            NuVecScale(&delta, &delta, NuFdiv(step, distance));
+            NuVecAdd(&packet->result, position, &delta);
+        } else {
+            NuVecScale(&delta, &delta, NuFdiv(clearance + stopping, distance));
+            NuVecSub(&packet->result, destination, &delta);
+        }
+    }
+}

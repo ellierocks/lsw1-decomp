@@ -239,3 +239,33 @@ parked drafts and four untouched targets. The consumed views stay local to
 The pinned OpenSaga bodies corroborate selected control flow and geometry, not
 modern fields, flags, callbacks or completion extensions. Gameplay meanings and
 unnamed target identities remain parked; see the record's Ellie question.
+
+## aisys-2b processor layout and ABI evidence
+
+The [follow-up record](aisys_2b_matching.md) adds a strict match for
+`AISysProcessCharacter` at `0x8008794C` (403 instructions, 1,612 bytes).
+All views remain local to the owning source unit; the shared packet header
+was not expanded from a modern donor layout.
+
+- Packet word flags are at `+0x1a0/+0x1a4`. Initialized is `0x4000`, the
+  movement gate is bit 2, and the selector occupies bits 3–4 of `+0x1a0`.
+  GC word accesses reject the donor's byte-oriented flag layout.
+- The destination/result vectors are `+0x80/+0x90`; the adjacent scalar fields
+  consumed by the movement tail are `+0x8c/+0x9c`. Both 3D and XZ tails load
+  the latter values after the distance call and pass numerator/denominator
+  to `NuFdiv` in f1/f2.
+- Packet path/connection pointers are `+0x10c/+0x110`. Path node storage is
+  `+0x78`, stride `0x58`; node byte `+0x2a` gates position refresh. Updated-node
+  and inside-node sets at path `+0x18/+0x58` use byte operations.
+- `AIPathNodeUpdatePos` consumes system, path and node (three integer arguments).
+  `AISysGetCharacterPathPos` consumes five integer arguments. The processor's
+  elapsed time occupies f1 independently of its five integer parameters.
+- Initialisation saves the packet's current state pointer at `+8`, calls the
+  Initialise lookup and script processor, and restores it through `fn_800838EC`.
+  Zero and 0.5 are literal float pools; strict verification resolves their bytes
+  to the retail references.
+- Two actual 12-byte vector locals and position/destination pointer setup at
+  the common movement tail reproduce the frame and register lifetimes.
+
+JP PC `0x004DA810` supports the Initialise flow and constants, with only 14/29
+aligned calls. Neither its offsets nor argument-count guesses were transferred.
