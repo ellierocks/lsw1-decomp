@@ -176,3 +176,27 @@ subtitle = "same source/drafts/compiler; four reciprocal-index pointer multiply 
 before = "aisys-pointer-before-2026-11-13"
 after = "aisys-pointer-after-2026-11-13"
 metrics = ["compile_error_rate"]
+
+# aisys-2: identical captured drafts and source, pointer-array byte cursor repair.
+[[cohort]]
+name = "aisys-array-before-2026-11-13"
+label = "aisys pointer-array byte cursors: before (two fixed-draft replays)"
+segments = [
+  { run = "t3-b621a640-0c411265a75bb957-1794637829", since = "2026-11-14T07:10:14.909036+00:00", until = "2026-11-14T07:10:15.300541+00:00" },
+  { run = "t3-b621a640-0c411265a75bb957-1794637829", since = "2026-11-14T07:10:15.694618+00:00", until = "2026-11-14T07:10:16.091096+00:00" },
+]
+
+[[cohort]]
+name = "aisys-array-after-2026-11-13"
+label = "aisys pointer-array byte cursors: after (two fixed-draft replays)"
+segments = [
+  { run = "t3-b621a640-0c411265a75bb957-1794637829", since = "2026-11-14T07:10:15.300886+00:00", until = "2026-11-14T07:10:15.693654+00:00" },
+  { run = "t3-b621a640-0c411265a75bb957-1794637829", since = "2026-11-14T07:10:16.091491+00:00", until = "2026-11-14T07:10:16.485718+00:00" },
+]
+
+[[comparison]]
+title = "aisys pointer-array byte cursor repair"
+subtitle = "same source/drafts/compiler; exact instructions 240 to 248, no new strict matches"
+before = "aisys-array-before-2026-11-13"
+after = "aisys-array-after-2026-11-13"
+metrics = ["compile_error_rate"]

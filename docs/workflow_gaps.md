@@ -641,3 +641,26 @@ Before → after: markers needed 1+ → 0. On the `Action_SetViewDistance` draft
 found 3 runs (8 variants, 0 compile errors), and `best.c` went from the 1,992-line unit to
 the 76-line definition, which scores the same through `--body`. Tests: `AutoBlockTests` in
 `tests/test_order_search.py`.
+
+## 27. Pointer-array cursors retained byte displacements
+
+The raw `fn_80088CD8` and `fn_8008911C` drafts inferred `void **` cursors but
+retained PPC byte steps (`+= 4`) and byte offsets inside explicit word accesses.
+C then scaled those displacements by another four. Ordinary pointer indexing
+was already correct.
+
+The speculative `pointer_array_bytes` final-stage repair tries a four-byte
+cursor step as one element and inserts a byte-pointer cast beneath explicit
+word accesses. Other step sizes and ordinary indexing stay intact. The existing
+strict scorer decides whether to retain the alternative; verification is unchanged.
+
+Before → after, replaying two captured drafts against the same source/compiler:
+`fn_8008911C` 97 → 104/201 exact instructions; `fn_80088CD8` 143 → 144/273.
+Combined: 240 → 248 exact, compile errors 0 → 0, strict matches 0 → 0.
+The affected sweep was rerun with `--apply`: no strict matches were available.
+This is draft improvement, not eight matched instructions or a throughput claim.
+See the [measurement](workflow_metrics.md#pointer-array-byte-cursor-repair).
+
+Tests: `tests/test_sweep_pointer_arrays.py` covers captured cursor/offset forms,
+idempotence, decimal/hex steps, and preservation of normal indexing and unrelated
+arithmetic. Disabling the repair makes the captured regression fail.

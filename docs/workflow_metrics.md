@@ -200,6 +200,28 @@ Two fixes during the run changed the figures above:
   cut at 19:30 like the others. Sol park recovery is now 64.7% (11 / 17), up from 52.9%,
   because later passes matched two more leftovers.
 
+## Pointer-array byte cursor repair
+
+The aisys-2 controlled replay holds both captured drafts, the surrounding source,
+and ProDG 3.9.3 fixed. Only the speculative pointer-array repair changes. Cohorts
+`aisys-array-before-2026-11-13` and `aisys-array-after-2026-11-13` contain two scores
+each, with narrow timestamp windows excluding manual matching work.
+
+| Measure | Before → after |
+|---|---|
+| Exact instructions, two drafts | 240 → 248 |
+| Compile-error rate of scored attempts | 0% → **0%** |
+| New strict matches | 0 → 0 |
+
+The individual scores are 97 → 104/201 (`fn_8008911C`) and 143 → 144/273
+(`fn_80088CD8`). The affected sweep was rerun; it produced no strict matches.
+The sweep retained the repaired alternative for `fn_8008911C`; its score ordering
+preferred a different alternative for `fn_80088CD8`. Eight more exact instruction
+positions in mismatching drafts are not matching progress. Fixed-candidate replays
+do not measure matching throughput. The source additions elsewhere in the unit
+also changed the broad sweep comparison, so that comparison is not the controlled
+measurement. See [gap 27](workflow_gaps.md#27-pointer-array-cursors-retained-byte-displacements).
+
 ## Recording a change
 
 1. Before changing the workflow, find the runs it will affect and note the current value

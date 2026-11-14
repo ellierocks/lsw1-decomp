@@ -209,3 +209,33 @@ do not transfer. GC Idle's fallback uses `params[0]`, not donor `params[i]`.
 The Japanese PC pair limits and seven unfinished structural hypotheses are
 retained in the matching record. Unknown gameplay meanings remain unnamed;
 no gameplay naming inference or runtime driving was needed.
+
+## aisys-2 target-derived layout and ABI evidence
+
+The [matching record](aisys_2_matching.md) retains twelve strict matches, five
+parked drafts and four untouched targets. The consumed views stay local to
+`src/auto/ai/aisys/aisys.c`; no shared header layout was expanded.
+
+- State lookup traverses script `+0x10`, compares names at entry `+0x18`, and
+  stores the next state at processor `+0x10`.
+- ResetToOrigin copies a 12-byte vector from creature `+0x30` to object `+0x6c`.
+  The creature stride is `0xa8`, system array pointer `+0x14`, packet index
+  byte `+0xa6`, and object gate is word `+0x208` bit `0x400`.
+- EitherPlayerInTriggerArea intersects the area mask at `+0x30` with a 64-bit
+  one shifted by object byte `+0x291`. The system player pointers are
+  `+0x1380/+0x1384`; donor membership layout and mask direction do not transfer.
+- IgnoreAntinodes writes object `+0x20c` bit `0x4000`. Its parameter loop
+  compares the false token against `params[0]`, including later iterations.
+- The unnamed region handlers use 12-byte vectors, AI pointer at object `+4`,
+  timer at AI `+0x140`, and the `0x8000` bit at AI `+0x1a0`. Negation of that
+  one-bit field precedes the timer store. The second atan result is the first
+  NuAngSub argument. The rectangle handler subsequently calls NuAngAdd with
+  the first angle and literal zero. Trig calls finish before reloading the
+  destination AI pointer. Vector normalization has a void result in the local ABI.
+- The unnamed pointer-table helper has 16 entries starting at `+0xc`, count
+  byte `+7` and divisor byte `+8`. Its unsigned divisor also feeds the floating
+  conversion; the entry assignment postincrements the byte count.
+
+The pinned OpenSaga bodies corroborate selected control flow and geometry, not
+modern fields, flags, callbacks or completion extensions. Gameplay meanings and
+unnamed target identities remain parked; see the record's Ellie question.

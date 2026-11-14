@@ -298,7 +298,7 @@ functions = [
   "fn_8008911C",
   "AISysCharacterTestPathCnx",
 ]
-note = "OpenSaga leads; include/game/ai.h."
+note = "12 more strict VERIFIED (4,936 B); 9 remain. See docs/symbol_donors/aisys_2_matching.md; include/game/ai.h."
 # at revision 1: 33 functions, 20,652 bytes left
 
 [[stage.item]]
